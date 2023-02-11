@@ -21,16 +21,18 @@ package harmony.collections;
 
 import java.util.*;
 
+import static org.junit.Assert.assertNotEquals;
 
-public class HarmonyHarmonyAbstractMapTest extends junit.framework.TestCase {
 
-    static final String specialKey = "specialKey".intern();
+public class HarmonyAbstractMapTest extends junit.framework.TestCase {
 
-    static final String specialValue = "specialValue".intern();
+    static final String specialKey = "specialKey";
+
+    static final String specialValue = "specialValue";
 
     // The impl of MyMap is not realistic, but serves to create a type
     // that uses the default remove behavior.
-    class MyMap extends HarmonyAbstractMap {
+    static class MyMap extends HarmonyAbstractMap {
         final Set mySet = new HashSet(1);
 
         MyMap() {
@@ -129,7 +131,7 @@ public class HarmonyHarmonyAbstractMapTest extends junit.framework.TestCase {
         }
     }
 
-    class MocHarmonyAbstractMap<K, V> extends HarmonyAbstractMap {
+    static class MocHarmonyAbstractMap<K, V> extends HarmonyAbstractMap {
 
         public Set entrySet() {
             Set set = new MySet();
@@ -223,7 +225,7 @@ public class HarmonyHarmonyAbstractMapTest extends junit.framework.TestCase {
      */
     public void test_clone() {
         class MyMap extends HarmonyAbstractMap implements Cloneable {
-            private Map map = new HarmonyHashMap();
+            private final Map map = new HarmonyHashMap();
 
             public Set entrySet() {
                 return map.entrySet();
@@ -245,17 +247,16 @@ public class HarmonyHarmonyAbstractMapTest extends junit.framework.TestCase {
                 }
             }
         }
-        ;
         MyMap map = new MyMap();
         map.put("one", "1");
         Map.Entry entry = (Map.Entry) map.entrySet().iterator().next();
         assertTrue("entry not added", entry.getKey() == "one"
                 && entry.getValue() == "1");
         MyMap mapClone = (MyMap) map.clone();
-        assertTrue("clone not shallow", map.getMap() == mapClone.getMap());
+        assertSame("clone not shallow", map.getMap(), mapClone.getMap());
     }
 
-    public class AMT extends HarmonyAbstractMap {
+    public static class AMT extends HarmonyAbstractMap {
 
         // Very crude HarmonyAbstractMap implementation
         Vector values = new Vector();
@@ -275,9 +276,9 @@ public class HarmonyHarmonyAbstractMapTest extends junit.framework.TestCase {
                         public Object next() {
                             if (index < values.size()) {
                                 Map.Entry me = new Map.Entry() {
-                                    Object v = values.elementAt(index);
+                                    final Object v = values.elementAt(index);
 
-                                    Object k = keys.elementAt(index);
+                                    final Object k = keys.elementAt(index);
 
                                     public Object getKey() {
                                         return k;
@@ -327,20 +328,20 @@ public class HarmonyHarmonyAbstractMapTest extends junit.framework.TestCase {
     }
 
     public void testEqualsWithNullValues() {
-        Map<String, String> a = new HarmonyHashMap<String, String>();
+        Map<String, String> a = new HarmonyHashMap<>();
         a.put("a", null);
         a.put("b", null);
 
-        Map<String, String> b = new HarmonyHashMap<String, String>();
+        Map<String, String> b = new HarmonyHashMap<>();
         a.put("c", "cat");
         a.put("d", "dog");
 
-        assertFalse(a.equals(b));
-        assertFalse(b.equals(a));
+        assertNotEquals(a, b);
+        assertNotEquals(b, a);
     }
 
     public void testNullsOnViews() {
-        Map<String, String> nullHostile = new Hashtable<String, String>();
+        Map<String, String> nullHostile = new Hashtable<>();
 
         nullHostile.put("a", "apple");
         testNullsOnView(nullHostile.entrySet());
@@ -355,25 +356,25 @@ public class HarmonyHarmonyAbstractMapTest extends junit.framework.TestCase {
     private void testNullsOnView(Collection<?> view) {
         try {
             assertFalse(view.contains(null));
-        } catch (NullPointerException optional) {
+        } catch (NullPointerException ignored) {
         }
 
         try {
             assertFalse(view.remove(null));
-        } catch (NullPointerException optional) {
+        } catch (NullPointerException ignored) {
         }
 
         Set<Object> setOfNull = Collections.singleton(null);
-        assertFalse(view.equals(setOfNull));
+        assertNotEquals(view, setOfNull);
 
         try {
             assertFalse(view.removeAll(setOfNull));
-        } catch (NullPointerException optional) {
+        } catch (NullPointerException ignored) {
         }
 
         try {
             assertTrue(view.retainAll(setOfNull)); // destructive
-        } catch (NullPointerException optional) {
+        } catch (NullPointerException ignored) {
         }
     }
 

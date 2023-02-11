@@ -14,14 +14,8 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
- 
-// The origin of this file is Apache Harmony SVN repository,
-// location: classlib/modules/luni/src/main/java/java/util
-// checked out Dec 3, 2022.
-package harmony.collections;
 
-import com.sun.source.tree.Tree;
-import statechum.collections.MapWithSearch;
+package harmony.collections;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -30,99 +24,34 @@ import java.io.Serializable;
 import java.util.*;
 
 /**
- * TreeMapWithSearch is an implementation of SortedMap. All optional operations (adding
+ * HarmonyTreeMap is an implementation of SortedMap. All optional operations (adding
  * and removing) are supported. The values can be any objects. The keys can be
  * any objects which are comparable to each other either using their natural
  * order or a specified Comparator.
  *
  * @since 1.2
  */
-public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, V> implements SortedMap<K, V>, MapWithSearch<I,K,V>,
+public class HarmonyTreeMap <K, V> extends HarmonyAbstractMap<K, V> implements SortedMap<K, V>,
                                                         Cloneable, Serializable {
     private static final long serialVersionUID = 919286545866124006L;
 
     transient int size;
 
-    private Comparator<? super I> comparator;
+    private Comparator<? super K> comparator;
 
     transient int modCount;
 
     transient Set<Entry<K, V>> entrySet;
 
-    transient Node<I, K, V> root;
-
-    @Override
-    public boolean expectsConvertibleToInt() {
-        return false;
-    }
-
-    /** The implementation is a clone of the get() method but modified to return a key rather than the value. */
-    @Override
-    public K findKey(I key) {
-        if (key == null)
-            return null;// we never store null keys.
-
-        Comparable<I> object = comparator == null ? toComparable(key) : null;
-        Node<I, K, V> node = root;
-        while (node != null) {
-            K[] keys = node.keys;
-            int left_idx = node.left_idx;
-            int result = cmp(object, key, keys[left_idx]);
-            if (result < 0) {
-                node = node.left;
-            } else if (result == 0) {
-                return node.keys[left_idx];
-            } else {
-                int right_idx = node.right_idx;
-                if (left_idx != right_idx) {
-                    result = cmp(object, key, keys[right_idx]);
-                }
-                if (result > 0) {
-                    node = node.right;
-                } else if (result == 0) {
-                    return node.keys[right_idx];
-                } else { /*search in node*/
-                    int low = left_idx + 1, mid = 0, high = right_idx - 1;
-                    while (low <= high) {
-                        mid = (low + high) >>> 1;
-                        result = cmp(object, key, keys[mid]);
-                        if (result > 0) {
-                            low = mid + 1;
-                        } else if (result == 0) {
-                            return node.keys[mid];
-                        } else {
-                            high = mid - 1;
-                        }
-                    }
-                    return null;
-                }
-            }
-        }
-        return null;
-    }
-
-    @Override
-    public Set<Entry<K, V>> getTreeEntrySet() {
-        return entrySet();
-    }
-
-    @Override
-    public Set<Entry<K, V>> getPotentiallyOrderedEntrySet(boolean ordered) {
-        return entrySet();
-    }
-
-    @Override
-    public Set<K> getPotentiallyOrderedKeySet(boolean ordered) {
-        return keySet();
-    }
-
-    class MapEntry implements Map.Entry<K, V>, Cloneable {
+    transient Node<K, V> root;
+    
+class MapEntry implements Map.Entry<K, V>, Cloneable {
 		
 		final int offset;
-		final Node<I, K, V> node;
+		final Node<K, V> node;
 		final K key;
 		
-	    MapEntry(Node<I, K, V> node, int offset) {
+	    MapEntry(Node<K, V> node, int offset) {
 	    	this.node = node;
 	    	this.offset = offset;
 	    	key = node.keys[offset];
@@ -192,10 +121,10 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
 	    }
 	}
 
-    static class Node <I, K extends I,V> implements Cloneable {
+    static class Node <K,V> implements Cloneable {
         static final int NODE_SIZE = 64;
-        Node<I, K, V> prev, next;
-        Node<I, K, V> parent, left, right;
+        Node<K, V> prev, next;
+        Node<K, V> parent, left, right;
         V[] values;
         K[] keys;
         int left_idx = 0;
@@ -203,15 +132,14 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         int size = 0;
         boolean color;
 
-        @SuppressWarnings("unchecked")
         public Node() {
             keys = (K[]) new Object[NODE_SIZE];
             values = (V[]) new Object[NODE_SIZE];
         }
 
         @SuppressWarnings("unchecked")
-        Node<I, K, V> clone(Node<I, K, V> parent) throws CloneNotSupportedException {
-            Node<I, K, V> clone = (Node<I, K, V>) super.clone();
+        Node<K, V> clone(Node<K, V> parent) throws CloneNotSupportedException {
+            Node<K, V> clone = (Node<K, V>) super.clone();
             clone.keys   = (K[]) new Object[NODE_SIZE];
             clone.values = (V[]) new Object[NODE_SIZE];
             System.arraycopy(keys,   0, clone.keys,   0, keys.length);
@@ -232,34 +160,34 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
     }
 
     @SuppressWarnings("unchecked")
-     private static <I> Comparable<I> toComparable(I obj) {
+     private static <T> Comparable<T> toComparable(T obj) {
         if (obj == null) {
             throw new NullPointerException();
         }
-        return (Comparable<I>) obj;
+        return (Comparable) obj;
     }
 
-    static class AbstractMapIterator <I,K extends I,V> {
-        TreeMapWithSearch<I, K, V> backingMap;
+    static class HarmonyAbstractMapIterator <K,V> {
+        HarmonyTreeMap<K, V> backingMap;
         int expectedModCount;
-        Node<I, K, V> node;
-        Node<I, K, V> lastNode;
+        Node<K, V> node;
+        Node<K, V> lastNode;
         int offset;
         int lastOffset;
 
-        AbstractMapIterator(TreeMapWithSearch<I, K, V> map, Node<I, K, V> startNode, int startOffset) {
+        HarmonyAbstractMapIterator(HarmonyTreeMap<K, V> map, Node<K, V> startNode, int startOffset) {
             backingMap = map;
             expectedModCount = map.modCount;
             node = startNode;
             offset = startOffset;
         }
 
-        AbstractMapIterator(TreeMapWithSearch<I, K, V> map, Node<I, K, V> startNode) {
+        HarmonyAbstractMapIterator(HarmonyTreeMap<K, V> map, Node<K, V> startNode) {
             this(map, startNode, startNode != null ?
                                  startNode.right_idx - startNode.left_idx : 0);
         }
 
-        AbstractMapIterator(TreeMapWithSearch<I, K, V> map) {
+        HarmonyAbstractMapIterator(HarmonyTreeMap<K, V> map) {
             this(map, minimum(map.root));
         }
 
@@ -285,7 +213,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             }
         }
 
-        public void remove() {
+        final public void remove() {
             if (expectedModCount == backingMap.modCount) {
                 if (lastNode != null) {
                     int idx = lastNode.right_idx - lastOffset;
@@ -300,33 +228,15 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             }
         }
     }
-    private static abstract class IteratorNoModification<I, K extends I, V> extends AbstractMapIterator<I, K, V> {
 
-        IteratorNoModification(TreeMapWithSearch<I, K, V> map, Node<I, K, V> startNode, int startOffset) {
-            super(map, startNode, startOffset);
-        }
-
-        IteratorNoModification(TreeMapWithSearch<I, K, V> map, Node<I, K, V> startNode) {
-            super(map, startNode);
-        }
-
-        IteratorNoModification(TreeMapWithSearch<I, K, V> map) {
-            super(map);
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException("modification of iterator is not allowed for HashMapWithSearch");
-        }
-    }
-    static class UnboundedEntryIterator <I, K extends I, V> extends IteratorNoModification<I, K, V>
+    static class UnboundedEntryIterator <K, V> extends HarmonyAbstractMapIterator<K, V>
                                             implements Iterator<Map.Entry<K, V>> {
 
-        UnboundedEntryIterator(TreeMapWithSearch<I, K, V> map, Node<I, K, V> startNode, int startOffset) {
+        UnboundedEntryIterator(HarmonyTreeMap<K, V> map, Node<K, V> startNode, int startOffset) {
             super(map, startNode, startOffset);
         }
 
-        UnboundedEntryIterator(TreeMapWithSearch<I, K, V> map) {
+        UnboundedEntryIterator(HarmonyTreeMap<K, V> map) {
             super(map);
         }
 
@@ -337,14 +247,14 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    static class UnboundedKeyIterator <I, K extends I, V> extends AbstractMapIterator<I, K, V>
+    static class UnboundedKeyIterator <K, V> extends HarmonyAbstractMapIterator<K, V>
                                                           implements Iterator<K> {
 
-        UnboundedKeyIterator(TreeMapWithSearch<I, K, V> map, Node<I, K, V> startNode, int startOffset) {
+        UnboundedKeyIterator(HarmonyTreeMap<K, V> map, Node<K, V> startNode, int startOffset) {
             super(map, startNode, startOffset);
         }
 
-        UnboundedKeyIterator(TreeMapWithSearch<I, K, V> map) {
+        UnboundedKeyIterator(HarmonyTreeMap<K, V> map) {
             super(map);
         }
 
@@ -352,24 +262,16 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             makeNext();
             return lastNode.keys[lastNode.right_idx - lastOffset];
         }
-
-        @Override
-        public void remove() {
-            if (lastNode == null)
-                throw new IllegalStateException("next was not yet called");
-            super.remove();
-            //expectedModCount = modCount;// to permit more than a single remove to take place consecutively
-        }
     }
 
-    static class UnboundedValueIterator <I, K extends I, V> extends IteratorNoModification<I, K, V>
+    static class UnboundedValueIterator <K, V> extends HarmonyAbstractMapIterator<K, V>
                                                           implements Iterator<V> {
 
-        UnboundedValueIterator(TreeMapWithSearch<I, K, V> map, Node<I, K, V> startNode, int startOffset) {
+        UnboundedValueIterator(HarmonyTreeMap<K, V> map, Node<K, V> startNode, int startOffset) {
             super(map, startNode, startOffset);
         }
 
-        UnboundedValueIterator(TreeMapWithSearch<I, K, V> map) {
+        UnboundedValueIterator(HarmonyTreeMap<K, V> map) {
             super(map);
         }
 
@@ -379,27 +281,27 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    static class BoundedMapIterator <I, K extends I, V> extends AbstractMapIterator<I, K, V> {
+    static class BoundedMapIterator <K, V> extends HarmonyAbstractMapIterator<K, V> {
 
-        Node<I, K, V> finalNode;
+        Node<K, V> finalNode;
         int finalOffset;
 
-        BoundedMapIterator(Node<I, K, V> startNode, int startOffset, TreeMapWithSearch<I, K, V> map,
-                           Node<I, K, V> finalNode, int finalOffset) {
+        BoundedMapIterator(Node<K, V> startNode, int startOffset, HarmonyTreeMap<K, V> map,
+                           Node<K, V> finalNode, int finalOffset) {
             super(map, finalNode==null? null : startNode, startOffset);
             this.finalNode = finalNode;
             this.finalOffset = finalOffset;
         }
 
-        BoundedMapIterator(Node<I, K, V> startNode, TreeMapWithSearch<I, K, V> map,
-                           Node<I, K, V> finalNode, int finalOffset) {
+        BoundedMapIterator(Node<K, V> startNode, HarmonyTreeMap<K, V> map,
+                           Node<K, V> finalNode, int finalOffset) {
             this(startNode, startNode != null ?
                             startNode.right_idx - startNode.left_idx : 0,
                             map, finalNode, finalOffset);
         }
 
-        BoundedMapIterator(Node<I, K, V> startNode, int startOffset,
-                           TreeMapWithSearch<I, K, V> map, Node<I, K, V> finalNode) {
+        BoundedMapIterator(Node<K, V> startNode, int startOffset,
+                           HarmonyTreeMap<K, V> map, Node<K, V> finalNode) {
             this(startNode, startOffset, map, finalNode,
                          finalNode.right_idx - finalNode.left_idx);
         }
@@ -412,11 +314,11 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    static class BoundedEntryIterator <I, K extends I, V> extends BoundedMapIterator<I, K, V>
+    static class BoundedEntryIterator <K, V> extends BoundedMapIterator<K, V>
                                           implements Iterator<Map.Entry<K, V>> {
 
-        public BoundedEntryIterator(Node<I, K, V> startNode, int startOffset, TreeMapWithSearch<I, K, V> map,
-                                    Node<I, K, V> finalNode, int finalOffset) {
+        public BoundedEntryIterator(Node<K, V> startNode, int startOffset, HarmonyTreeMap<K, V> map,
+                                    Node<K, V> finalNode, int finalOffset) {
             super(startNode, startOffset, map, finalNode, finalOffset);
         }
 
@@ -427,11 +329,11 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    static class BoundedKeyIterator <I, K extends I, V> extends BoundedMapIterator<I, K, V>
+    static class BoundedKeyIterator <K, V> extends BoundedMapIterator<K, V>
                                                      implements Iterator<K> {
 
-        public BoundedKeyIterator(Node<I, K, V> startNode, int startOffset, TreeMapWithSearch<I, K, V> map,
-                                  Node<I, K, V> finalNode, int finalOffset) {
+        public BoundedKeyIterator(Node<K, V> startNode, int startOffset, HarmonyTreeMap<K, V> map,
+                                  Node<K, V> finalNode, int finalOffset) {
             super(startNode, startOffset, map, finalNode, finalOffset);
         }
 
@@ -441,11 +343,11 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    static class BoundedValueIterator <I, K extends I, V> extends BoundedMapIterator<I, K, V>
+    static class BoundedValueIterator <K, V> extends BoundedMapIterator<K, V>
                                                        implements Iterator<V> {
 
-        public BoundedValueIterator(Node<I, K, V> startNode, int startOffset, TreeMapWithSearch<I, K, V> map,
-                                    Node<I, K, V> finalNode, int finalOffset) {
+        public BoundedValueIterator(Node<K, V> startNode, int startOffset, HarmonyTreeMap<K, V> map,
+                                    Node<K, V> finalNode, int finalOffset) {
             super(startNode, startOffset, map, finalNode, finalOffset);
         }
 
@@ -455,36 +357,36 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    static final class SubMap <I, K extends I,V> extends HarmonyAbstractMap<K, V>
+    static final class SubMap <K,V> extends HarmonyAbstractMap<K, V>
                                  implements SortedMap<K, V>, Serializable {
         private static final long serialVersionUID = -6520786458950516097L;
 
-        private final TreeMapWithSearch<I, K, V> backingMap;
+        private HarmonyTreeMap<K, V> backingMap;
 
         boolean hasStart, hasEnd;
         K startKey, endKey;
         transient Set<Map.Entry<K, V>> entrySet = null;
         transient int firstKeyModCount = -1;
         transient int lastKeyModCount = -1;
-        transient Node<I, K, V> firstKeyNode;
+        transient Node<K, V> firstKeyNode;
         transient int firstKeyIndex;
-        transient Node<I, K, V> lastKeyNode;
+        transient Node<K, V> lastKeyNode;
         transient int lastKeyIndex;
 
-        SubMap(K start, TreeMapWithSearch<I, K, V> map) {
+        SubMap(K start, HarmonyTreeMap<K, V> map) {
             backingMap = map;
             hasStart = true;
             startKey = start;
         }
 
-        SubMap(K start, TreeMapWithSearch<I, K, V> map, K end) {
+        SubMap(K start, HarmonyTreeMap<K, V> map, K end) {
             backingMap = map;
             hasStart = hasEnd = true;
             startKey = start;
             endKey = end;
         }
 
-        SubMap(TreeMapWithSearch<I, K, V> map, K end) {
+        SubMap(HarmonyTreeMap<K, V> map, K end) {
             backingMap = map;
             hasEnd = true;
             endKey = end;
@@ -603,11 +505,11 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             if (firstKeyModCount == backingMap.modCount) {
                 return;
             }
-            Comparable<I> object = backingMap.comparator == null ?
+            Comparable<K> object = backingMap.comparator == null ?
                                    toComparable(startKey) : null;
             K key = startKey;
-            Node<I, K, V> node = backingMap.root;
-            Node<I, K, V> foundNode = null;
+            Node<K, V> node = backingMap.root;
+            Node<K, V> foundNode = null;
             int foundIndex = -1;
             TOP_LOOP:
             while (node != null) {
@@ -667,7 +569,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         public K firstKey() {
             if (backingMap.size > 0) {
                 if (!hasStart) {
-                    Node<I, K, V> node = minimum(backingMap.root);
+                    Node<K, V> node = minimum(backingMap.root);
                     if (node != null && checkUpperBound(node.keys[node.left_idx])) {
                         return node.keys[node.left_idx];
                     }
@@ -722,11 +624,11 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             if (lastKeyModCount == backingMap.modCount) {
                 return;
             }
-            Comparable<I> object = backingMap.comparator == null ?
+            Comparable<K> object = backingMap.comparator == null ?
                                    toComparable(endKey) : null;
             K key = endKey;
-            Node<I, K, V> node = backingMap.root;
-            Node<I, K, V> foundNode = null;
+            Node<K, V> node = backingMap.root;
+            Node<K, V> foundNode = null;
             int foundIndex = -1;
             TOP_LOOP:
             while (node != null) {
@@ -789,7 +691,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         public K lastKey() {
             if (backingMap.size > 0) {
                 if (!hasEnd) {
-                    Node<I, K, V> node = maximum(backingMap.root);
+                    Node<K, V> node = maximum(backingMap.root);
                     if (node != null && checkLowerBound(node.keys[node.right_idx])) {
                         return node.keys[node.right_idx];
                     }
@@ -854,7 +756,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
 
         public int size() {
-            Node<I, K, V> from, to;
+            Node<K, V> from, to;
             int fromIndex, toIndex;
             if (hasStart) {
                 setFirstKey();
@@ -898,11 +800,11 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    static class SubMapEntrySet <I,K extends I,V> extends AbstractSet<Map.Entry<K, V>>
+    static class SubMapEntrySet <K,V> extends AbstractSet<Map.Entry<K, V>>
                                                 implements Set<Map.Entry<K, V>> {
-        SubMap<I, K, V> subMap;
+        SubMap<K, V> subMap;
 
-        SubMapEntrySet(SubMap<I, K, V> map) {
+        SubMapEntrySet(SubMap<K, V> map) {
             subMap = map;
         }
 
@@ -912,7 +814,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
 
         public Iterator<Map.Entry<K, V>> iterator() {
-            Node<I, K, V> from;
+            Node<K, V> from;
             int fromIndex;
             if (subMap.hasStart) {
                 subMap.setFirstKey();
@@ -926,7 +828,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                 return new UnboundedEntryIterator<>(subMap.backingMap, from, from == null ? 0 : from.right_idx - fromIndex);
             }
             subMap.setLastKey();
-            Node<I, K, V> to = subMap.lastKeyNode;
+            Node<K, V> to = subMap.lastKeyNode;
             int toIndex = subMap.lastKeyIndex;
             return new BoundedEntryIterator<>(from, from == null ? 0 : from.right_idx - fromIndex, subMap.backingMap, to, to == null ? 0 : to.right_idx - toIndex);
         }
@@ -953,7 +855,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         @Override
         public boolean remove(Object object) {
             if (contains(object)) {
-                @SuppressWarnings("unchecked") Map.Entry<K, V> entry = (Map.Entry<K, V>) object;
+                Map.Entry<K, V> entry = (Map.Entry<K, V>) object;
                 K key = entry.getKey();
                 subMap.remove(key);
                 return true;
@@ -962,10 +864,10 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    static class SubMapKeySet <I,K extends I,V> extends AbstractSet<K> implements Set<K> {
-        SubMap<I, K, V> subMap;
+    static class SubMapKeySet <K,V> extends AbstractSet<K> implements Set<K> {
+        SubMap<K, V> subMap;
 
-        SubMapKeySet(SubMap<I, K, V> map) {
+        SubMapKeySet(SubMap<K, V> map) {
             subMap = map;
         }
 
@@ -994,7 +896,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
 
         public Iterator<K> iterator() {
-            Node<I, K, V> from;
+            Node<K, V> from;
             int fromIndex;
             if (subMap.hasStart) {
                 subMap.setFirstKey();
@@ -1009,7 +911,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                         from == null ? 0 : from.right_idx - fromIndex);
             }
             subMap.setLastKey();
-            Node<I, K, V> to = subMap.lastKeyNode;
+            Node<K, V> to = subMap.lastKeyNode;
             int toIndex = subMap.lastKeyIndex;
             return new BoundedKeyIterator<>(from,
                     from == null ? 0 : from.right_idx - fromIndex, subMap.backingMap, to,
@@ -1017,10 +919,10 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    static class SubMapValuesCollection <I,K extends I,V> extends AbstractCollection<V> {
-        SubMap<I, K, V> subMap;
+    static class SubMapValuesCollection <K,V> extends AbstractCollection<V> {
+        SubMap<K, V> subMap;
 
-        public SubMapValuesCollection(SubMap<I, K, V> subMap) {
+        public SubMapValuesCollection(SubMap<K, V> subMap) {
             this.subMap = subMap;
         }
 
@@ -1031,7 +933,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
 
         @Override
         public Iterator<V> iterator() {
-            Node<I, K, V> from;
+            Node<K, V> from;
             int fromIndex;
             if (subMap.hasStart) {
                 subMap.setFirstKey();
@@ -1046,7 +948,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                         from == null ? 0 : from.right_idx - fromIndex);
             }
             subMap.setLastKey();
-            Node<I, K, V> to = subMap.lastKeyNode;
+            Node<K, V> to = subMap.lastKeyNode;
             int toIndex = subMap.lastKeyIndex;
             return new BoundedValueIterator<>(from,
                     from == null ? 0 : from.right_idx - fromIndex, subMap.backingMap, to,
@@ -1060,31 +962,24 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
     }
 
     /**
-     * Constructs a new empty {@code TreeMapWithSearch} instance.
+     * Constructs a new empty {@code HarmonyTreeMap} instance.
      */
-    public TreeMapWithSearch() {
+    public HarmonyTreeMap() {
     }
 
     /**
-     * Constructs an empty {@code TreeMapWithSearch} instance.
-     * @param size ignored
-     */
-    public TreeMapWithSearch(int size) {
-    }
-
-    /**
-     * Constructs a new empty {@code TreeMapWithSearch} instance with the specified
+     * Constructs a new empty {@code HarmonyTreeMap} instance with the specified
      * comparator.
      *
      * @param comparator
      *            the comparator to compare keys with.
      */
-    public TreeMapWithSearch(Comparator<? super I> comparator) {
+    public HarmonyTreeMap(Comparator<? super K> comparator) {
         this.comparator = comparator;
     }
 
     /**
-     * Constructs a new {@code TreeMapWithSearch} instance containing the mappings from
+     * Constructs a new {@code HarmonyTreeMap} instance containing the mappings from
      * the specified map and using natural ordering.
      *
      * @param map
@@ -1094,19 +989,31 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
      *             Comparable interface, or if the keys in the map cannot be
      *             compared.
      */
-    public TreeMapWithSearch(Map<? extends K, ? extends V> map) {
-        if (map instanceof TreeMapWithSearch)
-            this.comparator = ((TreeMapWithSearch)map).comparator;
-
+    public HarmonyTreeMap(Map<? extends K, ? extends V> map) {
         putAll(map);
     }
 
-    Node<I, K, V> addToLast(Node<I, K, V> last, K key, V value) {
+    /**
+     * Constructs a new {@code HarmonyTreeMap} instance containing the mappings from
+     * the specified SortedMap and using the same comparator.
+     *
+     * @param map
+     *            the mappings to add.
+     */
+    public HarmonyTreeMap(SortedMap<K, ? extends V> map) {
+        this(map.comparator());
+        Node<K, V> lastNode = null;
+        for (Entry<K, ? extends V> entry : map.entrySet()) {
+            lastNode = addToLast(lastNode, entry.getKey(), entry.getValue());
+        }
+    }
+
+    Node<K, V> addToLast(Node<K, V> last, K key, V value) {
         if (last == null) {
             root = last = createNode(key, value);
             size = 1;
         } else if (last.size == Node.NODE_SIZE) {
-            Node<I, K, V> newNode = createNode(key, value);
+            Node<K, V> newNode = createNode(key, value);
             attachToRight(last, newNode);
             balance(newNode);
             size++;
@@ -1119,7 +1026,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
     }
 
     /**
-     * Removes all mappings from this TreeMapWithSearch, leaving it empty.
+     * Removes all mappings from this HarmonyTreeMap, leaving it empty.
      *
      * @see Map#isEmpty()
      * @see #size()
@@ -1132,7 +1039,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
     }
 
     /**
-     * Returns a new {@code TreeMapWithSearch} with the same mappings, size and comparator
+     * Returns a new {@code HarmonyTreeMap} with the same mappings, size and comparator
      * as this instance.
      *
      * @return a shallow copy of this instance.
@@ -1142,14 +1049,14 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
     @Override
     public Object clone() {
         try {
-            TreeMapWithSearch<I, K, V> clone = (TreeMapWithSearch<I, K, V>) super.clone();
+            HarmonyTreeMap<K, V> clone = (HarmonyTreeMap<K, V>) super.clone();
             clone.entrySet = null;
             if (root != null) {
                 clone.root = root.clone(null);
                 // restore prev/next chain
-                Node<I, K, V> node = minimum(clone.root);
+                Node<K, V> node = minimum(clone.root);
                 while (true) {
-                    Node<I, K, V> nxt = successor(node);
+                    Node<K, V> nxt = successor(node);
                     if (nxt == null) {
                         break;
                     }
@@ -1164,11 +1071,11 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    static private <I,K extends I, V> Node<I, K, V> successor(Node<I, K, V> x) {
+    static private <K, V> Node<K, V> successor(Node<K, V> x) {
         if (x.right != null) {
             return minimum(x.right);
         }
-        Node<I, K, V> y = x.parent;
+        Node<K, V> y = x.parent;
         while (y != null && x == y.right) {
             x = y;
             y = y.parent;
@@ -1201,12 +1108,9 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
      */
     @Override
     public boolean containsKey(Object key) {
-        if (key == null)
-            return false;// we never store null keys
-
-        Comparable<I> object = comparator == null ? toComparable((K) key) : null;
+        Comparable<K> object = comparator == null ? toComparable((K) key) : null;
         K keyK = (K) key;
-        Node<I, K, V> node = root;
+        Node<K, V> node = root;
         while (node != null) {
             K[] keys = node.keys;
             int left_idx = node.left_idx;
@@ -1257,10 +1161,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         if (root == null) {
             return false;
         }
-        if (value == null)
-            return false;// we never store null values
-
-        Node<I, K, V> node = minimum(root);
+        Node<K, V> node = minimum(root);
         if (value != null) {
             while (node != null) {
                 int to = node.right_idx;
@@ -1304,10 +1205,10 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                     return size;
                 }
 
-//                @Override
-//                public void clear() {
-//                    TreeMapWithSearch.this.clear();
-//                }
+                @Override
+                public void clear() {
+                    HarmonyTreeMap.this.clear();
+                }
 
                 @SuppressWarnings("unchecked")
                 @Override
@@ -1315,64 +1216,26 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                     if (object instanceof Map.Entry) {
                         Map.Entry<K, V> entry = (Map.Entry<K, V>) object;
                         K key = entry.getKey();
-                        Object v1 = TreeMapWithSearch.this.get(key), v2 = entry.getValue();
-                        return v1 == null ? (v2 == null && TreeMapWithSearch.this.containsKey(key)) : v1.equals(v2);
+                        Object v1 = HarmonyTreeMap.this.get(key), v2 = entry.getValue();
+                        return v1 == null ? (v2 == null && HarmonyTreeMap.this.containsKey(key)) : v1.equals(v2);
                     }
                     return false;
                 }
 
-//                @Override
-//                public boolean remove(Object object) {
-//                    if (contains(object)) {
-//                        Map.Entry<K, V> entry = (Map.Entry<K, V>) object;
-//                        K key = entry.getKey();
-//                        TreeMapWithSearch.this.remove(key);
-//                        return true;
-//                    }
-//                    return false;
-//                }
+                @Override
+                public boolean remove(Object object) {
+                    if (contains(object)) {
+                        Map.Entry<K, V> entry = (Map.Entry<K, V>) object;
+                        K key = entry.getKey();
+                        HarmonyTreeMap.this.remove(key);
+                        return true;
+                    }
+                    return false;
+                }
 
                 @Override
                 public Iterator<Map.Entry<K, V>> iterator() {
-                    return new UnboundedEntryIterator<>(TreeMapWithSearch.this);
-                }
-                @Override
-                public boolean remove(@SuppressWarnings("unused") Object o) {
-                    throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
-                }
-
-                @Override
-                public void clear() {
-                    throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
-                }
-
-                @Override
-                public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
-                    throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
-                }
-
-                /* (non-Javadoc)
-                 * @see java.util.AbstractCollection#add(java.lang.Object)
-                 */
-                @Override
-                public boolean add(Map.Entry<K, V> ktvtEntry) {
-                    throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
-                }
-
-                /* (non-Javadoc)
-                 * @see java.util.AbstractCollection#addAll(java.util.Collection)
-                 */
-                @Override
-                public boolean addAll(Collection<? extends Map.Entry<K, V>> c) {
-                    throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
-                }
-
-                /* (non-Javadoc)
-                 * @see java.util.AbstractCollection#retainAll(java.util.Collection)
-                 */
-                @Override
-                public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
-                    throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+                    return new UnboundedEntryIterator<>(HarmonyTreeMap.this);
                 }
             };
         }
@@ -1388,7 +1251,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
      */
     public K firstKey() {
         if (root != null) {
-            Node<I, K, V> node = minimum(root);
+            Node<K, V> node = minimum(root);
             return node.keys[node.left_idx];
         }
         throw new NoSuchElementException();
@@ -1409,12 +1272,9 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
      */
     @Override
     public V get(Object key) {
-        if (key == null)
-            return null;// we never store null keys
-
-        Comparable<I> object = comparator == null ? toComparable((K) key) : null;
+        Comparable<K> object = comparator == null ? toComparable((K) key) : null;
         K keyK = (K) key;
-        Node<I, K, V> node = root;
+        Node<K, V> node = root;
         while (node != null) {
             K[] keys = node.keys;
             int left_idx = node.left_idx;
@@ -1452,7 +1312,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         return null;
     }
 
-    private int cmp(Comparable<I> object, I key1, I key2) {
+    private int cmp(Comparable<K> object, K key1, K key2) {
         return object != null ?
                object.compareTo(key2) : comparator.compare(key1, key2);
     }
@@ -1501,23 +1361,23 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             keySet = new AbstractSet<>() {
                 @Override
                 public boolean contains(Object object) {
-                    return TreeMapWithSearch.this.containsKey(object);
+                    return HarmonyTreeMap.this.containsKey(object);
                 }
 
                 @Override
                 public int size() {
-                    return TreeMapWithSearch.this.size;
+                    return HarmonyTreeMap.this.size;
                 }
 
                 @Override
                 public void clear() {
-                    TreeMapWithSearch.this.clear();
+                    HarmonyTreeMap.this.clear();
                 }
 
                 @Override
                 public boolean remove(Object object) {
                     if (contains(object)) {
-                        TreeMapWithSearch.this.remove(object);
+                        HarmonyTreeMap.this.remove(object);
                         return true;
                     }
                     return false;
@@ -1525,23 +1385,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
 
                 @Override
                 public Iterator<K> iterator() {
-                    return new UnboundedKeyIterator<>(TreeMapWithSearch.this);
-                }
-
-                /* (non-Javadoc)
-                 * @see java.util.AbstractSet#add(java.lang.Object)
-                 */
-                @Override
-                public boolean add(@SuppressWarnings("unused") K e) {
-                    throw new UnsupportedOperationException("modification of key set is not allowed for TreeMapWithSearch");
-                }
-
-                /* (non-Javadoc)
-                 * @see java.util.AbstractSet#addAll(java.util.Collection)
-                 */
-                @Override
-                public boolean addAll(@SuppressWarnings("unused") Collection<? extends K> c) {
-                    throw new UnsupportedOperationException("modification of key set is not allowed for TreeMapWithSearch");
+                    return new UnboundedKeyIterator<>(HarmonyTreeMap.this);
                 }
             };
         }
@@ -1557,13 +1401,13 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
      */
     public K lastKey() {
         if (root != null) {
-            Node<I, K, V> node = maximum(root);
+            Node<K, V> node = maximum(root);
             return node.keys[node.right_idx];
         }
         throw new NoSuchElementException();
     }
 
-    static <I,K extends I,V> Node<I, K, V> minimum(Node<I, K, V> x) {
+    static <K,V> Node<K, V> minimum(Node<K, V> x) {
         if (x == null) {
             return null;
         }
@@ -1573,7 +1417,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         return x;
     }
 
-    static <I,K extends I,V> Node<I, K, V> maximum(Node<I, K, V> x) {
+    static <K,V> Node<K, V> maximum(Node<K, V> x) {
         if (x == null) {
             return null;
         }
@@ -1601,26 +1445,22 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
      */
     @Override
     public V put(K key, V value) {
-        if (key == null)
-            throw new IllegalArgumentException("key cannot be null for TreeMapWithSearch");
-        if (value == null)
-            throw new IllegalArgumentException("value cannot be null for TreeMapWithSearch");
-
         if (root == null) {
             root = createNode(key, value);
             size = 1;
             modCount++;
             return null;
         }
-        Comparable<I> object = comparator == null ? toComparable(key) : null;
-        Node<I, K, V> node = root;
-        Node<I, K, V> prevNode = null;
+        Comparable<K> object = comparator == null ? toComparable(key) : null;
+        K keyK = key;
+        Node<K, V> node = root;
+        Node<K, V> prevNode = null;
         int result = 0;
         while (node != null) {
             prevNode = node;
             K[] keys = node.keys;
             int left_idx = node.left_idx;
-            result = cmp(object, (K) key, keys[left_idx]);
+            result = cmp(object, keyK, keys[left_idx]);
             if (result < 0) {
                 node = node.left;
             } else if (result == 0) {
@@ -1630,7 +1470,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             } else {
                 int right_idx = node.right_idx;
                 if (left_idx != right_idx) {
-                    result = cmp(object, key, keys[right_idx]);
+                    result = cmp(object, keyK, keys[right_idx]);
                 }
                 if (result > 0) {
                     node = node.right;
@@ -1642,7 +1482,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                     int low = left_idx + 1, mid = 0, high = right_idx - 1;
                     while (low <= high) {
                         mid = (low + high) >>> 1;
-                        result = cmp(object, key, keys[mid]);
+                        result = cmp(object, keyK, keys[mid]);
                         if (result > 0) {
                             low = mid + 1;
                         } else if (result == 0) {
@@ -1686,7 +1526,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                 }
             } else {
                 // create and link
-                Node<I, K, V> newNode = createNode(key, value);
+                Node<K, V> newNode = createNode(key, value);
                 if (result < 0) {
                     attachToLeft(prevNode, newNode);
                 } else {
@@ -1719,11 +1559,11 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             } else {
                 // there are no place here
                 // insert and push old pair
-                Node<I, K, V> previous = node.prev;
-                Node<I, K, V> nextNode = node.next;
+                Node<K, V> previous = node.prev;
+                Node<K, V> nextNode = node.next;
                 boolean removeFromStart;
                 boolean attachFromLeft = false;
-                Node<I, K, V> attachHere = null;
+                Node<K, V> attachHere = null;
                 if (previous == null) {
                     if (nextNode != null && nextNode.size < Node.NODE_SIZE) {
                         // move last pair to next
@@ -1803,7 +1643,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                         appendFromLeft(nextNode, movedKey, movedValue);
                     }
                 } else {
-                    Node<I, K, V> newNode = createNode(movedKey, movedValue);
+                    Node<K, V> newNode = createNode(movedKey, movedValue);
                     if (attachFromLeft) {
                         attachToLeft(attachHere, newNode);
                     } else {
@@ -1816,7 +1656,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         return null;
     }
 
-    private void appendFromLeft(Node<I, K, V> node, K keyObj, V value) {
+    private void appendFromLeft(Node<K, V> node, K keyObj, V value) {
         if (node.left_idx == 0) {
             int new_right = node.right_idx + 1;
             System.arraycopy(node.keys,   0, node.keys,   1, new_right);
@@ -1830,11 +1670,11 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         node.values[node.left_idx] = value;
     }
 
-    private void attachToLeft(Node<I, K, V> node, Node<I, K, V> newNode) {
+    private void attachToLeft(Node<K, V> node, Node<K, V> newNode) {
         newNode.parent = node;
         // node.left==null - attach here
         node.left = newNode;
-        Node<I, K, V> predecessor = node.prev;
+        Node<K, V> predecessor = node.prev;
         newNode.prev = predecessor;
         newNode.next = node;
         if (predecessor != null) {
@@ -1846,7 +1686,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
     /* add pair into node; existence free room in the node should be checked
      * before call
      */
-    private void appendFromRight(Node<I, K, V> node, K keyObj, V value) {
+    private void appendFromRight(Node<K, V> node, K keyObj, V value) {
         if (node.right_idx == Node.NODE_SIZE - 1) {
             int left_idx = node.left_idx;
             int left_idxMinus1 = left_idx - 1;
@@ -1861,12 +1701,12 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         node.values[node.right_idx] = value;
     }
 
-    private void attachToRight(Node<I, K, V> node, Node<I, K, V> newNode) {
+    private void attachToRight(Node<K, V> node, Node<K, V> newNode) {
         newNode.parent = node;
         // - node.right==null - attach here
         node.right = newNode;
         newNode.prev = node;
-        Node<I, K, V> successor = node.next;
+        Node<K, V> successor = node.next;
         newNode.next = successor;
         if (successor != null) {
             successor.prev = newNode;
@@ -1874,8 +1714,8 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         node.next = newNode;
     }
 
-    private Node<I, K, V> createNode(K keyObj, V value) {
-        Node<I, K, V> node = new Node<>();
+    private Node<K, V> createNode(K keyObj, V value) {
+        Node<K, V> node = new Node<>();
         node.keys[0] = keyObj;
         node.values[0] = value;
         node.left_idx = 0;
@@ -1884,8 +1724,8 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         return node;
     }
 
-    void balance(Node<I, K, V> x) {
-        Node<I, K, V> y;
+    void balance(Node<K, V> x) {
+        Node<K, V> y;
         x.color = true;
         while (x != root && x.parent.color) {
             if (x.parent == x.parent.parent.left) {
@@ -1925,8 +1765,8 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         root.color = false;
     }
 
-    private void rightRotate(Node<I, K, V> x) {
-        Node<I, K, V> y = x.left;
+    private void rightRotate(Node<K, V> x) {
+        Node<K, V> y = x.left;
         x.left = y.right;
         if (y.right != null) {
             y.right.parent = x;
@@ -1946,8 +1786,8 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
     }
 
 
-    private void leftRotate(Node<I, K, V> x) {
-        Node<I, K, V> y = x.right;
+    private void leftRotate(Node<K, V> x) {
+        Node<K, V> y = x.right;
         x.right = y.left;
         if (y.left != null) {
             y.left.parent = x;
@@ -2005,9 +1845,9 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         if (size == 0) {
             return null;
         }
-        Comparable<I> object = comparator == null ? toComparable((K) key) : null;
+        Comparable<K> object = comparator == null ? toComparable((K) key) : null;
         K keyK = (K) key;
-        Node<I, K, V> node = root;
+        Node<K, V> node = root;
         while (node != null) {
             K[] keys = node.keys;
             int left_idx = node.left_idx;
@@ -2051,13 +1891,13 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         return null;
     }
 
-    void removeLeftmost(Node<I, K, V> node) {
+    void removeLeftmost(Node<K, V> node) {
         int index = node.left_idx;
         if (node.size == 1) {
             deleteNode(node);
         } else if (node.prev != null && (Node.NODE_SIZE - 1 - node.prev.right_idx) > node.size) {
             // move all to prev node and kill it
-            Node<I, K, V> prev = node.prev;
+            Node<K, V> prev = node.prev;
             int size = node.right_idx - index;
             System.arraycopy(node.keys,   index + 1, prev.keys,   prev.right_idx + 1, size);
             System.arraycopy(node.values, index + 1, prev.values, prev.right_idx + 1, size);
@@ -2066,7 +1906,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             deleteNode(node);
         } else if (node.next != null && (node.next.left_idx) > node.size) {
             // move all to next node and kill it
-            Node<I, K, V> next = node.next;
+            Node<K, V> next = node.next;
             int size = node.right_idx - index;
             int next_new_left = next.left_idx - size;
             next.left_idx = next_new_left;
@@ -2079,7 +1919,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             node.values[index] = null;
             node.left_idx++;
             node.size--;
-            Node<I, K, V> prev = node.prev;
+            Node<K, V> prev = node.prev;
             if (prev != null && prev.size == 1) {
                 node.size++;
                 node.left_idx--;
@@ -2092,13 +1932,13 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         size--;
     }
 
-    void removeRightmost(Node<I, K, V> node) {
+    void removeRightmost(Node<K, V> node) {
         int index = node.right_idx;
         if (node.size == 1) {
             deleteNode(node);
         } else if (node.prev != null && (Node.NODE_SIZE - 1 - node.prev.right_idx) > node.size) {
             // move all to prev node and kill it
-            Node<I, K, V> prev = node.prev;
+            Node<K, V> prev = node.prev;
             int left_idx = node.left_idx;
             int size = index - left_idx;
             System.arraycopy(node.keys,   left_idx, prev.keys,   prev.right_idx + 1, size);
@@ -2108,7 +1948,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             deleteNode(node);
         } else if (node.next != null && (node.next.left_idx) > node.size) {
             // move all to next node and kill it
-            Node<I, K, V> next = node.next;
+            Node<K, V> next = node.next;
             int left_idx = node.left_idx;
             int size = index - left_idx;
             int next_new_left = next.left_idx - size;
@@ -2122,7 +1962,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             node.values[index] = null;
             node.right_idx--;
             node.size--;
-            Node<I, K, V> next = node.next;
+            Node<K, V> next = node.next;
             if (next != null && next.size == 1) {
                 node.size++;
                 node.right_idx++;
@@ -2135,13 +1975,13 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         size--;
     }
 
-    void removeMiddleElement(Node<I, K, V> node, int index) {
+    void removeMiddleElement(Node<K, V> node, int index) {
         // this function is called iff index if some middle element;
         // so node.left_idx < index < node.right_idx
         // condition above assume that node.size > 1
         if (node.prev != null && (Node.NODE_SIZE - 1 - node.prev.right_idx) > node.size) {
             // move all to prev node and kill it
-            Node<I, K, V> prev = node.prev;
+            Node<K, V> prev = node.prev;
             int left_idx = node.left_idx;
             int size = index - left_idx;
             System.arraycopy(node.keys,   left_idx, prev.keys,   prev.right_idx + 1, size);
@@ -2155,7 +1995,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             deleteNode(node);
         } else if (node.next != null && (node.next.left_idx) > node.size) {
             // move all to next node and kill it
-            Node<I, K, V> next = node.next;
+            Node<K, V> next = node.next;
             int left_idx = node.left_idx;
             int next_new_left = next.left_idx - node.size + 1;
             next.left_idx = next_new_left;
@@ -2175,7 +2015,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             if (moveFromRight <= moveFromLeft) {
                 System.arraycopy(node.keys,   index + 1, node.keys,   index, moveFromRight);
                 System.arraycopy(node.values, index + 1, node.values, index, moveFromRight);
-                Node<I, K, V> next = node.next;
+                Node<K, V> next = node.next;
                 if (next != null && next.size == 1) {
                     node.keys  [node.right_idx] = next.keys  [next.left_idx];
                     node.values[node.right_idx] = next.values[next.left_idx];
@@ -2189,7 +2029,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             } else {
                 System.arraycopy(node.keys,   left_idx , node.keys,   left_idx  + 1, moveFromLeft);
                 System.arraycopy(node.values, left_idx , node.values, left_idx + 1, moveFromLeft);
-                Node<I, K, V> prev = node.prev;
+                Node<K, V> prev = node.prev;
                 if (prev != null && prev.size == 1) {
                     node.keys  [left_idx ] = prev.keys  [prev.left_idx];
                     node.values[left_idx ] = prev.values[prev.left_idx];
@@ -2206,7 +2046,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         size--;
     }
 
-    void removeFromIterator(Node<I, K, V> node, int index) {
+    void removeFromIterator(Node<K, V> node, int index) {
         if (node.size == 1) {
             // it is safe to delete the whole node here.
             // iterator already moved to the next node;
@@ -2214,7 +2054,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         } else {
             int left_idx = node.left_idx;
             if (index == left_idx) {
-                Node<I, K, V> prev = node.prev;
+                Node<K, V> prev = node.prev;
                 if (prev != null && prev.size == 1) {
                     node.keys  [left_idx] = prev.keys  [prev.left_idx];
                     node.values[left_idx] = prev.values[prev.left_idx];
@@ -2254,7 +2094,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         size--;
     }
 
-    private void deleteNode(Node<I, K, V> node) {
+    private void deleteNode(Node<K, V> node) {
         if (node.right == null) {
             if (node.left != null) {
                 attachToParent(node, node.left);
@@ -2271,7 +2111,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
             // node.next!=null by tree logic.
             // node.next.left==null by tree logic.
             // node.next.right may be null or non-null
-            Node<I, K, V> toMoveUp = node.next;
+            Node<K, V> toMoveUp = node.next;
             fixNextChain(node);
             if(toMoveUp.right==null){
                 attachNullToParent(toMoveUp);
@@ -2292,9 +2132,9 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    private void attachToParentNoFixup(Node<I, K, V> toDelete, Node<I, K, V> toConnect) {
+    private void attachToParentNoFixup(Node<K, V> toDelete, Node<K, V> toConnect) {
         // assert toConnect!=null
-        Node<I,K,V> parent = toDelete.parent;
+        Node<K,V> parent = toDelete.parent;
         toConnect.parent = parent;
         if (parent == null) {
             root = toConnect;
@@ -2305,7 +2145,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    private void attachToParent(Node<I, K, V> toDelete, Node<I, K, V> toConnect) {
+    private void attachToParent(Node<K, V> toDelete, Node<K, V> toConnect) {
         // assert toConnect!=null
         attachToParentNoFixup(toDelete,toConnect);
         if (!toDelete.color) {
@@ -2313,8 +2153,8 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    private void attachNullToParent(Node<I, K, V> toDelete) {
-        Node<I, K, V> parent = toDelete.parent;
+    private void attachNullToParent(Node<K, V> toDelete) {
+        Node<K, V> parent = toDelete.parent;
         if (parent == null) {
             root = null;
         } else {
@@ -2329,7 +2169,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    private void fixNextChain(Node<I, K, V> node) {
+    private void fixNextChain(Node<K, V> node) {
         if (node.prev != null) {
             node.prev.next = node.next;
         }
@@ -2338,8 +2178,8 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         }
     }
 
-    private void fixup(Node<I, K, V> x) {
-        Node<I, K, V> w;
+    private void fixup(Node<K, V> x) {
+        Node<K, V> w;
         while (x != root && !x.color) {
             if (x == x.parent.left) {
                 w = x.parent.right;
@@ -2483,7 +2323,6 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
      *             if this map itself a sorted map over a range of another map
      *             and the specified key is outside of its range.
      */
-    @SuppressWarnings({"ResultOfMethodCallIgnored", "EqualsWithItself"})
     public SortedMap<K, V> tailMap(K startKey) {
         // Check for errors
         if (comparator == null) {
@@ -2516,7 +2355,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
     @Override
     public Collection<V> values() {
         if (valuesCollection == null) {
-            valuesCollection = new AbstractSet<>() {
+            valuesCollection = new AbstractCollection<>() {
                 @Override
                 public boolean contains(Object object) {
                     return containsValue(object);
@@ -2527,47 +2366,14 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                     return size;
                 }
 
-//                @Override
-//                public void clear() {
-//                    TreeMapWithSearch.this.clear();
-//                }
-
                 @Override
                 public void clear() {
-                    throw new UnsupportedOperationException("modification of value set is not allowed for TreeMapWithSearch");
-                }
-                @Override
-                public boolean remove(@SuppressWarnings("unused") Object o) {
-                    throw new UnsupportedOperationException("modification of value set is not allowed for TreeMapWithSearch");
-                }
-                @Override
-                public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
-                    throw new UnsupportedOperationException("modification of value set is not allowed for TreeMapWithSearch");
-                }
-                @Override
-                public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
-                    throw new UnsupportedOperationException("modification of value set is not allowed for TreeMapWithSearch");
-                }
-
-                /* (non-Javadoc)
-                 * @see java.util.AbstractSet#add(java.lang.Object)
-                 */
-                @Override
-                public boolean add(@SuppressWarnings("unused") V e) {
-                    throw new UnsupportedOperationException("modification of value set is not allowed for TreeMapWithSearch");
-                }
-
-                /* (non-Javadoc)
-                 * @see java.util.AbstractSet#addAll(java.util.Collection)
-                 */
-                @Override
-                public boolean addAll(@SuppressWarnings("unused") Collection<? extends V> c) {
-                    throw new UnsupportedOperationException("modification of value set is not allowed for TreeMapWithSearch");
+                    HarmonyTreeMap.this.clear();
                 }
 
                 @Override
                 public Iterator<V> iterator() {
-                    return new UnboundedValueIterator<>(TreeMapWithSearch.this);
+                    return new UnboundedValueIterator<>(HarmonyTreeMap.this);
                 }
             };
         }
@@ -2578,7 +2384,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
         stream.defaultWriteObject();
         stream.writeInt(size);
         if (size > 0) {
-            Node<I, K, V> node = minimum(root);
+            Node<K, V> node = minimum(root);
             while (node != null) {
                 int to = node.right_idx;
                 for (int i = node.left_idx; i <= to; i++) {
@@ -2595,7 +2401,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
                                                           ClassNotFoundException {
         stream.defaultReadObject();
         int size = stream.readInt();
-        Node<I, K, V> lastNode = null;
+        Node<K, V> lastNode = null;
         for (int i = 0; i < size; i++) {
             lastNode = addToLast(lastNode, (K) stream.readObject(), (V) stream.readObject());
         }

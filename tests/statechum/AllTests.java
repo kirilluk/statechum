@@ -34,6 +34,7 @@ a custom property editable.java.test.console=true is set (Help->Edit Custom Prop
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+    statechum.AllTests.HarmonyTests.class,
     statechum.AllTests.BasicTests.class,
     statechum.AllTests.GraphTests.class,
     statechum.AllTests.LearnerTests.class,
@@ -209,6 +210,17 @@ public class AllTests {
     */
     @RunWith(Suite.class)
     @SuiteClasses({
+            harmony.collections.HarmonyAbstractMapTest.class,
+            harmony.collections.HarmonyHashMapTest.class,
+            harmony.collections.HarmonyTreeMapTest.class,
+            harmony.collections.LinkedHashMapTest.class,
+            harmony.collections.TreeMapWithSearchTest.class
+    })
+    public static class HarmonyTests {// of these tests, only HarmonyAbstractMap and HarmonyHashMap need to be tested.
+    }
+
+    @RunWith(Suite.class)
+    @SuiteClasses({
     	statechum.analysis.learning.experiments.TestPaperUAS_Large.class,
     	statechum.analysis.learning.TestStateMerging.TestRandomFSMMergers.class,
         statechum.analysis.learning.experiments.PairSelection.TestLearnFromTracesUsingMarkov.class,
@@ -224,5 +236,9 @@ public class AllTests {
     })
     public static class LengthyTests {// all tests are included in the annotation.
     }
-  
+
+
 }
+
+
+

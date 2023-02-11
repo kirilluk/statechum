@@ -32,10 +32,7 @@ import java.lang.reflect.Method;
 import java.security.Permission;
 import java.security.PermissionCollection;
 import java.security.UnresolvedPermission;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.*;
 
 
 /**
@@ -580,9 +577,10 @@ public abstract class SerializationTest extends TestCase {
             throws Exception {
 
         StringBuilder path = new StringBuilder("serialization");
-
         path.append(File.separatorChar);
-        path.append(test.getClass().getName().replace('.', File.separatorChar));
+        path.append(test.getClass().getName().
+                replace("Harmony","").// this removes 'Harmony at the start of class name, making it possible to use the original HasMapTest.golden.ser file.
+                replace('.', File.separatorChar));
         path.append(toAppend);
 
         InputStream in = ClassLoader.getSystemClassLoader()

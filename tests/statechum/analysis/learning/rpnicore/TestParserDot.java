@@ -5,7 +5,13 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.Helper;
+import statechum.Label;
+import statechum.analysis.Erlang.TestErlangModule;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
@@ -389,7 +395,7 @@ public class TestParserDot {
     @Test
     public final void testParse1() {
         LearnerGraph graph = new LearnerGraph(config);graph.initEmpty();
-        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph {  }","graphname",config,graph,converter);
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a {  }","graphname",config,graph,converter);
         parser.parseGraph();
         Assert.assertTrue(graph.transitionMatrix.isEmpty());
     }
@@ -397,7 +403,7 @@ public class TestParserDot {
     @Test
     public final void testParse2() {
         LearnerGraph graph = new LearnerGraph(config);graph.initEmpty();
-        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph { a;b;a->b[label=lbl]; }","graphname",config,graph,converter);
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;a->b[label=lbl]; }","graphname",config,graph,converter);
         parser.parseGraph();
         LearnerGraph gr = buildLearnerGraph("a-lbl->b","testParse2", config,converter);
         Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.findVertex("a"), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
@@ -405,7 +411,7 @@ public class TestParserDot {
     @Test
     public final void testParse3() {
         LearnerGraph graph = new LearnerGraph(config);graph.initEmpty();
-        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph { a;b;c;a->b[label=lbl];b->c[label=q]; }","graphname",config,graph,converter);
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;a->b[label=lbl];b->c[label=q]; }","graphname",config,graph,converter);
         parser.parseGraph();
         LearnerGraph gr = buildLearnerGraph("a-lbl->b-q->c","testParse3", config,converter);
         Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.findVertex("a"), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
@@ -414,7 +420,7 @@ public class TestParserDot {
     @Test
     public final void testParse4() {
         LearnerGraph graph = new LearnerGraph(config);graph.initEmpty();
-        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph { a;b;c;__start0;a->b[label=lbl];b->c;__start0->a; }","graphname",config,graph,converter);
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label=lbl];b->c;__start0->a; }","graphname",config,graph,converter);
         Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
             parser.parseGraph();
         }},IllegalArgumentException.class,"missing label option");
@@ -422,11 +428,29 @@ public class TestParserDot {
     @Test
     public final void testParse5() {
         LearnerGraph graph = new LearnerGraph(config);graph.initEmpty();
-        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph { a;b;c;__start0;a->b[label=lbl];b->c[label=\"u\"];__start0->a; }","graphname",config,graph,converter);
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label=lbl];b->c[label=\"u\"];__start0->a; }","graphname",config,graph,converter);
         parser.parseGraph();
         LearnerGraph gr = buildLearnerGraph("a-lbl->b-u->c","testParse4", config,converter);
         Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
     }
 
+    @Test
+    public final void runDots() throws IOException {
+
+        String m49 = statechum.analysis.Erlang.TestErlangModule.loadFile(new File("D:\\experiment\\Frits\\m49.dot"));
+        LearnerGraph reference = FsmParserDot.buildLearnerGraph(m49,"m49",config,converter);
+        System.out.println(reference.getAcceptStateNumber());
+        String hypothesis = statechum.analysis.Erlang.TestErlangModule.loadFile(new File("D:\\experiment\\Frits\\hypothesis_65.dot"));
+        LearnerGraph hyp = FsmParserDot.buildLearnerGraph(hypothesis,"hypothesis",config,converter);
+
+        Collection<List<Label>> ts = hyp.wmethod.getFullTestSet(2);
+        System.out.println(ts.size());
+        for(List<Label> seq:ts) {
+            int hyp_value = hyp.paths.tracePathPrefixClosed(seq);
+            int ref_value = reference.paths.tracePathPrefixClosed(seq);
+            if (hyp_value != ref_value)
+                System.out.println(Integer.toString(hyp_value)+" [hyp] "+Integer.toString(ref_value)+" [ref] " + seq);
+        }
+    }
 }
 

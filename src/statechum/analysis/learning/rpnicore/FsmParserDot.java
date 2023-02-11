@@ -27,6 +27,7 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 
@@ -37,9 +38,9 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 	protected void throwException(String errMsg) {
 		if (text.length() < pos)
-			throw new IllegalArgumentException(errMsg+" at end of input");
+			throw new IllegalArgumentException(errMsg + " at end of input");
 		if (pos > 0)
-			throw new IllegalArgumentException(errMsg + " starting from " + text.substring(pos-1));
+			throw new IllegalArgumentException(errMsg + " starting from " + text.substring(pos - 1));
 		throw new IllegalArgumentException(errMsg);
 	}
 
@@ -51,6 +52,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 	char lastChar;
 	boolean returnLast = false;
+
 	char nextChar() {
 		if (returnLast) {
 			returnLast = false;
@@ -67,24 +69,26 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		returnLast = true;
 	}
 
-	final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph;
+	final AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> graph;
 	final Configuration config;
 	ConvertALabel conv;
 
-	/** Given a textual representation of an fsm, builds a corresponding graph
+	/**
+	 * Given a textual representation of an fsm, builds a corresponding graph
 	 *
 	 * @param whatToParse the textual representation of an FSM in the DOT language (<a href="https://www.graphviz.org/doc/info/lang.html">...</a>)
-	 * @param name graph name.
-	 * @param conf configuration to use for node creation.
-	 * @param converter label converter, ignored if null.
+	 * @param name        graph name.
+	 * @param conf        configuration to use for node creation.
+	 * @param converter   label converter, ignored if null.
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public FsmParserDot(String whatToParse, String name,Configuration conf,final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> gr,final ConvertALabel converter)
-	{
+	public FsmParserDot(String whatToParse, String name, Configuration conf, final AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> gr, final ConvertALabel converter) {
 		assert conf.getTransitionMatrixImplType() != STATETREE.STATETREE_ARRAY || conv != null : "converter has to be set for an ARRAY transition matrix";
 		text = whatToParse;
-		pos=0;
-		graph = gr;config = conf;conv = converter;
+		pos = 0;
+		graph = gr;
+		config = conf;
+		conv = converter;
 		graph.setName(name);
 	}
 
@@ -92,7 +96,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		StringBuilder result = new StringBuilder();
 		char ch = nextChar();
 		boolean escapeChar = false;
-		while(ch != '"' || escapeChar) {
+		while (ch != '"' || escapeChar) {
 			if (escapeChar) {
 				if (ch == '\n' || ch == 'n')
 					result.append('\n');
@@ -103,15 +107,13 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 				else
 					throwException("Invalid escape character");
 				escapeChar = false;
-			}
-			else {// character that was not escaped
+			} else {// character that was not escaped
 				if (ch == '\\')
 					escapeChar = true;
+				else if (ch == '\n')
+					throwException("string cannot contain a newline");
 				else
-					if (ch == '\n')
-						throwException("string cannot contain a newline");
-					else
-						result.append(ch);
+					result.append(ch);
 			}
 
 			ch = nextChar();
@@ -120,7 +122,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	}
 
 	public static boolean isTextChar(char ch) {
-		return isDigit(ch) || ch == '_' || (ch >='a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+		return isDigit(ch) || ch == '_' || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
 	}
 
 	public String parseText() {
@@ -131,7 +133,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		if (!isTextChar(ch))
 			throwException("Invalid starting character for ID");
 		result.append(ch);
-		while(!isFinished()) {
+		while (!isFinished()) {
 			ch = nextChar();
 			if (isTextChar(ch))
 				result.append(ch);
@@ -146,6 +148,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	static boolean isDigit(char ch) {
 		return ch >= '0' && ch <= '9';
 	}
+
 	public String parseNumber() {
 		boolean seenDot = false;
 		StringBuilder value = new StringBuilder();
@@ -157,7 +160,8 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 		if (ch == '.') {
 			seenDot = true;
-			value.append('0');value.append('.');
+			value.append('0');
+			value.append('.');
 			ch = nextChar();
 		}
 
@@ -169,34 +173,49 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 			if (isFinished())
 				return value.toString();
-			ch=nextChar();
+			ch = nextChar();
 
 			if (ch == '.') {
 				if (seenDot)
 					throwException("multiple dots in a number");
-				seenDot = true;value.append(ch);
+				seenDot = true;
+				value.append(ch);
 				if (isFinished())
 					return value.toString();
-				ch=nextChar();
-			} else
-				if (!isDigit(ch) && isTextChar(ch))
-					throwException("text character cannot be part of a number");
-		} while(isDigit(ch));
+				ch = nextChar();
+			} else if (!isDigit(ch) && isTextChar(ch))
+				throwException("text character cannot be part of a number");
+		} while (isDigit(ch));
 
 		unget();// make sure we retrieve the character last seen.
 		return value.toString();
 	}
 
 	public void skipWhitespace() {
-		while(!isFinished()) {
+		while (!isFinished()) {
 			char ch = nextChar();
-			if (ch != ' ' && ch != '\n') {
-				unget();break;
+			if (ch != ' ' && ch != '\t' && ch != '\n') {
+				unget();
+				break;
 			}
 		}
 	}
-
-	/** Parses an ID tocken. */
+	public void skipSeparatorAndWhitespace() {
+		boolean foundSeparator = false;
+		while (!isFinished()) {
+			char ch = nextChar();
+			if (!foundSeparator && (ch == ';' || ch == ','))
+				foundSeparator = true;
+			else
+				if (ch != ' ' && ch != '\t' && ch != '\n') {// if we found a character that is not a whitespace and we've already ignored a separator (if any), stop.
+					unget();
+					break;
+				}
+		}
+	}
+	/**
+	 * Parses an ID tocken.
+	 */
 	public String parseID() {
 		String result = null;
 		skipWhitespace();
@@ -223,35 +242,36 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 			throwException("arrow should end with '>'");
 	}
 
-	public Map<String,String> parseOptions() {
-		Map<String,String> options=new TreeMap<>();
+	public Map<String, String> parseOptions() {
+		Map<String, String> options = new TreeMap<>();
 		if (nextChar() != '[')
 			throwException("options should begin with '['");
 
 		skipWhitespace();
-		while(nextChar() != ']') {
+		while (nextChar() != ']') {
 			unget();
 			String key = parseID();
 			skipWhitespace();
 			if (nextChar() != '=')
-				throwException("option "+key+" should have a value");
+				throwException("option " + key + " should have a value");
 			String value = parseID();
-			options.put(key,value);
+			options.put(key, value);
 
-			skipWhitespace();
 			char ch = nextChar();
 			if (ch == ']')
 				unget();
-			else if (ch != ';' && ch != ',')
-				throwException("invalid ending for the option "+key+"="+value);
-			else
+			else if (ch == ';' || ch == ',')
 				skipWhitespace();
+			else if (ch != ' ')
+				throwException("invalid ending for the option " + key + "=" + value);
+
+			skipWhitespace();
 		}
 
 		return options;
 	}
 
-	public String getLabel(Map<String,String> options) {
+	public String getLabel(Map<String, String> options) {
 		String value = options.get("label");
 		if (value == null)
 			throwException("missing label option");
@@ -260,7 +280,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 	public void createVertex(String from) {
 		if (null != graph.transitionMatrix.findElementById(VertexID.parseID(from)))
-			throwException("State "+from+" already defined");
+			throwException("State " + from + " already defined");
 		CmpVertex vert = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(from), config);
 		graph.transitionMatrix.put(vert, graph.createNewRow());
 		vert.setAccept(true);
@@ -269,7 +289,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	public CmpVertex vertexForName(String name) {
 		CmpVertex vertexFound = graph.transitionMatrix.findElementById(VertexID.parseID(name));
 		if (null == vertexFound)
-			throwException("State "+name+" not defined");
+			throwException("State " + name + " not defined");
 		return vertexFound;
 	}
 
@@ -277,9 +297,10 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		CmpVertex fromVertex = vertexForName(from);
 		CmpVertex toVertex = vertexForName(to);
 		Label lbl = AbstractLearnerGraph.generateNewLabel(label, config, conv);
-		graph.addTransition(graph.transitionMatrix.get(fromVertex),lbl,toVertex);
+		graph.addTransition(graph.transitionMatrix.get(fromVertex), lbl, toVertex);
 	}
 
+	Map<String,String> id_to_label = new TreeMap<>();
 
 	public void parseGraph() {
 		skipWhitespace();
@@ -288,13 +309,14 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 			throwException("The graph should be labelled as directed graph");
 
 		skipWhitespace();
+		String graphName = parseID();
+		skipWhitespace();
 		if (nextChar() != '{')
 			throwException("The graph description should be enclosed in curly braces");
 		skipWhitespace();
 		char ch = nextChar();
 		unget();
-		while(ch != '}')
-		{
+		while (ch != '}') {
 			String currentNode = parseID();
 			skipWhitespace();
 			Map<String, String> options;
@@ -313,65 +335,69 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 					skipWhitespace();
 					ch = nextChar();
 				}
-				if (ch != ';' && ch != '\n' && ch != '}')
-					throwException("invalid character at the end of transition description");
 				if (currentNode.equals("__start0") && options.isEmpty()) {
 					if (graph.getInit() != null)
 						throwException("multiple initial state declaration");
 					graph.setInit(vertexForName(target));
+					graph.transitionMatrix.remove(graph.findVertex(id_to_label.get(currentNode)));
+				} else {
+					String lbl = getLabel(options);
+					String [] input_output = lbl.split(" */ *");
+					if (input_output.length != 2)
+						throwException("invalid format of label "+input_output);
+					if (!input_output[1].equalsIgnoreCase("error"))
+						createTransition(currentNode, target, input_output[0]+"/"+input_output[1]);
 				}
-				else
-					createTransition(currentNode, target, getLabel(options));
 
-				skipWhitespace();
 			} else if (ch == '[') {
 				unget();
 				options = parseOptions();
-				createVertex(getLabel(options));
-				skipWhitespace();
-				ch = nextChar();
-				if (ch != ';' && ch != '\n' && ch != '}')
-					throwException("invalid character at the end of node description");
-			} else
-				if (ch == ';' || ch == '\n' || ch == '}')
-					createVertex(currentNode);
-				else
-					throwException("invalid character at the end of transition description");
-
-			ch=nextChar();unget();
+				String lbl = getLabel(options);
+				createVertex(lbl);
+				id_to_label.put(currentNode,lbl);
+			} else {
+				createVertex(currentNode);
+				id_to_label.put(currentNode,currentNode);
+			}
+			skipSeparatorAndWhitespace();
+			ch = nextChar();unget();
 		}
+		nextChar();// skip '}'
 		skipWhitespace();
 		if (!isFinished())
 			throwException("Extra text at the end of graph");
 	}
 
-	/** Given a textual representation of an fsm, builds a corresponding deterministic graph
-	 * 
-	 * @param fsm the textual representation of an FSM
+	/**
+	 * Given a textual representation of an fsm, builds a corresponding deterministic graph
+	 *
+	 * @param fsm  the textual representation of an FSM
 	 * @param name graph name, to be displayed as the caption of the Jung window.
 	 * @param conv label converter, ignored if null.
 	 * @return LearnerGraph graph for it
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public static LearnerGraph buildLearnerGraph(String fsm, String name, Configuration config, final ConvertALabel conv)
-	{
-		LearnerGraph graph = new LearnerGraph(config);graph.initEmpty();
-		new FsmParserDot<CmpVertex,LearnerGraphCachedData>(fsm,name,config,graph,conv).parseGraph();
+	public static LearnerGraph buildLearnerGraph(String fsm, String name, Configuration config, final ConvertALabel conv) {
+		LearnerGraph graph = new LearnerGraph(config);
+		graph.initEmpty();
+		new FsmParserDot<CmpVertex, LearnerGraphCachedData>(fsm, name, config, graph, conv).parseGraph();
 		return graph;
 	}
-		
-	/** Given a textual representation of an fsm, builds a corresponding non-deterministic learner graph
-	 * 
-	 * @param fsm the textual representation of an FSM
+
+	/**
+	 * Given a textual representation of an fsm, builds a corresponding non-deterministic learner graph
+	 *
+	 * @param fsm  the textual representation of an FSM
 	 * @param name graph name, to be displayed as the caption of the Jung window.
 	 * @param conv label converter, ignored if null.
 	 * @return LearnerGraphND graph for it
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public static LearnerGraphND buildLearnerGraphND(String fsm, String name, Configuration config, final ConvertALabel conv)
-	{
-		LearnerGraphND graph = new LearnerGraphND(config);graph.initEmpty();
-		new FsmParserDot<List<CmpVertex>,LearnerGraphNDCachedData>(fsm,name,config,graph,conv).parseGraph();
+	public static LearnerGraphND buildLearnerGraphND(String fsm, String name, Configuration config, final ConvertALabel conv) {
+		LearnerGraphND graph = new LearnerGraphND(config);
+		graph.initEmpty();
+		new FsmParserDot<List<CmpVertex>, LearnerGraphNDCachedData>(fsm, name, config, graph, conv).parseGraph();
 		return graph;
 	}
+
 }

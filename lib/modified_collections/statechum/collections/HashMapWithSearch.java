@@ -3,7 +3,7 @@
  * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
  *
  *
- * This file is essentially an adapted LinkedHashMap/HashMap
+ * This file is essentially an adapted HashMapWithSearch/HashMap
 */
 
 package statechum.collections;
@@ -245,7 +245,7 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
     }
 
     /**
-     * Entry from {@link LinkedHashMap}.
+     * Entry from {@link HashMapWithSearch}.
      */
     public static class Entry<K,V> implements Map.Entry<K, V>
     {
@@ -336,7 +336,7 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
         }
 
         /**
-         * Dummy method, a remnant from that of {@link LinkedHashMap}
+         * Dummy method, a remnant from that of {@link HashMapWithSearch}
          */
         void recordAccess(@SuppressWarnings("unused") HashMapWithSearch<K,V> m) {
         }
@@ -482,7 +482,7 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
     }
 
     /**
-     * This differs in {@link LinkedHashMap#addEntry} from {@link HashMap#addEntry} in that it doesn't resize the
+     * This differs in {@link HashMapWithSearch#addEntry} from {@link HashMap#addEntry} in that it doesn't resize the
      * table or remove the eldest entry.
      */
     void createEntry(int hash, K key, V value, int bucketIndex) {
@@ -737,7 +737,7 @@ public class HashMapWithSearch<K,V> implements MapWithSearch<K,V>
         });
     }
 
-    /** Copy of the one from LinkedHashMap
+    /** Copy of the one from HashMapWithSearch
      * 
      * Returns <tt>true</tt> if this map maps one or more keys to the
      * specified value.

@@ -162,7 +162,7 @@ public class DrawGraphs {
 			// dummy
 		}
 
-        private BufferedReader br=new BufferedReader(new InputStreamReader(System.in));
+        private final BufferedReader br=new BufferedReader(new InputStreamReader(System.in));
 
         /** Mostly from rtest.java */
         @SuppressWarnings("unused")
@@ -228,22 +228,19 @@ public class DrawGraphs {
 			
 		try
 		{
-			loadJri = Rengine.class.getMethod("loadJri", new Class[]{String.class});
+			loadJri = Rengine.class.getMethod("loadJri", String.class);
 		} catch (Exception e)
 		{// ignore this, loadJri remains null.
 		}
 		
 		try
 		{
-			if (loadJri != null && !((Boolean)loadJri.invoke(null, GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_JRILIB))).booleanValue())
+			if (loadJri != null && !(Boolean) loadJri.invoke(null, GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_JRILIB)))
 				throw new IllegalArgumentException("JRI library could not be loaded");
-		} catch (IllegalAccessException e)
+		} catch (IllegalAccessException | InvocationTargetException e)
 		{
 			throw new IllegalArgumentException("Calling a method to load JRI library failed",e);
-		} catch (InvocationTargetException e)
-		{
-			throw new IllegalArgumentException("Calling a method to load JRI library failed",e);
-		} // IllegalArgumentException thrown by the above should propagate
+		}  // IllegalArgumentException thrown by the above should propagate
 
 		if (!Rengine.versionCheck()) 
 			throw new IllegalArgumentException("R version mismatch");
@@ -254,12 +251,7 @@ public class DrawGraphs {
 			if (!engine.waitForR())
 				throw new IllegalArgumentException("loading R failed");
 
-			Runtime.getRuntime().addShutdownHook(new Thread() {
-			    @Override
-				public void run() { 
-			    	end();
-			    }
-			});
+			Runtime.getRuntime().addShutdownHook(new Thread(DrawGraphs::end));
 			eval("library(aplpack)","loading BagPlot");
 
 			// detect if compression is supported
@@ -279,7 +271,7 @@ public class DrawGraphs {
 	protected static <ELEM> String vectorToR(List<ELEM> vector, boolean addQuotes)
 	{
 		if (vector.size() == 0) throw new IllegalArgumentException("cannot plot an empty graph");
-		StringBuffer result = new StringBuffer();
+		StringBuilder result = new StringBuilder();
 		result.append("c(");
 		boolean startVector = true;
 		for(ELEM elem:vector)
@@ -309,7 +301,7 @@ public class DrawGraphs {
 		if (data.size() == 0) throw new IllegalArgumentException("cannot plot an empty graph");
 		if (data.size() == 1 && names != null) throw new IllegalArgumentException("in a graph with one component, names are not used");
 		if (data.size() > 1 && names != null && names.size() != data.size()) throw new IllegalArgumentException("mismatch between name and data length"); 
-		StringBuffer result = new StringBuffer();
+		StringBuilder result = new StringBuilder();
 		result.append("boxplot(");
 		boolean firstVectorOfData = true;
 		for(List<Double> arg:data)
@@ -337,8 +329,7 @@ public class DrawGraphs {
 				{
 					if (!startVector) result.append(",");else startVector=false;
 					result.append('\"');
-					String col = defaultColour;
-					result.append(col);
+					result.append(defaultColour);
 					result.append('\"');
 				}
 				result.append(")");
@@ -361,9 +352,9 @@ public class DrawGraphs {
 	{
 		if (yData.size() == 0) throw new IllegalArgumentException("cannot plot an empty graph");
 		if (yData.size() != xData.size()) throw new IllegalArgumentException("mismatch between x and y length"); 
-		StringBuffer result = new StringBuffer();
+		StringBuilder result = new StringBuilder();
 		result.append(plotType);result.append("(");
-		StringBuffer yAxisData = new StringBuffer();
+		StringBuilder yAxisData = new StringBuilder();
 		Iterator<Double> xArgIterator = xData.iterator();
 		result.append("c(");yAxisData.append(",c(");
 		boolean startVector = true;
@@ -409,23 +400,19 @@ public class DrawGraphs {
 		}
 
 		try {
-			SwingUtilities.invokeAndWait(new Runnable() {
-				@Override
-				public void run()
-				{
-					if (RViewer.getGraph(title) == null)
-					{// create new graph
-						RViewer.setNewGraphName(title);
-						eval("JavaGD(\"aa\")","JavaGD() failed");
-						REXP devNum = eval("dev.cur()","failed to do dev.cur");
-						
-						RViewer.getGraph(title).init(devNum.asInt()-1);
-					}
-					eval("dev.set("+(RViewer.getGraph(title).getDeviceNumber()+1)+")","failed to do dev.set for "+title);
-					for(String cmd:dataToPlot)
-						eval(cmd,"failed to run plot "+cmd);
-				}
-			});
+			SwingUtilities.invokeAndWait(
+					() -> {
+						if (RViewer.getGraph(title) == null) {// create new graph
+							RViewer.setNewGraphName(title);
+							eval("JavaGD(\"aa\")", "JavaGD() failed");
+							REXP devNum = eval("dev.cur()", "failed to do dev.cur");
+
+							RViewer.getGraph(title).init(devNum.asInt() - 1);
+						}
+						eval("dev.set(" + (RViewer.getGraph(title).getDeviceNumber() + 1) + ")", "failed to do dev.set for " + title);
+						for (String cmd : dataToPlot)
+							eval(cmd, "failed to run plot " + cmd);
+					});
 		} catch (Exception e) {
 			Helper.throwUnchecked("could not draw graph "+title, e);
 		}
@@ -445,7 +432,7 @@ public class DrawGraphs {
 			throw new IllegalArgumentException("horizontal size ("+xDim+") too small");
 		if (yDim < 1) throw new IllegalArgumentException("vertical size ("+yDim+") too small");
 		
-		if (file.exists() && file.delete() == false)
+		if (file.exists() && !file.delete())
 			throw new IllegalArgumentException("cannot delete file "+file.getAbsolutePath());
 		// Slashes have to be the Unix-way - R simply terminates the DLL on WinXP otherwise.
 		String fullName = file.getAbsolutePath().replace(File.separatorChar, '/');
@@ -494,13 +481,13 @@ public class DrawGraphs {
 		void parseTextLoadedFromExperimentResult(String []text, String fileNameForErrorMessages, ThreadResultID parameters, boolean onlyCheckItParses);
 		
 		/** Called to provide real-time updates to the learning results. The default does nothing. */
-		public void drawInteractive(DrawGraphs gr);
+		void drawInteractive(DrawGraphs gr);
 		
 		/** Records results in a file. The argument is used if R is needed. */
-		public abstract void reportResults(DrawGraphs gr);
+		void reportResults(DrawGraphs gr);
 				
 		/** Reports the name of the file with the graph, used for identification of different graphs. */
-		public String getFileName();
+		String getFileName();
 	}
 
 	public static class CSVExperimentResult implements SGEExperimentResult
@@ -535,7 +522,7 @@ public class DrawGraphs {
 
 	 	public static String concatenateWithSeparator(String [] text)
 	 	{
-	 		StringBuffer outcome = new StringBuffer();
+	 		StringBuilder outcome = new StringBuilder();
 	 		boolean firstEntry = true;
 	 		for(String str:text)
 	 		{
@@ -560,11 +547,7 @@ public class DrawGraphs {
 			if (id.headerValuesForEachCell() == null || id.headerValuesForEachCell().length == 0)
 				throw new IllegalArgumentException("spreadsheet "+getFileName()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid header values for cell");
 
-			Map<String,String> columnText = rowColumnText.get(id.getRowID());
-			if (columnText == null)
-			{
-				columnText = new TreeMap<String,String>();rowColumnText.put(id.getRowID(), columnText);
-			}
+			Map<String, String> columnText = rowColumnText.computeIfAbsent(id.getRowID(), k -> new TreeMap<String, String>());
 			if (columnText.containsKey(id.getColumnID()))
 				throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell "+id.getRowID()+","+id.getColumnID());
 			String [] elements = text.split(",");
@@ -790,7 +773,7 @@ public class DrawGraphs {
 		{
 			Helper.throwUnchecked("failed to serialise object", ex);
 		}
-        StringBuffer out = new StringBuffer();
+        StringBuilder out = new StringBuilder();
         for(byte b:buffer.toByteArray())
         {// Integer.toHexString is not useful here because it is aimed at pretty-printing, that is, byte 0 will be '0' rather that '00'.
         	out.append((char)(charToHex( (b & 0xf0) >> 4)));
@@ -1025,19 +1008,19 @@ public class DrawGraphs {
 	public interface MergeObjects
 	{
 		/** Called to merge the provided object into that represented by a provider of this interface. */
-		public void merge(String key, Object obj);
+		void merge(String key, Object obj);
 	}
 	
 	public interface AggregateValues
 	{
 		/** Called to handle values in a spreadsheet. */
-		public void merge(double A, double B);
+		void merge(double A, double B);
 	}
 	
 	public interface AggregateStringValues
 	{
 		/** Called to handle values in a spreadsheet. */
-		public void merge(String A, String B);
+		void merge(String A, String B);
 	}
 	
 	/** Makes it possible to take serialised data from a column of a spreadsheet and merge it into an aggregate. 
@@ -1152,7 +1135,7 @@ public class DrawGraphs {
 		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages, @SuppressWarnings("unused") ThreadResultID ignoredParameters, boolean onlyCheckItParses)
 		{
 			if (line.length != 6)
-				throw new IllegalArgumentException("Experiment in "+fileNameForErrorMessages+" logged result with invalid number of values ("+line.length+") at "+line);
+				throw new IllegalArgumentException("Experiment in "+fileNameForErrorMessages+" logged result with invalid number of values ("+line.length+") at "+ Arrays.toString(line));
 			String argType = line[1], argStringValue = line[2], color=null, label = null;
 			if (!line[4].isEmpty())
 				color = line[4];// yes, colour is a string here because it is passed to the R tool as-is and Java color will confuse it.
@@ -1160,23 +1143,26 @@ public class DrawGraphs {
 				label = line[5];
 			Double yValue = new Double(line[3]);
 			
-			Object argValue = null;
-			if (argType.equals("java.lang.String"))
-				argValue = argStringValue;
-			else
-				if (argType.equals("java.lang.Double"))
+			Object argValue;
+			switch (argType) {
+				case "java.lang.String":
+					argValue = argStringValue;
+					break;
+				case "java.lang.Double":
 					argValue = new Double(argStringValue);
-				else
-					if (argType.equals("java.lang.Float"))
-						argValue = new Float(argStringValue);
-					else
-						if (argType.equals("java.lang.Integer"))
-							argValue = new Integer(argStringValue);
-						else
-							if (argType.equals("java.lang.Long"))
-								argValue = new Long(argStringValue);
-							else
-								throw new IllegalArgumentException("cannot load a value of type "+argType);
+					break;
+				case "java.lang.Float":
+					argValue = new Float(argStringValue);
+					break;
+				case "java.lang.Integer":
+					argValue = Integer.valueOf(argStringValue);
+					break;
+				case "java.lang.Long":
+					argValue = Long.valueOf(argStringValue);
+					break;
+				default:
+					throw new IllegalArgumentException("cannot load a value of type " + argType);
+			}
 			if (!onlyCheckItParses)
 				add((ELEM) argValue,yValue,color,label);
 		}
@@ -1216,22 +1202,18 @@ public class DrawGraphs {
 		@Override
 		public synchronized void add(Double el,Double value, String colour, @SuppressWarnings("unused") String label)
 		{
-			if (yMin != null && yMin.doubleValue() > value.doubleValue()) return;
-			if (yMax != null && yMax.doubleValue() < value.doubleValue()) return;
+			if (yMin != null && yMin > value) return;
+			if (yMax != null && yMax < value) return;
 			
 			if (xMin != null && xMin.compareTo(el) > 0) return;
 			if (xMax != null && xMax.compareTo(el) < 0) return;
 			
-			add(el.doubleValue(),value.doubleValue(),colour);
+			add(el, value,colour);
 		}
 		
 		public synchronized void add(double x, double y, String colour)
 		{
-			Collection<DataPoint> valuesForColour = values.get(colour);
-			if (valuesForColour == null)
-			{
-				valuesForColour = new ArrayList<DataPoint>();values.put(colour,valuesForColour);
-			}
+			Collection<DataPoint> valuesForColour = values.computeIfAbsent(colour, k -> new ArrayList<DataPoint>());
 			valuesForColour.add(new DataPoint(x,y));
 		}
 		
@@ -1278,7 +1260,7 @@ public class DrawGraphs {
 			for(Entry<String,Collection<DataPoint> > entry:values.entrySet())
 				if (!entry.getValue().isEmpty())
 				{
-					StringBuffer result = new StringBuffer();
+					StringBuilder result = new StringBuilder();
 
 					if (firstGraph)
 						firstGraph = false;
@@ -1338,8 +1320,7 @@ public class DrawGraphs {
 		 */
 		public void setRelabelling(Map<ELEM,String> alteration)
 		{
-			for(Entry<ELEM,String> entry:alteration.entrySet())
-				relabellingOfLabels.put(entry.getKey(), entry.getValue());
+			relabellingOfLabels.putAll(alteration);
 		}
 		
 		/** Gives an order to the appearance of columns in the output graph. */
@@ -1363,8 +1344,8 @@ public class DrawGraphs {
 		@Override
 		public synchronized void add(ELEM el,Double value, String colour, String label)
 		{
-			if (yMin != null && yMin.doubleValue() > value.doubleValue()) return;
-			if (yMax != null && yMax.doubleValue() < value.doubleValue()) return;
+			if (yMin != null && yMin > value) return;
+			if (yMax != null && yMax < value) return;
 			
 			if (xMin != null && xMin.compareTo(el) > 0) return;
 			if (xMax != null && xMax.compareTo(el) < 0) return;
@@ -1445,8 +1426,8 @@ public class DrawGraphs {
 		@Override
 		public synchronized void add(Double el,Double value)
 		{
-			if (yMin != null && yMin.doubleValue() > value.doubleValue()) return;
-			if (yMax != null && yMax.doubleValue() < value.doubleValue()) return;
+			if (yMin != null && yMin > value) return;
+			if (yMax != null && yMax < value) return;
 			
 			if (xMin != null && xMin.compareTo(el) > 0) return;
 			if (xMax != null && xMax.compareTo(el) < 0) return;
@@ -1505,8 +1486,8 @@ public class DrawGraphs {
 			if (valuesA.size() == 0 || valuesB.size()==0) throw new IllegalArgumentException("cannot plot an empty graph");
 			if (valuesA.size() != valuesB.size()) throw new IllegalArgumentException(" 'x' and 'y' must have the same length");
 
-			StringBuffer result = new StringBuffer();
-			result.append(variableName+"="+testName+".test(");
+			StringBuilder result = new StringBuilder();
+			result.append(variableName).append("=").append(testName).append(".test(");
 			
 			result.append(vectorToR(valuesA,false));
 			result.append(",");
@@ -1746,7 +1727,7 @@ public class DrawGraphs {
 		/** Returns a string reflecting the number of points R bagplot analysis will be limited to. */
 		protected String formatApproxLimit()
 		{
-			return (limit == null?"":"approx.limit="+limit.intValue());
+			return (limit == null?"":"approx.limit="+ limit);
 		}
 		protected Integer limit = null;
 
@@ -1801,10 +1782,7 @@ public class DrawGraphs {
 			Rectangle2D.Double graphSize = getSize();
 			if (graphSize.width < Configuration.fpAccuracy)
 				return false;
-			if (graphSize.height < Configuration.fpAccuracy)
-				return false;
-		
-			return true;
+			return !(graphSize.height < Configuration.fpAccuracy);
 		}
 		
 		/** Computes the data for abline to draw a diagonal. */
@@ -1826,18 +1804,14 @@ public class DrawGraphs {
 		{
 			Double xValueMin = null, xValueMax = null, yValueMin = null, yValueMax = null;
 			// if there is nothing useful to draw, do not pass the command to Bagplot - it will crash (as of May 24, 2011).
-			Iterator<Entry<Double,DataColumn>> resultIterator = collectionOfResults.entrySet().iterator();
 
-			while(resultIterator.hasNext())
-			{
-				Entry<Double,DataColumn> entry = resultIterator.next();
+			for (Entry<Double, DataColumn> entry : collectionOfResults.entrySet()) {
 				if (xValueMin == null) xValueMin = entry.getKey();
 				if (xValueMax == null) xValueMax = entry.getKey();
 				if (xValueMin.compareTo(entry.getKey()) > 0) xValueMin = entry.getKey();
 				if (xValueMax.compareTo(entry.getKey()) < 0) xValueMax = entry.getKey();
-				
-				for(Double y:entry.getValue().results)
-				{
+
+				for (Double y : entry.getValue().results) {
 					if (yValueMin == null) yValueMin = y;
 					if (yValueMax == null) yValueMax = y;
 					if (yValueMin.compareTo(y) > 0) yValueMin = y;
@@ -1950,16 +1924,16 @@ public class DrawGraphs {
 			STR.parameter=valueAsDouble(engine.eval(varName+"$parameter"));
 			String methodName = engine.eval(varName+"$method").asString();
 			boolean found = false;
-			StringBuffer expectedMethods = new StringBuffer();
+			StringBuilder expectedMethods = new StringBuilder();
 			for(String st:expectedMethodNames) {
 				if (expectedMethods.length() > 0)
 					expectedMethods.append(',');
 				expectedMethods.append(st);
-				if (!methodName.startsWith(st))
+				if (methodName.startsWith(st))
 					found = true;
 			}
 			if (!found)
-				throw new IllegalArgumentException("expected to use method \""+expectedMethods.toString()+"\" but got \""+methodName+"\"");
+				throw new IllegalArgumentException("expected to use method \""+ expectedMethods +"\" but got \""+methodName+"\"");
 			return STR;
 		}
 	}

@@ -118,7 +118,7 @@ public class TestAutoAnswers {
 	
 	@BeforeClass
 	public static void beforeClass()
-	{
+	{// starts the Erlang runner
 		ErlangRuntime.getDefaultRuntime();
 	}
 	

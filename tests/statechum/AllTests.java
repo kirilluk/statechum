@@ -21,6 +21,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+/*
+Important: when running via IntelliJ Idea, the console will not show the progress of initialisation until
+a custom property editable.java.test.console=true is set (Help->Edit Custom Properties).
+ */
+
 /**
  * @author Kirill
  *

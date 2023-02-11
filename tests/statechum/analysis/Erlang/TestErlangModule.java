@@ -252,7 +252,7 @@ public class TestErlangModule
      * 
      * @throws IOException 
      */
-    private static String loadFile(File file) throws IOException
+    public static String loadFile(File file) throws IOException
     {
     	BufferedReader input = new BufferedReader(new FileReader(file));
     	StringBuffer result = new StringBuffer();

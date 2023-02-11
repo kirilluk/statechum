@@ -90,23 +90,9 @@ verifyJavaUp(Node) ->
 init([Arg]) ->
     {ok, #statechum{processNum=Arg}}.
 
-%% Obtains the defines necessary to tailor Statechum to the specific version of Erlang runtime. This is only needed for Typer but in future may be used for other things.
-runtimeSpecificFlags() ->
-  case string:substr(erlang:system_info(otp_release),1,3) of
-  	"R14"->{ok,[{i,"lib/modified_typer/typer_splitfiles"},{i,"lib/modified_typer/14"}]};
-  	"R15"->{ok,[{i,"lib/modified_typer/typer_splitfiles"},{i,"lib/modified_typer/16"}]};
-  	"R16"->{ok,[{i,"lib/modified_typer/typer_splitfiles"},{i,"lib/modified_typer/16"}]};
-  	"17"->{ok,[{i,"lib/modified_typer/typer_splitfiles"},{i,"lib/modified_typer/17"}]};
-  	"18"->{ok,[{i,"lib/modified_typer/typer_splitfiles"},{i,"lib/modified_typer/17"}]};
-  	"24"->{ok,[{i,"lib/modified_typer/typer_monolithic"}]};
-% Thanks to http://stackoverflow.com/questions/15534663/erlang-tuple-to-string
-    Unknown->{error,list_to_atom(lists:flatten(io_lib:format("Unsupported Erlang version ~p, only R14-R18 are supported", [Unknown])))}
-  end.
-  
 %% Loads the supplied erl directly, can be used to substitute an arbitrary Erlang module with that of our own.
 %% Invented to replace Typer modules, but since I had to replace the main module, this function is not used. 
-compileAndLoad(What,Path) ->
-	{ok,Flags}=runtimeSpecificFlags(),
+compileAndLoad(What,Flags,Path) ->
 	{ok,Bin,_}=compile:file(filename:join(Path,What),[verbose,debug_info,binary] ++ Flags),
 	ModuleName = filename:basename(What,".erl"),
 	code:purge(ModuleName),
@@ -150,7 +136,7 @@ handle_call({startrunner,RunnerName}, _From, State) ->
 		{ ok, _Pid } = gen_server:start_link({local,RunnerName},tracerunner,[RunnerName],[]),
 		{reply, ok, State}
 	catch
-		ErrClass:Error -> {reply, {failed,[ErrClass,Error,erlang:get_stacktrace()]}, State}
+		ErrClass:Error -> {reply, {failed,[ErrClass,Error,typer_s:stacktrace()]}, State}
 	end;
 	
 
@@ -219,12 +205,11 @@ handle_call({typer,_FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
 		{reply,{ok,Outcome}, State}
 	catch
 		throw:Error -> {reply,{'throw',Error},State};
-		Type:Error -> 
-			erlang:display(erlang:get_stacktrace()),
-			{reply, {failed, Type, Error, {FilesErl,Plt,Outputmode,erlang:get_stacktrace()}}, State}
+		Type:Error ->
+			erlang:display(typer_s:stacktrace()),
+			{reply, {failed, Type, Error, {FilesErl,Plt,Outputmode,typer_s:stacktrace()}}, State}
 %%		error:Error -> {reply, {failed,{typer,_FilesBeam,Plt,FilesErl,Outputmode}}, State}
 	end;
-%% [Error,erlang:get_stacktrace()]
 
 %% Loads Statechum's configuration variables into this process.
 handle_call({getAttr,Attr}, _From, State) ->
@@ -245,23 +230,19 @@ handle_call({evaluateTerm,String}, _From, State) ->
 		{ value, Value, _NewBindings} = erl_eval:exprs(Tree,[]),
 		{ reply, { ok, Value }, State }
 	catch
-		ErrClass:Error -> {reply, {failed,[ErrClass,Error,erlang:get_stacktrace()]}, State}
+		ErrClass:Error -> {reply, {failed,[ErrClass,Error,typer_s:stacktrace()]}, State}
 	end;
 
 %% Compiles modules into .beam files, Dir is where to put results, should exist.
-handle_call({compile,[],erlc,_Dir}, _From, State) ->
+handle_call({compile,[],Flags,_Dir}, _From, State) ->
 	{reply, ok, State};
 	
-handle_call({compile,[M | OtherModules],erlc,Dir}, From, State) ->
-	case(runtimeSpecificFlags()) of
-		{ok,Flags} ->
-			case(compile:file(M,[verbose,debug_info,{outdir,Dir}] ++ Flags)) of
-				{ok,_} -> handle_call({compile,OtherModules,erlc,Dir}, From, State);
-				Msg -> {reply, {failedToCompile, M, Dir, Msg}, State}
-			end;
-		{error,Msg} -> {reply, {failedToCompile, M, Dir, Msg}, State}
+handle_call({compile,[M | OtherModules],Flags,Dir}, From, State) ->
+	case(compile:file(M,[verbose,debug_info,{outdir,Dir}] ++ Flags)) of
+        {ok,_} -> handle_call({compile,OtherModules,Flags,Dir}, From, State);
+        Msg -> {reply, {failedToCompile, M, Dir, Msg}, State}
 	end;
-		
+
 %% Extracts dependencies from the supplied module
 handle_call({dependencies,M}, _From, State) ->
 	case(beam_lib:chunks(M,[imports])) of

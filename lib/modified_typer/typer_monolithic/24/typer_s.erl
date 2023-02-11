@@ -22,9 +22,13 @@
 %%               annotate the code of files with such type information.
 %%-----------------------------------------------------------------------
 
--module(typer_s).
+-module(typer_s). %% have to replace the origina typer module, otherwise all other modules call the original's error and halt my erl machine.
 
 -export([start/0]).
+-export([reportError/1, reportProblem/1, compile_error/1, stacktrace/0]).	% for error reporting
+
+stacktrace() ->
+    {current_stacktrace,L}=erlang:process_info(self(),current_stacktrace),L.
 
 %%-----------------------------------------------------------------------
 
@@ -32,6 +36,8 @@
 -define(SHOW_EXPORTED, show_exported).
 -define(ANNOTATE, annotate).
 -define(ANNOTATE_INC_FILES, annotate_inc_files).
+
+-define(VSN,"24.3.3-s").
 
 -type mode() :: ?SHOW | ?SHOW_EXPORTED | ?ANNOTATE | ?ANNOTATE_INC_FILES.
 
@@ -71,7 +77,13 @@
 
 %%--------------------------------------------------------------------
 
--spec start() -> no_return().
+%start(FilesToAnalyse,Plt,Outputmode) ->
+%  Files = lists:map(fun(F) ->
+%	if
+%		is_atom(F) -> F;
+%		true	-> list_to_atom(F)
+%	end end,FilesToAnalyse),
+%  Args = #args{analyze = FilesToAnalyse},
 
 start() ->
   _ = io:setopts(standard_error, [{encoding,unicode}]),
@@ -212,7 +224,7 @@ get_external(Exts, Plt) ->
 -type fa()        :: {atom(), arity()}.
 -type func_info() :: {line(), atom(), arity()}.
 
--record(info, {records = maps:new() :: erl_types:type_table(),
+-record(info, {records = maps:new() :: erl_types_s:type_table(),
 	       functions = []       :: [func_info()],
 	       types = map__new()   :: map_dict(),
 	       edoc = false	    :: boolean()}).
@@ -527,7 +539,7 @@ get_type_string(F, A, Info, Mode) ->
   Type = get_type_info({F,A}, Info#info.types),
   TypeStr =
     case Type of
-      {contract, C} -> 
+      {contract, C} ->
         dialyzer_contracts:contract_to_string(C);
       {RetType, ArgType} ->
 	Sig = erl_types:t_fun(ArgType, RetType),
@@ -545,7 +557,7 @@ get_type_string(F, A, Info, Mode) ->
       Prefix = lists:concat(["%% @spec ", F]),
       lists:concat([Prefix, TypeStr, "."])
   end.
- 
+
 show_type_info(File, Info) ->
   io:format("\n%% File: ~tp\n%% ", [File]),
   OutputString = lists:concat(["~.", length(File)+8, "c~n"]),
@@ -971,6 +983,18 @@ get_exported_types_from_core(Core) ->
 %% Utilities for error reporting.
 %%--------------------------------------------------------------------
 
+-spec reportError(string()) -> no_return().
+
+reportError(Slogan) ->
+  msg(io_lib:format("typer failure: ~s~n~n", [Slogan])),
+  erlang:error(Slogan).
+
+%% Some errors are internal to the typer, others are distinguished. Internal ones are handled with
+%% reportError, others with this function.
+reportProblem(Descr) when is_atom(Descr) ->
+  throw(Descr).
+
+%%--------------------------------------------------------------------
 -spec fatal_error(string()) -> no_return().
 
 fatal_error(Slogan) ->
@@ -990,7 +1014,7 @@ mode_error(OldMode, NewMode) ->
 compile_error(Reason) ->
   JoinedString = lists:flatten([X ++ "\n" || X <- Reason]),
   Msg = "Analysis failed with error report:\n" ++ JoinedString,
-  fatal_error(Msg).
+  reportError(Msg).
 
 -spec msg(string()) -> 'ok'.
 

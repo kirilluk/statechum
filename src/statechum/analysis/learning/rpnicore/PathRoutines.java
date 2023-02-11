@@ -146,7 +146,7 @@ public class PathRoutines {
 	 * @param vertTarget the target state
 	 * @param pathsToVertSource PTA of paths to enter vertSource, can be initialised with identity 
 	 * or obtained using PTATestSequenceEngine-related operations.
-	 * @param nodes of a PTA corresponding to the entered states, to which resulting nodes will be added (this method 
+	 * @param result of a PTA corresponding to the entered states, to which resulting nodes will be added (this method
 	 * cannot create an empty instance of a sequenceSet (which is why it has to be passed one), perhaps for a reason).
 	 */	
 	public void ORIGcomputePathsSBetween(CmpVertex vertSource, CmpVertex vertTarget,

@@ -231,29 +231,6 @@
 -define(debug(__A), ok).
 -endif.
 
-%%
-%% The format of the output is { JavaClass, ListOfAttributes, List1, List2 ... }
-%% (it is not a record in order to permit variables number of elements and we'd best be
-%% explicit as to the values of every element).
-%% Statechum instantiates the supplied class and passes it the args provided.
-%% For a class name XX, statechum.analysis.Erlang.Signatures.XXSignature will be instantiated.
-
-unsupportedType(Descr) -> throw("Unsupported type: "++Descr).
-
-%% This one is used in two cases, to dump sets of atoms and sets of numbers
-%% Returns a list of values
-set_to_Statechum(Set) ->
-  List = ordsets:to_list(Set),
-  lists:foreach(fun(X) ->
-	case erlang:is_atom(X) orelse erlang:is_number(X) of
-		false -> typer_s:reportError(io_lib:format("Asked to dump element ~w of a set which is neither an atom nor a number",[X]));
-		true ->true
-	end end,List),
-   List.
-
-sequence_to_Statechum(Types, RecDict) ->
-  [t_to_Statechum(T, RecDict) || T <- Types].
-
 %%=============================================================================
 %%
 %% Definition of the type structure
@@ -4311,16 +4288,46 @@ t_abstract_records(T, _RecDict) ->
 
 %%=============================================================================
 %%
-%% Prettyprinter
+%% Prettyprinter, turned into reporter of types for Statechum.
 %%
 %%=============================================================================
 
--spec t_to_Statechum(erl_type()) -> string().
+%%
+%% The format of the output is { JavaClass, ListOfAttributes, List1, List2 ... }
+%% (it is not a record in order to permit variables number of elements and we'd best be
+%% explicit as to the values of every element).
+%% Statechum instantiates the supplied class and passes it the args provided.
+%% For a class name XX, statechum.analysis.Erlang.Signatures.XXSignature will be instantiated.
+
+unsupportedType(Descr) -> throw("Unsupported type: "++Descr).
+
+%% This one is used in two cases, to dump sets of atoms and sets of numbers
+%% Returns a list of values
+set_to_Statechum(Set) ->
+  List = ordsets:to_list(Set),
+  lists:foreach(fun(X) ->
+	case erlang:is_atom(X) orelse erlang:is_number(X) of
+		false -> typer_s:reportError(io_lib:format("Asked to dump element ~w of a set which is neither an atom nor a number",[X]));
+		true ->true
+	end end,List),
+   List.
+
+sequence_to_Statechum(Types, RecDict) ->
+  [t_to_Statechum(T, RecDict) || T <- Types].
+
+-spec t_to_Statechum(erl_type()) -> erl_type().
 
 t_to_Statechum(T) ->
   t_to_Statechum(T, maps:new()).
 
--spec t_to_Statechum(erl_type(), type_table()) -> string().
+-spec t_to_Statechum(erl_type(), type_table()) -> erl_type().
+
+fun_to_Statechum(?function(?any, ?any), _RecDict) -> unsupportedType("cannot handle functions with unknown arity");
+%%  "fun()";
+fun_to_Statechum(?function(?any, _Range), _RecDict) -> unsupportedType("cannot handle functions with unknown arity");
+%%  "fun((...) -> " ++ t_to_string(Range, RecDict) ++ ")";
+fun_to_Statechum(?function(?product(ArgList), Range), RecDict) ->
+ { 'Func',[],sequence_to_Statechum(ArgList, RecDict),t_to_Statechum(Range, RecDict) }.
 
 t_to_Statechum(?any, _RecDict) ->
   {'Any',[]};
@@ -4344,7 +4351,7 @@ t_to_Statechum(?bitstr(U, B), _RecDict) -> {'BitString',[],[ U, B ]};
 
 t_to_Statechum(?function(_, _), _RecDict) -> unsupportedType("functions as arguments are not yet supported");
 
-t_to_Statechum(?identifier(_Set), _RecDict) -> unsupportedType("PID/Port/reference types are not supported");
+t_to_Statechum(?identifier(_Set), _RecDict) -> unsupportedType("PID/Port/reference types are not supported because they are runtime-specific");
 
 t_to_Statechum(?opaque(_Set), _RecDict) -> unsupportedType("Opaque types cannot be created externally");
 
@@ -4425,16 +4432,14 @@ t_to_Statechum(?product(_List), _RecDict) -> unsupportedType("product types are 
 %% but I do not know when it is used
 %% and hence the envelope to use for it.
 %%  "<" ++ comma_sequence(List, RecDict) ++ ">";
+t_to_Statechum(?remote(_Set), _RecDict) -> unsupportedType("remote types are not supported");
+
 t_to_Statechum(?map([],?any,?any), _RecDict) -> {'Map',[]};
-t_to_Statechum(?map(Pairs0,DefK,DefV), RecDict) ->
-  Pairs =
-    case {DefK, DefV} of
-      {?none, ?none} -> Pairs0;
-      _ -> Pairs0 ++ [{DefK,?opt,DefV}]
-    end,
-  StrMand = [{t_to_Statechum(K,RecDict),t_to_Statechum(V,RecDict)}||{K,?mand,V}<-Pairs],
-  StrOpt  = [{t_to_Statechum(K,RecDict),t_to_Statechum(V,RecDict)}||{K,?opt,V}<-Pairs],
-  {'Map',[],StrMand,StrOpt};
+t_to_Statechum(?map(Pairs,DefK,DefV), RecDict) ->
+  PairMand = [{t_to_Statechum(K,RecDict),t_to_Statechum(V,RecDict)}||{K,?mand,V}<-Pairs],
+  PairOpt  = [{t_to_Statechum(K,RecDict),t_to_Statechum(V,RecDict)}||{K,?opt,V}<-Pairs],
+  {'Map',[],[PairMand,PairOpt,t_to_Statechum(DefK,RecDict),t_to_Statechum(DefV,RecDict)]};
+
 t_to_Statechum(?tuple(?any, ?any, ?any), _RecDict) -> {'Tuple',[]}; %% "tuple()";
 t_to_Statechum(?tuple(Elements, _Arity, ?any), RecDict) -> {'Tuple',[],sequence_to_Statechum(Elements, RecDict)};
 %%  "{" ++ sequence_to_Statechum(Elements, RecDict) ++ "}";

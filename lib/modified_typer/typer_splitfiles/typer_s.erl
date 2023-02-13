@@ -30,7 +30,7 @@
 %%  the rest were renamed to ensure no clashes with the installed typer.
 %%
 
--module(typer_s). %% have to replace the origina typer module, otherwise all other modules call the original's error and halt my erl machine.
+-module(typer_s). %% have to replace the original typer module, otherwise all other modules call the original's error and halt my erl machine.
 
 -export([start/3]).
 -export([reportError/1, reportProblem/1, compile_error/1, stacktrace/0]).	% for error reporting

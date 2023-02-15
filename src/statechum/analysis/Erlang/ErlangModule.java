@@ -171,54 +171,6 @@ public class ErlangModule {
 		}	
 		behaviour = OTPBehaviour.obtainDeclaredBehaviour(config.getErlangSourceFile(), config, this,ignoredBehaviours);
 	}
-	
-	private static Collection<String> seekUsages(String funcName, File f) {
-		Collection<String> result = new ArrayList<String>();
-
-		// Open the Erlang source files...
-		try {
-			BufferedReader input = new BufferedReader(new FileReader(f));
-			String line = null;
-			while ((line = input.readLine()) != null) {
-				// Look for calls to this func
-				int ptr = line.indexOf(funcName + "(");
-				while (ptr >= 0) {
-					System.out.println("Got call to " + funcName
-							+ " on line \"" + line + "\"");
-					int depth = 1;
-					ptr += (funcName + "(").length();
-					int start = ptr;
-					while ((depth > 0) && (ptr <= line.length())) {
-						if ((ptr == line.length()) && (depth > 0)) {
-							String newLine = input.readLine();
-							if (newLine != null) {
-								line += newLine;
-							}
-						}
-						// Allow for () in the argstring itself...
-						if (line.charAt(ptr) == '(') {
-							depth++;
-						} else if (line.charAt(ptr) == ')') {
-							depth--;
-						}
-						ptr++;
-					}
-					ptr--;
-					// Add to argument string to the result list
-					result.add(line.substring(start, ptr));
-					System.out.println("\t" + line.substring(start, ptr));
-					line = line.substring(ptr);
-					ptr = line.indexOf(funcName + "(");
-					// Loop for more occurences on this line
-				}
-			}
-			input.close();input=null;
-		} catch (IOException e) {
-			Helper.throwUnchecked("read error", e);
-		}
-
-		return result;
-	}
 
 	public String getName() {
 		assert name != null;

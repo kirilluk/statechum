@@ -24,7 +24,7 @@
 
 -module(typer_s). %% have to replace the origina typer module, otherwise all other modules call the original's error and halt my erl machine.
 
--export([start/0]).
+-export([start/0,start/2]).
 -export([reportError/1, reportProblem/1, compile_error/1, stacktrace/0]).	% for error reporting
 
 stacktrace() ->
@@ -77,13 +77,17 @@ stacktrace() ->
 
 %%--------------------------------------------------------------------
 
-%start(FilesToAnalyse,Plt,Outputmode) ->
-%  Files = lists:map(fun(F) ->
-%	if
-%		is_atom(F) -> F;
-%		true	-> list_to_atom(F)
-%	end end,FilesToAnalyse),
-%  Args = #args{analyze = FilesToAnalyse},
+start(FilesToAnalyse,Plt) ->
+  Args = #args{files = FilesToAnalyse},
+  Analysis = #analysis{mode = ?SHOW,plt = Plt},
+  TrustedFiles = filter_fd(Args#args.trusted, [], fun is_erl_file/1),
+  Analysis2 = extract(Analysis, TrustedFiles),
+  All_Files = get_all_files(Args),
+  Analysis3 = Analysis2#analysis{files = All_Files},
+  Analysis4 = collect_info(Analysis3),
+  TypeInfo = get_type_info(Analysis4),
+  show_statechum(TypeInfo)
+  .
 
 start() ->
   _ = io:setopts(standard_error, [{encoding,unicode}]),
@@ -283,6 +287,13 @@ show(Analysis) ->
 	    show_type_info(File, Info)
 	end,
   lists:foreach(Fun, Analysis#analysis.fms).
+
+show_statechum(Analysis) ->
+  Fun = fun ({File, Module},Acc) ->
+    Info = get_final_info(File, Module, Analysis),
+    Acc ++ [{File, Module, extract_type_record_statechum(File, Info) }]
+  end,
+  lists:foldl(Fun, [], Analysis#analysis.fms).
 
 get_final_info(File, Module, Analysis) ->
   Records = get_records(File, Analysis),
@@ -534,6 +545,30 @@ raw_write(F, A, Info, File, Content) ->
   ContentList = lists:reverse(Content) ++ TypeInfo ++ "\n",
   ContentBin = unicode:characters_to_binary(ContentList),
   file:write_file(File, ContentBin, [append]).
+
+% Takes type records for the provided file and outputs type records that Statechum can parse.
+extract_type_record_statechum(File, Info) ->
+  Fun = fun({LineNo, F, A},Acc) ->
+    Type = get_type_info({F,A}, Info#info.types),
+    Details =
+    case Type of
+      {contract, _C} ->
+        typer_s:reportError("type of " ++ atom_to_list(F) ++ "/" ++ integer_to_list(A) ++ "is a contract");
+      {RetType, ArgType} ->
+         try
+            Sig = erl_types:t_fun(ArgType, RetType),
+            FunctionType = erl_types_s:fun_to_Statechum(Sig,Info#info.records),
+            {File, LineNo, F, A,FunctionType}
+         catch % The idea behind the catch is where conversion fails such as because function uses types like ref that we do not support,
+          % the exception will not cause the whole type extraction to fail but instead only the specific function will be ignored.
+          % This very case is handled by the constructor of ErlangModule class, starting with comment
+          % // if not a function signature, it is an error message
+            throw:Str -> { F, A, Str }
+         end
+    end,
+    Acc ++ [Details]
+  end,
+  lists:foldl(Fun, [], Info#info.functions).
 
 get_type_string(F, A, Info, Mode) ->
   Type = get_type_info({F,A}, Info#info.types),
@@ -986,8 +1021,10 @@ get_exported_types_from_core(Core) ->
 -spec reportError(string()) -> no_return().
 
 reportError(Slogan) ->
-  msg(io_lib:format("typer failure: ~s~n~n", [Slogan])),
-  erlang:error(Slogan).
+  errText=io_lib:format("typer failure: ~s~n~n", [Slogan]),
+  %msg(errText),
+  throw(errText).
+  %erlang:error(Slogan).
 
 %% Some errors are internal to the typer, others are distinguished. Internal ones are handled with
 %% reportError, others with this function.
@@ -998,8 +1035,12 @@ reportProblem(Descr) when is_atom(Descr) ->
 -spec fatal_error(string()) -> no_return().
 
 fatal_error(Slogan) ->
-  msg(io_lib:format("typer: ~ts\n", [Slogan])),
-  erlang:halt(1).
+  errText=io_lib:format("typer: ~ts\n", [Slogan]),
+  %msg(errText),
+  % When running within the context of Statechum, terminating runtime is a bad idea
+  % hence just throw exception that will be passecd to Java.
+  %erlang:halt(1).
+  throw(errText).
 
 -spec mode_error(mode(), mode()) -> no_return().
 

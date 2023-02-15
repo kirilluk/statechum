@@ -192,8 +192,9 @@
 	 t_sup/1,
 	 t_sup/2,
 	 t_timeout/0,
-	 t_to_Statechum/1,
-	 t_to_Statechum/2,
+	 fun_to_Statechum/2,
+%	 t_to_Statechum/1,
+%	 t_to_Statechum/2,
 	 t_to_tlist/1,
 	 t_tuple/0,
 	 t_tuple/1,
@@ -628,7 +629,7 @@ t_decorate_with_opaque(T1, T2, Opaques) ->
                      io:format("T1 = ~p,\n", [T1]),
                      io:format("T2 = ~p,\n", [T2]),
                      io:format("O = ~p,\n", [Opaques]),
-                     io:format("erl_types:t_decorate_with_opaque(T1,T2,O).\n"),
+                     io:format("erl_types_s:t_decorate_with_opaque(T1,T2,O).\n"),
                      throw({error, "Failed to handle opaque types"})
                  end),
           R
@@ -4315,10 +4316,10 @@ set_to_Statechum(Set) ->
 sequence_to_Statechum(Types, RecDict) ->
   [t_to_Statechum(T, RecDict) || T <- Types].
 
--spec t_to_Statechum(erl_type()) -> erl_type().
-
-t_to_Statechum(T) ->
-  t_to_Statechum(T, maps:new()).
+%-spec t_to_Statechum(erl_type()) -> erl_type().
+%
+%t_to_Statechum(T) ->
+%  t_to_Statechum(T, maps:new()).
 
 -spec t_to_Statechum(erl_type(), type_table()) -> erl_type().
 
@@ -4432,7 +4433,9 @@ t_to_Statechum(?product(_List), _RecDict) -> unsupportedType("product types are 
 %% but I do not know when it is used
 %% and hence the envelope to use for it.
 %%  "<" ++ comma_sequence(List, RecDict) ++ ">";
-t_to_Statechum(?remote(_Set), _RecDict) -> unsupportedType("remote types are not supported");
+
+% Erlang 24 does not handle ?remote - types.
+%t_to_Statechum(?remote(_Set), _RecDict) -> unsupportedType("remote types are not supported");
 
 t_to_Statechum(?map([],?any,?any), _RecDict) -> {'Map',[]};
 t_to_Statechum(?map(Pairs,DefK,DefV), RecDict) ->
@@ -4444,15 +4447,15 @@ t_to_Statechum(?tuple(?any, ?any, ?any), _RecDict) -> {'Tuple',[]}; %% "tuple()"
 t_to_Statechum(?tuple(Elements, _Arity, ?any), RecDict) -> {'Tuple',[],sequence_to_Statechum(Elements, RecDict)};
 %%  "{" ++ sequence_to_Statechum(Elements, RecDict) ++ "}";
 t_to_Statechum(?tuple(Elements, Arity, Tag), RecDict) ->
-  [TagAtom] = erl_types:t_atom_vals(Tag),
-  case erl_types:lookup_record(TagAtom, Arity-1, RecDict) of
+  [TagAtom] = t_atom_vals(Tag),
+  case lookup_record(TagAtom, Arity-1, RecDict) of
     error -> {'Tuple',[],sequence_to_Statechum(Elements, RecDict)}; %% "{" ++ sequence_to_Statechum(Elements, RecDict) ++ "}";
     {ok, FieldNames} ->
       record_to_Statechum(TagAtom, Elements, FieldNames, RecDict)
   end;
 t_to_Statechum(?tuple_set(_) = T, RecDict) ->
-  case erl_types:t_tuple_subtypes(T) of
-	'unknown' -> typer_s:reportError("set of tuple with arbitrary elements");
+  case t_tuple_subtypes(T) of
+	'unknown' -> typer_s:reportError("set of tuple with arbitrary elements");% this originates from old typer, not from version 24.
 	List ->  union_sequence(List, RecDict)
   end;
 t_to_Statechum(?union(Types), RecDict) ->

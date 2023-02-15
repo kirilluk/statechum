@@ -84,17 +84,17 @@ public class ErlangModule {
 
 		// Almost the same arguments for dialyzer and typer, the first argument
 		// determines which of the two to run.
-		OtpErlangObject otpArgs[] = new OtpErlangObject[] {
+		OtpErlangObject[] otpArgs = new OtpErlangObject[] {
 				null, // either Dialyzer or typer
 
 				new OtpErlangList(new OtpErlangObject[] { new OtpErlangString(
 						ErlangRunner.getName(f, ERL.BEAM,config.getErlangCompileIntoBeamDirectory())) }),
 				new OtpErlangString(ErlangRunner.getName(f, ERL.PLT,config.getErlangCompileIntoBeamDirectory())),
 				new OtpErlangList(new OtpErlangObject[] { new OtpErlangString(
-						ErlangRunner.getName(f, ERL.ERL,false))}),
-				new OtpErlangAtom("types") };
+						ErlangRunner.getName(f, ERL.ERL,false))}) };
 
 		if (!pltFile.canRead() || f.lastModified() > pltFile.lastModified()) {// rebuild the PLT file since the source was modified or the plt file does not exist
+			//noinspection ResultOfMethodCallIgnored
 			pltFile.delete();
 			otpArgs[0] = new OtpErlangAtom("dialyzer");
 			erlangRunner.call(otpArgs, "Could not run dialyzer");
@@ -113,6 +113,7 @@ public class ErlangModule {
 		}
 		catch(ErlangThrownException ex)
 		{
+			//noinspection ResultOfMethodCallIgnored
 			pltFile.delete();
 			otpArgs[0] = new OtpErlangAtom("dialyzer");
 			progress.next();// 4
@@ -127,7 +128,7 @@ public class ErlangModule {
 		OtpErlangList analysisResults = (OtpErlangList) response.elementAt(1);
 		Assert.assertEquals(1, analysisResults.arity());
 		OtpErlangTuple fileDetails = (OtpErlangTuple) analysisResults.elementAt(0);
-		OtpErlangList typeInformation = (OtpErlangList) fileDetails.elementAt(3);
+		OtpErlangList typeInformation = (OtpErlangList) fileDetails.elementAt(2);
 		for (int i = 0; i < typeInformation.arity(); ++i) {
 			OtpErlangTuple functionDescr = (OtpErlangTuple) typeInformation.elementAt(i); 
 			if (functionDescr.arity() > 3)
@@ -145,7 +146,7 @@ public class ErlangModule {
 				System.out.println("Ignoring: "+fullName+", "+functionDescr.elementAt(2));
 			}
 		}
-		rebuildSigs(config, Collections.<String,OtpErlangTuple>emptyMap());
+		rebuildSigs(config, Collections.emptyMap());
 		progress.next();// 7
 	}
 

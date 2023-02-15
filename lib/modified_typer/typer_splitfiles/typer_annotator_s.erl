@@ -67,7 +67,7 @@ show(Analysis,Outputmode) ->
 	    case(Outputmode) of
 		text ->
 	    		Acc ++ show_type_info_only(File, Info);
-		types-> Acc ++ [{File, Module,Info#info.recMap, extract_type_info(File,Info) }];
+		types-> Acc ++ [{File, Module, extract_type_info(File,Info) }];
 		_ -> typer_s:reportError("unknown mode of output")
 	    end
 	end,

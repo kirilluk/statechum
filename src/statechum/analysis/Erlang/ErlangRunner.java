@@ -61,7 +61,7 @@
  * lists that shows the size of the 'static' allocated memory). Solution: ERL_MAX_PORTS.
  * 
  *
- * OtpErlang library for communication with Erlang from Java: there are two versions of it, old one (OtpErlang/14/OtpErlang.jar) and new one (OtpErlang/14/OtpErlang.jar).
+ * OtpErlang library for communication with Erlang from Java: there are two versions of it, old one (OtpErlang/14/OtpErlang.jar) and new one (OtpErlang/24/OtpErlang.jar).
  * They are not interchangeable: the old one will not work with new version of Erlang (connection will be rejected) and the new one will not work with old Erlang.
  * The '14' refers to the Otp it came from; it is known to support versions 14-18. The new one is known to support version 24 it originates from. It would be possible
  * to load one of them at run time using a custom classloader but it is not convenient for development. Hence at present this is left to the end user to decide which
@@ -129,11 +129,11 @@ public class ErlangRunner {
 		return getErlName(fileName) != null;
 	}
 
-	public static enum ERL {
+	public enum ERL {
 		ERL(".erl", false), BEAM(".beam", false), PLT(".plt", false), MOD("",
 				true), NOEXT("", false);
 
-		private ERL(String textualName, boolean strip) {
+		ERL(String textualName, boolean strip) {
 			stringRepresentation = textualName;
 			stripPath = strip;
 		}
@@ -192,7 +192,7 @@ public class ErlangRunner {
 			throw new IllegalArgumentException("Invalid module "
 					+ nameToProcess);
 
-		return moduleName + ext.toString();
+		return moduleName + ext;
 	}
 
 	/** Obtains a binary directory for an Erlang executable. */
@@ -283,7 +283,7 @@ public class ErlangRunner {
 				catch(IllegalArgumentException ex)
 				{// if anything fails, ignore this
 				}
-			nameToRunnerMap.remove(this);
+			nameToRunnerMap.remove(runnerMBox);
 			thisMbox.close();
 			mboxOpen = false;
 		}
@@ -418,14 +418,14 @@ public class ErlangRunner {
 		for (Field var : clazz.getDeclaredFields()) {
 			// based on constructArgList of AttributeMutator
 
-			if (var.getType() != clazz && var.getName() != "$VRc"// added by eclemma (coverage analysis)
+			if (var.getType() != clazz && !var.getName().equals("$VRc")// added by eclemma (coverage analysis)
 					&& !java.lang.reflect.Modifier.isFinal(var.getModifiers())) {
 				String varName = var.getName();
 				Method getter = statechum.AttributeMutator.getMethod(clazz,
 						GETMETHOD_KIND.FIELD_GET, var);
 				Object outcome = null;
 				try {
-					outcome = getter.invoke(config, new Object[] {});
+					outcome = getter.invoke(config);
 				} catch (Exception e) {
 					Helper.throwUnchecked("cannot invoke method " + getter
 							+ " on " + clazz, e);
@@ -435,16 +435,16 @@ public class ErlangRunner {
 					OtpErlangObject value = null;
 					if (outcome.getClass().equals(Boolean.class))
 						value = new OtpErlangBoolean(
-								((Boolean) outcome).booleanValue());
+								(Boolean) outcome);
 					else if (outcome.getClass().equals(Double.class))
 						value = new OtpErlangDouble(
-								((Double) outcome).doubleValue());
+								(Double) outcome);
 					else if (outcome.getClass().equals(String.class))
 						value = new OtpErlangAtom((String) outcome);
 					else if (outcome.getClass().equals(Integer.class))
-						value = new OtpErlangInt(((Integer) outcome).intValue());
+						value = new OtpErlangInt((Integer) outcome);
 					else if (outcome.getClass().equals(Long.class))
-						value = new OtpErlangLong(((Long) outcome).longValue());
+						value = new OtpErlangLong((Long) outcome);
 					else
 						value = new OtpErlangAtom(outcome.toString());
 

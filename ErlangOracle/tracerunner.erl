@@ -183,7 +183,7 @@ end;
 %% Runs dialyzer on the supplied files.
 %% Files is a list of files to process, 
 %% Plt is the name of the Plt file.
-handle_call({dialyzer,FilesBeam,Plt,_FilesErl,_Outputmode}, _From, State) ->
+handle_call({dialyzer,FilesBeam,Plt,_FilesErl}, _From, State) ->
 	try	
 		DialOpts = [{files,FilesBeam},{files_rec,[]},{include_dirs,[]},{output_plt,Plt},{defines,[]},{analysis_type,plt_build}],
 		case (fileNameValid(FilesBeam)) of
@@ -199,16 +199,19 @@ handle_call({dialyzer,FilesBeam,Plt,_FilesErl,_Outputmode}, _From, State) ->
 %% assuming that Dialyzer has been run previously.
 %% Files is a list of files to process, 
 %% Plt is the name of the Plt file.
-handle_call({typer,_FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
+handle_call({typer,_FilesBeam,Plt,FilesErl}, _From, State) ->
 	try	
-		Outcome = typer_s:start(FilesErl,Plt,Outputmode),
+		Outcome = typer_s:start(FilesErl,Plt),
 		{reply,{ok,Outcome}, State}
 	catch
+	% This is caused by using the 'throw' keyword in Erlang
+	% and Java code (ErlangRunner#call) handles such responses
+	% by throwing ErlangThrownException
 		throw:Error -> {reply,{'throw',Error},State};
-		Type:Error ->
-			erlang:display(typer_s:stacktrace()),
-			{reply, {failed, Type, Error, {FilesErl,Plt,Outputmode,typer_s:stacktrace()}}, State}
-%%		error:Error -> {reply, {failed,{typer,_FilesBeam,Plt,FilesErl,Outputmode}}, State}
+		Type:Error:StackTrace ->
+			erlang:display(StackTrace),
+			{reply, {failed, Type, Error, {FilesErl,Plt,StackTrace}}, State}
+%%		error:Error -> {reply, {failed,{typer,_FilesBeam,Plt,FilesErl}}, State}
 	end;
 
 %% Loads Statechum's configuration variables into this process.

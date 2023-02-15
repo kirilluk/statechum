@@ -32,7 +32,7 @@
 
 -module(typer_s). %% have to replace the original typer module, otherwise all other modules call the original's error and halt my erl machine.
 
--export([start/3]).
+-export([start/2]).
 -export([reportError/1, reportProblem/1, compile_error/1, stacktrace/0]).	% for error reporting
 
 %% Takes an output of of code:lib_dir(typer) and appends the rest of the path to it.
@@ -53,7 +53,7 @@ stacktrace() ->
 %% -r Args#args{analyzed_dir_r = []} % list of directories to process recursively
 %% Args#args{analyze= []} % list of files to analyse
 
-start(FilesToAnalyse,Plt,Outputmode) ->
+start(FilesToAnalyse,Plt) ->
   Files = lists:map(fun(F) -> 
 	if 
 		is_atom(F) -> F;
@@ -71,7 +71,7 @@ start(FilesToAnalyse,Plt,Outputmode) ->
   %%dbg:start(),dbg:tracer(),dbg:tpl(typer_annotator_s, '_', []),dbg:p(all, c),
   TypeInfo = get_type_info(Analysis4),
 %%%dbg:start(),dbg:tracer(),dbg:tpl(typer_annotator_s, '_', []),dbg:p(all, c),
- typer_annotator_s:annotate(TypeInfo,Outputmode)
+ typer_annotator_s:annotate(TypeInfo,types)
   %% io:format("\nTyper analysis finished\n"),
   .
 

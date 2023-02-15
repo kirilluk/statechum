@@ -24,7 +24,7 @@
 
 -module(typer_s). %% have to replace the origina typer module, otherwise all other modules call the original's error and halt my erl machine.
 
--export([start/0,start/2]).
+-export([start/0,start/3]).
 -export([reportError/1, reportProblem/1, compile_error/1, stacktrace/0]).	% for error reporting
 
 stacktrace() ->
@@ -76,8 +76,11 @@ stacktrace() ->
 -type args() :: #args{}.
 
 %%--------------------------------------------------------------------
-
-start(FilesToAnalyse,Plt) ->
+%%
+%% Mode is an atom, either 'text' or 'types'. The former is a request to typer to report types
+%% as it does from the console (only used for testing)
+%% and 'types' is the structured output that is turned by Statechum into module types.
+start(FilesToAnalyse,Plt,Mode) ->
   Args = #args{files = FilesToAnalyse},
   Analysis = #analysis{mode = ?SHOW,plt = Plt},
   TrustedFiles = filter_fd(Args#args.trusted, [], fun is_erl_file/1),
@@ -86,7 +89,10 @@ start(FilesToAnalyse,Plt) ->
   Analysis3 = Analysis2#analysis{files = All_Files},
   Analysis4 = collect_info(Analysis3),
   TypeInfo = get_type_info(Analysis4),
-  show_statechum(TypeInfo)
+  if
+    Mode == text -> show(TypeInfo);
+    true -> show_statechum(TypeInfo)
+  end
   .
 
 start() ->
@@ -282,11 +288,11 @@ write_inc_files(Inc) ->
   lists:foreach(Fun, dict:fetch_keys(Inc#inc.map)).
 
 show(Analysis) ->
-  Fun = fun ({File, Module}) ->
+  Fun = fun ({File, Module}, Acc) ->
 	    Info = get_final_info(File, Module, Analysis),
-	    show_type_info(File, Info)
+	    Acc ++ show_type_info(File, Info)
 	end,
-  lists:foreach(Fun, Analysis#analysis.fms).
+  lists:foldl(Fun, "", Analysis#analysis.fms).
 
 show_statechum(Analysis) ->
   Fun = fun ({File, Module},Acc) ->
@@ -594,14 +600,14 @@ get_type_string(F, A, Info, Mode) ->
   end.
 
 show_type_info(File, Info) ->
-  io:format("\n%% File: ~tp\n%% ", [File]),
+  OutcomeFile = io_lib:format("\n%% File: ~tp\n%% ", [File]),
   OutputString = lists:concat(["~.", length(File)+8, "c~n"]),
-  io:fwrite(OutputString, [$-]),
-  Fun = fun ({_LineNo, F, A}) ->
+  OutcomeFileAndUnderline = OutcomeFile ++ io_lib:format(OutputString, [$-]),
+  Fun = fun ({_LineNo, F, A},Acc) ->
 	    TypeInfo = get_type_string(F, A, Info, show),
-	    io:format("~ts\n", [TypeInfo])
+	    Acc ++ io_lib:format("~ts\n", [TypeInfo])
 	end,
-  lists:foreach(Fun, Info#info.functions).
+  lists:foldl(Fun, OutcomeFileAndUnderline, Info#info.functions).
 
 get_type_info(Func, Types) ->
   case map__lookup(Func, Types) of

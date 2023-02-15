@@ -18,35 +18,19 @@
  */
 package statechum.analysis.Erlang;
 
+import com.ericsson.otp.erlang.*;
+import org.junit.Assert;
 import statechum.Configuration;
 import statechum.Configuration.LABELKIND;
-import statechum.Helper;
 import statechum.ProgressIndicator;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
 import statechum.analysis.Erlang.ErlangRunner.ErlangThrownException;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-
-import org.junit.Assert;
-
-import com.ericsson.otp.erlang.OtpErlangAtom;
-import com.ericsson.otp.erlang.OtpErlangList;
-import com.ericsson.otp.erlang.OtpErlangLong;
-import com.ericsson.otp.erlang.OtpErlangObject;
-import com.ericsson.otp.erlang.OtpErlangString;
-import com.ericsson.otp.erlang.OtpErlangTuple;
 
 /**
  * Represents an Erlang module
@@ -84,9 +68,8 @@ public class ErlangModule {
 
 		// Almost the same arguments for dialyzer and typer, the first argument
 		// determines which of the two to run.
-		OtpErlangObject[] otpArgs = new OtpErlangObject[] {
-				null, // either Dialyzer or typer
-
+		OtpErlangObject[] dialyzerArgs = new OtpErlangObject[] {
+				new OtpErlangAtom("dialyzer"),
 				new OtpErlangList(new OtpErlangObject[] { new OtpErlangString(
 						ErlangRunner.getName(f, ERL.BEAM,config.getErlangCompileIntoBeamDirectory())) }),
 				new OtpErlangString(ErlangRunner.getName(f, ERL.PLT,config.getErlangCompileIntoBeamDirectory())),
@@ -96,17 +79,17 @@ public class ErlangModule {
 		if (!pltFile.canRead() || f.lastModified() > pltFile.lastModified()) {// rebuild the PLT file since the source was modified or the plt file does not exist
 			//noinspection ResultOfMethodCallIgnored
 			pltFile.delete();
-			otpArgs[0] = new OtpErlangAtom("dialyzer");
-			erlangRunner.call(otpArgs, "Could not run dialyzer");
+			erlangRunner.call(dialyzerArgs, "Could not run dialyzer");
 		}
 		progress.next();// 3
 
 		// Typer always has to be run
-		otpArgs[0] = new OtpErlangAtom("typer");
+		OtpErlangObject[] typerArgs = new OtpErlangObject[dialyzerArgs.length+1];System.arraycopy(dialyzerArgs,0,typerArgs,0,dialyzerArgs.length);
+		typerArgs[0] = new OtpErlangAtom("typer");typerArgs[dialyzerArgs.length]=new OtpErlangAtom("types");
 		OtpErlangTuple response = null;
 		try
 		{
-			response = erlangRunner.call(otpArgs,"Could not run typer");
+			response = erlangRunner.call(typerArgs,"Could not run typer");
 			
 			progress.next();// 4
 			progress.next();// 5
@@ -115,12 +98,10 @@ public class ErlangModule {
 		{
 			//noinspection ResultOfMethodCallIgnored
 			pltFile.delete();
-			otpArgs[0] = new OtpErlangAtom("dialyzer");
 			progress.next();// 4
-			erlangRunner.call(otpArgs, "Could not run dialyzer");
-			otpArgs[0] = new OtpErlangAtom("typer");
+			erlangRunner.call(dialyzerArgs, "Could not run dialyzer");
 			progress.next();// 5
-			response = erlangRunner.call(otpArgs,"Could not run typer for the second time");			
+			response = erlangRunner.call(typerArgs,"Could not run typer for the second time");
 		}
 		progress.next();// 6
 

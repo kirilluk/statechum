@@ -98,6 +98,15 @@ compileAndLoad(What,Flags,Path) ->
 	code:purge(ModuleName),
 	{module, _}=code:load_binary(ModuleName,"in_memory"++atom_to_list(What),Bin).
 
+extraCompileFlags() ->
+  case erlang:system_info(otp_release) of
+    14 -> [];
+    15 -> [];
+    16 -> [];
+    17 -> [];
+    _  -> [return_errors]
+  end.
+
 %% Sometimes, files are known under different names but define the same module,
 %% Dialyzer (from Erlang 14-16 or so) may lock up inside dialyzer_succ_typings:analyze_callgraph when
 %% analysing such files. The following function checks for this and complains when
@@ -199,18 +208,21 @@ handle_call({dialyzer,FilesBeam,Plt,_FilesErl}, _From, State) ->
 %% assuming that Dialyzer has been run previously.
 %% Files is a list of files to process, 
 %% Plt is the name of the Plt file.
-handle_call({typer,_FilesBeam,Plt,FilesErl}, _From, State) ->
+%% Mode is an atom, either 'text' or 'types'. The former is a request to typer to report types
+%% as it does from the console (only used for testing)
+%% and 'types' is the structured output that is turned by Statechum into module types.
+handle_call({typer,_FilesBeam,Plt,FilesErl,Mode}, _From, State) ->
 	try	
-		Outcome = typer_s:start(FilesErl,Plt),
+		Outcome = typer_s:start(FilesErl,Plt,Mode),
 		{reply,{ok,Outcome}, State}
 	catch
 	% This is caused by using the 'throw' keyword in Erlang
 	% and Java code (ErlangRunner#call) handles such responses
 	% by throwing ErlangThrownException
-		throw:Error -> {reply,{'throw',Error},State};
-		Type:Error:StackTrace ->
-			erlang:display(StackTrace),
-			{reply, {failed, Type, Error, {FilesErl,Plt,StackTrace}}, State}
+		_:Error -> {reply,{'throw',Error},State}
+%		_Type:Error:StackTrace ->
+%			erlang:display(StackTrace),
+%			{reply, {'throw', Error, {FilesErl,Plt,StackTrace}}, State}
 %%		error:Error -> {reply, {failed,{typer,_FilesBeam,Plt,FilesErl}}, State}
 	end;
 
@@ -239,9 +251,9 @@ handle_call({evaluateTerm,String}, _From, State) ->
 %% Compiles modules into .beam files, Dir is where to put results, should exist.
 handle_call({compile,[],Flags,_Dir}, _From, State) ->
 	{reply, ok, State};
-	
+
 handle_call({compile,[M | OtherModules],Flags,Dir}, From, State) ->
-	case(compile:file(M,[verbose,debug_info,{outdir,Dir}] ++ Flags)) of
+	case(compile:file(M,[verbose,debug_info,{outdir,Dir}] ++ extraCompileFlags() ++ Flags)) of
         {ok,_} -> handle_call({compile,OtherModules,Flags,Dir}, From, State);
         Msg -> {reply, {failedToCompile, M, Dir, Msg}, State}
 	end;

@@ -45,3 +45,4 @@ smt/libtool
 smt/m4/
 smt/yices_caller.lo
 smt/yices_caller.o
+/erl_crash.dump

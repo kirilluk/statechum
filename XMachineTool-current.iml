@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module version="4">
-  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8">
+  <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_9">
     <output url="file://$MODULE_DIR$/bin/production/XMachineTool-current" />
     <output-test url="file://$MODULE_DIR$/bin/test/XMachineTool-current" />
     <exclude-output />

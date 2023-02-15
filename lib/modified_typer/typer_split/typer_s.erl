@@ -32,7 +32,7 @@
 
 -module(typer_s). %% have to replace the original typer module, otherwise all other modules call the original's error and halt my erl machine.
 
--export([start/2]).
+-export([start/3]).
 -export([reportError/1, reportProblem/1, compile_error/1, stacktrace/0]).	% for error reporting
 
 %% Takes an output of of code:lib_dir(typer) and appends the rest of the path to it.
@@ -52,8 +52,11 @@ stacktrace() ->
 %% -T Args#args{trust = []} % list of files from -T
 %% -r Args#args{analyzed_dir_r = []} % list of directories to process recursively
 %% Args#args{analyze= []} % list of files to analyse
-
-start(FilesToAnalyse,Plt) ->
+%%
+%% Mode is an atom, either 'text' or 'types'. The former is a request to typer to report types
+%% as it does from the console (only used for testing)
+%% and 'types' is the structured output that is turned by Statechum into module types.
+start(FilesToAnalyse,Plt,Mode) ->
   Files = lists:map(fun(F) -> 
 	if 
 		is_atom(F) -> F;
@@ -71,7 +74,7 @@ start(FilesToAnalyse,Plt) ->
   %%dbg:start(),dbg:tracer(),dbg:tpl(typer_annotator_s, '_', []),dbg:p(all, c),
   TypeInfo = get_type_info(Analysis4),
 %%%dbg:start(),dbg:tracer(),dbg:tpl(typer_annotator_s, '_', []),dbg:p(all, c),
- typer_annotator_s:annotate(TypeInfo,types)
+ typer_annotator_s:annotate(TypeInfo,Mode)
   %% io:format("\nTyper analysis finished\n"),
   .
 

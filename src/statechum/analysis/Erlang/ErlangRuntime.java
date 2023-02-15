@@ -155,17 +155,17 @@ public class ErlangRuntime {
 			case "17":
 				Flags = new OtpErlangList(new OtpErlangTuple(new OtpErlangObject[] {
 						// Since this is Erlang, using Unix slash
-						new OtpErlangAtom("i"), new OtpErlangString(erlangTypeDir+"typer_splitfiles/"+erlangVersion)}));
-				foldersForErl.addAll(Arrays.asList(new String[]{erlangTypeDir+"typer_splitfiles"}));
+						new OtpErlangAtom("i"), new OtpErlangString(erlangTypeDir+"typer_split/"+erlangVersion)}));
+				foldersForErl.add(erlangTypeDir + "typer_split");
 				break;
 			case "18":
 				Flags = new OtpErlangList(new OtpErlangTuple(new OtpErlangObject[] {
 						// Since this is Erlang, using Unix slash
-						new OtpErlangAtom("i"), new OtpErlangString(erlangTypeDir+"typer_splitfiles/17")}));
-				foldersForErl.addAll(Arrays.asList(new String[]{erlangTypeDir+"typer_splitfiles"}));
+						new OtpErlangAtom("i"), new OtpErlangString(erlangTypeDir+"typer_split/17")}));
+				foldersForErl.add(erlangTypeDir + "typer_split");
 				break;
 			case "24":
-				foldersForErl.addAll(Arrays.asList(new String[]{erlangTypeDir+"typer_monolithic/"+erlangVersion}));
+				foldersForErl.add(erlangTypeDir + "typer_monolithic/" + erlangVersion);
 				break;
 			default:
 				throw new IllegalArgumentException("Unsupported Erlang version "+erlangVersion+", only 14,16,17 and 24 are supported");
@@ -210,7 +210,7 @@ public class ErlangRuntime {
 				ErlangNode.initNodeParameters(null, null);
 				
 				String optionForNodeName = null;
-				if (Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANG_SHORTNODENAME)))
+				if (Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANG_SHORTNODENAME)))
 				{// short node names
 					traceRunnerNode = "tracerunner" + "_"+ System.nanoTime()+ "@"+"localhost";
 					optionForNodeName = "-sname";
@@ -289,33 +289,27 @@ public class ErlangRuntime {
 								"-noshell", "-setcookie", ErlangNode.getErlangNode().cookie() },
 								envpList.toArray(new String[0]));
 
-				stdDumper = new Thread(new Runnable() {
+				stdDumper = new Thread(() -> ExperimentRunner.dumpStreams(processWithErlangRuntime,
+						timeBetweenChecks, new HandleProcessIO() {
 
-					@Override
-					public void run() {
-						ExperimentRunner.dumpStreams(processWithErlangRuntime,
-								timeBetweenChecks, new HandleProcessIO() {
+							@Override
+							public void OnHeartBeat() {
+								// no prodding is done - we are
+								// being prodded by Erlang instead.
+							}
 
-									@Override
-									public void OnHeartBeat() {
-										// no prodding is done - we are
-										// being prodded by Erlang instead.
-									}
+							@Override
+							public void StdErr(StringBuffer b) {
+								if (displayErlangOutput)
+									System.out.print("[ERLANG] " + b.toString());
+							}
 
-									@Override
-									public void StdErr(StringBuffer b) {
-										if (displayErlangOutput)
-											System.out.print("[ERLANG] " + b.toString());
-									}
-
-									@Override
-									public void StdOut(StringBuffer b) {
-										if (displayErlangOutput)
-											System.out.print("[ERLERR] " + b.toString());
-									}
-								});
-					}
-				});
+							@Override
+							public void StdOut(StringBuffer b) {
+								if (displayErlangOutput)
+									System.out.print("[ERLERR] " + b.toString());
+							}
+						}));
 				stdDumper.setDaemon(true);
 				stdDumper.start();
 				if (delay > 0)
@@ -368,6 +362,7 @@ public class ErlangRuntime {
 				}
 				
 				// Erlang started, the next step is to drain message queue since given that we may have sent a number of messages above, responses to them may just begin to trickle.
+				//noinspection StatementWithEmptyBody
 				while(null != runner.thisMbox.receive(100))
 				{// drain the queue
 				}

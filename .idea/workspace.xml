@@ -4,19 +4,30 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Early Dec 2022 updates - minor changes plus some OTP migration">
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Erlang Module tests now pass in Erlang 24.">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ErlangOracle/tracerunner.erl" beforeDir="false" afterPath="$PROJECT_DIR$/ErlangOracle/tracerunner.erl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections/statechum/collections/HashMapWithSearch.java" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_collections/statechum/collections/HashMapWithSearch.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_monolithic/typer_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_monolithic/24/typer_s.erl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/typer_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/typer_s.erl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/DrawGraphs.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/DrawGraphs.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PathRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PathRoutines.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/AllTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/AllTests.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/XMachineTool-current.iml" beforeDir="false" afterPath="$PROJECT_DIR$/XMachineTool-current.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_monolithic/24/typer_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_monolithic/24/typer_s.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/14/erltypes.hrl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/14/erltypes.hrl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/14/otp_specific_functions.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/14/otp_specific_functions.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/16/erltypes.hrl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/16/erltypes.hrl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/16/otp_specific_functions.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/16/otp_specific_functions.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/17/erltypes.hrl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/17/erltypes.hrl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/17/otp_specific_functions.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/17/otp_specific_functions.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/typer_annotator_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_annotator_s.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/typer_info_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_info_s.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/typer_map_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_map_s.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/typer_otp.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_otp.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/typer_preprocess_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_preprocess_s.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/typer_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_s.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_splitfiles/typer_s.hrl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_s.hrl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/synapse/synapselauncher.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/synapse/synapselauncher.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/Helper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Helper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangModule.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangModule.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangRuntime.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangRuntime.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangModule.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangModule.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestAutoAnswers.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestAutoAnswers.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -49,19 +60,19 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/experiment/statechum-master&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "last_opened_file_path": "D:/experiment/statechum-master",
+    "project.structure.last.edited": "Problems",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "preferences.pluginManager"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\experiment\git-statechum\lib\OtpErlang\24" />
@@ -73,10 +84,32 @@
       <recent name="statechum.analysis.learning.rpnicore" />
     </key>
     <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="statechum.analysis.Erlang.Signatures" />
       <recent name="statechum.analysis.learning.rpnicore" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.TestWMethod.testTestGeneration8">
+  <component name="RunManager" selected="JUnit.TestErlangModule">
+    <configuration name="OTP 24" type="JUnit" factoryName="JUnit">
+      <module name="XMachineTool-current" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.ErlangTests" />
+      <option name="METHOD_NAME" value="testPrettyPrintTrace1" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="TestAutoAnswers - OTP 17" type="JUnit" factoryName="JUnit">
       <module name="XMachineTool-current" />
       <extension name="coverage">
@@ -98,7 +131,7 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestAutoAnswers - OTP 24 testPrettyPrintTrace1" type="JUnit" factoryName="JUnit">
+    <configuration name="TestAutoAnswers - OTP 24 testErlangMapParser" type="JUnit" factoryName="JUnit">
       <module name="XMachineTool-current" />
       <extension name="coverage">
         <pattern>
@@ -106,10 +139,31 @@
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.observers" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.observers.TestAutoAnswers" />
-      <option name="METHOD_NAME" value="testPrettyPrintTrace1" />
-      <option name="TEST_OBJECT" value="method" />
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestErlangMapParser" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestAutoAnswers - OTP 24 testErlangParser" type="JUnit" factoryName="JUnit">
+      <module name="XMachineTool-current" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestErlangParser" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <envs>
         <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
@@ -140,20 +194,19 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestMapWithSearch.testSizeTwo_EntrySet1" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="TestErlangModule" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool-current" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="collections.*" />
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
-      <option name="PACKAGE_NAME" value="collections" />
-      <option name="MAIN_CLASS_NAME" value="collections.TestMapWithSearch" />
-      <option name="METHOD_NAME" value="testSizeTwo_EntrySet1" />
-      <option name="TEST_OBJECT" value="method" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;C:\Program Files\erl7.0&quot; -DERLANGOUTPUT_ENABLED=false -Xmx25500m" />
-      <option name="PARAMETERS" value="[0,tests for HashMapWithSearch]" />
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestErlangModule" />
+      <option name="METHOD_NAME" value="testPrettyPrintTrace1" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <envs>
         <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
         <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
@@ -162,19 +215,82 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestPaperUAS_Large" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="TestErlangModule.testLoadExports1" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool-current" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.experiments.*" />
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.experiments" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.TestPaperUAS_Large" />
-      <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;C:\Program Files\erl7.0&quot; -DERLANGOUTPUT_ENABLED=false -Xmx25500m" />
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestErlangModule" />
+      <option name="METHOD_NAME" value="testLoadExports1" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestErlangModule.testTraces" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool-current" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestErlangModule" />
+      <option name="METHOD_NAME" value="testTraces" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestErlangModule.testTyperUnreadableBeamFile" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool-current" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestErlangModule" />
+      <option name="METHOD_NAME" value="testTyperUnreadableBeamFile" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestErlangModule.testTyperWithInvalidPLT" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool-current" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestErlangModule" />
+      <option name="METHOD_NAME" value="testTyperWithInvalidPLT" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <envs>
         <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
         <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
@@ -196,70 +312,6 @@
       <option name="METHOD_NAME" value="" />
       <option name="TEST_OBJECT" value="class" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestTransform.testQuanteKoschke1" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool-current" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestTransform" />
-      <option name="METHOD_NAME" value="testQuanteKoschke1" />
-      <option name="TEST_OBJECT" value="method" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;C:\Program Files\erl7.0&quot; -DERLANGOUTPUT_ENABLED=false -Xmx25500m" />
-      <option name="PARAMETERS" value="[0,Jung vertex, clone, STATETREE_LINKEDHASH]" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestWMethod" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool-current" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestWMethod" />
-      <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;C:\Program Files\erl7.0&quot; -DERLANGOUTPUT_ENABLED=false -Xmx25500m" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestWMethod.testTestGeneration8" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool-current" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestWMethod" />
-      <option name="METHOD_NAME" value="testTestGeneration8" />
-      <option name="TEST_OBJECT" value="method" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;C:\Program Files\erl7.0&quot; -DERLANGOUTPUT_ENABLED=false -Xmx25500m" />
       <envs>
         <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
         <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
@@ -332,21 +384,23 @@
       <item itemvalue="JUnit.Run All tests" />
       <item itemvalue="JUnit.TestAutoAnswers - OTP 17" />
       <item itemvalue="JUnit.TestAutoAnswers - OTP 24" />
-      <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testPrettyPrintTrace1" />
+      <item itemvalue="JUnit.OTP 24" />
+      <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangParser" />
+      <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangMapParser" />
       <item itemvalue="JUnit.TestParserDot" />
-      <item itemvalue="JUnit.TestWMethod" />
-      <item itemvalue="JUnit.TestWMethod.testTestGeneration8" />
-      <item itemvalue="JUnit.TestPaperUAS_Large" />
-      <item itemvalue="JUnit.TestTransform.testQuanteKoschke1" />
-      <item itemvalue="JUnit.TestMapWithSearch.testSizeTwo_EntrySet1" />
+      <item itemvalue="JUnit.TestErlangModule" />
+      <item itemvalue="JUnit.TestErlangModule.testLoadExports1" />
+      <item itemvalue="JUnit.TestErlangModule.testTraces" />
+      <item itemvalue="JUnit.TestErlangModule.testTyperUnreadableBeamFile" />
+      <item itemvalue="JUnit.TestErlangModule.testTyperWithInvalidPLT" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="JUnit.TestWMethod.testTestGeneration8" />
-        <item itemvalue="JUnit.TestWMethod" />
-        <item itemvalue="JUnit.TestPaperUAS_Large" />
-        <item itemvalue="JUnit.TestTransform.testQuanteKoschke1" />
-        <item itemvalue="JUnit.TestMapWithSearch.testSizeTwo_EntrySet1" />
+        <item itemvalue="JUnit.TestErlangModule" />
+        <item itemvalue="JUnit.TestErlangModule.testTraces" />
+        <item itemvalue="JUnit.TestErlangModule.testTyperUnreadableBeamFile" />
+        <item itemvalue="JUnit.TestErlangModule.testTyperWithInvalidPLT" />
+        <item itemvalue="JUnit.TestErlangModule.testLoadExports1" />
       </list>
     </recent_temporary>
   </component>
@@ -389,7 +443,42 @@
       <option name="project" value="LOCAL" />
       <updated>1669272170903</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Early Dec 2022 updates - minor changes plus some OTP migration">
+      <created>1676145402510</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1676145402510</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Added parser and dumper for Erlang maps">
+      <created>1676218480983</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1676218480983</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Initial edition of MapSignature and minor improvements to modified typer.">
+      <created>1676250987902</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1676250987902</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Revised the version of typer so that one of the tests using typer now passes on Erlang 24.">
+      <created>1676483174141</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1676483174141</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Removed unused seekUsages">
+      <created>1676483252354</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1676483252354</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -425,16 +514,16 @@
     <MESSAGE value="Migration to newer OTP continuing, a lot of work still pending." />
     <MESSAGE value="Added a simple parser for DOT file format." />
     <MESSAGE value="Early Dec 2022 updates - minor changes plus some OTP migration" />
-    <option name="LAST_COMMIT_MESSAGE" value="Early Dec 2022 updates - minor changes plus some OTP migration" />
+    <MESSAGE value="Added parser and dumper for Erlang maps" />
+    <MESSAGE value="Initial edition of MapSignature and minor improvements to modified typer." />
+    <MESSAGE value="Revised the version of typer so that one of the tests using typer now passes on Erlang 24." />
+    <MESSAGE value="Removed unused seekUsages" />
+    <MESSAGE value="Erlang Module tests now pass in Erlang 24." />
+    <option name="LAST_COMMIT_MESSAGE" value="Erlang Module tests now pass in Erlang 24." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangRuntime.java</url>
-          <line>175</line>
-          <option name="timeStamp" value="5" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java</url>
           <line>265</line>
@@ -449,6 +538,36 @@
           <url>file://$PROJECT_DIR$/tests/collections/TestMapWithSearch.java</url>
           <line>171</line>
           <option name="timeStamp" value="24" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangParser.java</url>
+          <line>42</line>
+          <option name="timeStamp" value="27" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangParser.java</url>
+          <line>30</line>
+          <option name="timeStamp" value="28" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangModule.java</url>
+          <line>676</line>
+          <option name="timeStamp" value="32" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangModule.java</url>
+          <line>470</line>
+          <option name="timeStamp" value="33" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangRunner.java</url>
+          <line>191</line>
+          <option name="timeStamp" value="35" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangModule.java</url>
+          <line>242</line>
+          <option name="timeStamp" value="46" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -20,6 +20,7 @@ package statechum;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.List;
 
 import org.junit.Assert;
 
@@ -42,11 +43,10 @@ public class Helper {
 	public static void throwUnchecked(String description, Throwable e)
 	{
 		String descr = e.getMessage() == null? "":(": "+e.getMessage());
-		IllegalArgumentException ex = new IllegalArgumentException(description+descr);ex.initCause(e);
-		throw ex;
+		throw new IllegalArgumentException(description+descr, e);
 	}
 
-	public static final void checkForCorrectException(whatToRun what, Class<? extends Exception> exceptionClass, String exceptionString)
+	public static void checkForCorrectException(whatToRun what, Class<? extends Exception> exceptionClass, String exceptionString)
 	{
 		try
 		{
@@ -56,7 +56,7 @@ public class Helper {
 		catch(Exception ex)
 		{
 			StringWriter str = new StringWriter();ex.printStackTrace(new PrintWriter(str));
-			Assert.assertEquals("wrong type of exception received "+str.toString()+" instead of "+exceptionClass,exceptionClass,ex.getClass());
+			Assert.assertEquals("wrong type of exception received "+ str +" instead of "+exceptionClass,exceptionClass,ex.getClass());
 			if (ex.getMessage() == null)
 				Assert.assertNull("got null instead of \""+exceptionString+"\"",exceptionString);
 			else
@@ -64,10 +64,32 @@ public class Helper {
 					Assert.assertTrue("expected exception containing \""+exceptionString+"\" but got \""+ex.getMessage()+"\"",ex.getMessage().contains(exceptionString));
 		}
 	}
+	public static void checkForCorrectExceptionAnyOf(whatToRun what, Class<? extends Exception> exceptionClass, List<String> exceptionString)
+	{
+		try
+		{
+			what.run();
+			Assert.fail("Exception not thrown");
+		}
+		catch(Exception ex)
+		{
+			StringWriter str = new StringWriter();ex.printStackTrace(new PrintWriter(str));
+			Assert.assertEquals("wrong type of exception received "+ str +" instead of "+exceptionClass,exceptionClass,ex.getClass());
+			if (ex.getMessage() == null)
+				Assert.fail("got null instead of the provided strings "+exceptionString);
+			else
+			if (exceptionString != null) {
+				for(String s:exceptionString)
+					if (ex.getMessage().contains(s))
+						return;
+				Assert.fail("expected exception containing any of \"" + exceptionString + "\" but got \"" + ex.getMessage() + "\"");
+			}
+		}
+	}
 
 	public interface whatToRun
 	{
-		public void run() throws NumberFormatException, java.io.IOException, IncompatibleStatesException;
+		void run() throws NumberFormatException, java.io.IOException, IncompatibleStatesException;
 	}
 }
 

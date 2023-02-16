@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run All tests" type="JUnit" factoryName="JUnit">
-    <module name="XMachineTool-current" />
+    <module name="XMachineTool" />
     <option name="PACKAGE_NAME" value="statechum" />
     <option name="MAIN_CLASS_NAME" value="statechum.AllTests" />
     <option name="METHOD_NAME" value="" />

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/XMachineTool-current.iml" filepath="$PROJECT_DIR$/XMachineTool-current.iml" />
+      <module fileurl="file://$PROJECT_DIR$/XMachineTool.iml" filepath="$PROJECT_DIR$/XMachineTool.iml" />
     </modules>
   </component>
 </project>

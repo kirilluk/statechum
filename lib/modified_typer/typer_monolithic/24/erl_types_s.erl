@@ -193,8 +193,7 @@
 	 t_sup/2,
 	 t_timeout/0,
 	 fun_to_Statechum/2,
-%	 t_to_Statechum/1,
-%	 t_to_Statechum/2,
+	 t_to_Statechum/2,% This function is only called externally for testing
 	 t_to_tlist/1,
 	 t_tuple/0,
 	 t_tuple/1,

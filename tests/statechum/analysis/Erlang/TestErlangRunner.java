@@ -18,7 +18,18 @@
  */
 package statechum.analysis.Erlang;
 
-import static statechum.Helper.checkForCorrectException;
+import com.ericsson.otp.erlang.*;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import statechum.GlobalConfiguration;
+import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.ProgressIndicator;
+import statechum.analysis.Erlang.ErlangRunner.ERL;
+import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
+import statechum.analysis.learning.rpnicore.LTL_to_ba;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -26,27 +37,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Random;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import statechum.GlobalConfiguration;
-import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.Helper.whatToRun;
-import statechum.analysis.Erlang.ErlangRunner.ERL;
-import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
-import statechum.analysis.learning.rpnicore.LTL_to_ba;
-import statechum.ProgressIndicator;
-
-import com.ericsson.otp.erlang.OtpErlangAtom;
-import com.ericsson.otp.erlang.OtpErlangInt;
-import com.ericsson.otp.erlang.OtpErlangList;
-import com.ericsson.otp.erlang.OtpErlangLong;
-import com.ericsson.otp.erlang.OtpErlangObject;
-import com.ericsson.otp.erlang.OtpErlangRangeException;
-import com.ericsson.otp.erlang.OtpErlangTuple;
+import static statechum.Helper.checkForCorrectException;
 
 public class TestErlangRunner {
 
@@ -59,7 +50,7 @@ public class TestErlangRunner {
 	public File testDir = null;
 	
 	/** URL of the locker example. */
-	public final File erlangLocker = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES),"locker"+File.separator+"locker.erl");
+	//public final File erlangLocker = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES),"locker"+File.separator+"locker.erl");
 	
 	protected ErlangRunner runner;
 	
@@ -95,60 +86,7 @@ public class TestErlangRunner {
 	{
 		ExperimentRunner.zapDir(testDir);
 	}
-	
-	@Test
-	public void testGetErlName1()
-	{
-		checkValid("aa","aa.erl");
-		checkValid("aa","  aa.erl   ");
-	}
 
-	@Test
-	public void testGetErlName2()
-	{
-		checkValid("aa/bb","  aa/bb.erl   ");
-		checkValid("aa/bb...","  aa/bb....erl   ");
-		checkValid("aa/bb.c.d","  aa/bb.c.d.erl   ");
-		checkValid("aa/bb.c.d.erl","  aa/bb.c.d.erl.erl   ");
-	}
-	
-	void checkValid(String expected, String whatToPassToGetErlName)
-	{
-		Assert.assertEquals(expected,ErlangRunner.getErlName(whatToPassToGetErlName));Assert.assertTrue(ErlangRunner.validName(whatToPassToGetErlName));
-	}
-	
-	void checkInvalid(String name)
-	{
-		Assert.assertNull(ErlangRunner.getErlName(name));Assert.assertFalse(ErlangRunner.validName(name));
-	}
-	
-	@Test
-	public void testGetErlNameFail()
-	{
-		checkInvalid(".erl");
-		checkInvalid(null);
-		checkInvalid("aa.berl");
-		checkInvalid("aa.berl");
-		checkInvalid("aa.erl.tt");
-		checkInvalid("aa");
-	}
-	
-	@Test
-	public void testGetName1()
-	{
-		Assert.assertTrue(ErlangRunner.getName(new File("bb.c.d.erl.erl"),ERL.BEAM, true).endsWith("bb.c.d.erl.beam"));
-		Assert.assertTrue(ErlangRunner.getName(new File("  bb....erl   "),ERL.BEAM, true).endsWith("bb....beam"));
-	}
-	
-	@Test
-	public void testGetNameFail()
-	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangRunner.getName(new File("  aa/bb....   "),ERL.BEAM, true);
-		}},IllegalArgumentException.class,"Invalid module");
-
-	}
-	
 	/** Tests the echo method of the server, i.e.
 	 * { dataHead, ['Data2',data3 ] } = gen_server:call(echo,[ dataHead, 'Data2', data3 ]) 
 	 */
@@ -169,13 +107,13 @@ public class TestErlangRunner {
 	}
 	
 	/** Tests multiple instances of erlang. 
-	 * @throws OtpErlangRangeException */
+	 */
 	@Test
 	public void testErlangRunner3_longrunning_28sec() throws OtpErlangRangeException
 	{
 		GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ASSERT_ENABLED);// force configuration load and all related messages so that they do not interfere with progress indicator.
 		ErlangRuntime []runners = new ErlangRuntime[7];// more could be not allowed by XP Pro :/
-		String processNames[] = new String[runners.length];
+		String[] processNames = new String[runners.length];
 		int currentNumber =0;
 		for(int i=0;i<runners.length;++i) 
 		{ 
@@ -210,7 +148,8 @@ public class TestErlangRunner {
 			}
 			progress.next();
 		}
-		for(int i=0;i<runners.length;++i) runners[i].killErlang();
+		for (ErlangRuntime erlangRuntime : runners)
+			erlangRuntime.killErlang();
 		Assert.assertTrue(currentNumber > runners.length+10);
 	}
 	
@@ -238,17 +177,13 @@ public class TestErlangRunner {
 	@Test
 	public void testCompileFailure0a()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangRunner.compileErl(new File("junk"),null,true);
-		}},IllegalArgumentException.class,"Invalid module");
+		checkForCorrectException(() -> ErlangRunner.compileErl(new File("junk"),null,true),IllegalArgumentException.class,"Invalid module");
 	}
 	
 	@Test
 	public void testCompileFailure1a()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangRunner.compileErl(new File("junk.erl"),null,true);
-		}},IllegalArgumentException.class,"does not have a parent directory");
+		checkForCorrectException(() -> ErlangRunner.compileErl(new File("junk.erl"),null,true),IllegalArgumentException.class,"does not have a parent directory");
 	}
 	
 	public static final String someErlang = "-module(test).\n-export([testFun/1]).\ntestFun([Arg])->io:format(\"42~n\"),halt().\n";
@@ -257,18 +192,14 @@ public class TestErlangRunner {
 	public void testCompileFailure2a() throws IOException
 	{
 		Writer wr = new FileWriter(output);wr.write(someErlang);wr.write("someJunk");wr.close();
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangRunner.compileErl(output,null,true);
-		}},IllegalArgumentException.class,"Failure running erlc");
+		checkForCorrectException(() -> ErlangRunner.compileErl(output,null,true),IllegalArgumentException.class,"Failure running erlc");
 	}
 	
 	@Test
 	public void testCompileFailure2b() throws IOException
 	{
 		Writer wr = new FileWriter(output);wr.write(someErlang);wr.write("someJunk");wr.close();
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangRunner.compileErl(output,erlRuntime.createNewRunner(),true);
-		}},IllegalArgumentException.class,"failedToCompile");// error message returned by Erlang code
+		checkForCorrectException(() -> ErlangRunner.compileErl(output,erlRuntime.createNewRunner(),true),IllegalArgumentException.class,"failedToCompile");// error message returned by Erlang code
 	}
 	
 	@Test
@@ -312,13 +243,13 @@ public class TestErlangRunner {
         });
         try {
         	erlangProcess.waitFor();
-        } catch (InterruptedException e) {
+        } catch (InterruptedException ignored) {
             
         }
         if (erlangProcess.exitValue() != 0)
         	throw new IllegalArgumentException("Failure running "+output.getName()+"\n"+err+(err.length()>0?"\n":"")+out);
         Assert.assertEquals(MagicNumber+"\n",out.toString());
-        Assert.assertEquals("Expected empty error stream, got "+err.toString(),0,err.length());
+        Assert.assertEquals("Expected empty error stream, got "+ err,0,err.length());
 	}
 
 	@Test
@@ -339,24 +270,30 @@ public class TestErlangRunner {
 		File
 			origName = new File(ErlangRunner.getName(output,ERL.BEAM,false)),
 			tmpName = new File(ErlangRunner.getName(output,ERL.PLT,false));
-		
+
+		//noinspection ResultOfMethodCallIgnored
 		origName.renameTo(tmpName);
 		Thread.sleep(2000);
 		createAndCompile("43",runner);
-		Assert.assertTrue(origName.delete());tmpName.renameTo(origName);// restore the original .beam
+		Assert.assertTrue(origName.delete());
+		//noinspection ResultOfMethodCallIgnored
+		tmpName.renameTo(origName);// restore the original .beam
 		attemptRun("42");// verify rename worked - running original beam.
 		ErlangRunner.compileErl(output,runner,false);// compile, beam should be replaced
 		attemptRun("43");// verify it is now the new .beam
+		//noinspection ResultOfMethodCallIgnored
 		origName.renameTo(tmpName);// now make a copy of it
 		createAndCompile("44",runner);
-		Assert.assertTrue(origName.delete());tmpName.renameTo(origName);// restore the '43 .beam
+		Assert.assertTrue(origName.delete());
+		//noinspection ResultOfMethodCallIgnored
+		tmpName.renameTo(origName);// restore the '43 .beam
 		Assert.assertTrue(origName.setLastModified(output.lastModified()+100000L));
 		ErlangRunner.compileErl(output,runner,false);// compile, beam should be preserved
 		attemptRun("43");// verify it is the preserved .beam
 	}
 	
 	/** Tests the if a source is modified, it will be recompiled. 
-	 * @throws InterruptedException */
+	 */
 	@Test
 	public void testCompileAndRun2a() throws IOException, InterruptedException
 	{
@@ -364,7 +301,7 @@ public class TestErlangRunner {
 	}
 	
 	/** Tests the if a source is modified, it will be recompiled. 
-	 * @throws InterruptedException */
+	 */
 	@Test
 	public void testCompileAndRun2b() throws IOException, InterruptedException
 	{
@@ -397,7 +334,7 @@ public class TestErlangRunner {
         });
         try {
         	erlangProcess.waitFor();
-        } catch (InterruptedException e) {
+        } catch (InterruptedException ignored) {
         }
         Assert.assertEquals(1,erlangProcess.exitValue());
         Assert.assertTrue(out.toString().contains("function_clause"));
@@ -412,6 +349,7 @@ public class TestErlangRunner {
         else
         	msgWithErrorText = out.toString();
         Assert.assertTrue("Unexpected error message: "+msgWithErrorText,
+				msgWithErrorText.contains("init terminating in do_boot") ||
         		msgWithErrorText.contains("Crash dump was written to: erl_crash.dump") || msgWithErrorText.contains("Crash dump is being written to: erl_crash.dump"));
 	}
 
@@ -434,9 +372,7 @@ public class TestErlangRunner {
 		final ErlangRunner r = new ErlangRunner(erlRuntime.traceRunnerNode);
 		Assert.assertFalse(r.mboxOpen);
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			r.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200);
-		}},IllegalArgumentException.class,"is closed");
+		checkForCorrectException(() -> r.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200),IllegalArgumentException.class,"is closed");
 		Assert.assertFalse(registeredProcessExists(r));
 
 		r.initRunner();
@@ -449,16 +385,13 @@ public class TestErlangRunner {
 
 		Assert.assertTrue(registeredProcessExists(r));
 
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			r.initRunner();// this will fail because the corresponding process is already running.
-		}},IllegalArgumentException.class,"already_started");
+		// this will fail because the corresponding process is already running.
+		checkForCorrectException(r::initRunner,IllegalArgumentException.class,"already_started");
 		Assert.assertFalse(r.mboxOpen);
 		Assert.assertFalse(registeredProcessExists(r));
 		
 		// verify failure
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			r.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200);
-		}},IllegalArgumentException.class,"is closed");
+		checkForCorrectException(() -> r.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200),IllegalArgumentException.class,"is closed");
 		
 	}
 	
@@ -470,9 +403,7 @@ public class TestErlangRunner {
 		final ErlangRunner r = new ErlangRunner(erlRuntime.traceRunnerNode);
 		Assert.assertFalse(r.mboxOpen);
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			r.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200);
-		}},IllegalArgumentException.class,"is closed");
+		checkForCorrectException(() -> r.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200),IllegalArgumentException.class,"is closed");
 		Assert.assertFalse(registeredProcessExists(r));
 	}
 
@@ -497,9 +428,7 @@ public class TestErlangRunner {
 		Assert.assertFalse(registeredProcessExists(r));
 		
 		// verify failure
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			r.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200);
-		}},IllegalArgumentException.class,"is closed");
+		checkForCorrectException(() -> r.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200),IllegalArgumentException.class,"is closed");
 		
 	}
 	
@@ -510,9 +439,7 @@ public class TestErlangRunner {
 	@Test
 	public void testErlangResponseTimeout2()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			runner.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200);
-		}},IllegalArgumentException.class,"timeout");
+		checkForCorrectException(() -> runner.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200),IllegalArgumentException.class,"timeout");
 	}
 
 	/** Almost the same as testErlangRunner1 
@@ -521,13 +448,10 @@ public class TestErlangRunner {
 	@Test
 	public void testErlangResponseTimeout3()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			runner.call(new OtpErlangObject[]{new OtpErlangAtom("noreply")},200);
-		}},IllegalArgumentException.class,"timeout");
+		checkForCorrectException(() -> runner.call(new OtpErlangObject[]{new OtpErlangAtom("noreply")},200),IllegalArgumentException.class,"timeout");
 	}
 
 	/** Checks for a timeout if Erlang process dies, by killing it.
-	 * @throws InterruptedException 
 	 */
 	@Test
 	public void testErlangResponseTimeout4() throws InterruptedException
@@ -535,9 +459,7 @@ public class TestErlangRunner {
 		checkEcho(runner);
 		erlRuntime.erlangProcess.destroy();
 		erlRuntime.erlangProcess.waitFor();
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			makeCall(runner);
-		}},IllegalArgumentException.class,"timeout");
+		checkForCorrectException(() -> makeCall(runner),IllegalArgumentException.class,"timeout");
 		erlRuntime.killErlang();
 	}
 	
@@ -548,12 +470,8 @@ public class TestErlangRunner {
 	{
 		checkEcho(runner);
 		checkEcho(runner);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			runner.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200);
-		}},IllegalArgumentException.class,"timeout");
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			makeCall(runner);
-		}},IllegalArgumentException.class,"timeout");
+		checkForCorrectException(() -> runner.call(new OtpErlangObject[]{new OtpErlangAtom("echoA")},200),IllegalArgumentException.class,"timeout");
+		checkForCorrectException(() -> makeCall(runner),IllegalArgumentException.class,"timeout");
 		
 	}
 	
@@ -583,51 +501,41 @@ public class TestErlangRunner {
 	@Test
 	public void testCallResponseDecodeFailure1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			erlRuntime.createNewRunner().call(
-					new OtpErlangObject[]{new OtpErlangAtom("echo2Error"), new OtpErlangAtom("aaa")},
-					"ErrMsg");
-		}},IllegalArgumentException.class,"ErrMsg : error errorProcessinG");
+		checkForCorrectException(() -> erlRuntime.createNewRunner().call(
+				new OtpErlangObject[]{new OtpErlangAtom("echo2Error"), new OtpErlangAtom("aaa")},
+				"ErrMsg"),IllegalArgumentException.class,"ErrMsg : error errorProcessinG");
 	}
 
 	@Test
 	public void testCallResponseDecodeFailure2()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			runner.call(
-					new OtpErlangObject[]{new OtpErlangAtom("echo2ErrorMessage"), new OtpErlangAtom("aaa")},
-					"ErrMsg");
-		}},IllegalArgumentException.class,"veryLongErrorMessage");
+		checkForCorrectException(() -> runner.call(
+				new OtpErlangObject[]{new OtpErlangAtom("echo2ErrorMessage"), new OtpErlangAtom("aaa")},
+				"ErrMsg"),IllegalArgumentException.class,"veryLongErrorMessage");
 	}
 	
 	@Test
 	public void testCallResponseDecodeFailure3()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			runner.call(
-					new OtpErlangObject[]{new OtpErlangAtom("echo2List"), new OtpErlangAtom("aaa")},
-					"ErrMsg");
-		}},IllegalArgumentException.class,"unexpected response type");
+		checkForCorrectException(() -> runner.call(
+				new OtpErlangObject[]{new OtpErlangAtom("echo2List"), new OtpErlangAtom("aaa")},
+				"ErrMsg"),IllegalArgumentException.class,"unexpected response type");
 	}
 	
 	@Test
 	public void testCallResponseDecodeFailure4()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			runner.call(
-					new OtpErlangObject[]{new OtpErlangAtom("echo2WrongType"), new OtpErlangAtom("aaa")},
-					"ErrMsg");
-		}},IllegalArgumentException.class,"unexpected type in response tuple");
+		checkForCorrectException(() -> runner.call(
+				new OtpErlangObject[]{new OtpErlangAtom("echo2WrongType"), new OtpErlangAtom("aaa")},
+				"ErrMsg"),IllegalArgumentException.class,"unexpected type in response tuple");
 	}
 	
 	@Test
 	public void testCallResponseDecodeFailure5()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			runner.call(
-					new OtpErlangObject[]{new OtpErlangAtom("echo2ShortTuple"), new OtpErlangAtom("aaa")},
-					"ErrMsg");
-		}},IllegalArgumentException.class,"unexpectedly short response");
+		checkForCorrectException(() -> runner.call(
+				new OtpErlangObject[]{new OtpErlangAtom("echo2ShortTuple"), new OtpErlangAtom("aaa")},
+				"ErrMsg"),IllegalArgumentException.class,"unexpectedly short response");
 	}
 	
 	@Test 
@@ -645,9 +553,7 @@ public class TestErlangRunner {
 	@Test 
 	public void testEvaluateTermFailure1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			runner.evaluateString("aa/gg.");
-		}},IllegalArgumentException.class,"syntax error before");
+		checkForCorrectException(() -> runner.evaluateString("aa/gg."),IllegalArgumentException.class,"syntax error before");
 	}
 	
 }

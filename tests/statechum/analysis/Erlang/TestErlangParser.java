@@ -889,7 +889,7 @@ public class TestErlangParser {
 	{
 		final String text = "#{a";
 		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected end of map");
-		//checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
+		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
 	@Test
@@ -897,7 +897,7 @@ public class TestErlangParser {
 	{
 		final String text = "#{a #{";
 		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"expecting => in parsing map");
-		//checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
+		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
 	@Test
@@ -905,7 +905,7 @@ public class TestErlangParser {
 	{
 		final String text = "#{a{}";
 		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"expecting => in parsing map");
-		//checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
+		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
 	@Test
@@ -913,7 +913,7 @@ public class TestErlangParser {
 	{
 		final String text = "#{a,";
 		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected token in parsing map");
-		//checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
+		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
 	@Test
@@ -921,7 +921,7 @@ public class TestErlangParser {
 	{
 		final String text = "#{a{ ";
 		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"expecting => in parsing map");
-		//checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
+		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
 	@Test
@@ -929,7 +929,7 @@ public class TestErlangParser {
 	{
 		final String text = "#{a , ";
 		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected token in parsing map");
-		//checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
+		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
 	@Test
@@ -937,7 +937,7 @@ public class TestErlangParser {
 	{
 		final String text = "#{a => ";
 		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected end of map");
-		//checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
+		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
 	@Test
@@ -945,7 +945,7 @@ public class TestErlangParser {
 	{
 		final String text = "#{,";
 		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected token in parsing map");
-		//checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
+		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
 	@Test
@@ -953,7 +953,7 @@ public class TestErlangParser {
 	{
 		final String text = "#{ , ";
 		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected token in parsing map");
-		//checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
+		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
 	@Test
@@ -961,7 +961,7 @@ public class TestErlangParser {
 	{
 		final String text = "#{ 56 => u, hh";
 		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected end of map");
-		//checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
+		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
 	@Test
@@ -969,7 +969,7 @@ public class TestErlangParser {
 	{
 		final String text = "#{ 56 => u, hh =>";
 		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected end of map");
-		//checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
+		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
 	@Test
@@ -977,7 +977,7 @@ public class TestErlangParser {
 	{
 		final String text = "#{ 56 => u, hh => tt";
 		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected end of map");
-		//checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
+		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
 	@Test
@@ -985,7 +985,7 @@ public class TestErlangParser {
 	{
 		final String text = "#{ 56 => u, hh => tt,";
 		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected end of map");
-		//checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
+		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
 
@@ -1155,7 +1155,7 @@ public class TestErlangParser {
 		public static Collection<Object[]> data() 
 		{
 			final String unquotedError = "unquoted atom cannot start with a dot",
-			isNeverAllowedError = "is never allowed",invalidTokenError = "invalid token",
+			isNeverAllowedError = "is never allowed",invalidTokenError = "invalid token", unexpectedMapSep = "unexpected => in parsing",
 			erlEvaluation = "evaluation",
 			erlNone = "";// this means 'ignore what Erlang says'.
 			return java.util.Arrays.asList(new Object[]{"{ 56, .aa }",unquotedError,erlNone},// Real Erlang accepts this but throws away the dot - I'm not happy about this.
@@ -1188,17 +1188,17 @@ public class TestErlangParser {
 					new Object[]{"atom:b",isNeverAllowedError,erlEvaluation},
 					new Object[]{"at|om","unexpected characters",erlEvaluation},
 
-					new Object[]{"{ 56 => 5 }",invalidTokenError,erlEvaluation},
-					new Object[]{"{ 56=> 5 }",invalidTokenError,erlEvaluation},
-					new Object[]{"{ 56 => }",invalidTokenError,erlEvaluation},
-					new Object[]{"{ => , }",invalidTokenError,erlEvaluation},
-					new Object[]{"{ , =>  }",invalidTokenError,erlEvaluation},
+					new Object[]{"{ 56 => 5 }",unexpectedMapSep,erlEvaluation},
+					new Object[]{"{ 56=> 5 }",unexpectedMapSep,erlEvaluation},
+					new Object[]{"{ 56 => }",unexpectedMapSep,erlEvaluation},
+					new Object[]{"{ => , }",unexpectedMapSep,erlEvaluation},
+					new Object[]{"{ , =>  }","unexpected comma in parsing tuple",erlEvaluation},
 
-					new Object[]{"[ 56 => 5 ]",invalidTokenError,erlEvaluation},
-					new Object[]{"[ 56=> 5 ]",invalidTokenError,erlEvaluation},
-					new Object[]{"[ 56 => ]",invalidTokenError,erlEvaluation},
-					new Object[]{"[ => , ]",invalidTokenError,erlEvaluation},
-					new Object[]{"[ , =>  ]",invalidTokenError,erlEvaluation},
+					new Object[]{"[ 56 => 5 ]",unexpectedMapSep,erlEvaluation},
+					new Object[]{"[ 56=> 5 ]",unexpectedMapSep,erlEvaluation},
+					new Object[]{"[ 56 => ]",unexpectedMapSep,erlEvaluation},
+					new Object[]{"[ => , ]",unexpectedMapSep,erlEvaluation},
+					new Object[]{"[ , =>  ]","unexpected comma in parsing list",erlEvaluation},
 
 					new Object[]{"-atom",invalidTokenError,erlEvaluation},
 					new Object[]{"+atom",invalidTokenError,erlEvaluation},

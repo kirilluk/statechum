@@ -40,7 +40,7 @@ public class ErlangRuntime {
 	/** Name for the Erlang node to create. */
 	protected String traceRunnerNode;
 	
-	public static final int timeBetweenChecks = 100;
+	public static final int timeBetweenChecks = 20;
 
 
 	/**
@@ -136,7 +136,18 @@ public class ErlangRuntime {
 			ErlangRunner.compileErl(new File(ErlangRunner.getErlangFolder(), str), runner,null,whereToPlaceModules);
 
 	}
-	
+
+	protected static int erlangVersion = 0;
+	protected static String typerPackageName = null;
+
+	public static int getErlangVersion() {
+		return erlangVersion;
+	}
+
+	public static String getTyperPackageName() {
+		return typerPackageName;
+	}
+
 	public static void compileTheRestOfErlangModules(ErlangRunner runner,File whereToPlaceModules) throws IOException
 	{
 		// Thanks to https://blog.kempkens.io/posts/erlang-17-0-supporting-deprecated-types-without-removing-warnings_as_errors/
@@ -145,27 +156,30 @@ public class ErlangRuntime {
 				new String[] { ErlangRunner.getErlangBin() + "erl",
 						"-eval", "io:format([126,115],[ [ erlang:system_info(otp_release) ]]),halt().",
 						"-noshell" }, null);
-		String erlangVersion=dumpProcessOutputOnFailure("extraction of OTP version", p);
+		erlangVersion=Integer.parseInt(dumpProcessOutputOnFailure("extraction of OTP version", p));
 		List<String> foldersForErl = new LinkedList<>();foldersForErl.add(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGSYNAPSE));
 		String erlangTypeDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGTYPER)+File.separator;
 		OtpErlangList Flags = null;
 		switch(erlangVersion) {
-			case "14":
-			case "16":
-			case "17":
+			case 14:
+			case 16:
+			case 17:
 				Flags = new OtpErlangList(new OtpErlangTuple(new OtpErlangObject[] {
 						// Since this is Erlang, using Unix slash
 						new OtpErlangAtom("i"), new OtpErlangString(erlangTypeDir+"typer_split/"+erlangVersion)}));
 				foldersForErl.add(erlangTypeDir + "typer_split");
+				typerPackageName = "typer_annotator_s";
 				break;
-			case "18":
+			case 18:
 				Flags = new OtpErlangList(new OtpErlangTuple(new OtpErlangObject[] {
 						// Since this is Erlang, using Unix slash
 						new OtpErlangAtom("i"), new OtpErlangString(erlangTypeDir+"typer_split/17")}));
 				foldersForErl.add(erlangTypeDir + "typer_split");
+				typerPackageName = "typer_annotator_s";
 				break;
-			case "24":
+			case 24:
 				foldersForErl.add(erlangTypeDir + "typer_monolithic/" + erlangVersion);
+				typerPackageName = "erl_types_s";
 				break;
 			default:
 				throw new IllegalArgumentException("Unsupported Erlang version "+erlangVersion+", only 14,16,17 and 24 are supported");

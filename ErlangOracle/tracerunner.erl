@@ -101,9 +101,9 @@ compileAndLoad(What,Flags,Path) ->
 extraCompileFlags() ->
   case erlang:system_info(otp_release) of
     14 -> [];
-    15 -> [];
     16 -> [];
     17 -> [];
+    18 -> [];
     _  -> [return_errors]
   end.
 
@@ -245,7 +245,7 @@ handle_call({evaluateTerm,String}, _From, State) ->
 		{ value, Value, _NewBindings} = erl_eval:exprs(Tree,[]),
 		{ reply, { ok, Value }, State }
 	catch
-		ErrClass:Error -> {reply, {failed,[ErrClass,Error,typer_s:stacktrace()]}, State}
+		ErrClass:Error:StackTrace -> {reply, {failed,[ErrClass,Error,StackTrace]}, State}
 	end;
 
 %% Compiles modules into .beam files, Dir is where to put results, should exist.

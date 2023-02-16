@@ -35,6 +35,7 @@ import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangPid;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
+import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper.whatToRun;
@@ -110,8 +111,8 @@ public class TestSynapse {
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
-		result.add(new Object[]{new Boolean(false)});
-		result.add(new Object[]{new Boolean(true)});
+		result.add(new Object[]{Boolean.FALSE});
+		result.add(new Object[]{Boolean.TRUE});
 		
 		return result;
 	}
@@ -267,7 +268,7 @@ public class TestSynapse {
 	}
 	
 	/** Tests that termination of a parent Erlang process kills Java. 
-	 * @throws InterruptedException */
+	 */
 	@Test
 	public void testRunSynapse2b() throws InterruptedException
 	{
@@ -298,7 +299,7 @@ public class TestSynapse {
 	}
 	
 	/** Tests that termination of a process linked to a worker kill the worker.
-	 * @throws InterruptedException */
+	 */
 	@Test
 	public void testRunSynapse2c() throws InterruptedException
 	{
@@ -354,7 +355,14 @@ public class TestSynapse {
 	{
 		return startSynapse(false);
 	}
-	
+
+	protected static String getJavaBinDir() {
+		// Thanks to https://stackoverflow.com/questions/227486/find-where-java-class-is-loaded-from
+		return Configuration.class.getResource("/" + Configuration.class.getCanonicalName().replace(".", "/") + ".class").toString().
+				replace(Configuration.class.getSimpleName()+".class","").replace("file:/","")+"..";
+
+	}
+
 	/** Starts Synapse and returns the associated pid. */
 	public OtpErlangPid startSynapse(boolean accumulateOutput)
 	{
@@ -362,18 +370,18 @@ public class TestSynapse {
 		String ErlangHome = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ERLANGHOME), ErlangHomeSetting="";
 		if (ErlangHome != null)
 			ErlangHomeSetting=",{'-DERLANGHOME','"+ErlangHome.replace('\\', '/')+"'}";
-		return (OtpErlangPid)runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+ErlangHomeSetting+"] },{'AccumulateOutput','" + new Boolean(accumulateOutput).toString().toLowerCase()+"'}]),"
+		return (OtpErlangPid)runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'bindir','"+getJavaBinDir()+"'},{'JavaOptionsList',["+javaOptions+ErlangHomeSetting+"] },{'AccumulateOutput','" + Boolean.toString(accumulateOutput).toLowerCase()+"'}]),"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()");		
 	}
 	
 	/** Same as above but we do not accumulate output. 
-	 * @throws InterruptedException */
+	 */
 	@Test
 	public void testRunSynapse4() throws InterruptedException
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'}]),"
+		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'bindir','"+getJavaBinDir()+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'}]),"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()!{self(),Ref,getNodeName},"
 				+ "receive {Ref,ok,Value} -> "

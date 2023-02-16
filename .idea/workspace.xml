@@ -4,21 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Erlang Module tests now pass in Erlang Otp 24.">
-      <change afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestGetName.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/Run_All_tests.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/Run_All_tests.xml" afterDir="false" />
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="More Erlang tests pass, many Synapse tests still fail.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ErlangOracle/tracerunner.erl" beforeDir="false" afterPath="$PROJECT_DIR$/ErlangOracle/tracerunner.erl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/XMachineTool-current.iml" beforeDir="false" afterPath="$PROJECT_DIR$/XMachineTool.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_monolithic/24/erl_types_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_monolithic/24/erl_types_s.erl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/synapse/synapselauncher.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/synapse/synapselauncher.erl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangNode.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangNode.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangRuntime.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangRuntime.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/ErlangTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/ErlangTests.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/synapse/test_diff.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/synapse/test_diff.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/synapse/test_fsmlearn.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/synapse/test_fsmlearn.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/synapse/test_fsmparse.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/synapse/test_fsmparse.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/synapse/test_parsetypemap.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/synapse/test_parsetypemap.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/synapse/testsynapse.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/synapse/testsynapse.erl" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/Signatures/TestTypes.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/Signatures/TestTypes.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangRunner.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangRunner.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestSynapse.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestSynapse.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -81,7 +74,7 @@
       <recent name="statechum.analysis.learning.rpnicore" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.TestSynapse.testEunitSynapseTests1_fsmparse">
+  <component name="RunManager" selected="JUnit.OTP 24">
     <configuration name="OTP 24" type="JUnit" factoryName="JUnit">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -208,48 +201,6 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestErlangOracleLearner.testLockerLearningWithoutOutputMatching" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.TestErlangOracleLearner" />
-      <option name="METHOD_NAME" value="testLockerLearningWithoutOutputMatching" />
-      <option name="TEST_OBJECT" value="method" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestErlangParser$TestParseInvalidCharsInAtomFail" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang.TestErlangParser" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestErlangParser$TestParseInvalidCharsInAtomFail" />
-      <option name="METHOD_NAME" value="testPrettyPrintTrace1" />
-      <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="TestParserDot" type="JUnit" factoryName="JUnit">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -303,6 +254,50 @@
       <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestSynapse" />
       <option name="METHOD_NAME" value="testEunitSynapseTests1_fsmparse" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <option name="PARAMETERS" value="[0,Synapse long node names]" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestSynapse.testEunitSynapseTests1_parsetypemap" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestSynapse" />
+      <option name="METHOD_NAME" value="testEunitSynapseTests1_parsetypemap" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <option name="PARAMETERS" value="[0,Synapse long node names]" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestSynapse.testRunSynapseLaunchFailure3" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestSynapse" />
+      <option name="METHOD_NAME" value="testRunSynapseLaunchFailure3" />
       <option name="TEST_OBJECT" value="method" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <option name="PARAMETERS" value="[0,Synapse long node names]" />
@@ -397,18 +392,18 @@
       <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangMapParser" />
       <item itemvalue="JUnit.TestParserDot" />
       <item itemvalue="JUnit.TestErlangOracleLearner" />
-      <item itemvalue="JUnit.TestErlangOracleLearner.testLockerLearningWithoutOutputMatching" />
-      <item itemvalue="JUnit.TestErlangParser$TestParseInvalidCharsInAtomFail" />
       <item itemvalue="JUnit.TestSynapse" />
       <item itemvalue="JUnit.TestSynapse.testEunitSynapseTests1_fsmparse" />
+      <item itemvalue="JUnit.TestSynapse.testEunitSynapseTests1_parsetypemap" />
+      <item itemvalue="JUnit.TestSynapse.testRunSynapseLaunchFailure3" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="JUnit.TestSynapse.testEunitSynapseTests1_fsmparse" />
         <item itemvalue="JUnit.TestSynapse" />
+        <item itemvalue="JUnit.TestSynapse.testRunSynapseLaunchFailure3" />
+        <item itemvalue="JUnit.TestSynapse.testEunitSynapseTests1_parsetypemap" />
+        <item itemvalue="JUnit.TestSynapse.testEunitSynapseTests1_fsmparse" />
         <item itemvalue="JUnit.TestErlangOracleLearner" />
-        <item itemvalue="JUnit.TestErlangOracleLearner.testLockerLearningWithoutOutputMatching" />
-        <item itemvalue="JUnit.TestErlangParser$TestParseInvalidCharsInAtomFail" />
       </list>
     </recent_temporary>
   </component>
@@ -493,7 +488,14 @@
       <option name="project" value="LOCAL" />
       <updated>1676496136307</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="More Erlang tests pass, many Synapse tests still fail.">
+      <created>1676508274966</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1676508274966</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -535,7 +537,8 @@
     <MESSAGE value="Removed unused seekUsages" />
     <MESSAGE value="Erlang Module tests now pass in Erlang 24." />
     <MESSAGE value="Erlang Module tests now pass in Erlang Otp 24." />
-    <option name="LAST_COMMIT_MESSAGE" value="Erlang Module tests now pass in Erlang Otp 24." />
+    <MESSAGE value="More Erlang tests pass, many Synapse tests still fail." />
+    <option name="LAST_COMMIT_MESSAGE" value="More Erlang tests pass, many Synapse tests still fail." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -579,11 +582,6 @@
           <url>file://$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangModule.java</url>
           <line>242</line>
           <option name="timeStamp" value="46" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestSynapse.java</url>
-          <line>369</line>
-          <option name="timeStamp" value="59" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

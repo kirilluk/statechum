@@ -60,7 +60,6 @@ public class TestTypes
 	/** URL of the writable directory to be used for tests. */
 	public File testDir = null;
 
-	public final String ErlangExamples = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES);
 	protected Configuration config = Configuration.getDefaultConfiguration().copy();
 	protected ErlangRunner runner = null;
 	

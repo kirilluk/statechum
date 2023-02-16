@@ -149,7 +149,7 @@ displayFSM_test_()->
 					  ,alphabet=[wibble,wobble]
 					 },
 			"my graph"
-			},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:contains(Text,"String cannot be cast to com.ericsson.otp.erlang.OtpErlangAtom")),ok end end) end
+			},receive {Ref,failure,Text} -> ?assertEqual(true,testsynapse:containsCast(Text,"String "," com.ericsson.otp.erlang.OtpErlangAtom")),ok end end) end
 			
 %% This test actually pops a graph
 %%			fun() -> testsynapse:useworker(fun(Pid,Ref) -> Pid!{Ref,displayFSM,

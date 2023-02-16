@@ -25,7 +25,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("synapse.hrl").
 
--export([handleNotifications/2,handleNotificationsAndRecordThem/2,useworker/1,containsStrict/2,contains/2]).
+-export([handleNotifications/2,handleNotificationsAndRecordThem/2,useworker/1,containsStrict/2,contains/2,containsCast/3]).
 
 useworker(Function) ->
 	StatechumRef=make_ref(),synapselauncher:find_statechum()!{self(),StatechumRef,getStatechumWorker},receive {StatechumRef,Pid} -> Ref = make_ref(),Function(Pid,Ref), Pid!{Ref,terminate} end.
@@ -35,6 +35,9 @@ containsStrict(List,[])->true;
 containsStrict([],List)->false;
 containsStrict([H|T],[A|B]) when H =:= A ->containsStrict(T,B);
 containsStrict([H|T],[A|B]) when H =/= A ->false.
+
+containsCast(A,B,C) -> % Accounts for different exception messages between OpenJDK and Oracle JDK
+    contains(A,B ++ "cannot be cast to" ++ C) or contains(A,B ++ "cannot be cast to class" ++ C).
 
 contains(List,[]) -> true;
 contains([],List) -> false;

@@ -256,7 +256,7 @@ public class TestErlangModule
 				new OtpErlangList(new OtpErlangObject[]{new OtpErlangString(ErlangRunner.getName(f, ERL.ERL, false))}),
 				new OtpErlangAtom("text")
 			};
-		OtpErlangTuple response = runner.call(typerArgs,"Could not run typer");
+		runner.call(typerArgs,"Could not run typer");
 	}
 
     /** Loads the contents of a file into a string. 
@@ -496,7 +496,7 @@ public class TestErlangModule
     	final ErlangLabel pushLabel = modExporter.behaviour.convertErlToMod(AbstractLearnerGraph.generateNewLabel(
     			"{"+ErlangLabel.missingFunction+",'exporter:push/1',['JustAnythingA'],'ok'}", exporterConfiguration,evalConf.getLabelConverter()));
 		//final ErlangLabel labelInvalidArity = new ErlangLabel(initLabel.function,initLabel.callName,initLabel.input,initLabel.expectedOutput);
-		statechum.Helper.checkForCorrectException(() -> learner.askErlang(Arrays.asList(pushLabel)),IllegalArgumentException.class,"but attempting to call");
+		statechum.Helper.checkForCorrectException(() -> learner.askErlang(Collections.singletonList(pushLabel)),IllegalArgumentException.class,"but attempting to call");
     }
     
     @Test
@@ -583,7 +583,9 @@ public class TestErlangModule
 		ErlangRunner.compileErl(origFile, runner,false);
 		final File renamedFile = new File(testDir.getAbsolutePath()+File.separator+"otherFile.erl");
 		final Configuration configRenamed = config.copy();ErlangModule.setupErlangConfiguration(configRenamed,renamedFile);configRenamed.setErlangCompileIntoBeamDirectory(false);
+		//noinspection ResultOfMethodCallIgnored
 		origFile.renameTo(new File(ErlangRunner.getName(renamedFile, ERL.ERL,false)));
+		//noinspection ResultOfMethodCallIgnored
 		new File(ErlangRunner.getName(origFile,ERL.BEAM,false)).renameTo(new File(ErlangRunner.getName(renamedFile, ERL.BEAM,false)));
 		checkForCorrectException(() -> ErlangModule.loadModule(configRenamed),ErlangThrownException.class,"Invalid file name");// error message returned by Erlang code
     }
@@ -808,7 +810,109 @@ public class TestErlangModule
 				,TestTypes.getAlphabetAsString(mod ));
     }
 
-    // Tests that where a function fails to terminate, it is not included in the list of those to attempt.
+	@Test
+	public void testLoadExports3() throws IOException
+	{
+		final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun(3)->#{4 => 5}.";
+		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(config);
+		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{4 => 5}}"+
+						"]"
+				,TestTypes.getAlphabetAsString(mod ));
+	}
+
+	@Test
+	public void testLoadExports4() throws IOException
+	{
+		final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun(3)->#{4 => 5};\ntestFun(4)->#{6 => 6}.";
+		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(config);
+		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{4 => 5,6 => 6}}," +
+						"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{}}" +// this is technically incorrect but cannot be made correct due to the abstraction of the data types by typer.
+						"]"
+				,TestTypes.getAlphabetAsString(mod ));
+	}
+
+	@Test
+	public void testLoadExports5() throws IOException
+	{
+		final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun(3)->#{4 => 5};\ntestFun(4)->#{4 => 6}.";
+		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(config);
+		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{4 => 5}}" + // instantiate all pairs picks one of the values from a set of values hence we only get one pair.
+						"]"
+				,TestTypes.getAlphabetAsString(mod ));
+	}
+
+	@Test
+	public void testLoadExports6() throws IOException
+	{
+		final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun(3)->#{4 => 5, 6 =>8};\ntestFun(4)->#{6 => 1}.";
+		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(config);
+		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{6 => 1,4 => 5}}," +
+						"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{6 => 1}}" +// 6 is a mandatory key hence always present and 4 is an optional one hence not always present.
+						"]"
+				,TestTypes.getAlphabetAsString(mod ));
+	}
+
+	@Test
+	public void testLoadExports7() throws IOException
+	{
+		final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun(3)->#{}.";
+		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(config);
+		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{}}" +
+						"]"
+				,TestTypes.getAlphabetAsString(mod ));
+	}
+
+	@Test
+	public void testLoadExports8() throws IOException
+	{
+		final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun(3)->#{4 => 5};\ntestFun(Arg) ->#{4 => 8,Arg => 6}.";
+		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(config);
+		Assert.assertEquals(
+			// here Arg has Any type and value is 6.
+			"[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',['JustAnythingA'],#{4 => 5,'JustAnythingA' => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',['JustAnythingA'],#{4 => 5,[] => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',['JustAnythingA'],#{4 => 5,['WibbleA'] => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',['JustAnythingA'],#{4 => 5,['WibbleA','WobbleA'] => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],#{4 => 5,'JustAnythingA' => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],#{4 => 5,[] => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],#{4 => 5,['WibbleA'] => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],#{4 => 5,['WibbleA','WobbleA'] => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA']],#{4 => 5,'JustAnythingA' => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA']],#{4 => 5,[] => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA']],#{4 => 5,['WibbleA'] => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA']],#{4 => 5,['WibbleA','WobbleA'] => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA','WobbleA']],#{4 => 5,'JustAnythingA' => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA','WobbleA']],#{4 => 5,[] => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA','WobbleA']],#{4 => 5,['WibbleA'] => 6}}," +
+			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA','WobbleA']],#{4 => 5,['WibbleA','WobbleA'] => 6}}]"
+				,TestTypes.getAlphabetAsString(mod ));
+	}
+
+	@Test
+	public void testLoadExports9() throws IOException
+	{
+		final String someErlang = "-module(testFile).\n-record(rec,{a,b}).\n-export([testFun/1]).\ntestFun(#rec{a=5,b=atom})->6.";
+		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
+		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
+		ErlangModule mod = ErlangModule.loadModule(config);
+		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[{'rec',5,'atom'}],6}" +
+						"]"
+				,TestTypes.getAlphabetAsString(mod ));
+	}
+
+	// Tests that where a function fails to terminate, it is not included in the list of those to attempt.
     @Test
     public void testLoadIgnoreFunctions() throws IOException
     {

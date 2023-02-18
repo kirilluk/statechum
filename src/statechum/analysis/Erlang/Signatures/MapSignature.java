@@ -21,8 +21,10 @@ package statechum.analysis.Erlang.Signatures;
 import com.ericsson.otp.erlang.*;
 import statechum.Configuration;
 
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 /**
  *
  * @author Kirill
@@ -105,7 +107,10 @@ defK = possible_keys - all_used_in_pairs. Hence if defK - K is constructible it 
         for(int i=0;i<mandatoryKeys.size();++i) {
             mandatoryKeyValues.add(mandatoryKeys.get(i));mandatoryKeyValues.add(mandatoryValues.get(i));
         }
-        mandatoryKeyValues.add(defaultKey);mandatoryKeyValues.add(defaultValue);
+        if (defaultKey.getClass() != NoneSignature.class && defaultValue.getClass() != NoneSignature.class) {
+            mandatoryKeyValues.add(defaultKey);
+            mandatoryKeyValues.add(defaultValue);
+        }
         List<Signature> optionalKeyValues = new ArrayList<>();
         for(int i=0;i<optionalKeys.size();++i) {
             optionalKeyValues.add(optionalKeys.get(i));optionalKeyValues.add(optionalValues.get(i));
@@ -180,9 +185,11 @@ defK = possible_keys - all_used_in_pairs. Hence if defK - K is constructible it 
             }
 
             for(int i=0;i<optionalKeys.size() && !compatible;++i) {
-                if (optionalKeys.get(i).typeCompatible(entry.getKey()) &&
-                    !optionalValues.get(i).typeCompatible(entry.getValue()))
+                if (optionalKeys.get(i).typeCompatible(entry.getKey())) {
+                    if (!optionalValues.get(i).typeCompatible(entry.getValue()))
                         return false;// special case for optional pairs - includes holes into consideration.
+                    compatible = true;// optional key is compatible
+                }
             }
 
             if (!compatible && defaultKey.typeCompatible(entry.getKey()) && defaultValue.typeCompatible(entry.getValue()))

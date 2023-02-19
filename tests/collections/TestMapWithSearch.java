@@ -11,6 +11,7 @@ import org.junit.runners.ParameterizedWithName.ParametersToString;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper;
+import statechum.TestHelper;
 import statechum.collections.*;
 
 import java.util.*;
@@ -561,60 +562,60 @@ public class TestMapWithSearch
 	@SuppressWarnings("ConstantConditions")
 	private <K,V> void checkUnsupportedOperationsOnEntrySet(final Map<K,V> map)
 	{
-		statechum.Helper.checkForCorrectException(() -> map.entrySet().iterator().remove(),
+		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().iterator().remove(),
 				UnsupportedOperationException.class,"modification of iterator");
 
-		statechum.Helper.checkForCorrectException(() -> map.entrySet().add(null),
+		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().add(null),
 				UnsupportedOperationException.class,"modification of entry set");
 
-		statechum.Helper.checkForCorrectException(() -> map.entrySet().addAll(null),
+		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().addAll(null),
 				UnsupportedOperationException.class,"modification of entry set");
 
-		statechum.Helper.checkForCorrectException(() -> map.entrySet().remove(null),
+		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().remove(null),
 				UnsupportedOperationException.class,"modification of entry set");
 		
-		statechum.Helper.checkForCorrectException(() -> map.entrySet().removeAll(map.entrySet()),
+		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().removeAll(map.entrySet()),
 				UnsupportedOperationException.class,"modification of entry set");
 		
-		statechum.Helper.checkForCorrectException(() -> map.entrySet().retainAll(map.entrySet()),
+		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().retainAll(map.entrySet()),
 				UnsupportedOperationException.class,"modification of entry set");
 		
-		statechum.Helper.checkForCorrectException(() -> map.entrySet().clear(),
+		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().clear(),
 				UnsupportedOperationException.class,"modification of entry set");
 	}
 	
 	@SuppressWarnings("ConstantConditions")
 	private <K,V> void checkUnsupportedOperationsOnValueSet(final Map<K,V> map)
 	{
-		statechum.Helper.checkForCorrectException(() -> map.values().iterator().remove(),
+		statechum.TestHelper.checkForCorrectException(() -> map.values().iterator().remove(),
 				UnsupportedOperationException.class,"modification of iterator");
 		
-		statechum.Helper.checkForCorrectException(() -> map.values().add(null),
+		statechum.TestHelper.checkForCorrectException(() -> map.values().add(null),
 				UnsupportedOperationException.class,"modification of value set");
 
-		statechum.Helper.checkForCorrectException(() -> map.values().addAll(null),
+		statechum.TestHelper.checkForCorrectException(() -> map.values().addAll(null),
 				UnsupportedOperationException.class,"modification of value set");
 
-		statechum.Helper.checkForCorrectException(() -> map.values().remove(null),
+		statechum.TestHelper.checkForCorrectException(() -> map.values().remove(null),
 				UnsupportedOperationException.class,"modification of value set");
 		
-		statechum.Helper.checkForCorrectException(() -> map.values().removeAll(null),
+		statechum.TestHelper.checkForCorrectException(() -> map.values().removeAll(null),
 				UnsupportedOperationException.class,"modification of value set");
 		
-		statechum.Helper.checkForCorrectException(() -> map.values().retainAll(null),
+		statechum.TestHelper.checkForCorrectException(() -> map.values().retainAll(null),
 				UnsupportedOperationException.class,"modification of value set");
 		
-		statechum.Helper.checkForCorrectException(() -> map.values().clear(),
+		statechum.TestHelper.checkForCorrectException(() -> map.values().clear(),
 				UnsupportedOperationException.class,"modification of value set");
 	}
 	
 	@SuppressWarnings("ConstantConditions")
 	private <K,V> void checkUnsupportedOperationsOnKeySet(final Map<K,V> map)
 	{
-		statechum.Helper.checkForCorrectException(() -> map.keySet().add(null),
+		statechum.TestHelper.checkForCorrectException(() -> map.keySet().add(null),
 				UnsupportedOperationException.class,"modification of key set");
 		
-		statechum.Helper.checkForCorrectException(() -> map.keySet().addAll(null),
+		statechum.TestHelper.checkForCorrectException(() -> map.keySet().addAll(null),
 				UnsupportedOperationException.class,"modification of key set");
 	}
 	
@@ -1432,7 +1433,7 @@ public class TestMapWithSearch
 	{
 		final Attempt<CInteger,Long> map = createMapOne(keyOne,valueOne);
 		
-		statechum.Helper.checkForCorrectException(() -> map.getOurs().keySet().iterator().remove(),IllegalStateException.class,"next was not yet called");
+		statechum.TestHelper.checkForCorrectException(() -> map.getOurs().keySet().iterator().remove(),IllegalStateException.class,"next was not yet called");
 	}
 	
 	@Test
@@ -1450,7 +1451,7 @@ public class TestMapWithSearch
 		final Attempt<CInteger,Long> map = createMapOne(keyOne,valueOne);
 		final Iterator<CInteger> iter = map.keySet().iterator();
 		iter.next();iter.remove();	
-		statechum.Helper.checkForCorrectException(
+		statechum.TestHelper.checkForCorrectException(
 				() -> map.getOurs().keySet().iterator().remove(),
 				IllegalStateException.class,"next was not yet called");
 	}
@@ -1459,7 +1460,7 @@ public class TestMapWithSearch
 	public void testNull1()
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
-		statechum.Helper.checkForCorrectException(
+		statechum.TestHelper.checkForCorrectException(
 				() -> map.getOurs().put(null, 33L),
 				IllegalArgumentException.class,"key cannot be null");
 	}
@@ -1469,10 +1470,10 @@ public class TestMapWithSearch
 	public void testNull2()
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
-		statechum.Helper.checkForCorrectException(
+		statechum.TestHelper.checkForCorrectException(
 				() -> map.getOurs().put(keyOne, null),
 				IllegalArgumentException.class,"value cannot be null");
-		statechum.Helper.checkForCorrectException(
+		statechum.TestHelper.checkForCorrectException(
 				() -> map.getOurs().putAll(null),
 				NullPointerException.class,null);
 	}
@@ -1918,7 +1919,7 @@ public class TestMapWithSearch
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
 		
-		statechum.Helper.checkForCorrectException(() -> map.getOurs().keySet().iterator().remove(),IllegalStateException.class,"next was not yet called");
+		statechum.TestHelper.checkForCorrectException(() -> map.getOurs().keySet().iterator().remove(),IllegalStateException.class,"next was not yet called");
 	}
 	
 	@Test
@@ -1938,7 +1939,7 @@ public class TestMapWithSearch
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
 		final Iterator<CInteger> iter = map.keySet().iterator();
 		iter.next();iter.remove();	
-		statechum.Helper.checkForCorrectException(() -> map.getOurs().keySet().iterator().remove(),IllegalStateException.class,"next was not yet called");
+		statechum.TestHelper.checkForCorrectException(() -> map.getOurs().keySet().iterator().remove(),IllegalStateException.class,"next was not yet called");
 	}
 	
 	
@@ -2260,7 +2261,7 @@ public class TestMapWithSearch
 	@Test
 	public void testInvalidModification2()
 	{
-		Helper.checkForCorrectException(
+		TestHelper.checkForCorrectException(
 				() -> createOurMap().values().remove(45),
 				UnsupportedOperationException.class, "modification");
 	}
@@ -2269,7 +2270,7 @@ public class TestMapWithSearch
 	public void testInvalidModification3b()
 	{
 
-		Helper.checkForCorrectException(
+		TestHelper.checkForCorrectException(
 				() -> createOurMap().values().clear(),
 				UnsupportedOperationException.class, "modification");
 	}
@@ -2278,7 +2279,7 @@ public class TestMapWithSearch
 	public void testInvalidModification4()
 	{
 
-		Helper.checkForCorrectException(
+		TestHelper.checkForCorrectException(
 				() -> createOurMap().entrySet().clear(),
 				UnsupportedOperationException.class, "modification");
 	}

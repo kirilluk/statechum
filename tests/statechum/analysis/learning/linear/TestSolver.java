@@ -30,8 +30,8 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.analysis.learning.rpnicore.LSolver;
 
-import static statechum.Helper.checkForCorrectException;
-import static statechum.Helper.whatToRun;
+import static statechum.TestHelper.checkForCorrectException;
+import static statechum.TestHelper.whatToRun;
 import cern.colt.function.DoubleFunction;
 import cern.colt.list.DoubleArrayList;
 import cern.colt.list.IntArrayList;

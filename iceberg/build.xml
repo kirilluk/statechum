@@ -12,7 +12,7 @@ lack of tracking dependencies between Java files.
         Builds the project and runs tests on it.
     </description>
   <!-- set global properties for this build -->
-  <property name="root" location=".."/>
+  <property name="root" location="/data/acp95keb/evaluation_of_learners/statechum"/>
   <property name="junit_statechum" location="${root}/lib/junit-statechum"/>
   <property name="junit_statechum_src" location="${junit_statechum}"/>
   <property name="junit_statechum_bin" location="${root}/bin"/>
@@ -21,12 +21,14 @@ lack of tracking dependencies between Java files.
   <property name="test_src" location="${root}/tests"/>
   <property name="test_dir" location="${root}"/>
   <property name="statechum_bin" location="${root}/bin"/>
-  <property name="ant.build.javac.source" value="1.7"/>
-  <property name="rtool_path" value="/data/acp95keb/local/soft/R-3.1.0/lib64/R/library/rJava/jri"/>
+  <property name="ant.build.javac.source" value="1.8"/>
+<!--  <property name="rtool_path" value="/home/acp95keb/R/x86_64-pc-linux-gnu-library/3.2/rJava/jri"/> -->
+  <property name="rtool_path" value="/data/acp95keb/local/soft/R-3.4.3/lib64/R/library/rJava/jri"/>
 
   <!-- "/usr/local/lib/R/site-library/rJava/jri"/> 
+  <property name="rpath" value="/usr/local/packages6/R/3.2.4/lib64/R" />
        -->
-  <property name="rpath" value="/data/acp95keb/local/soft/R-3.1.0/lib64/R" />
+  <property name="rpath" value="/data/acp95keb/local/soft/R-3.4.3/lib64/R" />
   <property name="LTL2BA" value="lib/ltl2ba-1.1/ltl2ba"/>
     <path id="classpath.lib">
       <fileset dir="${root}/lib">
@@ -98,7 +100,7 @@ lack of tracking dependencies between Java files.
        	<sysproperty key="ERLANGHOME" value="/data/acp95keb/local/soft/otp-R16B03-1" />
        	<sysproperty key="ERLANGOUTPUT_ENABLED" value="true"/>
 	<sysproperty key="LTL2BA" value="lib/ltl2ba-1.1/ltl2ba" />
-		<sysproperty key="com.sun.management.jmxremote" value="" />
+	<sysproperty key="com.sun.management.jmxremote" value="" />
        	<classpath>
          	<path refid="classpath.statechum" />
          </classpath>
@@ -125,20 +127,28 @@ lack of tracking dependencies between Java files.
     </fileset>
   </batchtest>
        	<test name="statechum.AllTests" />
--->
 	<test name="statechum.analysis.learning.TestDrawGraphs" />
+	<test name="statechum.AllTests.BasicTests" />
+	<test name="statechum.AllTests.GraphTests" />
+	<test name="statechum.AllTests.LearnerTests" />
+	<test name="statechum.AllTests.ObserversTests" />
+	<test name="statechum.AllTests.LinearTests" />
+	<test name="statechum.AllTests.SmtTests" />
+-->
+       	<test name="statechum.FastTests" />
        </junit>
        
   </target>
 
    <target name="erlang-test" depends="compileTests" description="run Erlang unit tests">
-       <junit  fork="on" maxmemory="3500m" forkmode="once" printsummary="yes" haltonfailure="yes">
+       <junit  fork="on" dir="${root}" maxmemory="3500m" forkmode="once" printsummary="yes" haltonfailure="yes">
 		<assertions>
         	<enable/>
       	</assertions>
     	<!-- <jvmarg value="-XX:+CITime"/> -->
        	<jvmarg value="-ea"/>
     	<jvmarg value="-XX:+UseCompressedOops"/>
+	<jvmarg value="-Duser.dir=${root}"/> <!-- from https://stackoverflow.com/questions/466893/how-do-i-set-the-working-directory-for-the-ant-junit-task -->
        	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
         <!-- <jvmarg value="-Duser.dir=/home/ramsay/statechum/XMachineTool/trunk/"/> -->
        	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
@@ -157,15 +167,58 @@ lack of tracking dependencies between Java files.
 
        	<formatter type="plain"/>
  
-       	<test name="statechum.analysis.Erlang.ErlangTestSuite" />
+       	<test name="statechum.analysis.Erlang.ErlangTests" />
 
        </junit>
 
   </target>
 	
+
+   <target name="minitest" depends="compileTests" description="run Erlang unit tests">
+       <junit  fork="true" dir="${root}" maxmemory="3500m" forkmode="once" printsummary="yes" haltonfailure="yes">
+	<!-- jvmarg value="-Duser.dir=${root}"/> this does not work, originally from https://stackoverflow.com/questions/466893/how-do-i-set-the-working-directory-for-the-ant-junit-task -->
+	<assertions>
+        	<enable/>
+      	</assertions>
+    	<!-- <jvmarg value="-XX:+CITime"/> -->
+      	<env key="R_HOME" value="${rpath}"/>
+       	<jvmarg value="-ea"/>
+    	<jvmarg value="-XX:+UseCompressedOops"/>
+       	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
+        <!-- <jvmarg value="-Duser.dir=/home/ramsay/statechum/XMachineTool/trunk/"/> -->
+       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
+       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs:${rtool_path}"/>
+       	<sysproperty key="VIZ_CONFIG" value="config_systemtests.xml"/>
+       	<sysproperty key="threadnum" value="4"/>
+		<sysproperty key="com.sun.management.jmxremote" value="" />
+       	<sysproperty key="ASSERT_ENABLED" value="true"/>
+       	<sysproperty key="SMTWARNINGS" value="true"/>
+       	<sysproperty key="LINEARWARNINGS" value="true"/>
+       	<sysproperty key="FORCEFORK" value="true"/>
+	<sysproperty key="LTL2BA" value="lib/ltl2ba-1.1/ltl2ba"/>
+      	<classpath>
+         	<path refid="classpath.statechum" />
+         	<pathelement location="${statechum_bin}"/>
+         </classpath>
+
+       	<formatter type="plain"/>
+ 
+
+       	<!-- <test name="statechum.analysis.learning.TestDrawGraphs" />  -->
+  <batchtest>
+    <fileset dir="${test_src}">
+      <include name="**/TestErlang*.java"/>
+
+    </fileset>
+    </batchtest>
+       </junit>
+
+  </target>
+
 	 <target name="diag" depends="compileStatechum" description="run unit tests">
 	  	   <echo>This will fail on 32-bit Win32 because max memory is set too high, but will work on most 64-bit platforms</echo>
-	        <java  fork="on" maxmemory="8192m"  classname="statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsNDUsingTestSet">
+	        <java  fork="on" maxmemory="8192m"  classname="statechum.analysis.learning.rpnicore.TestTransform"> 
+<!-- statechum.analysis.learning.linear.TestGD_ExistingGraphsNDUsingTestSet"> -->
 		<assertions>
 	        	<enable/>
 	      	</assertions>
@@ -173,9 +226,10 @@ lack of tracking dependencies between Java files.
            	<jvmarg value="-ea"/>
         	<jvmarg value="-XX:+UseCompressedOops"/>
            	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
+		<jvmarg value="-Duser.dir=${root}"/> <!-- from https://stackoverflow.com/questions/466893/how-do-i-set-the-working-directory-for-the-ant-junit-task -->
 	       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
 	       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
-	       	<sysproperty key="threadnum" value="4"/>
+	       	<sysproperty key="threadnum" value="1"/>
            	<sysproperty key="ASSERT_ENABLED" value="true"/>
            	<sysproperty key="SMTWARNINGS" value="true"/>
            	<sysproperty key="LINEARWARNINGS" value="true"/>

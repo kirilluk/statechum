@@ -18,8 +18,8 @@
 
 package statechum.analysis.learning.linear;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -612,7 +612,7 @@ public class TestGD_Multithreaded {
 	{
 		final Configuration configGD8 = config.copy();
 		configGD8.setGdFailOnDuplicateNames(true);
-		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public @Override void run() {
+		statechum.TestHelper.checkForCorrectException(new statechum.TestHelper.whatToRun() { public @Override void run() {
 			testComputeGD(A6, D6, "testComputeGD8b_", 9,configGD8);
 		}},IllegalArgumentException.class,"are shared between A and B");
 	}
@@ -1546,7 +1546,7 @@ public class TestGD_Multithreaded {
 	{
 		final LearnerGraph gr = buildLearnerGraph("P1000-a->P1001","testCheckClash",config,converter);
 		final GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
-		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public @Override void run() {
+		statechum.TestHelper.checkForCorrectException(new statechum.TestHelper.whatToRun() { public @Override void run() {
 			gd.init(gr, gr, 1,config);
 		}},IllegalArgumentException.class,"duplicate vertex with ID P1000");
 	}

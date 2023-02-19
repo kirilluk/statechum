@@ -167,7 +167,7 @@ public class DiffExperiments {
 					while(!outcome.experimentValid)
 					{
 						int mutations = mutationsPerStage * (mutationStage+1);
-						LearnerGraphND origGraph = mg.nextMachine(alphabet, experiment,config,converter);
+						LearnerGraphND origGraph = mg.nextMachine(alphabet, -1.0, experiment,config,converter);
 						GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(origGraph,r);
 						mutator.mutate(mutations);
 						LearnerGraphND origAfterRenaming = new LearnerGraphND(origGraph.config);
@@ -363,8 +363,7 @@ public class DiffExperiments {
 	 * @param sequences sequences to test with
 	 * @return a pair with the accuracy as the first element and time taken for the computation as the second one.
 	 */
-	private Pair<Double,Long> compareLang(LearnerGraph from, LearnerGraph to,
-			Collection<List<Label>> sequences) 
+	private static Pair<Double,Long> compareLang(LearnerGraph from, LearnerGraph to, Collection<List<Label>> sequences) 
 	{
 		
 		final long startTime = System.nanoTime();
@@ -433,7 +432,7 @@ public class DiffExperiments {
 	
 
 	@SuppressWarnings("unused")
-	private void displayDiff(LearnerGraphND from, LearnerGraphND to)
+	private static void displayDiff(LearnerGraphND from, LearnerGraphND to)
 	{
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
 			new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
@@ -612,9 +611,8 @@ public class DiffExperiments {
 			this.artificialTargetSize = target;
 			this.error = errorArg;
 		}
-		
-		//0.31,0.385
-		public LearnerGraphND nextMachine(int alphabet, int counter, Configuration config,ConvertALabel converter){
+
+		public LearnerGraphND nextMachine(int alphabet, double perStateMultiplier, int counter, Configuration config,ConvertALabel converter){
 			LearnerGraph machine = null;
 			LearnerGraph bestMachine = null;int bestMachineStateNumber = Integer.MAX_VALUE;
 			boolean found = false;
@@ -623,12 +621,46 @@ public class DiffExperiments {
 			while(!found){
 				for(int i = 0; i< phaseSize; i++){
 					ForestFireLabelledStateMachineGenerator gen = generateLabelsNoRepeat?
-							new ForestFireLabelledNoRepeatStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter ^ i,config,converter):
-							new ForestFireLabelledStateMachineGenerator(0.365,0.3,0.2,0.2,alphabet,counter ^ i,config,converter);
-					synchronized(AbstractLearnerGraph.syncObj)
-					{// Jung-based routines cannot be multithreaded, see the comment around the above syncObj for details.
-						machine = gen.buildMachine(artificialTargetSize);
+							// a number of experiments were conducted with these set for 0.365,0.3
+							new ForestFireLabelledNoRepeatStateMachineGenerator	(0.31,0.385,0.2,0.2,alphabet,counter ^ i,config,converter):
+							new ForestFireLabelledStateMachineGenerator			(0.31,0.385,0.2,0.2,alphabet,counter ^ i,config,converter);
+					machine = gen.buildMachine(artificialTargetSize);
+					
+					if (perStateMultiplier > 0)
+					{// The purpose of this part is to increase the number of transitions until it matches the specified number of states per multiplier, by randomly adding transitions.
+					// This is done before all other tasks, to ensure that after minimisation and adding transitions to ensure connectivity we get an automaton with expected number of states.
+						final Set<Label> alphabetObtained = machine.pathroutines.computeAlphabet();
+						CmpVertex possibleStates [] = machine.transitionMatrix.keySet().toArray(new CmpVertex[]{});
+						
+						while( (double)machine.pathroutines.countEdges()/machine.transitionMatrix.size() < perStateMultiplier)
+						{
+							CmpVertex sourceVertex = null;
+							if (possibleStates.length < 2)
+								sourceVertex = possibleStates[0];
+							else
+								sourceVertex = possibleStates[connectTransitions.nextInt(possibleStates.length)];
+
+							CmpVertex targetVertex = null;
+							if (possibleStates.length < 2)
+								targetVertex = possibleStates[0];
+							else
+								targetVertex = possibleStates[connectTransitions.nextInt(possibleStates.length)];
+						
+							if (sourceVertex == null || targetVertex == null )
+								break;
+							Set<Label> inputsPossible = new TreeSet<Label>();inputsPossible.addAll(alphabetObtained);inputsPossible.removeAll(machine.transitionMatrix.get(sourceVertex).keySet());
+							Label possibleElementsOfAlphabet[] = inputsPossible.toArray(new Label[]{});
+							Label possibleLabel = null;
+							if (possibleElementsOfAlphabet.length == 1)
+								possibleLabel = possibleElementsOfAlphabet[0];
+							else
+								if (possibleElementsOfAlphabet.length > 1)
+									possibleLabel = possibleElementsOfAlphabet[connectTransitions.nextInt(possibleElementsOfAlphabet.length)];
+							if (possibleLabel != null)
+								machine.addTransition(machine.transitionMatrix.get(sourceVertex),possibleLabel, targetVertex);
+						}
 					}
+					
 					if (generateConnected)
 					{
 						// First, add transitions from states that do not lead anywhere

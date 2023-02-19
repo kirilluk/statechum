@@ -34,15 +34,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.ParameterizedWithName;
 
-import statechum.Label;
-import statechum.Configuration;
-import statechum.Helper;
-import statechum.JUConstants;
-import statechum.Pair;
+import statechum.*;
 import statechum.Configuration.SMTGRAPHDOMAINCONSISTENCYCHECK;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.Helper.whatToRun;
+import statechum.TestHelper.whatToRun;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
@@ -57,7 +53,7 @@ import static statechum.analysis.learning.smt.SmtLabelRepresentation.INITMEM;
 import static statechum.analysis.learning.smt.SmtLabelRepresentation.ENDL;
 import static statechum.analysis.learning.smt.SmtLabelRepresentation.toCurrentMem;
 import static statechum.analysis.learning.smt.SmtLabelRepresentation.generateFreshVariable;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.apps.QSMTool;
 
@@ -117,7 +113,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testCreateLabels_error1()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation lbls = new SmtLabelRepresentation(config,converter);
 			lbls.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
@@ -128,7 +124,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testCreateLabels_error2()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation lbls = new SmtLabelRepresentation(config,converter);
 			lbls.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
@@ -139,7 +135,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testCreateLabels_error3()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation lbls = new SmtLabelRepresentation(config,converter);
 			lbls.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
@@ -150,7 +146,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testCreateLabels_error4()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation lbls = new SmtLabelRepresentation(config,converter);
 			lbls.labelMapConstructionOfOperations = new TreeMap<Label,SMTLabel>();
@@ -277,7 +273,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testRelabel_fail1()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation.toCurrentMem("some "+_M+" text ",5,JUConstants.intUNKNOWN);
 		}}, IllegalArgumentException.class,"previous number should");
@@ -286,7 +282,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testRelabel_fail2()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation.toCurrentMem("some "+_N+" text ",JUConstants.intUNKNOWN,6);
 		}}, IllegalArgumentException.class,"current number should");
@@ -313,7 +309,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testParseCollectionInvalidCommand()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation lbls = new SmtLabelRepresentation(config,converter);
 			lbls.parseCollection(Arrays.asList(new String[]{
@@ -325,7 +321,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testParseCollectionMissingInitial()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation lbls = new SmtLabelRepresentation(config,converter);
 			lbls.parseCollection(Arrays.asList(new String[]{
@@ -342,7 +338,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testParseCollection_init_invalid_POST()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation lbls = new SmtLabelRepresentation(config,converter);
 			lbls.parseCollection(Arrays.asList(new String[]{
@@ -359,7 +355,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testParseCollection_init_invalid_PRE()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation lbls = new SmtLabelRepresentation(config,converter);
 			lbls.parseCollection(Arrays.asList(new String[]{
@@ -373,7 +369,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testParseCollectionInvalidFunctionName1()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation lbls = new SmtLabelRepresentation(config,converter);
 			lbls.parseCollection(Arrays.asList(new String[]{
@@ -394,7 +390,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testParseCollectionInvalidFunctionName2()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation lbls = new SmtLabelRepresentation(config,converter);
 			lbls.parseCollection(Arrays.asList(new String[]{
@@ -406,7 +402,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testParseCollectionInvalidArgumentName()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation lbls = new SmtLabelRepresentation(config,converter);
 			lbls.parseCollection(Arrays.asList(new String[]{
@@ -432,7 +428,7 @@ public class TestSmtLabelRepresentation
 		lbls.parseCollection(Arrays.asList(new String[]{
 				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " (define varDecl"+_N+"::int)",
 				QSMTool.cmdOperation+" "+"A"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " (func )"}));
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " (define varDecl"+_N+"::int)",
@@ -480,7 +476,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testbuildVertexToAbstractStateMapUnknown1()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation lbls = new SmtLabelRepresentation(config,converter);
 			lbls.parseCollection(Arrays.asList(new String[]{
@@ -497,7 +493,7 @@ public class TestSmtLabelRepresentation
 	@Test
 	public void testbuildVertexToAbstractStateMapUnknown2()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			SmtLabelRepresentation lbls = new SmtLabelRepresentation(config,converter);
 			lbls.parseCollection(Arrays.asList(new String[]{
@@ -525,7 +521,7 @@ public class TestSmtLabelRepresentation
 			QSMTool.cmdOperation+" "+"B"+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N}));
 		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", config,converter),null,true);
 	
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			lbls.getConjunctionForPath(
 					Arrays.asList(new SMTLabel[]{
@@ -548,7 +544,7 @@ public class TestSmtLabelRepresentation
 				QSMTool.cmdOperation+" "+"B"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " somePrecondB"+_N,
 				QSMTool.cmdOperation+" "+"B"+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N}));
 		
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			lbls.getConjunctionForPath(
 					Arrays.asList(new SMTLabel[]{
@@ -698,7 +694,7 @@ public class TestSmtLabelRepresentation
 		lbls.parseCollection(declsForTestsOfAbstractStates);
 		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", config,converter),null,true);
 		
-		Helper.checkForCorrectException(new whatToRun() { @SuppressWarnings("unused")
+		TestHelper.checkForCorrectException(new whatToRun() { @SuppressWarnings("unused")
 		public @Override void run() {
 			lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),null,
 					lbls.labelMapFinal.get(AbstractLearnerGraph.generateNewLabel("A",lbls.config,lbls.converter)),
@@ -714,7 +710,7 @@ public class TestSmtLabelRepresentation
 		lbls.parseCollection(declsForTestsOfAbstractStates);
 		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", config,converter),null,true);
 		
-		Helper.checkForCorrectException(new whatToRun() { @SuppressWarnings("unused")
+		TestHelper.checkForCorrectException(new whatToRun() { @SuppressWarnings("unused")
 		public @Override void run() {
 			AbstractState stateInit = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Init"),config),6);
 			lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),stateInit,null,null,7);
@@ -729,7 +725,7 @@ public class TestSmtLabelRepresentation
 		lbls.parseCollection(declsForTestsOfAbstractStates);
 		lbls.buildVertexToAbstractStateMap(buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1", config,converter),null,true);
 		
-		Helper.checkForCorrectException(new whatToRun() { @SuppressWarnings("unused")
+		TestHelper.checkForCorrectException(new whatToRun() { @SuppressWarnings("unused")
 		public @Override void run() {
 			AbstractState stateInit = lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Init"),config),6);
 			lbls.new AbstractState(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("AfterA"),config),stateInit,null,
@@ -858,7 +854,7 @@ public class TestSmtLabelRepresentation
 				QSMTool.cmdOperation+" "+"B"+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondB"+_N}));
 		
 		final LearnerGraph graph = new LearnerGraph(config);
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run()
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run()
 		{
 			config.setSmtGraphDomainConsistencyCheck(SMTGRAPHDOMAINCONSISTENCYCHECK.NONE);
 			lbls.checkConsistency(graph,config);
@@ -879,7 +875,7 @@ public class TestSmtLabelRepresentation
 			QSMTool.cmdOperation+" "+"B"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (somePostcondB)"}));
 		final LearnerGraph graph = buildLearnerGraph("stA-A->stB-B->stC-A->stD", "testCreateConjunction1",config,converter);
 		lbls.buildVertexToAbstractStateMap(graph,null,true);
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.addAbstractStatesFromTraces(graph);
 		}}, IllegalArgumentException.class,"data traces should not be added to a graph with existing");
 	}
@@ -1340,7 +1336,7 @@ public class TestSmtLabelRepresentation
 		LearnerGraph graph = buildLearnerGraph("A-add->B","testUpdateScore", config,converter);
 		lbls.buildVertexToAbstractStateMap(graph,null,true);
 		
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.CheckWithEndUser(labelList(new String[]{"aa"}));
 		}},IllegalArgumentException.class,"unknown label");
 	}
@@ -1486,7 +1482,7 @@ public class TestSmtLabelRepresentation
 		{
 			graph.getVertexToAbstractState().get(graph.paths.getVertex(labelList(new String[]{"add","remove"}))).addAll(
 					graph.getVertexToAbstractState().get(graph.getInit()));
-			Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+			TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 				lbls.buildVertexToAbstractStateMap(graph, null,true);
 			}},IllegalArgumentException.class,"classes with DFA state");
 		}
@@ -1502,7 +1498,7 @@ public class TestSmtLabelRepresentation
 			Collection<AbstractState> newAbstractStates = new LinkedList<AbstractState>();newAbstractStates.add(lbls.new AbstractState(newState,99));
 			graph.getVertexToAbstractState().put(newState,newAbstractStates);
 			
-			Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+			TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 				lbls.buildVertexToAbstractStateMap(graph, null,true);
 			}},IllegalArgumentException.class,"do not feature");
 		}
@@ -1518,7 +1514,7 @@ public class TestSmtLabelRepresentation
 			// now add an unreachable accept-state to our graph.
 			graph.transitionMatrix.put(newState, graph.createNewRow());
 			
-			Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+			TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 				lbls.buildVertexToAbstractStateMap(graph, null,true);
 			}},IllegalArgumentException.class,"are not in the vertex");
 		}

@@ -23,6 +23,7 @@ import java.util.*;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
@@ -131,11 +132,11 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 	
 	
 	@SuppressWarnings("unchecked")
-	public static Vertex getTempRed(DirectedSparseGraph model, Vertex r, DirectedSparseGraph temp){
+	public static DeterministicVertex getTempRed(DirectedSparseGraph model, DeterministicVertex r, DirectedSparseGraph temp){
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
 		List<Edge> pathToRed = p.getPath(DeterministicDirectedSparseGraph.findInitial(model), r);
 		Set<List<Label>> pathToRedStrings = new LinkedHashSet<List<Label>>();
-		Vertex tempRed = null;
+		DeterministicVertex tempRed = null;
 		if(!pathToRed.isEmpty()){
 			pathToRedStrings = getPaths(pathToRed);
 			List<Label> prefixString = (List<Label>)pathToRedStrings.toArray()[0];
@@ -148,13 +149,13 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 	
 	@SuppressWarnings("unchecked")
 	protected List<List<Label>> generateQuestions(DirectedSparseGraph model, DirectedSparseGraph temp, OrigStatePair pair){
-		Vertex q = pair.getQ();
-		Vertex r = pair.getR();
+		DeterministicVertex q = pair.getQ();
+		DeterministicVertex r = pair.getR();
 		if(q==null || r ==null)
 			return new LinkedList<List<Label>>();
 		DijkstraShortestPath p = new DijkstraShortestPath(temp);
-		Vertex tempRed = getTempRed(model, r, temp);
-		Vertex tempInit = DeterministicDirectedSparseGraph.findInitial(temp);
+		DeterministicVertex tempRed = getTempRed(model, r, temp);
+		DeterministicVertex tempInit = DeterministicDirectedSparseGraph.findInitial(temp);
 		Set<List<Label>> prefixes = new LinkedHashSet<List<Label>>();
 		if(!tempRed.equals(tempInit)){
 			List<Edge> prefixEdges = p.getPath(tempInit, tempRed);
@@ -170,18 +171,18 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		}
 		
 		DirectedSparseGraph questionPrefixes = augmentPTA(DeterministicDirectedSparseGraph.initialise(), questions, true);
-		Iterator<Vertex> questionIt = getEndPoints(questionPrefixes).iterator();
+		Iterator<DeterministicVertex> questionIt = getEndPoints(questionPrefixes).iterator();
 		p = new DijkstraShortestPath(questionPrefixes);
 		questions =new LinkedList<List<Label>>();
-		Vertex init = DeterministicDirectedSparseGraph.findInitial(questionPrefixes);
+		DeterministicVertex init = DeterministicDirectedSparseGraph.findInitial(questionPrefixes);
 		while(questionIt.hasNext()){
 			List<Edge> edgePath = p.getPath(init, questionIt.next());
 			Set<List<Label>> pathsToPoint = getPaths(edgePath);
 			if(pathsToPoint.isEmpty())
 				continue;
 			List<Label> pathToPoint = (List<Label>)getPaths(edgePath).toArray()[0];
-			Vertex tempV = getVertex(temp, pathToPoint);
-			Vertex v = getVertex(model, pathToPoint);
+			DeterministicVertex tempV = getVertex(temp, pathToPoint);
+			DeterministicVertex v = getVertex(model, pathToPoint);
 			if(v == null)
 				questions.add(pathToPoint);
 			else if(Test_Orig_RPNIBlueFringeLearner.different(new OrigStatePair(v, tempV)))
@@ -250,8 +251,7 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		return questions;
 	}
 	
-	@SuppressWarnings("unchecked")
-	public static Set<List<Label>> computeSuffixes(Vertex v, DirectedSparseGraph model){
+	public static Set<List<Label>> computeSuffixes(DeterministicVertex v, DirectedSparseGraph model){
 		Set<List<Label>> returnSet = new HashSet<List<Label>>();
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
 		Iterator<DirectedSparseEdge> edgeIt = model.getEdges().iterator();
@@ -276,19 +276,18 @@ public class Test_Orig_RPNIBlueFringeLearnerTestComponent extends Test_Orig_RPNI
 		return returnSet;
 	}
 	
-	private static Set<Vertex> getEndPoints(DirectedSparseGraph g){
-		Set<Vertex> returnSet = new HashSet<Vertex>();
-		@SuppressWarnings("unchecked")
-		Iterator<Vertex> vertexIt = g.getVertices().iterator();
+	private static Set<DeterministicVertex> getEndPoints(DirectedSparseGraph g){
+		Set<DeterministicVertex> returnSet = new HashSet<DeterministicVertex>();
+		Iterator<DeterministicVertex> vertexIt = g.getVertices().iterator();
 		while(vertexIt.hasNext()){
-			Vertex v = vertexIt.next();
+			DeterministicVertex v = vertexIt.next();
 			if(v.getSuccessors().isEmpty())
 				returnSet.add(v);
 		}
 		return returnSet;
 	}
 	
-	private boolean containsSubString(Collection<List<Label>> sPlusArg, List<Label> question){
+	private static boolean containsSubString(Collection<List<Label>> sPlusArg, List<Label> question){
 		Iterator<List<Label>> stringIt = sPlusArg.iterator();
 		Label first = question.get(0);
 		int length = question.size();

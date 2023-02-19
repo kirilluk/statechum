@@ -96,7 +96,7 @@ public class WExperiment {
 					StatePair whatToMerge = new StatePair(vertResult,newInit);
 					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					score = result.pairscores.computePairCompatibilityScore_general(whatToMerge,null,collectionOfVerticesToMerge, false);
-					if (score >= 0) result = MergeStates.mergeCollectionOfVertices(result,null,collectionOfVerticesToMerge, false);
+					if (score >= 0) result = MergeStates.mergeCollectionOfVertices(result,null,collectionOfVerticesToMerge, null, false);
 					else throw new IllegalArgumentException("failed to merge states");// no easy way to restart with a different pair since result has already been modified, should've cloned perhaps, but absence of negative states ensures that no failure is possible.
 				}
 				while(score < 0);

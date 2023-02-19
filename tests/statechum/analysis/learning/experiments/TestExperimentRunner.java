@@ -45,12 +45,12 @@ import statechum.Configuration;
 import statechum.analysis.learning.experiments.ExperimentRunner.GeneratorConfiguration;
 import statechum.analysis.learning.experiments.ExperimentRunner.LearnerEvaluator;
 import statechum.analysis.learning.experiments.ExperimentRunner.LearnerFailed;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod;
-import static statechum.Helper.whatToRun;
-import static statechum.Helper.checkForCorrectException;
+import static statechum.TestHelper.whatToRun;
+import static statechum.TestHelper.checkForCorrectException;
 
 public class TestExperimentRunner {
 	protected static int directoryCounter = 0;
@@ -758,7 +758,7 @@ public class TestExperimentRunner {
 				multiExp.runExperiment(new String[]{fileList.getAbsolutePath(),testOutputDir.getAbsolutePath(),"100"});
 			}
 			
-		}, IllegalArgumentException.class,"Array task number ");		
+		}, IllegalArgumentException.class,"Array task number ");
 	}
 	
 	/** An unrecognised command provided to the Grid mode. */ 

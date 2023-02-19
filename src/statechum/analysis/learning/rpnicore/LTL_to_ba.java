@@ -35,10 +35,10 @@ import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
+import statechum.Helper;
 import statechum.Label;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.ExperimentRunner.HandleProcessIO;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.apps.QSMTool;
 
@@ -115,7 +115,7 @@ public class LTL_to_ba {
 	
 	static
 	{
-		StringBuffer expr = new StringBuffer();
+		StringBuilder expr = new StringBuilder();
 		boolean first = true;
 		for(String str:new String[]{":","/\\*","\\*/"}) // this one is to ensure that parsing is regular.
 		{
@@ -345,7 +345,7 @@ public class LTL_to_ba {
 	 * Throws an {@link IllegalArgumentException} if something goes wrong.
 	 * Non-deterministic automata extracted from LTL is stored in the <em>matrix</em> array.
 	 *  
-	 * @param output
+	 * @param whatToParse text to parse
 	 */
 	public void parse(String whatToParse)
 	{
@@ -715,9 +715,9 @@ public class LTL_to_ba {
 			}});
 			ltlconverter.waitFor();
 		} catch (IOException e1) {
-			statechum.Helper.throwUnchecked("failed to run ltl2ba", e1);
+			Helper.throwUnchecked("failed to run ltl2ba", e1);
 		} catch (InterruptedException e) {
-			statechum.Helper.throwUnchecked("wait for ltl2ba to terminate aborted", e);
+			Helper.throwUnchecked("wait for ltl2ba to terminate aborted", e);
 		}
 		
 		parse(converterOutput.toString());
@@ -727,12 +727,11 @@ public class LTL_to_ba {
 	 * assuming the properties are all safety ones.
 	 * 
 	 * @param ltl formulas to run
-	 * @param graph in order to correctly interpret symbols used by ltl2ba 
+	 * @param alphabetToUse in order to correctly interpret symbols used by ltl2ba
 	 * such as "1", we need to be aware of the alphabet of an FSM being built. 
 	 * @param invert if the ltl expression is to be inverted before passing it to ltl2ba.
 	 * @param pathTo_ltl2ba path to ltl2ba executable, if null the default path will be used.
 	 * @return false if there is no LTL to extract.
-	 * @throws IncompatibleStatesException 
 	 */
 	public boolean ltlToBA(Collection<String> ltl, Collection<Label> alphabetToUse, boolean invert, String pathTo_ltl2ba)
 	{

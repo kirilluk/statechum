@@ -277,18 +277,15 @@ public class LearnerIncrementalRefinement
 		if (currentState == null)
 		{// the supplied path does not exist in PTA, the first non-existing vertex is from state prevState with label lastInput
 
-			synchronized (AbstractLearnerGraph.syncObj) 
+			while(inputIt.hasNext())
 			{
-				while(inputIt.hasNext())
-				{
-					prevState = graph.addVertex(prevState, true, lastInput);prevState.setColour(newColour);
-					prevState.setColour(newColour);prevState.setDepth(position++);
-					lastInput = inputIt.next();
-				}
-				// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
-				CmpVertex newVertex = graph.addVertex(prevState, accepted, lastInput);
-				newVertex.setColour(newColour);newVertex.setDepth(position++);
+				prevState = graph.addVertex(prevState, true, lastInput);prevState.setColour(newColour);
+				prevState.setColour(newColour);prevState.setDepth(position++);
+				lastInput = inputIt.next();
 			}
+			// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
+			CmpVertex newVertex = graph.addVertex(prevState, accepted, lastInput);
+			newVertex.setColour(newColour);newVertex.setDepth(position++);
 		}
 	}
 	// Given a complete split of a label, constructs a revised graph

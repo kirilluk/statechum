@@ -1,12 +1,12 @@
 package statechum.analysis.learning.experiments.mutation;
 
-import static statechum.Helper.checkForCorrectException;
+import static statechum.TestHelper.checkForCorrectException;
 
 import org.junit.Assert;
 import org.junit.Test;
 
 import statechum.Configuration;
-import statechum.Helper.whatToRun;
+import statechum.TestHelper.whatToRun;
 import statechum.analysis.learning.experiments.mutation.ExperimentResult.DOUBLE_V;
 import statechum.analysis.learning.experiments.mutation.ExperimentResult.LONG_V;
 

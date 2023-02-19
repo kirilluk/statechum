@@ -42,9 +42,9 @@ import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.collections.ArrayOperations;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
-import static statechum.Helper.checkForCorrectException;
-import static statechum.Helper.whatToRun;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.TestHelper.checkForCorrectException;
+import static statechum.TestHelper.whatToRun;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 public class TestRandomPathGenerator {
 	Configuration config = null;

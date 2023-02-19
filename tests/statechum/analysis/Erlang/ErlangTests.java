@@ -26,6 +26,7 @@ import org.junit.runners.Suite.SuiteClasses;
     statechum.analysis.Erlang.TestErlangStartupFailure.class,
     statechum.analysis.Erlang.TestErlangModule.class,
     statechum.analysis.Erlang.TestErlangRunner.class,
+    statechum.analysis.Erlang.TestGetName.class,
     statechum.analysis.Erlang.TestErlangParser.class,
     statechum.analysis.Erlang.TestErlangParser.TestParseBitStrFail.class,
     statechum.analysis.Erlang.TestErlangParser.TestParseDoubleFail.class,

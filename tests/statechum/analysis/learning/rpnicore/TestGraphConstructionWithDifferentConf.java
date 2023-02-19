@@ -41,9 +41,9 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import static org.junit.Assert.assertTrue;
-import static statechum.Helper.checkForCorrectException;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.TestHelper.checkForCorrectException;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper; 
 
 @RunWith(ParameterizedWithName.class)

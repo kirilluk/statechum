@@ -20,7 +20,7 @@ public class ConfusionMatrix {
 		this.fn = mat.fn;
 	}
 
-	private static double divide(double a, double b)
+	public static double divide(double a, double b)
 	{
 		assert !Double.isNaN(a);assert !Double.isNaN(b);
 		if (b == 0) return 0;

@@ -37,8 +37,10 @@ import org.junit.runners.ParameterizedWithName.ParametersToString;
 import statechum.Configuration;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+
+import static org.junit.Assert.assertTrue;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 
 @RunWith(ParameterizedWithName.class)
 public class TestEquivalenceChecking extends TestWithMultipleConfigurations 
@@ -85,13 +87,13 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 
 	/** Checks if the passed graph is isomorphic to the provided fsm
 	 * 
-	 * @param g graph to check
+	 * @param graph graph to check
 	 * @param fsm the string representation of the machine which the graph should be isomorphic to
 	 */
 	public void checkEq(LearnerGraph graph, String fsm)
 	{
 		final LearnerGraph expected = buildLearnerGraph(fsm,"expected graph",mainConfiguration,converter);
-		assertEquals("incorrect data",true,expected.equals(graph));
+		assertTrue("incorrect data", expected.equals(graph));
 	}
 
 	@Test

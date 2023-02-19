@@ -67,6 +67,21 @@
  * R_HOME needs to be set to /opt/local/Library/Frameworks/R.framework/Resources
  * and /opt/local/Library/Frameworks/R.framework/Versions/3.0/Resources/library/rJava/jri needs adding to java.library.path
  *
+ * Specific configuration variable affecting Win64 and R-3.4 (not the case for R-3.0)
+ * R_LIBS_USER="C:/Users/Kirill/Documents/R/win-library/3.4"
+ * 
+ * Example for Windows 10 and R-3.5.2:
+ * 
+ * R_HOME="C:\Program Files\R\R-3.5.2"
+ * R_LIBS_USER="C:/Users/Kirill/Documents/R/win-library/3.5"
+ * 
+ * It is important to note that missing the above entries for the environment variables leads to an immediate termination of the Java runtime with no error message.
+ *
+ * For R version 4.2.0, the location of files is the following:
+ * D:\soft\Program Files\R\R-4.2.0\library\JavaGD\libs\x64
+ * and the likes of  C:\Program Files\R\R-4.2.0\bin\x64 needs to be on the path (which is part of IdeaJ run
+ * configuration) otherwise jri.dll fails to load. Interesting to note that although jri.dll depends on JVM.dll
+ * (according to depends 2.2), I do not need to include a path to JDK, presumably because IdeaJ does it itself.
  */
 
 
@@ -75,14 +90,29 @@
 package statechum.analysis.learning;
 import java.awt.geom.Rectangle2D;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import javax.swing.SwingUtilities;
 
@@ -94,7 +124,10 @@ import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
+import statechum.StatechumXML.StringSequenceWriter;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
 public class DrawGraphs {
 	/** Determines whether our callbacks are dummies (without a main loop) or active (main loop running).
@@ -228,12 +261,10 @@ public class DrawGraphs {
 
 	protected static REXP eval(String whatToEval, String errMsg)
 	{
-
 		callbacks.clearBuffer();
 		REXP result = engine.eval(whatToEval);
 		if (result == null)
 			throw new IllegalArgumentException(errMsg+" : "+callbacks.getBuffer());
-
 		return result;
 	}
 
@@ -269,7 +300,7 @@ public class DrawGraphs {
 	{
 		if (data.size() == 0) throw new IllegalArgumentException("cannot plot an empty graph");
 		if (data.size() == 1 && names != null) throw new IllegalArgumentException("in a graph with one component, names are not used");
-		if (data.size() > 1 && names != null && names.size() != data.size()) throw new IllegalArgumentException("mismatch between name and data length");
+		if (data.size() > 1 && names != null && names.size() != data.size()) throw new IllegalArgumentException("mismatch between name and data length"); 
 		StringBuilder result = new StringBuilder();
 		result.append("boxplot(");
 		boolean firstVectorOfData = true;
@@ -298,14 +329,13 @@ public class DrawGraphs {
 				{
 					if (!startVector) result.append(",");else startVector=false;
 					result.append('\"');
-					String col = defaultColour;
-					result.append(col);
+					result.append(defaultColour);
 					result.append('\"');
 				}
 				result.append(")");
 			}
 		}
-		if (otherAttrs != null) { result.append(',');result.append(otherAttrs); }
+		if (otherAttrs != null && otherAttrs.length() > 0) { result.append(',');result.append(otherAttrs); }
 		result.append(")");
 		return result.toString();
 	}
@@ -321,7 +351,7 @@ public class DrawGraphs {
 	protected static String datasetToString(String plotType,List<List<Double>> yData,List<Double> xData, String otherAttrs)
 	{
 		if (yData.size() == 0) throw new IllegalArgumentException("cannot plot an empty graph");
-		if (yData.size() != xData.size()) throw new IllegalArgumentException("mismatch between x and y length");
+		if (yData.size() != xData.size()) throw new IllegalArgumentException("mismatch between x and y length"); 
 		StringBuilder result = new StringBuilder();
 		result.append(plotType);result.append("(");
 		StringBuilder yAxisData = new StringBuilder();
@@ -370,19 +400,19 @@ public class DrawGraphs {
 		}
 
 		try {
-			SwingUtilities.invokeAndWait(() -> {
-				if (RViewer.getGraph(title) == null)
-				{// create new graph
-					RViewer.setNewGraphName(title);
-					eval("JavaGD(\"aa\")","JavaGD() failed");
-					REXP devNum = eval("dev.cur()","failed to do dev.cur");
+			SwingUtilities.invokeAndWait(
+					() -> {
+						if (RViewer.getGraph(title) == null) {// create new graph
+							RViewer.setNewGraphName(title);
+							eval("JavaGD(\"aa\")", "JavaGD() failed");
+							REXP devNum = eval("dev.cur()", "failed to do dev.cur");
 
-					RViewer.getGraph(title).init(devNum.asInt()-1);
-				}
-				eval("dev.set("+(RViewer.getGraph(title).getDeviceNumber()+1)+")","failed to do dev.set for "+title);
-				for(String cmd:dataToPlot)
-					eval(cmd,"failed to run plot "+cmd);
-			});
+							RViewer.getGraph(title).init(devNum.asInt() - 1);
+						}
+						eval("dev.set(" + (RViewer.getGraph(title).getDeviceNumber() + 1) + ")", "failed to do dev.set for " + title);
+						for (String cmd : dataToPlot)
+							eval(cmd, "failed to run plot " + cmd);
+					});
 		} catch (Exception e) {
 			Helper.throwUnchecked("could not draw graph "+title, e);
 		}
@@ -394,13 +424,14 @@ public class DrawGraphs {
 	 * @param drawingCommand drawing command to pass to R
 	 * @param xDim horizontal size in inches, R default is 7.
 	 * @param yDim vertical size in inches, R default is 7.
+	 * @param file where to store result.
 	 */
 	public void drawPlot(List<String> drawingCommand,double xDim,double yDim,File file)
 	{
 		if (xDim < 1)
 			throw new IllegalArgumentException("horizontal size ("+xDim+") too small");
 		if (yDim < 1) throw new IllegalArgumentException("vertical size ("+yDim+") too small");
-
+		
 		if (file.exists() && !file.delete())
 			throw new IllegalArgumentException("cannot delete file "+file.getAbsolutePath());
 		// Slashes have to be the Unix-way - R simply terminates the DLL on WinXP otherwise.
@@ -443,25 +474,37 @@ public class DrawGraphs {
 
 	public interface SGEExperimentResult
 	{
-		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
-		void parseTextLoadedFromExperimentResult(String []text, String fileNameForErrorMessages);
+		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output.
+		 * The last argument is set to true if the only purpose is to check that the outcome can be parsed rather than to record result. This is important to check whether an experiment has
+		 * abnormally terminated. 
+		 */
+		void parseTextLoadedFromExperimentResult(String []text, String fileNameForErrorMessages, ThreadResultID parameters, boolean onlyCheckItParses);
 
 		/** Called to provide real-time updates to the learning results. The default does nothing. */
 		void drawInteractive(DrawGraphs gr);
-
+		
 		/** Records results in a file. The argument is used if R is needed. */
 		void reportResults(DrawGraphs gr);
-
+				
 		/** Reports the name of the file with the graph, used for identification of different graphs. */
 		String getFileName();
 	}
 
 	public static class CSVExperimentResult implements SGEExperimentResult
 	{
-		StringBuffer[] spreadsheetHeader = null;
-		StringBuffer csvText = new StringBuffer();
+		protected final Map<String,Map<String,String>> rowColumnText = new TreeMap<String,Map<String,String>>();
+		final Map<String,String []> columnIDToHeader = new TreeMap<String,String []>();// will return column values in an increasing order
+		int headerRows = -1;
+		final Map<String,String []> columnIDToCellHeader = new TreeMap<String,String []>();
 		protected final File file;
 
+		protected String missingValue = "";
+		
+		public void setMissingValue(String val)
+		{
+			missingValue = val;
+		}
+		
 		public CSVExperimentResult(File arg)
 		{
 			file = arg;
@@ -477,37 +520,61 @@ public class DrawGraphs {
 	 		buf.append('\n');
 	 	}
 
-	 	/** Treating the supplied lines as rows, appends the provided data to those lines. The last line is special: it is populated with values from valuesForLastLine. */
-	 	public void appendToHeader(String[] whatToAppend,String [] valuesForLastLine)
+	 	public static String concatenateWithSeparator(String [] text)
 	 	{
-	 		if (whatToAppend.length == 0)
-	 			throw new IllegalArgumentException("cannot handle zero number of lines");
+	 		StringBuilder outcome = new StringBuilder();
 	 		boolean firstEntry = true;
-	 		if (spreadsheetHeader == null)
+	 		for(String str:text)
 	 		{
-	 			spreadsheetHeader = new StringBuffer[whatToAppend.length+1];for(int i=0;i<=whatToAppend.length;++i) spreadsheetHeader[i]=new StringBuffer();
-	 		}
-	 		else
-	 			if (spreadsheetHeader.length != whatToAppend.length+1)
-	 				throw new IllegalArgumentException("cannot append "+whatToAppend.length+" values to headers with "+spreadsheetHeader.length+" headers");
+	 			if (firstEntry)
+	 				firstEntry = false;
 	 			else
-	 				firstEntry = false;// we are extending an existing header
-
-	 		for(String valueForLastLine:valuesForLastLine)
-	 		{
-	 			for(int i=0;i<whatToAppend.length;++i)
-	 			{
-	 				if (!firstEntry) addSeparator(spreadsheetHeader[i]);spreadsheetHeader[i].append(whatToAppend[i]);
-	 			}
-	 			if (!firstEntry) addSeparator(spreadsheetHeader[whatToAppend.length]);spreadsheetHeader[whatToAppend.length].append(valueForLastLine);
-	 			firstEntry = false;
+	 				outcome.append(',');
+	 			outcome.append(LearningSupportRoutines.removeSpaces(str));
 	 		}
+	 		return outcome.toString();
 	 	}
-
+	 	
 	 	/** Adds text to the spreadsheet. */
-		public void add(String text)
+		public void add(ThreadResultID id, String text)
 		{
-			csvText.append(text);addNewLine(csvText);
+			if (id.getRowID() == null || LearningSupportRoutines.removeSpaces(id.getRowID()).isEmpty())
+				throw new IllegalArgumentException("cannot add a cell without row id to spreadsheet "+getFileName());
+			if (id.getColumnID() == null || LearningSupportRoutines.removeSpaces(id.getColumnID()).isEmpty())
+				throw new IllegalArgumentException("cannot add a cell without column id to spreadsheet "+getFileName());
+			if (id.getColumnText() == null || id.getColumnText().length == 0)
+				throw new IllegalArgumentException("spreadsheet "+getFileName()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid column header");
+			if (id.headerValuesForEachCell() == null || id.headerValuesForEachCell().length == 0)
+				throw new IllegalArgumentException("spreadsheet "+getFileName()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid header values for cell");
+
+			Map<String, String> columnText = rowColumnText.computeIfAbsent(id.getRowID(), k -> new TreeMap<String, String>());
+			if (columnText.containsKey(id.getColumnID()))
+				throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell "+id.getRowID()+","+id.getColumnID());
+			String [] elements = text.split(",");
+			if (elements.length != id.headerValuesForEachCell().length)
+				throw new IllegalArgumentException("the number of values ("+elements.length+") passed via \""+Arrays.asList(elements)+"\" does not match those ("+id.headerValuesForEachCell().length+") in id.headerValuesForEachCell()=\""+Arrays.asList(id.headerValuesForEachCell())+"\"");
+			String reducedLine = concatenateWithSeparator(elements);
+			if (reducedLine.isEmpty())
+				throw new IllegalArgumentException("empty line added at "+id.getRowID()+","+id.getColumnID()+" to spreadsheet "+getFileName());
+			columnText.put(id.getColumnID(), reducedLine); 
+
+			if (!columnIDToHeader.containsKey(id.getColumnID()))
+			{
+				if (headerRows > 0 && headerRows != id.getColumnText().length)
+					throw new IllegalArgumentException("spreadsheet "+getFileName()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid number of rows in column header, expected "+headerRows+", got "+id.getColumnText().length);
+				headerRows = id.getColumnText().length;
+				columnIDToHeader.put(id.getColumnID(), id.getColumnText());
+				columnIDToCellHeader.put(id.getColumnID(), id.headerValuesForEachCell());
+			}
+			else
+			{
+				List<String> oldColumnHeaders = Arrays.asList(columnIDToHeader.get(id.getColumnID())), currColumnHeaders = Arrays.asList(id.getColumnText());
+				List<String> oldCellHeaders = Arrays.asList(columnIDToCellHeader.get(id.getColumnID())), currCellHeaders = Arrays.asList(id.headerValuesForEachCell());
+				if (!oldColumnHeaders.equals(currColumnHeaders))
+					throw new IllegalArgumentException("different values of column headers between previous ("+oldColumnHeaders+")and current ("+currColumnHeaders+") values of column ID "+id.getColumnID());
+				if (!oldCellHeaders.equals(currCellHeaders))
+					throw new IllegalArgumentException("different values of cell headers between previous ("+oldCellHeaders+")and current ("+currCellHeaders+") values of column ID "+id.getColumnID());
+			}
 		}
 
 		/** Called to provide real-time updates to the learning results. The default does nothing. */
@@ -518,18 +585,85 @@ public class DrawGraphs {
 
 		public void writeFile(Writer wr) throws IOException
 		{
-			if (spreadsheetHeader != null)
-				for(StringBuffer line:spreadsheetHeader)
+			if (rowColumnText.isEmpty())
+				return;// an empty file is better than a file with a part of a header and no data. 
+			
+			// construct the header
+			Set<String> columnHeaders = columnIDToHeader.keySet();
+			
+			for(int headerRow=0;headerRow<headerRows;++headerRow)
+			{
+				for(String hdr:columnHeaders)
+					for(int cnt=0;cnt<columnIDToCellHeader.get(hdr).length;++cnt)
+					{
+						wr.append(',');wr.append(LearningSupportRoutines.removeSpaces(columnIDToHeader.get(hdr)[headerRow]));
+					}
+				wr.append('\n');
+			}
+			
+			wr.append("experiment");
+			for(String hdr:columnHeaders)
+			{
+				String []cellHeaders = columnIDToCellHeader.get(hdr);
+				for(String cellHeader:cellHeaders)
 				{
-					wr.append(line.toString());wr.append('\n');
+					wr.append(',');wr.append(LearningSupportRoutines.removeSpaces(cellHeader));
 				}
-			wr.append(csvText.toString());
+			}
+			wr.append('\n');
+			
+			
+			// finished with the header, output data
+			for(Entry<String,Map<String,String>> rowEntry:rowColumnText.entrySet())
+			{
+				wr.append(rowEntry.getKey());
+				
+				for(Entry<String, String[]> columnAndCellHeaders:columnIDToCellHeader.entrySet())
+				{
+					wr.append(',');
+					String value = rowEntry.getValue().get(columnAndCellHeaders.getKey());
+					if (value == null)
+					{
+						wr.append(missingValue);// empty value indicates a missing value
+						for(int i=0;i<columnAndCellHeaders.getValue().length-1;++i)
+						{
+							wr.append(',');
+							wr.append(missingValue);// empty value indicates a missing value
+						}
+					}
+					else
+						wr.append(value);
+				}
+				wr.append('\n');
+			}
 		}
 
-		public void writeTaskOutput(Writer outputWriter, String text) throws IOException
+		/** This is the only part of the CSV table class that is permitted to perform transformations of data depending on the host that has run the experiment, in order to 
+		 * perform the cpu frequency correction. COLLECT_TASKS could be run on a completely different host and different experiments easily run on different hosts as well. 
+		 *  
+		 * @param outputWriter where to write data. 
+		 * @param id parameters of the experiment.
+		 * @param text what to write.
+		 * @throws IOException if something goes wrong.
+		 */
+		public void writeTaskOutput(Writer outputWriter, ThreadResultID id, String text) throws IOException
 		{
 			outputWriter.write(getFileName());outputWriter.write(SGE_ExperimentRunner.separator);
-			outputWriter.write(text);
+			StringSequenceWriter writer = new StringSequenceWriter(null);
+			StringBuffer w = new StringBuffer();
+			w.append(id.getSubExperimentName());w.append(SGE_ExperimentRunner.separator);w.append(id.getRowID());w.append(SGE_ExperimentRunner.separator);w.append(id.getColumnID());w.append(SGE_ExperimentRunner.separator);
+			writer.writeInputSequence(w, Arrays.asList(id.getColumnText()));w.append(SGE_ExperimentRunner.separator);
+			writer.writeInputSequence(w, Arrays.asList(id.headerValuesForEachCell()));w.append(SGE_ExperimentRunner.separator);
+			
+			String [] elements = text.split(",");
+			if (elements.length != id.headerValuesForEachCell().length)
+				throw new IllegalArgumentException("the number of values ("+elements.length+") passed via \""+Arrays.asList(elements)+"\" does not match those ("+id.headerValuesForEachCell().length+") in id.headerValuesForEachCell()=\""+Arrays.asList(id.headerValuesForEachCell())+"\"");
+			if (id.executionTimeInCell() >= 0)
+			{
+				elements[id.executionTimeInCell()]=Integer.toString((int)Math.round(Integer.parseInt(elements[id.executionTimeInCell()])/LearningSupportRoutines.getFreqCorrectionValue()));// a rather long-winded way to scale execution time.
+			}
+			w.append(concatenateWithSeparator(elements));
+			outputWriter.write(w.toString());
 			outputWriter.write("\n");
 		}
 
@@ -562,16 +696,355 @@ public class DrawGraphs {
 			return file.getName();
 		}
 
+		public String getAbsoluteFileName()
+		{
+			return file.getAbsolutePath();
+		}
+
+
 		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
 		@Override
-		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages)
+		public void parseTextLoadedFromExperimentResult(final String[] line, String fileNameForErrorMessages, final ThreadResultID parameters, boolean onlyCheckItParses)
 		{
-			if (line.length != 2)
-				throw new IllegalArgumentException("experiment "+fileNameForErrorMessages+" has recorded invalid number of values ("+line.length+")for CSV output, it should record just 2");
-			add(line[1]);
+			final StringSequenceWriter reader = new StringSequenceWriter(null);
+			if (line.length != 7)
+				throw new IllegalArgumentException("experiment "+fileNameForErrorMessages+" has recorded invalid number of values ("+line.length+")for CSV output, it should record 7");
+			//List<String> colText = new ArrayList<String>();colText.add(line[3].split("\\-")[0]);colText.addAll(reader.readInputSequence(line[4]));
+			//final String[] columnText =  colText.toArray(new String[]{});
+			final String[] columnText = reader.readInputSequence(line[4]).toArray(new String[]{});
+			final String[] headerValuesForCells = reader.readInputSequence(line[5]).toArray(new String[]{});
+			
+			if (!onlyCheckItParses)
+				add(new ThreadResultID(){
+	
+					@Override
+					public String getRowID() {
+						return line[2];
+					}
+	
+					@Override
+					public String[] getColumnText() {
+						return columnText;
+					}
+	
+					@Override
+					public String getColumnID() {
+						return line[3];
+					}
+	
+					@Override
+					public String[] headerValuesForEachCell() {
+						return headerValuesForCells;
+					}
+
+					@Override
+					public String getSubExperimentName() {
+						return line[1];
+					}
+
+					@Override
+					public int executionTimeInCell() {
+						return parameters.executionTimeInCell();
+					}
+				},line[6]);
 		}
 	}
 
+	public static int charToHex(int b)
+	{
+		if (b >=0 && b<10)
+			return '0'+b;
+		else
+			if (b>=10 && b < 0x10)
+				return 'A'+b-10;
+			else
+				throw new IllegalArgumentException("invalid byte, should be 0..0x10");
+	}
+	
+	public static String objectAsText(Object obj)
+	{
+		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+		try
+		{
+			ObjectOutputStream oo = new ObjectOutputStream(buffer); 
+	        oo.writeObject(obj);
+		}
+		catch(Exception ex)
+		{
+			Helper.throwUnchecked("failed to serialise object", ex);
+		}
+        StringBuilder out = new StringBuilder();
+        for(byte b:buffer.toByteArray())
+        {// Integer.toHexString is not useful here because it is aimed at pretty-printing, that is, byte 0 will be '0' rather that '00'.
+        	out.append((char)(charToHex( (b & 0xf0) >> 4)));
+        	out.append((char)(charToHex(b & 0xf)));
+        }
+        return out.toString();
+	}
+	
+	public static int parseChar(char ch)
+	{
+		if (ch >= '0' && ch <= '9')
+			return ch-'0';
+		else
+			if (ch >= 'A' && ch <= 'F')
+				return ch-'A'+0x0a;
+			else
+				if (ch >= 'a' && ch <= 'f')
+					return ch-'a'+0x0a;
+				else
+					throw new IllegalArgumentException("invalid char, should be between 0..9 or A..F");
+	}
+	
+	public static Object parseObject(String str)
+	{
+		List<Byte> buffer = new ArrayList<Byte>();
+		int curByte=0;
+		if (str.length() % 2 != 0)
+			throw new IllegalArgumentException("the length of hex representation should be even");
+		for(int i=0;i<str.length();++i)
+		{
+			char ch = str.charAt(i);
+			if (i %2 == 0)
+			{// even byte, record it
+				curByte = parseChar(ch);
+			}
+			else
+			{
+				buffer.add((byte)(parseChar(ch)+(curByte << 4)));curByte=0;
+			}
+		}
+		Object outcome = null;
+		try
+		{
+			byte []buf =new byte[buffer.size()];for(int i=0;i<buffer.size();++i) buf[i]=buffer.get(i); 
+			ObjectInputStream objectInputStream = new ObjectInputStream(new ByteArrayInputStream(buf)); 
+			outcome = objectInputStream.readObject();
+		}
+		catch(Exception ex)
+		{
+			Helper.throwUnchecked("failed to deserialise object", ex);
+		}
+		return outcome;
+	}
+	
+	public static String obtainValueFromCell(String columnValue, int cellNumber)
+	{
+		String [] elements = columnValue.split(",");
+		if (elements.length <= cellNumber || cellNumber < 0)
+			throw new IllegalArgumentException("invalid cell number "+cellNumber+", should be 0.."+elements.length);
+		return elements[cellNumber];
+	}
+	
+	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
+	 * 
+	 * @param plot R graph to update
+	 * @param whereFrom spreadsheet to get data from
+	 * @param columnX column for the horizontal values.
+	 * @param columnY column for the vertical values.
+	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
+	 * @param label label to add with each value.
+	 */
+	public static void spreadsheetToStringGraph(RBoxPlot<String> plot, CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY, String colour, String label)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = rowEntry.getValue().get(columnX);
+			String Y = rowEntry.getValue().get(columnY);
+			if (X != null && Y != null)
+				plot.add(obtainValueFromCell(X,cellWithinX), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)), colour, label);
+		}
+	}
+	
+	public static String getValueFromMapGivenRegexp(Map<String,String> map, String regexp)
+	{
+		for(Entry<String,String> entry:map.entrySet())
+			if (entry.getKey().matches(regexp))
+				return entry.getValue();
+		return null;
+	}
+	
+	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
+	 * 
+	 * @param plot R graph to update
+	 * @param whereFrom spreadsheet to get data from
+	 * @param columnX column for the horizontal values.
+	 * @param columnY column for the vertical values.
+	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
+	 * @param label label to add with each value.
+	 */
+	public static void spreadsheetToDoubleGraph(RBoxPlot<Double> plot, CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY, String colour, String label)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = getValueFromMapGivenRegexp(rowEntry.getValue(),columnX);
+			String Y = getValueFromMapGivenRegexp(rowEntry.getValue(),columnY);
+			if (X != null && Y != null)
+				plot.add(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)), colour, label);
+		}
+	}
+	
+	public static void spreadsheetAsDouble(AggregateValues agg,CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = getValueFromMapGivenRegexp(rowEntry.getValue(),columnX);
+			String Y = getValueFromMapGivenRegexp(rowEntry.getValue(),columnY);
+			if (X != null && Y != null)
+				agg.merge(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)));
+		}
+	}
+
+	public static void spreadsheetAsDouble(RStatisticalAnalysis analysis,CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = getValueFromMapGivenRegexp(rowEntry.getValue(),columnX);
+			String Y = getValueFromMapGivenRegexp(rowEntry.getValue(),columnY);
+			if (X != null && Y != null)
+				analysis.add(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)));
+		}
+	}
+
+	public static void spreadsheetAsString(AggregateStringValues agg,CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = getValueFromMapGivenRegexp(rowEntry.getValue(),columnX);
+			String Y = getValueFromMapGivenRegexp(rowEntry.getValue(),columnY);
+			agg.merge(X == null?null:obtainValueFromCell(X,cellWithinX),Y == null?null:obtainValueFromCell(Y,cellWithinY));
+		}
+	}
+
+	public static class TimeAndCorrection
+	{
+		public final double average,stdev;
+		public final int count;
+		
+		public TimeAndCorrection(double av, double st, int cnt)
+		{
+			average = av;stdev = st;count = cnt;
+		}
+	}
+	
+	/** Matches cell values between graphs and computes the correction for the timing values. 
+	 * All values other than time should match exactly, time values could differ. 
+	 * All pairs where at least one experiment timed out are ignored. 
+	 * Negative timeout means do not use timeouts. 
+	 */
+	public static TimeAndCorrection computeTimeAndCorrection(CSVExperimentResult reference, CSVExperimentResult other, ThreadResultID par, long timeout, long minValue, double scaleOtherValuesBy)
+	{
+		int timeCell = par.executionTimeInCell();
+		if (timeCell < 0)
+			throw new IllegalArgumentException("cannot match time where no time is present");
+		int cellsCnt = par.headerValuesForEachCell().length;
+		if (timeCell >= cellsCnt)
+			throw new IllegalArgumentException("time cell value is too high, should be 0.."+(cellsCnt-1));
+		double sum=0,sumOfSquares = 0;
+		int count=0;
+		
+		for(Entry<String,Map<String,String>> rowEntry:reference.rowColumnText.entrySet())
+		{
+			Map<String,String> otherValue = other.rowColumnText.get(rowEntry.getKey());
+			if (otherValue != null)
+			{
+				for(Entry<String,String> pair:rowEntry.getValue().entrySet())
+				{
+					String text = pair.getValue();
+					String otherText = otherValue.get(pair.getKey());
+					if (otherText != null)
+					{
+						double denominator = Double.parseDouble(obtainValueFromCell(text,timeCell));
+						double value = Double.parseDouble(obtainValueFromCell(otherText,timeCell))*scaleOtherValuesBy;
+						if (timeout < 0 || (denominator < timeout && value < timeout))
+						{// only consider pairs where none of the values is a timeout
+							for(int i=0;i<cellsCnt;++i)
+								if (i != timeCell)
+									if (!obtainValueFromCell(text,i).equals(obtainValueFromCell(otherText,i)))
+										throw new IllegalArgumentException("Cell ["+rowEntry.getKey()+","+pair.getKey()+"] is different between spreadsheets, \""+obtainValueFromCell(text,i)+"\" != \""+obtainValueFromCell(otherText,i)+"\"");
+							if (denominator > minValue && value > minValue) // for really small values, we are not likely to obtain accurate values.
+							{
+								double ratio = value/denominator;
+								++count;sum+=ratio;sumOfSquares+=ratio*ratio;
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		if (count > 0)
+		{
+			double average = sum/count, averageSquare = sumOfSquares/count;
+			double stdev = Math.sqrt(averageSquare-average*average);
+			
+			return new TimeAndCorrection(average,stdev,count);
+		}
+		
+		return new TimeAndCorrection(0,0,0);// no values, hence return the default.
+	}
+
+	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
+	 * 
+	 * @param plot R graph to update
+	 * @param whereFrom spreadsheet to get data from
+	 * @param columnX column for the horizontal values.
+	 * @param columnY column for the vertical values.
+	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
+	 * @param label label to add with each value.
+	 */
+	public static void spreadsheetToBagPlot(RBagPlot plot, CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY, String colour, String label)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = getValueFromMapGivenRegexp(rowEntry.getValue(),columnX);
+			String Y = getValueFromMapGivenRegexp(rowEntry.getValue(),columnY);
+			if (X != null && Y != null)
+				plot.add(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)), colour, label);
+		}
+	}
+	
+	
+	public interface MergeObjects
+	{
+		/** Called to merge the provided object into that represented by a provider of this interface. */
+		void merge(String key, Object obj);
+	}
+	
+	public interface AggregateValues
+	{
+		/** Called to handle values in a spreadsheet. */
+		void merge(double A, double B);
+	}
+	
+	public interface AggregateStringValues
+	{
+		/** Called to handle values in a spreadsheet. */
+		void merge(String A, String B);
+	}
+	
+	/** Makes it possible to take serialised data from a column of a spreadsheet and merge it into an aggregate. 
+	 * Imaging a map from pair score to true/false counters. By constructing it for each 
+	 * learner and dumping into spreadsheet cells via {@link DrawGraphs#objectAsText} and 
+	 * when all experiments are complete, load them back and combine into a single map, subsequently constructing
+	 * a graph.
+	 *  
+	 * @param m called for each deserialised object
+	 * @param whereFrom spreadsheet to process
+	 * @param columnX column for the <em>X</em> value, unused if columnX is null.
+	 * @param columnY values to deserialise, will throw IllegalArgumentException if this fails.
+	 */
+	public static void spreadsheetObjectsCollect(MergeObjects m, CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = columnX == null?null:rowEntry.getValue().get(columnX);
+			String Y = rowEntry.getValue().get(columnY);
+			if (Y != null && !Y.isEmpty())
+				m.merge(X == null?null:obtainValueFromCell(X,cellWithinX),parseObject(obtainValueFromCell(Y,cellWithinY)));
+		}
+	}
+	
 	/**
 	 * Represents a graph.
 	 *
@@ -659,7 +1132,7 @@ public class DrawGraphs {
 		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
 		@SuppressWarnings("unchecked")
 		@Override
-		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages)
+		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages, @SuppressWarnings("unused") ThreadResultID ignoredParameters, boolean onlyCheckItParses)
 		{
 			if (line.length != 6)
 				throw new IllegalArgumentException("Experiment in "+fileNameForErrorMessages+" logged result with invalid number of values ("+line.length+") at "+ Arrays.toString(line));
@@ -670,16 +1143,16 @@ public class DrawGraphs {
 				label = line[5];
 			Double yValue = Double.valueOf(line[3]);
 
-			Object argValue = null;
+			Object argValue;
 			switch (argType) {
 				case "java.lang.String":
 					argValue = argStringValue;
 					break;
 				case "java.lang.Double":
-					argValue = Double.valueOf(argStringValue);
+					argValue = new Double(argStringValue);
 					break;
 				case "java.lang.Float":
-					argValue = Float.valueOf(argStringValue);
+					argValue = new Float(argStringValue);
 					break;
 				case "java.lang.Integer":
 					argValue = Integer.valueOf(argStringValue);
@@ -690,10 +1163,135 @@ public class DrawGraphs {
 				default:
 					throw new IllegalArgumentException("cannot load a value of type " + argType);
 			}
-			add((ELEM) argValue,yValue,color,label);
+			if (!onlyCheckItParses)
+				add((ELEM) argValue,yValue,color,label);
+		}
+	}
+	
+	/** Data points in a scatterplot. */
+	public final static class DataPoint
+	{
+		public final double x,y;
+		
+		public DataPoint(double a,double b)
+		{
+			x=a;y=b;
 		}
 	}
 
+	/** Makes it possible to construct a scatterplot of x/y values in a few colours (that it, it is a superimposed collection of two plots). It derives from {@link RExperimentResult} 
+	 * in order to benefit from the possibility of recording results to files. */
+	public static class ScatterPlot extends RExperimentResult<Double>
+	{
+		protected final String xAxis,yAxis;
+		
+		public ScatterPlot(String x, String y, File name) 
+		{
+			super(name);xAxis = x;yAxis = y;
+		}
+
+		protected final Map<String,Collection<DataPoint> > values = new TreeMap<String,Collection<DataPoint> >();
+ 
+		/** Adds key-value pair, additionally permitting one to set both colour and a label for this 
+		 * column of data values.
+		 * @param el identifier for the column
+		 * @param value value to be added to it
+		 * @param colour colour with which box plot values are to be shown
+		 * @param label label to show on the horizonal axis, empty string for no label.
+		 */
+		@Override
+		public synchronized void add(Double el,Double value, String colour, @SuppressWarnings("unused") String label)
+		{
+			if (yMin != null && yMin > value) return;
+			if (yMax != null && yMax < value) return;
+			
+			if (xMin != null && xMin.compareTo(el) > 0) return;
+			if (xMax != null && xMax.compareTo(el) < 0) return;
+			
+			add(el, value,colour);
+		}
+		
+		public synchronized void add(double x, double y, String colour)
+		{
+			Collection<DataPoint> valuesForColour = values.computeIfAbsent(colour, k -> new ArrayList<DataPoint>());
+			valuesForColour.add(new DataPoint(x,y));
+		}
+		
+		@SuppressWarnings("unused")
+		@Override
+		public void add(Double el, Double value) 
+		{
+			throw new UnsupportedOperationException("a colour is required");
+		}
+		
+		@Override
+		public void drawInteractive(DrawGraphs gr)
+		{
+			List<String> drawingCommands = new LinkedList<String>();
+			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
+			gr.drawInteractivePlot(drawingCommands, file.getName());
+		}
+
+		public static double plotSize = 4;
+		
+		@Override
+		public void reportResults(DrawGraphs gr)
+		{
+			if (values.size() > 0)
+			{
+				List<String> drawingCommands = new LinkedList<String>();
+				drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
+				gr.drawPlot(drawingCommands, plotSize,plotSize,file);
+
+			}
+			else
+				if (GlobalConfiguration.getConfiguration().isAssertEnabled())
+					System.out.println("WARNING: ignoring empty plot that was supposed to be written into "+file);
+		}
+
+		/** Returns a command to draw a graph in R. */
+		public List<String> getDrawingCommand() 
+		{
+			List<String> outcome = new ArrayList<String>();
+			if (values.isEmpty()) throw new IllegalArgumentException("cannot plot an empty graph");
+			
+			// plot(as.vector(t[[1]]),as.vector(t[[2]]) , type = "p",col="blue",xlim=range(0,20), ylim=range(0, 20))
+			boolean firstGraph = true;
+			for(Entry<String,Collection<DataPoint> > entry:values.entrySet())
+				if (!entry.getValue().isEmpty())
+				{
+					StringBuilder result = new StringBuilder();
+
+					if (firstGraph)
+						firstGraph = false;
+					else
+						outcome.add("par(new=TRUE)");
+
+					result.append("plot(c(");
+					boolean startVector = true;
+					for(DataPoint d:entry.getValue())
+					{
+						if (!startVector) result.append(",");else startVector=false;
+						result.append(d.x);
+					}
+					result.append("),c(");
+					startVector = true;
+					for(DataPoint d:entry.getValue())
+					{
+						if (!startVector) result.append(",");else startVector=false;
+						result.append(d.y);
+					}
+					result.append("),type = \"p\",col=\"");result.append(entry.getKey());result.append("\",xlab=\"");result.append(xAxis);result.append("\",ylab=\"");result.append(yAxis);
+					// thanks to http://stackoverflow.com/questions/1154242/getting-rid-of-axis-values-in-r-plot for the way to remove axes.
+					result.append("\",axes=FALSE, frame.plot=TRUE)");
+					outcome.add(result.toString());
+				}
+			
+			return outcome;
+		}
+		
+	}
+	
 	public static abstract class RGraph<ELEM extends Comparable<? super ELEM>> extends RExperimentResult<ELEM>
 	{
 		protected final String xAxis,yAxis;
@@ -703,9 +1301,40 @@ public class DrawGraphs {
 			super(name);xAxis = x;yAxis = y;
 		}
 
-		Map<ELEM,DataColumn> collectionOfResults = new TreeMap<>();
-
-		/** Adds key-value pair, additionally permitting one to set both colour and a label for this
+		Map<ELEM,DataColumn> collectionOfResults = new TreeMap<ELEM,DataColumn>();
+ 
+		/** Additional options for R. */
+		protected String otherOptions = "";
+		
+		/** Sets additional options for R. */
+		public void setOtherOptions(String str)
+		{
+			otherOptions = str;
+		}
+		
+		protected Map<ELEM,String> relabellingOfLabels = new TreeMap<ELEM,String>();
+		protected List<ELEM> orderingOfLabels = null;
+		
+		/** Permits labels to be altered - currently these labels are based on enums and intended for internal use. 
+		 * For graphs these labels need to be modified. 
+		 */
+		public void setRelabelling(Map<ELEM,String> alteration)
+		{
+			relabellingOfLabels.putAll(alteration);
+		}
+		
+		/** Gives an order to the appearance of columns in the output graph. */
+		public void setOrderingOfLabels(Collection<ELEM> ordering)
+		{
+			if (orderingOfLabels != null)
+				orderingOfLabels.clear();
+			else
+				orderingOfLabels = new ArrayList<ELEM>();
+			
+			orderingOfLabels.addAll(ordering);
+		}
+		
+		/** Adds key-value pair, additionally permitting one to set both colour and a label for this 
 		 * column of data values.
 		 * @param el identifier for the column
 		 * @param value value to be added to it
@@ -717,7 +1346,7 @@ public class DrawGraphs {
 		{
 			if (yMin != null && yMin > value) return;
 			if (yMax != null && yMax < value) return;
-
+			
 			if (xMin != null && xMin.compareTo(el) > 0) return;
 			if (xMax != null && xMax.compareTo(el) < 0) return;
 
@@ -780,8 +1409,8 @@ public class DrawGraphs {
 
 
 	}
-
-
+	
+	@SuppressWarnings("SpellCheckingInspection")
 	public static abstract class RStatisticalAnalysis extends RExperimentResult<Double>
 	{
 		protected final String testName, extraArg;
@@ -799,7 +1428,7 @@ public class DrawGraphs {
 		{
 			if (yMin != null && yMin > value) return;
 			if (yMax != null && yMax < value) return;
-
+			
 			if (xMin != null && xMin.compareTo(el) > 0) return;
 			if (xMax != null && xMax.compareTo(el) < 0) return;
 
@@ -849,7 +1478,7 @@ public class DrawGraphs {
 		{
 			List<String> drawingCommands = new LinkedList<>();
 			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
-			return StatisticalTestResult.performAnalysis(drawingCommands, variableName,getMethodName());
+			return StatisticalTestResult.performAnalysis(drawingCommands, variableName, getMethodNames());
 		}
 
 		public List<String> getDrawingCommand()
@@ -859,7 +1488,7 @@ public class DrawGraphs {
 
 			StringBuilder result = new StringBuilder();
 			result.append(variableName).append("=").append(testName).append(".test(");
-
+			
 			result.append(vectorToR(valuesA,false));
 			result.append(",");
 			result.append(vectorToR(valuesB,false));
@@ -873,8 +1502,11 @@ public class DrawGraphs {
 			return Collections.singletonList(result.toString());
 		}
 
-		public abstract String getMethodName();
-
+		/**
+		 * @return Names of statistical methods, starting from the reference name (which will be used if results are stored in a file).
+		 */
+		public abstract String [] getMethodNames();
+		
 		/**
 		 * Records the result of statistical analysis to a file.
 		 */
@@ -894,7 +1526,7 @@ public class DrawGraphs {
 
 		public void writeMainData(StatisticalTestResult o, Writer writer) throws IOException
 		{
-			writer.append(getMethodName());
+			writer.append(getMethodNames()[0]);// use the first of the method names
 			writeSeparator(writer);
 		    writer.append(String.valueOf(o.statistic));
 		    writeSeparator(writer);
@@ -902,6 +1534,26 @@ public class DrawGraphs {
 		}
 
 	}
+
+	/** Builds a map from an array, where each element corresponds to a pair of strings.
+	 * 
+	 * @param data source data
+	 * @return a string->string map
+	 */
+	public static Map<String,String> buildStringMapFromStringPairs(String [][] data)
+	{
+		Map<String,String> result = new HashMap<>();
+		for(String[] str:data)
+		{
+			if (str.length != 2)
+				throw new IllegalArgumentException("more than two elements in sequence "+ Arrays.toString(str));
+			if (str[0] == null || str[1] == null)
+				throw new IllegalArgumentException("invalid data in array");
+			result.put(str[0],str[1]);
+		}
+		return result;
+	}
+	
 
 	public static class RBoxPlot<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
 	{
@@ -914,20 +1566,35 @@ public class DrawGraphs {
 		{
 			List<List<Double>> data = new LinkedList<>();
 			List<String> names = new LinkedList<>(), colours = new LinkedList<>();
-			for(Entry<ELEM,DataColumn> entry:collectionOfResults.entrySet())
+			
+			if (orderingOfLabels != null)
 			{
-				data.add(entry.getValue().results);
-				String label = entry.getValue().label;
+				Set<ELEM> o1 = new TreeSet<ELEM>(orderingOfLabels);o1.addAll(orderingOfLabels);
+				if (!o1.equals(collectionOfResults.keySet()))
+					throw new IllegalArgumentException("ordering of labels is "+orderingOfLabels+", actual labels are : "+collectionOfResults.keySet());
+			}
+			
+			Iterator<ELEM> orderOfExplorationOfColumns = orderingOfLabels == null?collectionOfResults.keySet().iterator():orderingOfLabels.iterator();
+			while(orderOfExplorationOfColumns.hasNext())
+			{
+				ELEM entryKey = orderOfExplorationOfColumns.next();
+				DataColumn datacolumn = collectionOfResults.get(entryKey);
+				
+				data.add(datacolumn.results);
+				String label = datacolumn.label;
 				if (label == null)
-					label = entry.getKey().toString();
+					label = entryKey.toString();
+				String relabelled = relabellingOfLabels.get(label);
+				//System.out.println("orig: "+label+" relabelled: "+relabelled);
+				if (relabelled != null)
+					label = relabelled;
 				names.add(label);
-				String colour = entry.getValue().colour;
+				String colour = datacolumn.colour;
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,
-					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""
-					:null
+			return Collections.singletonList( (otherOptions.length()>0?otherOptions+",":"")+boxPlotToString(data, names.size()==1?null:names,colours,
+					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"":""
 					));
 		}
 
@@ -938,6 +1605,7 @@ public class DrawGraphs {
 		}
 	}
 
+	/** Almost the same as RBoxPlot but horizontal labels are rotated vertically. */
 	public static class RBoxPlotP<ELEM extends Comparable<? super ELEM>> extends RGraph<ELEM>
 	{
 		public RBoxPlotP(String x, String y, File name) {
@@ -949,18 +1617,31 @@ public class DrawGraphs {
 		{
 			List<List<Double>> data = new LinkedList<>();
 			List<String> names = new LinkedList<>(), colours = new LinkedList<>();
-			for(Entry<ELEM,DataColumn> entry:collectionOfResults.entrySet())
+			if (orderingOfLabels != null)
 			{
-				data.add(entry.getValue().results);
-				String label = entry.getValue().label;
+				Set<ELEM> o1 = new TreeSet<ELEM>(orderingOfLabels);o1.addAll(orderingOfLabels);
+				if (!o1.equals(collectionOfResults.keySet()))
+					throw new IllegalArgumentException("ordering of labels is "+orderingOfLabels+", actual labels are : "+collectionOfResults.keySet());
+			}
+				
+			Iterator<ELEM> orderOfExplorationOfColumns = orderingOfLabels == null?collectionOfResults.keySet().iterator():orderingOfLabels.iterator();
+			while(orderOfExplorationOfColumns.hasNext())
+			{
+				ELEM entryKey = orderOfExplorationOfColumns.next();
+				DataColumn datacolumn = collectionOfResults.get(entryKey);
+				data.add(datacolumn.results);
+				String label = datacolumn.label;
 				if (label == null)
-					label = entry.getKey().toString();
+					label = entryKey.toString();
+				String relabelled = relabellingOfLabels.get(label);
+				if (relabelled != null)
+					label = relabelled;
 				names.add(label);
-				String colour = entry.getValue().colour;
+				String colour = datacolumn.colour;
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\",las=2"));
+			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\",las=2"+(otherOptions.length()>0?","+otherOptions:"")));
 		}
 
 		@Override
@@ -977,9 +1658,9 @@ public class DrawGraphs {
 		}
 
 		@Override
-		public String getMethodName()
+		public String [] getMethodNames()
 		{
-			return "Wilcoxon signed rank test";
+			return new String[] {"Wilcoxon signed rank test","Wilcoxon signed rank exact test"};
 		}
 
 		@Override
@@ -999,10 +1680,7 @@ public class DrawGraphs {
 		}
 
 		@Override
-		public String getMethodName()
-		{
-			return "Wilcoxon rank sum test";
-		}
+		public String [] getMethodNames() {	return new String[] {"Wilcoxon rank sum test"};	}
 
 		@Override
 		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException
@@ -1021,9 +1699,9 @@ public class DrawGraphs {
 		}
 
 		@Override
-		public String getMethodName()
+		public String [] getMethodNames()
 		{
-			return "Kruskal-Wallis rank sum test";
+			return new String[]{"Kruskal-Wallis rank sum test"};
 		}
 
 		@Override
@@ -1104,10 +1782,7 @@ public class DrawGraphs {
 			Rectangle2D.Double graphSize = getSize();
 			if (graphSize.width < Configuration.fpAccuracy)
 				return false;
-			if (graphSize.height < Configuration.fpAccuracy)
-				return false;
-
-			return true;
+			return !(graphSize.height < Configuration.fpAccuracy);
 		}
 
 		/** Computes the data for abline to draw a diagonal. */
@@ -1144,7 +1819,7 @@ public class DrawGraphs {
 				}
 			}
 
-			if (xValueMin == null || yValueMin == null)
+			if (xValueMin == null || yValueMin == null || xValueMax == null || yValueMax == null)
 				return new Rectangle2D.Double();
 
 			return new Rectangle2D.Double(xValueMin,yValueMin,xValueMax-xValueMin,yValueMax-yValueMin);
@@ -1168,15 +1843,6 @@ public class DrawGraphs {
 		public boolean checkSingleDot() {
 			return getSize().width < Configuration.fpAccuracy && getSize().height < Configuration.fpAccuracy;
 		}
-	}
-
-	public static class ScatterPlot extends Graph2D
-	{
-
-		public ScatterPlot(String x, String y, File name) {
-			super(x, y, "plot", name);
-		}
-
 	}
 
 	/** Draws a square bag plot. */
@@ -1220,7 +1886,7 @@ public class DrawGraphs {
 		String alternative;
 		double parameter=0.;
 
-
+		
 		public static double valueAsDouble(REXP val)
 		{
 			switch(val.getType())
@@ -1234,18 +1900,18 @@ public class DrawGraphs {
 			case REXP.XT_NULL:
 				return 0;
 			default:
-				throw new IllegalArgumentException("value "+val+" is not an integer or a double");
+				throw new IllegalArgumentException("value "+val+" is not an integer or a double");			
 			}
 		}
-
-		/** Using a supplied list of commands, obtains a result.
-		 *
+		
+		/** Using a supplied list of commands, obtains a result. 
+		 * 
 		 * @param drawingCommands commands to run, the outcome of the last one is reported.
 		 * @param varName the variable used to assign the outcome in the commands executed.
-		 * @param expectedMethodName When computing a result, R reports the name of the method used. We can use it to check that the right method was passed in the commands to compute the result, just in case.
+		 * @param expectedMethodNames When computing a result, R reports the name of the method used. We can use it to check that the right method was passed in the commands to compute the result, just in case.
 		 * @return the results of the analysis, computed by running the supplied list of commands.
 		 */
-		public static StatisticalTestResult performAnalysis(List<String> drawingCommands,String varName, String expectedMethodName)
+		public static StatisticalTestResult performAnalysis(List<String> drawingCommands,String varName, String [] expectedMethodNames)
 		{
 			if (drawingCommands.isEmpty())
 				throw new IllegalArgumentException("no command to perform statistical analysis");
@@ -1257,8 +1923,17 @@ public class DrawGraphs {
 			STR.alternative=engine.eval(varName+"$alternative").asString();
 			STR.parameter=valueAsDouble(engine.eval(varName+"$parameter"));
 			String methodName = engine.eval(varName+"$method").asString();
-			if (!methodName.startsWith(expectedMethodName))
-				throw new IllegalArgumentException("expected to use method \""+expectedMethodName+"\" but got \""+methodName+"\"");
+			boolean found = false;
+			StringBuilder expectedMethods = new StringBuilder();
+			for(String st:expectedMethodNames) {
+				if (expectedMethods.length() > 0)
+					expectedMethods.append(',');
+				expectedMethods.append(st);
+				if (methodName.startsWith(st))
+					found = true;
+			}
+			if (!found)
+				throw new IllegalArgumentException("expected to use method \""+ expectedMethods +"\" but got \""+methodName+"\"");
 			return STR;
 		}
 	}

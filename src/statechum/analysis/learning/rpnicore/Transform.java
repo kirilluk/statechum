@@ -36,18 +36,12 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import harmony.collections.HashMapWithSearch;
-import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph;
-import statechum.GlobalConfiguration;
-import statechum.Helper;
-import statechum.JUConstants;
-import statechum.StringLabelInt;
+import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
-import statechum.Label;
-import statechum.Pair;
 import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.LearnerGraph.NonExistingPaths;
@@ -747,7 +741,7 @@ public class Transform
 	 * @param graph graph to consider and perhaps modify
 	 * @param questionPaths PTA with questions from learnerCache of the supplied graph. 
 	 * This PTA is ignored if null, otherwise answered questions are marked.
-	 * @param ifthenGraphs property automata to consider.
+	 * @param ifthenGraphs property automaton to consider.
 	 * @param howManyToAdd how many waves of transitions to add to the graph. This is not used when if-then is used to answer 
 	 * questions (questionPaths not empty). At most <em>howMayToAdd</em> transitions will be added; 
 	 * if this value if not positive, the graph remains unchanged.
@@ -1030,7 +1024,7 @@ public class Transform
 				if (endOfName < 1)
 					throw new IllegalArgumentException("missing automata name from "+automatonAndName);
 				LearnerGraph tmpPropertyAutomaton =
-						FsmParser.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config,conv)
+						FsmParserStatechum.buildLearnerGraph(automatonAndName.substring(endOfName).trim(),automatonAndName.substring(0, endOfName).trim(),config,conv)
 							.transform.interpretLabelsAsReg(alphabet,conv); // this is inefficient but I can afford this because if-then automata are small.
 				LearnerGraph propertyAutomaton = new LearnerGraph(tmpPropertyAutomaton.config);
 				AbstractLearnerGraph.interpretLabelsOnGraph(tmpPropertyAutomaton,propertyAutomaton,new ConvertLabel(conv));
@@ -1319,7 +1313,8 @@ public class Transform
 	 * @param startingState the start to start trimming from (that is, the one to use as initial state)
 	 * @return trimmed graph
 	 */
-	public LearnerGraph trimGraph(int depth, CmpVertex startingState) {
+	public LearnerGraph trimGraph(int depth, CmpVertex startingState)
+	{
 		if (coregraph.findVertex(startingState) != startingState)
 			throw new IllegalArgumentException("starting state passed as an argument to trimGraph does not belong to coregraph");
 
@@ -1372,5 +1367,71 @@ public class Transform
 		while (!newFringe.isEmpty() && waveNumber <= depth);
 		return trimmedOne;
 	}
+
 	
+	/** Given a graph, the method chops states more than a certain distance away from the red states. Heavily relies on the 
+	 * assumption that labelling states red is continuous, in that a red state can only be created as a neighbour of a red state, 
+	 * permitting one to construct a boundary and then expand it. This is more efficient than doing a 
+	 * {@link MarkovClassifier#computeClosure(AbstractLearnerGraph, Set, int)} followed by a merge.
+	 * 
+	 * @param depth the diameter of the graph to leave.
+	 * @param config configuration to use for the new graph.
+	 * @return trimmed graph
+	 */
+	public LearnerGraph trimGraph(int depth, Configuration config)
+	{
+		LearnerGraph trimmedOne = new LearnerGraph(config);
+		trimmedOne.initEmpty();
+		
+		if (depth < 0)
+			return trimmedOne;
+		
+		final Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue
+		final Map<CmpVertex,Integer> visited = new HashMap<CmpVertex,Integer>();
+		for(CmpVertex v:coregraph.transitionMatrix.keySet()) 
+			if (v.getColour() == JUConstants.RED)
+			{ 
+				visited.put(v, 0);
+				trimmedOne.transitionMatrix.put(v, trimmedOne.createNewRow());
+				if (depth > 0)
+					currentExplorationBoundary.offer(v);
+			}
+		if (visited.isEmpty())
+			return trimmedOne;
+		
+		CmpVertex explorationElement = null;
+		while(!currentExplorationBoundary.isEmpty())
+		{
+			explorationElement = currentExplorationBoundary.remove();
+			int exploredDistance = visited.get(explorationElement)+1;
+			for(Entry<Label,CmpVertex> transitionND:coregraph.transitionMatrix.get(explorationElement).entrySet())
+			{
+				CmpVertex targetState = transitionND.getValue();
+				Integer distanceSeen = visited.get(targetState);
+				
+				if (distanceSeen == null || distanceSeen > exploredDistance)
+				{
+					visited.put(targetState,exploredDistance);// record the new or revised distance
+					trimmedOne.transitionMatrix.put(targetState, trimmedOne.createNewRow());
+					
+					if (exploredDistance < depth) // only explore from the found element if we did not reach the limit.
+						currentExplorationBoundary.offer(targetState);// ensure we explore this element later in our breadth-first search.
+				}
+			}
+		}
+		
+		// now we have a collection of states in the trimmed graph, but no transitions, hence add them.
+		for(CmpVertex vertex:visited.keySet())// we iterate over visited because it is not going to be modified. In contrast, we are adding elements to trimmed graph's transitionMatrix.
+		{
+			Map<Label,CmpVertex> row = trimmedOne.transitionMatrix.get(vertex);
+			for(Entry<Label,CmpVertex> transition:coregraph.transitionMatrix.get(vertex).entrySet())
+				if (visited.containsKey(transition.getValue()))
+				{
+					row.put(transition.getKey(), transition.getValue());
+				}
+		}
+		assert trimmedOne.transitionMatrix.containsKey(coregraph.getInit());
+		trimmedOne.setInit(coregraph.getInit());
+		return trimmedOne;
+	}
 }

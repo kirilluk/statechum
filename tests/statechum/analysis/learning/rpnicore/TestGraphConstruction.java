@@ -23,20 +23,17 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized.Parameters;
 import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.ParameterizedWithName.ParametersToString;
-import statechum.Configuration;
+import statechum.*;
 import statechum.Configuration.LABELKIND;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.Helper;
-import statechum.Label;
-import statechum.StringVertex;
 import statechum.collections.MapWithSearch;
 
 import java.util.*;
 import java.util.Map.Entry;
 
 import static org.junit.Assert.*;
-import static statechum.Helper.checkForCorrectException;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.TestHelper.checkForCorrectException;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.LearnerGraph.createLabelToStateMap;
 import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper;
 
@@ -102,7 +99,7 @@ public final class TestGraphConstruction extends TestWithMultipleConfigurations
 		final Configuration conf = config.copy();conf.setLabelKind(LABELKIND.LABEL_STRING);
 		final statechum.analysis.learning.rpnicore.Transform.InternStringLabel intern = null;
 		final Label lbl = AbstractLearnerGraph.generateNewLabel("A", conf,intern);
-		Helper.checkForCorrectException(
+		TestHelper.checkForCorrectException(
 				lbl::toInt,
 				UnsupportedOperationException.class,"string labels");
 	}
@@ -125,7 +122,7 @@ public final class TestGraphConstruction extends TestWithMultipleConfigurations
 	public void testCreateErlangLabelFailure1()
 	{
 		final Configuration conf = config.copy();conf.setLabelKind(LABELKIND.LABEL_ERLANG);
-		Helper.checkForCorrectException(
+		TestHelper.checkForCorrectException(
 				() -> AbstractLearnerGraph.generateNewLabel(33,conf,converter),
 				IllegalArgumentException.class,"No parser");
 	}
@@ -510,7 +507,7 @@ public final class TestGraphConstruction extends TestWithMultipleConfigurations
 	@Test 
 	public void testGraphConstruction_fail()
 	{
-		Helper.checkForCorrectException(
+		TestHelper.checkForCorrectException(
 				() -> buildLearnerGraph("A = THEN ==B","testGraphConstruction_fail",config,converter),
 				IllegalArgumentException.class,"unknown vertex");
 	}

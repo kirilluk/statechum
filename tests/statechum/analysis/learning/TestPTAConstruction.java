@@ -20,7 +20,7 @@ package statechum.analysis.learning;
 
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -45,7 +45,7 @@ import statechum.Label;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.CachedData;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 import statechum.analysis.learning.rpnicore.WMethod;
@@ -57,8 +57,8 @@ import statechum.model.testset.PTASequenceEngine.SequenceSet;
 
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import static statechum.Helper.checkForCorrectException;
-import static statechum.Helper.whatToRun;
+import static statechum.TestHelper.checkForCorrectException;
+import static statechum.TestHelper.whatToRun;
 import static statechum.analysis.learning.rpnicore.TestEquivalenceChecking.checkM;
 
 @RunWith(ParameterizedWithName.class)
@@ -512,7 +512,7 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 		
 		LearnerGraph graph = new LearnerGraph(config);
 		if (initialMax != null)
-			graph=FsmParser.buildLearnerGraph(initialMax, "initial_max",config,converter);
+			graph= FsmParserStatechum.buildLearnerGraph(initialMax, "initial_max",config,converter);
 		for(Entry<CmpVertex,List<Label>> entry:graph.pathroutines.computeShortPathsToAllStates().entrySet())
 			entry.getKey().setDepth(entry.getValue().size());// add depth information to states.
 		

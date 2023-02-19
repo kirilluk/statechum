@@ -125,14 +125,25 @@ obtainCookie(MergedOptions) ->
 		_ ->erlang:get_cookie()
 	end.
 
+selectOtpLibrary() ->
+  case erlang:system_info(otp_release) of
+    14 ->"lib/OtpErlang/14/OtpErlang.jar";
+    16 ->"lib/OtpErlang/14/OtpErlang.jar";
+    17 ->"lib/OtpErlang/14/OtpErlang.jar";
+    18 ->"lib/OtpErlang/14/OtpErlang.jar";
+    _ ->"lib/OtpErlang/24/OtpErlang.jar"
+  end.
+
 %%% this one needs R_HOME to be set /library/rJava/jri/x64
 %%% need to test with the wrong value of ref returned
 launch(OptionsList,PidToNotify) ->
 	DefaultsList = [
 		{'Java','java'}, %% Path to Java executable
 		{'StatechumDir','.'}, %% Path to Statechum
+		{'bindir','bin'},%% where Statechum classes may be found (different between Eclipse/Ant and Ideaj
 		{'AccumulateOutput','false'}, %% only used for testing, this one will cause this process to report all output Java dumps on the screen
-		{'TerminateWhenParentDoes','true'}, %% when a process that started Synapse terminates, terminates the main thread of Synapse. Important for non-interactive applications such as for testing. Where any graphical windows have been created, we have a gui thread and thus JVM does not exit when Synapse thread does.
+		{'TerminateWhenParentDoes','true'}, %% when a process that started Synapse terminates, terminates the main thread of Synapse.
+% Important for non-interactive applications such as for testing. Where any graphical windows have been created, we have a gui thread and thus JVM does not exit when Synapse thread does.
 % Erlang is not notified about it hence thinks Statechum is available and running but all communication with it waits forever. One way to resolve this is by force-terminating JVM when Synapse terminates or
 % by passing false when starting Synapse. This problem occurs every time Quickcheck is used to start Statechum because it uses a separate process that terminates when Quickcheck test does.  
 		{'JavaOptionsList',[]}], %% Java options, defaults below.
@@ -155,7 +166,7 @@ launch(OptionsList,PidToNotify) ->
 	
 	%% now merge Java options.
 	JavaDefaultsList = [
-		{'-cp',["bin","lib/colt.jar","lib/commons-collections-3.1.jar","lib/jung-1.7.6.jar","lib/sootclasses.jar","lib/jltl2ba.jar","lib/OtpErlang.jar","lib/junit-4.8.1.jar","lib/javaGD.jar","lib/JRI.jar","lib/weka.jar"]},
+		{'-cp',[atom_to_list(dict:fetch('bindir',MergedOptions)),"lib/colt.jar","lib/commons-collections-3.1.jar","lib/jung-1.7.6.jar","lib/sootclasses.jar","lib/jltl2ba.jar",selectOtpLibrary(),"lib/junit-4.8.1.jar","lib/javaGD.jar","lib/JRI.jar","lib/weka.jar"]},
 		{'-Djava.library.path',["linear/.libs","smt/.libs"]},
 		{'-DESC_TERMINATE','false'},%% stop ESC-termination of Java runtime from within Visualser windows
 		{'-DVIZ_CONFIG','erlang'}, %% the name of file where to store window layouts

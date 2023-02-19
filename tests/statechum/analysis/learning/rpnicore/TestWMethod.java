@@ -18,8 +18,8 @@
 package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.*;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 import static statechum.analysis.learning.rpnicore.WMethod.cross;
@@ -711,7 +711,7 @@ public class TestWMethod {
 
 		fsm.config.setEquivalentStatesAllowedForW(true);
 		Set<List<Label>> wset = new HashSet<>(WMethod.computeWSet_reducedmemory(fsm));
-		fsm.wmethod.checkW_is_corrent(wset,prefixClosed,equivalentVertices);// we are not checking for W reduction here since space-saving way to compute W
+		HelperWMethod.checkW_is_corrent(fsm,wset,prefixClosed,equivalentVertices);// we are not checking for W reduction here since space-saving way to compute W
 		
 	}
 
@@ -723,7 +723,7 @@ public class TestWMethod {
 		{
 			origWset.addAll(WMethod.computeWSetOrig(fsm));
 			assertFalse(equivalentExpected);
-			fsm.wmethod.checkW_is_corrent(origWset,prefixClosed,null);			
+			HelperWMethod.checkW_is_corrent(fsm,origWset,prefixClosed,null);
 		}
 		catch(EquivalentStatesException e)
 		{
@@ -735,7 +735,7 @@ public class TestWMethod {
 		{
 			Set<List<Label>> wset = new HashSet<>(WMethod.computeWSet_reducedmemory(fsm));
 			assertFalse(equivalentExpected);
-			fsm.wmethod.checkW_is_corrent(wset,prefixClosed,null);// we are not checking for W reduction here since space-saving way to compute W
+			HelperWMethod.checkW_is_corrent(fsm,wset,prefixClosed,null);// we are not checking for W reduction here since space-saving way to compute W
 			// does not lead to the W set as small as the computeWSet_reduced one because I compute the distribution of
 			// distinguishing labels only once rather than every time it is needed. This way, if I have a pair of states
 			// which can be distinguished by many different labels, the distribution becomes skewed, but I do not wish to keep 
@@ -752,7 +752,7 @@ public class TestWMethod {
 		{
 			Set<List<Label>> wset = new HashSet<>(WMethod.computeWSet_reducedw(fsm));
 			assertFalse(equivalentExpected);
-			fsm.wmethod.checkW_is_corrent(wset,prefixClosed,null);
+			HelperWMethod.checkW_is_corrent(fsm,wset,prefixClosed,null);
 			int reduction = origWset.size() - wset.size();
 			Assert.assertTrue(reduction >= 0 || !reductionExpected);
 		}
@@ -771,7 +771,7 @@ public class TestWMethod {
 		{
 			Set<List<Label>> wset = new HashSet<>(WMethod.computeWSet_reducedmemory(fsm));
 			assertFalse(equivalentExpected);
-			Assert.assertNull(fsm.wmethod.checkW_Mealy_is_correct_boolean(wset,null));// we are not checking for W reduction here since space-saving way to compute W
+			Assert.assertNull(HelperWMethod.checkW_Mealy_is_correct_boolean(fsm,wset,null));// we are not checking for W reduction here since space-saving way to compute W
 			// does not lead to the W set as small as the computeWSet_reduced one because I compute the distribution of
 			// distinguishing labels only once rather than every time it is needed. This way, if I have a pair of states
 			// which can be distinguished by many different labels, the distribution becomes skewed, but I do not wish to keep
@@ -788,7 +788,7 @@ public class TestWMethod {
 		{
 			Set<List<Label>> wset = new HashSet<>(WMethod.computeWSet_reducedw(fsm));
 			assertFalse(equivalentExpected);
-			Assert.assertNull(fsm.wmethod.checkW_Mealy_is_correct_boolean(wset,null));
+			Assert.assertNull(HelperWMethod.checkW_Mealy_is_correct_boolean(fsm, wset,null));
 		}
 		catch(EquivalentStatesException e)
 		{
@@ -861,7 +861,7 @@ public class TestWMethod {
 		config.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
 		LearnerGraph fsm = buildLearnerGraph("A-a/b->A","testW_Mealy_1b",config,converter);
 		fsm.findVertex(VertexID.parseID("A")).setAccept(false);
-		statechum.Helper.checkForCorrectException( ()->testMealyWsetconstruction(fsm,false),
+		statechum.TestHelper.checkForCorrectException( ()->testMealyWsetconstruction(fsm,false),
 				java.lang.IllegalArgumentException.class,
 				"Unable to handle Mealy-like automata with transitions from a non-accept state A");
 	}

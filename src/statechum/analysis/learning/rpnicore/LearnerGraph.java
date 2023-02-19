@@ -201,8 +201,6 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	 */
 	public ArrayList<PairScore> pairsAndScores;
 
-	public Collection<CmpVertex> additionalExplorationRoot = null;
-		
 	/** The initial size of the pairsAndScores array. */
 	public static final int pairArraySize = 2000;
 

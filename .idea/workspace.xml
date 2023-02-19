@@ -1,0 +1,883 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Merged experimental branch into main and resolved conflicts to make sure that the outcome builds. Running tests is next task.">
+      <change afterPath="$PROJECT_DIR$/.idea/.name" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/OtpErlang_14.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/libraries/OtpErlang_24.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/runConfigurations/Run_All_tests.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/checkcpu.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/defaultjobparameters.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/executionTimeScale-othercpus.map" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/executionTimeScale.map" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/getcpu.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/readme.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/runedsmmarkov.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/runlearnerevaluation.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/runmatrixevaluation.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/runpremerge.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/runsmallvshuge.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/w-runedsmmarkov.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/w-runlearnerevaluation.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/w-runmatrixevaluation.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/w-runpremerge.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/iceberg/w-runsmallvshuge.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/OtpErlang/24/OtpErlang.jar" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/closest_neighbour_c/ClosestNeighbour.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/modified_typer/typer_monolithic/24/erl_types_s.erl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/lib/modified_typer/typer_monolithic/24/typer_s.erl" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/ExperimentPaperUAS2-collect results.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/ExperimentPaperUAS2-count tasks.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/ExperimentPaperUAS2-run_parallel.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/ExperimentPaperUAS2-run_sequential.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/MarkovExperiment - REPORT_TASKPARAMETERS.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/MarkovExperiment - RUN_SEQUENTIAL.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/MarkovExperiment - count tasks.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/New_configuration (1).launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/New_configuration (2).launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/New_configuration.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/SmallVsHuge-collect results.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/SmallVsHuge-count tasks.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/SmallVsHuge-run parallel 3.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/SmallVsHuge-run parallel.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/SmallVsHuge-run sequential.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/SmallVsHuge-task parameters.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/TestMergeStatistics.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/TestVector.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/benchmarkCPU - compute benchmark.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/benchmarkCPU - count tasks.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/benchmarkCPU - run parallel 1.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/old-SmallVsHuge-count tasks.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/old-SmallVsHuge-run parallel.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/paperUAS2 - collect results.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/paperUAS2 - count_tasks.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/paperUAS2 - parameters.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/paperUAS2 - progress indicator.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/resources/eclipse-lauch_configurations/paperUAS2 - run parallel.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Signatures/MapSignature.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/MarkovClassifierLG.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ComputePathLengthDistribution.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/BenchmarkCPU.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/ComputeExecutionTimeCorrectionValue.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/ConstructRandomFSM.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearners.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersAndMatrixTypes.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersParameters.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/SmallVsHuge.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/SmallVsHugeParameters.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/CVS.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/CVS_With_Random_traces_Generation.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovHelper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovHelperClassifier.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovLearningParameters.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovParameters.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovPreMergeExperiment.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/PerformFirstMerge.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/ConstructClassifier.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearnUsingClassifier.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityLearnerRunner.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityParameters.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/UseWekaResultsParameters.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/ExperimentPaperUAS2.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/PaperUASParameters.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/statechum/FastTests.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/statechum/TestHelper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestGetName.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestMarkov_i2c.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestMiscLearningRoutines.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/HelperWMethod.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestMergeStatistics.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestNDScoring.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.classpath" beforeDir="false" afterPath="$PROJECT_DIR$/.classpath" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ErlangOracle/tracerunner.erl" beforeDir="false" afterPath="$PROJECT_DIR$/ErlangOracle/tracerunner.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/XMachineTool.iml" beforeDir="false" afterPath="$PROJECT_DIR$/XMachineTool.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/iceberg/build.xml" beforeDir="false" afterPath="$PROJECT_DIR$/iceberg/build.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/iceberg/run.sh" beforeDir="false" afterPath="$PROJECT_DIR$/iceberg/runbenchmark.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/iceberg/runexperiment.sh" beforeDir="false" afterPath="$PROJECT_DIR$/iceberg/runexperiment.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/iceberg/runfase2015.sh" beforeDir="false" afterPath="$PROJECT_DIR$/iceberg/w-runbenchmark.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/JRI.jar" beforeDir="false" afterPath="$PROJECT_DIR$/lib/JRI.jar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/OtpErlang.jar" beforeDir="false" afterPath="$PROJECT_DIR$/lib/OtpErlang/14/OtpErlang.jar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/14/erltypes.hrl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/14/erltypes.hrl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/14/otp_specific_functions.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/14/otp_specific_functions.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/16/erltypes.hrl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/16/erltypes.hrl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/16/otp_specific_functions.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/16/otp_specific_functions.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/17/erltypes.hrl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/17/erltypes.hrl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/17/otp_specific_functions.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/17/otp_specific_functions.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_annotator_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_annotator_s.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_info_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_info_s.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_map_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_map_s.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_otp.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_otp.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_preprocess_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_preprocess_s.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_s.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_s.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/modified_typer/typer_s.hrl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_typer/typer_split/typer_s.hrl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/synapse/synapse.hrl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/synapse/synapse.hrl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/synapse/synapselauncher.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/synapse/synapselauncher.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/synapse/test_diff.erl" beforeDir="false" afterPath="$PROJECT_DIR$/lib/synapse/test_diff.erl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/weka.jar" beforeDir="false" afterPath="$PROJECT_DIR$/lib/weka.jar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/resources/DiffExperimentLogs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/resources/DiffExperimentLogs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/resources/introduction/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/resources/introduction/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/AttributeMutator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/AttributeMutator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/Configuration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Configuration.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/DeterministicDirectedSparseGraph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/DeterministicDirectedSparseGraph.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/GlobalConfiguration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/GlobalConfiguration.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/Helper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Helper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/Interface/DependencyGraph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Interface/DependencyGraph.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/JUConstants.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/JUConstants.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/Label.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Label.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/ProgressIndicator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/ProgressIndicator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/StatechumXML.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/StatechumXML.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangLabel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangLabel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangModule.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangModule.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangNode.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangNode.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangRunner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangRunner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangRuntime.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangRuntime.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Signatures/AltSignature.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Signatures/AltSignature.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Signatures/AnySignature.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Signatures/AnySignature.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Signatures/CharSignature.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Signatures/CharSignature.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Signatures/Signature.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Signatures/Signature.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Synapse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Synapse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/AbstractionRefinement.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersResult.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/DrawGraphs.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/DrawGraphs.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/LearnerWithLabelRefinementViaPta.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/LearnerWithLabelRefinementViaPta.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/MarkovClassifier.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/MarkovClassifier.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/MarkovEDSM.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/MarkovModel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/MarkovModel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/PairOfPaths.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/PairOfPaths.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/PrecisionRecall/ConfusionMatrix.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/PrecisionRecall/ConfusionMatrix.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/RPNIUniversalLearner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/RPNIUniversalLearner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ExperimentRunner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ExperimentRunner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireLabelledStateMachineGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireLabelledStateMachineGenerator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireNDStateMachineGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireNDStateMachineGenerator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireStateMachineGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireStateMachineGenerator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/I2cexperiment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/I2cexperiment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ManualAccuracyTracker.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ManualAccuracyTracker.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/AbstractionRefinement.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/ExperimentResult.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/CVS.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/CVS_With_Random_traces_Generation.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/EvaluationOfLearners.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearnerIncrementalRefinement.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearnerIncrementalRefinement.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearnerWithLabelRefinementViaPta.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningSupportRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningSupportRoutines.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/MarkovLearnerExperimentWithStatisticalAnalysis.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovExperiment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/MarkovPassivePairSelection.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/MarkovQuestionGeneration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovQuestionGeneration.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/MarkovScoreComputation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovScoreComputation.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityLearner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityLearner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/SmallvsHugeExperiment.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/WaveBlueFringe.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/WaveBlueFringe.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/WekaDataCollector.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/WekaDataCollector.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/ExperimentPaperUAS.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/SGE_ExperimentRunner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/SGE_ExperimentRunner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/StructuralDifferencesPaper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/StructuralDifferencesPaper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/UASExperiment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/UASExperiment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/UASPairQuality.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/UASPairQuality.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/VisualisePaperUAS.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/WExperiment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/WExperiment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/mutation/DiffExperiments.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/mutation/DiffExperiments.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/mutation/GenerateRandomFSM.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/mutation/GenerateRandomFSM.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/linear/DifferenceVisualiser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/linear/DifferenceVisualiser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/linear/GDLearnerGraph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/linear/GDLearnerGraph.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/linear/StructuralDifferencePaper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/linear/StructuralDifferencePaper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/observers/ProgressDecorator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/observers/ProgressDecorator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AMEquivalenceClass.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AMEquivalenceClass.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractLearnerGraph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractLearnerGraph.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractPathRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractPathRoutines.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserStatechum.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/LTL_to_ba.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/LTL_to_ba.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/LearnerGraph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/LearnerGraph.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/MergeStates.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/MergeStates.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PathRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PathRoutines.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/RandomPathGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/RandomPathGenerator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/WMethod.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/WMethod.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/spin/SpinUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/spin/SpinUtil.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/util/OutputUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/util/OutputUtil.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/util/ScoreMatrixOutput.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/util/ScoreMatrixOutput.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/apps/CompareGraphs.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/apps/CompareGraphs.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/apps/GDVisualDemo.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/apps/GDVisualDemo.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/model/testset/PTAExploration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/model/testset/PTAExploration.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/model/testset/PTASequenceEngine.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/model/testset/PTASequenceEngine.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/collections/TestMapWithSearch.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/collections/TestMapWithSearch.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/collections/TestMapWithSearchMisc.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/collections/TestMapWithSearchMisc.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/AllTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/AllTests.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/TestConfiguration.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/TestConfiguration.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/ErlangTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/ErlangTests.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/Signatures/TestTypes.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/Signatures/TestTypes.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangGraphs.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangGraphs.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangModule.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangModule.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangParser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangRunner.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangRunner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangStartupFailure.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangStartupFailure.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestPrettyPrintTraces.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestPrettyPrintTraces.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestSynapse.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestSynapse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestSynapseAuxiliaryFunctions.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestSynapseAuxiliaryFunctions.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/LargePTARecordPairs.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/LargePTARecordPairs.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestDrawGraphs.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestDrawGraphs.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestEVGraphGeneration.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestEVGraphGeneration.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestLearnerWithLabelRefinementViaPta.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestLearnerWithLabelRefinementViaPta.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestPTAConstruction.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestPTAConstruction.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestPathTracing.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestPathTracing.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestRpniLearner.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestRpniLearner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestSmt.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestSmt.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestStateMerging.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestStateMerging.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/Test_Orig_RPNIBlueFringeLearner.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/Test_Orig_RPNIBlueFringeLearner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/Test_Orig_RPNIBlueFringeLearnerTestComponent.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/Test_Orig_RPNIBlueFringeLearnerTestComponent.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestLearnFromTracesUsingMarkov.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestLearnFromTracesUsingMarkov.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestMarkovLearner.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestMarkovLearner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestWekaPairClassifier.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestWekaPairClassifier.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestExperimentRunner.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestExperimentRunner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestForestFireGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestForestFireGenerator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestPaperUAS.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestPaperUAS.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestPaperUAS_Large.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestPaperUAS_Large.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestSGE_ExperimentRunner.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestSGE_ExperimentRunner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/mutation/TestDiffExperimentWithLogs.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/mutation/TestDiffExperimentWithLogs.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/mutation/TestDiffExperiments.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/mutation/TestDiffExperiments.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/mutation/TestExperimentResult.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/mutation/TestExperimentResult.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/mutation/TestGraphMutator.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/mutation/TestGraphMutator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestGD.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestGD.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestGD_MultipleCasesOfRenaming.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestGD_MultipleCasesOfRenaming.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestGD_Multithreaded.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestGD_Multithreaded.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestGD_Multithreaded_NonArray.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestGD_Multithreaded_NonArray.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestLinear.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestLinear.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestMatrixComputationWithMultipleThreads.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestMatrixComputationWithMultipleThreads.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestSolver.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/linear/TestSolver.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestGraphSeries.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestGraphSeries.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestRecordProgressDecorator.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestRecordProgressDecorator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestRecorderIntegration.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestRecorderIntegration.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestWriteReadAugmentPta.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestWriteReadAugmentPta.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestWriteReadInit.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestWriteReadInit.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestWriteReadLearnerEvaluation.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestWriteReadLearnerEvaluation.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestWriteReadPair.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestWriteReadPair.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/RPNIBlueFringeVariability.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/RPNIBlueFringeVariability.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestAugmentUsingIFTHEN.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestAugmentUsingIFTHEN.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestCloneWithDifferentConf.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestCloneWithDifferentConf.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestEqualityComparisonAndHashCode.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestEqualityComparisonAndHashCode.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestEquivalenceChecking.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestEquivalenceChecking.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestFSMAlgo.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestFSMAlgo.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestFSMParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestFSMParser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestGraphBasicAlgorithms.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestGraphBasicAlgorithms.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestGraphConstruction.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestGraphConstruction.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestGraphConstructionWithDifferentConf.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestGraphConstructionWithDifferentConf.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestLearnerGraphND.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestLearnerGraphND.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestNextID.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestNextID.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestRandomPathGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestRandomPathGenerator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestRejectManipulation.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestRejectManipulation.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestTransform.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestTransform.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestWMethod.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestWMethod.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestWMethodUniversal.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestWMethodUniversal.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/testLTLToBa.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestLTLToBa.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/smt/TestLabelParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/smt/TestLabelParser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/smt/TestSmtLabelRepresentation.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/smt/TestSmtLabelRepresentation.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/apps/TestQSMTool.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/apps/TestQSMTool.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/apps/TestVisualDemo.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/apps/TestVisualDemo.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/model/testset/TestPTASequenceEngine.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/model/testset/TestPTASequenceEngine.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/model/testset/TestPTA_computePrecisionRecall.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/model/testset/TestPTA_computePrecisionRecall.java" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExportTestResults" exportFormat="Xml" outputFolder="$PROJECT_DIR$" userTempatePath="" />
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitSEFilterConfiguration">
+    <file-type-list>
+      <filtered-out-file-type name="LOCAL_BRANCH" />
+      <filtered-out-file-type name="REMOTE_BRANCH" />
+      <filtered-out-file-type name="TAG" />
+      <filtered-out-file-type name="COMMIT_BY_MESSAGE" />
+    </file-type-list>
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="28Lr5ucpbLuMCUqBG9c1z8lKWry" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/experiment/statechum-master/lib/weka.jar&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\experiment\git-statechum\lib\OtpErlang\24" />
+      <recent name="D:\experiment\git-statechum\lib\OtpErlang\14" />
+      <recent name="D:\experiment\git-statechum\lib\modified_typer\typer_monolithic\24" />
+      <recent name="D:\experiment\git-statechum\lib\modified_typer\typer_splitfiles" />
+    </key>
+    <key name="ExtractSuperBase.RECENT_KEYS">
+      <recent name="statechum.analysis.learning.rpnicore" />
+    </key>
+    <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
+      <recent name="statechum" />
+    </key>
+    <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="statechum" />
+      <recent name="statechum.analysis.Erlang.Signatures" />
+      <recent name="statechum.analysis.learning.rpnicore" />
+    </key>
+  </component>
+  <component name="RunManager" selected="JUnit.TestAutoAnswers - OTP 24 testErlangSomething">
+    <configuration name="OTP 24" type="JUnit" factoryName="JUnit">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.ErlangTests" />
+      <option name="METHOD_NAME" value="testPrettyPrintTrace1" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestAutoAnswers - OTP 17" type="JUnit" factoryName="JUnit">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning.observers" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.observers.TestAutoAnswers" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;C:\Program Files\erl7.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestAutoAnswers - OTP 24 testErlangMapParser" type="JUnit" factoryName="JUnit">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestErlangMapParser" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestAutoAnswers - OTP 24 testErlangParser" type="JUnit" factoryName="JUnit">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestErlangParser" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestAutoAnswers - OTP 24 testErlangSomething" type="JUnit" factoryName="JUnit">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestErlangModule" />
+      <option name="METHOD_NAME" value="testLoadExports9" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestAutoAnswers - OTP 24" type="JUnit" factoryName="JUnit">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning.observers" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.observers.TestAutoAnswers" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestErlangOracleLearner" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.TestErlangOracleLearner" />
+      <option name="METHOD_NAME" value="testPrettyPrintTrace1" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestParserDot" type="JUnit" factoryName="JUnit">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestSynapse" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestSynapse" />
+      <option name="METHOD_NAME" value="testPrettyPrintTrace1" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestSynapse.testEunitSynapseTests1_fsmparse" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestSynapse" />
+      <option name="METHOD_NAME" value="testEunitSynapseTests1_fsmparse" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <option name="PARAMETERS" value="[0,Synapse long node names]" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestSynapse.testEunitSynapseTests1_parsetypemap" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestSynapse" />
+      <option name="METHOD_NAME" value="testEunitSynapseTests1_parsetypemap" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <option name="PARAMETERS" value="[0,Synapse long node names]" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestSynapse.testRunSynapseLaunchFailure3" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestSynapse" />
+      <option name="METHOD_NAME" value="testRunSynapseLaunchFailure3" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <option name="PARAMETERS" value="[0,Synapse long node names]" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="JetRunConfigurationType">
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <option name="filePath" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="PythonConfigurationType" factoryName="Python">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="Tox" factoryName="Tox">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="tests" factoryName="Doctests">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="" />
+      <option name="SCRIPT_NAME" value="" />
+      <option name="CLASS_NAME" value="" />
+      <option name="METHOD_NAME" value="" />
+      <option name="FOLDER_NAME" value="" />
+      <option name="TEST_TYPE" value="TEST_SCRIPT" />
+      <option name="PATTERN" value="" />
+      <option name="USE_PATTERN" value="false" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="JUnit.Run All tests" />
+      <item itemvalue="JUnit.TestAutoAnswers - OTP 17" />
+      <item itemvalue="JUnit.TestAutoAnswers - OTP 24" />
+      <item itemvalue="JUnit.OTP 24" />
+      <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangParser" />
+      <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangSomething" />
+      <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangMapParser" />
+      <item itemvalue="JUnit.TestParserDot" />
+      <item itemvalue="JUnit.TestErlangOracleLearner" />
+      <item itemvalue="JUnit.TestSynapse" />
+      <item itemvalue="JUnit.TestSynapse.testEunitSynapseTests1_fsmparse" />
+      <item itemvalue="JUnit.TestSynapse.testEunitSynapseTests1_parsetypemap" />
+      <item itemvalue="JUnit.TestSynapse.testRunSynapseLaunchFailure3" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="JUnit.TestSynapse" />
+        <item itemvalue="JUnit.TestSynapse.testRunSynapseLaunchFailure3" />
+        <item itemvalue="JUnit.TestSynapse.testEunitSynapseTests1_parsetypemap" />
+        <item itemvalue="JUnit.TestSynapse.testEunitSynapseTests1_fsmparse" />
+        <item itemvalue="JUnit.TestErlangOracleLearner" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="" />
+      <created>1651006527168</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1651006527168</updated>
+      <workItem from="1669236468986" duration="11228000" />
+      <workItem from="1669261470778" duration="15841000" />
+    </task>
+    <task id="LOCAL-00001" summary="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer).">
+      <created>1651266068784</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1651266068784</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Started to adapt dialyzer-4.4.4 to Statechum - need to do it in steps so that changes can be applied to subsequent versions of dialyzer">
+      <created>1651266227329</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1651266227329</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Migration to newer OTP continuing, a lot of work still pending.">
+      <created>1669234445577</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1669234445577</updated>
+    </task>
+    <task id="LOCAL-00004" summary="Added a simple parser for DOT file format.">
+      <created>1669272170903</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1669272170903</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Early Dec 2022 updates - minor changes plus some OTP migration">
+      <created>1676145402510</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1676145402510</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Added parser and dumper for Erlang maps">
+      <created>1676218480983</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1676218480983</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Initial edition of MapSignature and minor improvements to modified typer.">
+      <created>1676250987902</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1676250987902</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Revised the version of typer so that one of the tests using typer now passes on Erlang 24.">
+      <created>1676483174141</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1676483174141</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Removed unused seekUsages">
+      <created>1676483252354</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1676483252354</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Erlang Module tests now pass in Erlang Otp 24.">
+      <created>1676496136307</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1676496136307</updated>
+    </task>
+    <task id="LOCAL-00011" summary="More Erlang tests pass, many Synapse tests still fail.">
+      <created>1676508274966</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1676508274966</updated>
+    </task>
+    <task id="LOCAL-00012" summary="All current Erlang tests pass with OpenJDK and OTP 24.">
+      <created>1676513769391</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1676513769391</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.erl" />
+  </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ID_ORDER">
+      <list>
+        <option value="Default.Root" />
+        <option value="Default.Author" />
+        <option value="Default.Date" />
+        <option value="Default.Subject" />
+      </list>
+    </option>
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer)." />
+    <MESSAGE value="Started to adapt dialyzer-4.4.4 to Statechum - need to do it in steps so that changes can be applied to subsequent versions of dialyzer" />
+    <MESSAGE value="Migration to newer OTP continuing, a lot of work still pending." />
+    <MESSAGE value="Added a simple parser for DOT file format." />
+    <MESSAGE value="Early Dec 2022 updates - minor changes plus some OTP migration" />
+    <MESSAGE value="Added parser and dumper for Erlang maps" />
+    <MESSAGE value="Initial edition of MapSignature and minor improvements to modified typer." />
+    <MESSAGE value="Revised the version of typer so that one of the tests using typer now passes on Erlang 24." />
+    <MESSAGE value="Removed unused seekUsages" />
+    <MESSAGE value="Erlang Module tests now pass in Erlang 24." />
+    <MESSAGE value="Erlang Module tests now pass in Erlang Otp 24." />
+    <MESSAGE value="More Erlang tests pass, many Synapse tests still fail." />
+    <MESSAGE value="All current Erlang tests pass with OpenJDK and OTP 24." />
+    <MESSAGE value="Added tests for typer's handling of map types and another test for record type (which is the same as a tuple)." />
+    <MESSAGE value="Merged experimental branch into main and resolved conflicts. Running tests is next task." />
+    <MESSAGE value="Merged experimental branch into main and resolved conflicts to make sure that the outcome builds. Running tests is next task." />
+    <option name="LAST_COMMIT_MESSAGE" value="Merged experimental branch into main and resolved conflicts to make sure that the outcome builds. Running tests is next task." />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/WMethod.java</url>
+          <line>785</line>
+          <option name="timeStamp" value="22" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/collections/TestMapWithSearch.java</url>
+          <line>172</line>
+          <option name="timeStamp" value="24" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangParser.java</url>
+          <line>28</line>
+          <option name="timeStamp" value="27" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangParser.java</url>
+          <line>18</line>
+          <option name="timeStamp" value="28" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangModule.java</url>
+          <line>691</line>
+          <option name="timeStamp" value="32" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangModule.java</url>
+          <line>492</line>
+          <option name="timeStamp" value="33" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestErlangModule.java</url>
+          <line>255</line>
+          <option name="timeStamp" value="46" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/Erlang/Signatures/MapSignature.java</url>
+          <line>105</line>
+          <option name="timeStamp" value="52" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/Erlang/Signatures/MapSignature.java</url>
+          <line>118</line>
+          <option name="timeStamp" value="55" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>

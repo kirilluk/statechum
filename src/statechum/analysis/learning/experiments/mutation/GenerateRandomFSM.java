@@ -40,7 +40,7 @@ public class GenerateRandomFSM extends DiffExperiments {
 				
 				for(int experiment=0;experiment<experimentsPerCategory;experiment++)
 				{
-					LearnerGraphND generatedFSM = mg.nextMachine(alphabet, experiment,config, converter);
+					LearnerGraphND generatedFSM = mg.nextMachine(alphabet, -1.0, experiment,config, converter);
 					if (generatedFSM.getInit() != generatedFSM.transitionMatrix.entrySet().iterator().next().getKey())
 						throw new RuntimeException("first state is not the initial state");
 					

@@ -18,45 +18,30 @@
  */
 package statechum.analysis.Erlang.Signatures;
 
-import static statechum.Helper.checkForCorrectException;
+import com.ericsson.otp.erlang.OtpErlangAtom;
+import com.ericsson.otp.erlang.OtpErlangList;
+import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangString;
+import org.junit.*;
+import statechum.Configuration;
+import statechum.Configuration.EXPANSIONOFANY;
+import statechum.GlobalConfiguration;
+import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.Helper;
+import statechum.Label;
+import statechum.analysis.Erlang.*;
+import statechum.analysis.learning.RPNILearner;
+import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.ericsson.otp.erlang.OtpErlangAtom;
-import com.ericsson.otp.erlang.OtpErlangList;
-import com.ericsson.otp.erlang.OtpErlangObject;
-import com.ericsson.otp.erlang.OtpErlangString;
-
-import statechum.Configuration;
-import statechum.Configuration.EXPANSIONOFANY;
-import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.Helper.whatToRun;
-import statechum.GlobalConfiguration;
-import statechum.Helper;
-import statechum.Label;
-import statechum.analysis.Erlang.ErlangLabel;
-import statechum.analysis.Erlang.ErlangModule;
-import statechum.analysis.Erlang.ErlangRunner;
-import statechum.analysis.Erlang.ErlangRuntime;
-import statechum.analysis.Erlang.OTPBehaviour;
-import statechum.analysis.learning.RPNILearner;
-import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import static statechum.TestHelper.checkForCorrectException;
+import static statechum.TestHelper.checkForCorrectExceptionAnyOf;
 
 /** This one tests two things, parsing of Erlang types and verification of type compatibility. */
 public class TestTypes 
@@ -75,7 +60,6 @@ public class TestTypes
 	/** URL of the writable directory to be used for tests. */
 	public File testDir = null;
 
-	public final String ErlangExamples = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGEXAMPLES);
 	protected Configuration config = Configuration.getDefaultConfiguration().copy();
 	protected ErlangRunner runner = null;
 	
@@ -114,8 +98,7 @@ public class TestTypes
 	/** Creates a label from the string of text and a configuration. */
 	public static void createLabel(String str, Configuration config)
 	{
-		ConvertALabel converter = null;
-		AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+","+str+"}", config,converter);
+		AbstractLearnerGraph.generateNewLabel("{"+ErlangLabel.missingFunction+","+str+"}", config, null);
 	}
 	
 	/** Verifies that the specified label does not parse give the configuration. */
@@ -192,9 +175,7 @@ public class TestTypes
 		String nestedTerm = "{'Alt',[],[{'Tuple',[],[{'Atom',[],['noreply']},{'Any',[]}]},{'Tuple',[],[{'Atom',[],['stop']}]}]}";
 		OtpErlangObject obj = ErlangLabel.parseText("{'Alt',[],[{'Tuple',[],[{'Atom',[],['noreply']},{'Atom',[],['tmp']}]},"+nestedTerm+"]}");
 		final Signature sig = Signature.buildFromType(defaultConfig, obj);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new OTPBehaviour.OTPCall().extractVisibleReturnType(sig);
-		}},IllegalArgumentException.class,"tuple too short");
+		checkForCorrectException(() -> new OTPBehaviour.OTPCall().extractVisibleReturnType(sig),IllegalArgumentException.class,"tuple too short");
 	}
 	
 	/** Tests the extraction of return values. */
@@ -225,9 +206,7 @@ public class TestTypes
 				"{'Atom',[],['normal']}"+
 				"]}");
 		final Signature sig = Signature.buildFromType(defaultConfig, obj);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new OTPBehaviour.OTPCall().extractVisibleReturnType(sig);
-		}},IllegalArgumentException.class,"expected a tuple or an alt");
+		checkForCorrectException(() -> new OTPBehaviour.OTPCall().extractVisibleReturnType(sig),IllegalArgumentException.class,"expected a tuple or an alt");
 	}
 	
 	/** Tests the extraction of return values. */
@@ -250,9 +229,7 @@ public class TestTypes
 				"\nhandle_call(45,_,_)->ok.\nhandle_cast(_,_)->ok.\n\ninit(_)->ok.\nhandle_info(_,_)->ok.\n");wr.close();
 		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangModule.loadModule(config);
-		}},IllegalArgumentException.class,"expected a tuple or an alt");
+		checkForCorrectException(() -> ErlangModule.loadModule(config),IllegalArgumentException.class,"expected a tuple or an alt");
 	}
 	
 	/** Checks that an exception is thrown if the return value is not compliant with what expect OTP to produce. */
@@ -263,9 +240,7 @@ public class TestTypes
 		"\nhandle_call(45,_,_)->{reply}.\nhandle_cast(_,_)->{reply,ok}.\n\ninit(_)->ok.\nhandle_info(_,_)->{reply,ok}.\n");wr.close();
 		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() throws IOException {
-			ErlangModule.loadModule(config);
-		}},IllegalArgumentException.class,"tuple too short");
+		checkForCorrectException(() -> ErlangModule.loadModule(config),IllegalArgumentException.class,"tuple too short");
 	}
 	
 	protected static final String otherMethods = "\nhandle_cast(_,_)->{noreply,5}.\n\ninit(_)->{ok,5}.\nhandle_info(_,_)->{noreply,5}. ";
@@ -505,15 +480,9 @@ public class TestTypes
 
 		ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[atom,67,67,1900| 55],ok}"),config);
 		ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[\"rrr\",67,67,1900| junk],ok}"),config);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[atom,67,67,1900| a],ok}"),config);
-		}},IllegalArgumentException.class,"not type-compatible");
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[\"u\",67,67,1900| junk],ok}"),config);
-		}},IllegalArgumentException.class,"not type-compatible");
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[\"ru\",67,67,1900| junk],ok}"),config);
-		}},IllegalArgumentException.class,"not type-compatible");
+		checkForCorrectException(() -> ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[atom,67,67,1900| a],ok}"),config),IllegalArgumentException.class,"not type-compatible");
+		checkForCorrectException(() -> ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[\"u\",67,67,1900| junk],ok}"),config),IllegalArgumentException.class,"not type-compatible");
+		checkForCorrectException(() -> ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[\"ru\",67,67,1900| junk],ok}"),config),IllegalArgumentException.class,"not type-compatible");
 		runner.close();
 	}
 	
@@ -539,15 +508,9 @@ public class TestTypes
 		
 		ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[atom,67,67,1900| junk],ok}"),config);
 		ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[\"rrr\",67,67,1900| junk],ok}"),config);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[atom,67,67,1900| a],ok}"),config);
-		}},IllegalArgumentException.class,"not type-compatible");
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[\"u\",67,67,1900| junk],ok}"),config);
-		}},IllegalArgumentException.class,"not type-compatible");
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[\"ru\",67,67,1900| junk],ok}"),config);
-		}},IllegalArgumentException.class,"not type-compatible");
+		checkForCorrectException(() -> ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[atom,67,67,1900| a],ok}"),config),IllegalArgumentException.class,"not type-compatible");
+		checkForCorrectException(() -> ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[\"u\",67,67,1900| junk],ok}"),config),IllegalArgumentException.class,"not type-compatible");
+		checkForCorrectException(() -> ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[\"ru\",67,67,1900| junk],ok}"),config),IllegalArgumentException.class,"not type-compatible");
 		runner.close();
 	}
 	
@@ -565,15 +528,9 @@ public class TestTypes
 		createLabel("call, 256, ok",config);
 		ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call, [atom|junk], ok}"),config);
 		ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call, [atom |junk], ok}"),config);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[atom,67,67,1900],ok}"),config);
-		}},IllegalArgumentException.class,"not type-compatible");
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[atom|a],ok}"),config);
-		}},IllegalArgumentException.class,"not type-compatible");
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[ato|junk],ok}"),config);
-		}},IllegalArgumentException.class,"not type-compatible");
+		checkForCorrectException(() -> ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[atom,67,67,1900],ok}"),config),IllegalArgumentException.class,"not type-compatible");
+		checkForCorrectException(() -> ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[atom|a],ok}"),config),IllegalArgumentException.class,"not type-compatible");
+		checkForCorrectException(() -> ErlangLabel.erlangObjectToLabel(runner.evaluateString("{call,[ato|junk],ok}"),config),IllegalArgumentException.class,"not type-compatible");
 		runner.close();
 	}
 	
@@ -588,17 +545,13 @@ public class TestTypes
 	@Test
 	public void testCheckEmptyStringFail1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ListSignature.checkEmptyList(new OtpErlangString("a"));
-		}},IllegalArgumentException.class,"the tail of an improper list");
+		checkForCorrectException(() -> ListSignature.checkEmptyList(new OtpErlangString("a")),IllegalArgumentException.class,"the tail of an improper list");
 	}
 	
 	@Test
 	public void testCheckEmptyStringFail2()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			ListSignature.checkEmptyList(new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom("a")}));
-		}},IllegalArgumentException.class,"the tail of an improper list");
+		checkForCorrectException(() -> ListSignature.checkEmptyList(new OtpErlangList(new OtpErlangObject[]{new OtpErlangAtom("a")})),IllegalArgumentException.class,"the tail of an improper list");
 	}
 	
 	/** Tests for strings. */
@@ -878,22 +831,18 @@ public class TestTypes
 		checkFailureFor("call, afalse,1",config);
 		checkFailureFor("call, 56,1",config);
 	}
-	
+
 	@Test
 	public void testTypeCompatibilityVariedSignaturesFail1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			runner.evaluateString("typer_annotator_s:t_to_Statechum(erl_types:t_from_term(fun (A) -> A+1 end),dict:new())");
-		}},IllegalArgumentException.class,"Unsupported type: functions");
+		checkForCorrectException(() -> runner.evaluateString(ErlangRuntime.getTyperPackageName()+":t_to_Statechum(erl_types:t_from_term(fun (A) -> A+1 end),dict:new())"),IllegalArgumentException.class,"Unsupported type: functions");
 	}
 	
 	@Test
 	public void testTypeCompatibilityPid()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			Signature.buildFromType(defaultConfig, runner.evaluateString(
-					"typer_annotator_s:t_to_Statechum(erl_types:t_from_term(self()),dict:new())"));
-		}},IllegalArgumentException.class,"we cannot instantiate PIDs");
+		checkForCorrectExceptionAnyOf(() -> Signature.buildFromType(defaultConfig, runner.evaluateString(
+				ErlangRuntime.getTyperPackageName()+":t_to_Statechum(erl_types:t_from_term(self()),dict:new())")),IllegalArgumentException.class, List.of("we cannot instantiate PIDs","PID/Port/reference types are not supported"));
 		//Assert.assertFalse(sig.instantiateAllAlts().isEmpty());
 		//Assert.assertTrue(sig.instantiateAllAlts().iterator().next() instanceof OtpErlangPid);
 		
@@ -901,10 +850,8 @@ public class TestTypes
 	@Test
 	public void testTypeCompatibilityPort()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			Signature.buildFromType(defaultConfig, runner.evaluateString(
-					"[P|_]=erlang:ports(),typer_annotator_s:t_to_Statechum(erl_types:t_from_term(P),dict:new())"));
-		}},IllegalArgumentException.class,"we cannot instantiate Ports");
+		checkForCorrectExceptionAnyOf(() -> Signature.buildFromType(defaultConfig, runner.evaluateString(
+				"[P|_]=erlang:ports(),"+ErlangRuntime.getTyperPackageName()+":t_to_Statechum(erl_types:t_from_term(P),dict:new())")),IllegalArgumentException.class,List.of("we cannot instantiate Ports","PID/Port/reference types are not supported"));
 		//Assert.assertFalse(sig.instantiateAllAlts().isEmpty());
 		//Assert.assertTrue(sig.instantiateAllAlts().iterator().next() instanceof OtpErlangPort);
 	}

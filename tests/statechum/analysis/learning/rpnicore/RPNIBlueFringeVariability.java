@@ -23,7 +23,7 @@ import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.experiments.PaperUAS.TracesForSeed.Automaton;
+import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS.TracesForSeed.Automaton;
 import statechum.analysis.learning.observers.DummyLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.SiccoGeneralScoring;
@@ -67,11 +67,11 @@ public class RPNIBlueFringeVariability
 				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> reducedVertices = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 				long otherscore = graph.pairscores.computePairCompatibilityScore_general(pair,null,reducedVertices,useReducedListOfEquivalenceClasses);
 				Assert.assertEquals(score, otherscore);
-				LearnerGraph outcomeTmp = MergeStates.mergeCollectionOfVertices(graph,pair.getR(),reducedVertices, true);
+				LearnerGraph outcomeTmp = MergeStates.mergeCollectionOfVertices(graph,pair.getR(),reducedVertices, null, true);
 		        DifferentFSMException diff = WMethod.checkM(expectedOutcome, outcomeTmp);
 		        if (diff != null)
 		        	throw diff;
-		        outcomeTmp = MergeStates.mergeCollectionOfVertices(graph,pair.getR(),reducedVertices, false);
+		        outcomeTmp = MergeStates.mergeCollectionOfVertices(graph,pair.getR(),reducedVertices, null, false);
 		        diff = WMethod.checkM(expectedOutcome, outcomeTmp);
 		        if (diff != null)
 		        	throw diff;
@@ -86,7 +86,7 @@ public class RPNIBlueFringeVariability
 		        DifferentFSMException diff = WMethod.checkM(expectedOutcome, outcomeTmp);
 		        if (diff != null)
 		        	throw diff;
-		        outcomeTmp = MergeStates.mergeCollectionOfVertices(graph,pair.getR(),reducedVertices, true);
+		        outcomeTmp = MergeStates.mergeCollectionOfVertices(graph,pair.getR(),reducedVertices, null, true);
 		        diff = WMethod.checkM(expectedOutcome, outcomeTmp);
 		        if (diff != null)
 		        	throw diff;
@@ -132,7 +132,7 @@ public class RPNIBlueFringeVariability
 				{
 					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 					long score = original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices,false);
-					outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, false);
+					outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, null, false);
 					outcome.pathroutines.updateDepthLabelling();
 					
 					if (score != original.getStateNumber()-outcome.getStateNumber())
@@ -155,17 +155,17 @@ public class RPNIBlueFringeVariability
 
 					// another test is to check that merger from a partial set of equivalence classes produces the same graph, regardless whether auxiliary information is returned as part of mergers or not.
 					{
-				        LearnerGraph outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, true);
+				        LearnerGraph outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, null, true);
 				        DifferentFSMException diff = WMethod.checkM(outcome, outcomeTmp);
 				        if (diff != null)
 				        	throw diff;
 						long otherscore = original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices,true);
 						Assert.assertEquals(score, otherscore);
-						outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, true);
+						outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, null, true);
 						diff = WMethod.checkM(outcome, outcomeTmp);
 						if (diff != null)
 							throw diff;
-						outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, false);
+						outcomeTmp = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, null, false);
 						diff = WMethod.checkM(outcome, outcomeTmp);
 						if (diff != null)
 							throw diff;

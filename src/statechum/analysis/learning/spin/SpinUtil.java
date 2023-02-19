@@ -22,6 +22,8 @@ import java.util.*;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
@@ -271,12 +273,11 @@ public class SpinUtil {
 	}
 
 	
-	private static int numAcceptingSuccessors(DirectedSparseVertex v){
+	private static int numAcceptingSuccessors(DeterministicVertex v){
 		int succs = 0;
-		@SuppressWarnings("unchecked")
-		Iterator<DirectedEdge> outgoingIt = v.getOutEdges().iterator();
+		Iterator<DeterministicEdge> outgoingIt = v.getOutEdges().iterator();
 		while(outgoingIt.hasNext()){
-			DirectedEdge e = outgoingIt.next();
+			DeterministicEdge e = outgoingIt.next();
 			if(DeterministicDirectedSparseGraph.isAccept(e.getDest()))
 				succs++;
 		}
@@ -287,11 +288,10 @@ public class SpinUtil {
 		Map<String, Integer> stateMap = new TreeMap<String, Integer>();
 		functionMap = new HashMap<String, Integer>();
 		setup(g, stateMap);
-		@SuppressWarnings("unchecked")
-		Iterator<DirectedSparseVertex> stateIt = g.getVertices().iterator();
+		Iterator<DeterministicVertex> stateIt = g.getVertices().iterator();
 		
 		while (stateIt.hasNext()) {
-			DirectedSparseVertex v = stateIt.next();
+			DeterministicVertex v = stateIt.next();
 			
 			String currentState = v.getUserDatum(JUConstants.LABEL).toString();
 			if(v.containsUserDatumKey(JUConstants.INITIAL))

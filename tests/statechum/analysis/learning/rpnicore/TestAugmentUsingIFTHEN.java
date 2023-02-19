@@ -18,7 +18,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.Helper.checkForCorrectException;
+import static statechum.TestHelper.checkForCorrectException;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -38,16 +38,13 @@ import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import statechum.Configuration;
-import statechum.Helper;
-import statechum.JUConstants;
+import statechum.*;
 import statechum.Configuration.QuestionGeneratorKind;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
-import statechum.Helper.whatToRun;
+import statechum.TestHelper.whatToRun;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
-import statechum.Label;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestStateMerging;
@@ -60,7 +57,7 @@ import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 import statechum.apps.QSMTool;
 import statechum.model.testset.PTASequenceEngine;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 @RunWith(ParameterizedWithName.class)
 final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
@@ -254,7 +251,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	@Test
 	public final void testCheckIFTHEN_fail0a()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			Transform.checkTHEN_disjoint_from_IF(new LearnerGraph(mainConfiguration));
 		}}, IllegalArgumentException.class,"no THEN states");
 	}
@@ -262,7 +259,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	@Test
 	public final void testCheckIFTHEN_fail0b()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			LearnerGraph graph = new LearnerGraph(mainConfiguration);graph.getInit().setAccept(false);
 			Transform.checkTHEN_disjoint_from_IF(graph);
 		}}, IllegalArgumentException.class,"no THEN states");
@@ -271,7 +268,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	@Test
 	public final void testCheckIFTHEN_fail1()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph("A-a->B-a->C-b->B / P-b->Q-a->R / S-c->S / T-d->N","testCheckIFTHEN_fail1",mainConfiguration,converter));
 		}}, IllegalArgumentException.class,"no THEN states");
 	}
@@ -279,7 +276,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	@Test
 	public final void testCheckIFTHEN_fail2()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph("A-a->B-a->C-b->B / P-b->Q-a->R / S-c->S / T-d->N / S=THEN=C=THEN=P","testCheckIFTHEN_fail2",mainConfiguration,converter));
 		}}, IllegalArgumentException.class,"unreachable");
 	}
@@ -287,7 +284,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	@Test
 	public final void testCheckIFTHEN_fail3()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph("A-a->B-a->C-b->B / P-b->Q-a->B / S-c->S / T-d->N / S=THEN=C=THEN=P / B=THEN=T","testCheckIFTHEN_fail2",mainConfiguration,converter));
 		}}, IllegalArgumentException.class,"are shared between");
 	}
@@ -295,7 +292,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	@Test
 	public final void testCheckIFTHEN_fail4()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph("A-a->B-a->C-b->B / P-b->Q-a->Q / S-c->S / T-d->N / S=THEN=C=THEN=P / S=THEN=T","testCheckIFTHEN_fail2",mainConfiguration,converter));
 		}}, IllegalArgumentException.class,"do not belong");
 	}
@@ -376,7 +373,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	@Test
 	public final void testbuildIfThenAutomata_fail1()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 		Transform.buildIfThenAutomata(Arrays.asList(new String[]{
 				QSMTool.cmdLTL+" !a",
 				QSMTool.cmdIFTHENAUTOMATON+" graphA"}), buildLearnerGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
@@ -386,7 +383,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	@Test
 	public final void testbuildIfThenAutomata_fail2()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			Transform.buildIfThenAutomata(Arrays.asList(new String[]{
 				QSMTool.cmdIFTHENAUTOMATON+" graphA A-t->B / P-a->P == THEN == A"
 			}), buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
@@ -652,7 +649,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-b->C", "testPerformAugment_fail0a",mainConfiguration,converter);
 		graph.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(new VertexID(VertKind.NONEXISTING,90),mainConfiguration),graph.createNewRow());
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b->N / B=THEN=T", "testPerformAugment_fail0b", mainConfiguration,converter)}; 
 			Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 2);
 		}},IllegalArgumentException.class,"non-existing vertices");
@@ -704,7 +701,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	public final void testPerformAugment_fail1()
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-b->C", "testPerformAugment_fail1a",mainConfiguration,converter);
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b-#N / B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)}; 
 			Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 2);
 		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
@@ -715,7 +712,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	public final void testPerformAugment_fail2()
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-b->E", "testPerformAugment_fail1a",mainConfiguration,converter);
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b-#N / B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)}; 
 			Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 2);
 		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
@@ -771,7 +768,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	public final void testPerformAugment_fail3()
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B", "testPerformAugment_fail1a",mainConfiguration,converter);
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-c->T1-c->T2-b-#T3 / R-c->R1-c->R2-b->R3 / R=THEN=B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)};
 			Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 3);
 		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
@@ -782,7 +779,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	public final void testPerformAugment_fail4()
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-b-#C", "testPerformAugment_fail4a",mainConfiguration,converter);
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b->N / B=THEN=T", "testPerformAugment_fail4", mainConfiguration,converter)}; 
 			Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 2);
 		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
@@ -806,7 +803,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	public final void testPerformAugment_fail5()
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-b-#C", "testPerformAugment_fail5a",mainConfiguration,converter);
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
 			LearnerGraph ifthen = buildLearnerGraph("A-a->B-a->B /  T-b->N-s->R / B=THEN=T", "testPerformAugment_fail5", mainConfiguration,converter);
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{ifthen}; 
 			Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 2);
@@ -1068,7 +1065,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		public final void beforeTest()
 		{
 			mainConfiguration.setLearnerCloneGraph(false);
-			origGraph = FsmParser.buildLearnerGraph(graphWithAppendixAfterMerging, "graphWithAppendixAfterMerging",mainConfiguration,converter);
+			origGraph = FsmParserStatechum.buildLearnerGraph(graphWithAppendixAfterMerging, "graphWithAppendixAfterMerging",mainConfiguration,converter);
 			graph = new LearnerGraph(origGraph,mainConfiguration);
 			
 			pair = new StatePair(graph.findVertex("A1"),graph.findVertex("A2"));
@@ -1294,7 +1291,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		@Test
 		public final void testQuestionAnswering9() throws IncompatibleStatesException
 		{
-			origGraph = FsmParser.buildLearnerGraph("I-c->I-s->A-c->A-a->B-b->C-a->D-b->E-a->F-b->G / "+
+			origGraph = FsmParserStatechum.buildLearnerGraph("I-c->I-s->A-c->A-a->B-b->C-a->D-b->E-a->F-b->G / "+
 					"C-c->C11-c->C12-c->C13-c->C14-c->C15-c->C16-c->C17 / C13-a->13A-b->13B / C15-a->15A-b->15B /"+
 					"E-c->C21-c->C22-c->C23-c->C24-c->C25-c->C26-c->C27 / C23-a->23A-b->23B / C25-a->25A-b->25B /"+
 					"G-c->C31-c->C32-c->C33-c->C34-c->C35-c->C36-c->C37 / C33-a->33A-b->33B / C35-a->35A-b->35B", "testQuestionAnswering9",mainConfiguration,converter);
@@ -1650,7 +1647,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			final LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","b"}),
 					true, false, JUConstants.BLUE);
-			Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+			TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 				PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","c","c","b","a","u"}), new LearnerGraph[]{ifthen1,ifthen3});
 			}},IllegalArgumentException.class,"is invalid: either of true/false");
@@ -1660,7 +1657,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		@Test
 		public final void testIdentifyTheOnlyChoice1()
 		{
-			Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+			TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 				PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{}));
 			}},IllegalArgumentException.class,"an empty path");
 		}

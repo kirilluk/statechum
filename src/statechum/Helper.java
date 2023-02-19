@@ -18,11 +18,10 @@
 
 package statechum;
 
-import java.io.*;
-
-import org.junit.Assert;
-
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 
 /** Contains universally-useful methods, all of them static.
  * 
@@ -41,40 +40,16 @@ public class Helper {
 	public static void throwUnchecked(String description, Throwable e)
 	{
 		String descr = e.getMessage() == null? "":(": "+e.getMessage());
-		IllegalArgumentException ex = new IllegalArgumentException(description+descr);ex.initCause(e);
-		throw ex;
-	}
-
-	public static final void checkForCorrectException(whatToRun what, Class<? extends Exception> exceptionClass, String exceptionString)
-	{
-		try
-		{
-			what.run();
-			Assert.fail("Exception not thrown");
-		}
-		catch(Exception ex)
-		{
-			StringWriter str = new StringWriter();ex.printStackTrace(new PrintWriter(str));
-			Assert.assertEquals("wrong type of exception received "+str.toString()+" instead of "+exceptionClass,exceptionClass,ex.getClass());
-			if (ex.getMessage() == null)
-				Assert.assertNull("got null instead of \""+exceptionString+"\"",exceptionString);
-			else
-			{
-				if (exceptionString != null) 
-					Assert.assertTrue("expected exception containing \""+exceptionString+"\" but got \""+ex.getMessage()+"\"",ex.getMessage().contains(exceptionString));
-			}
-		}
+		throw new IllegalArgumentException(description+descr, e);
 	}
 
 	/** Loads the contents of a file into a string.
 	 * @param file file to load
-	 *
-	 * @throws IOException
 	 */
 	public static String loadFile(File file) throws IOException
 	{
 		BufferedReader input = new BufferedReader(new FileReader(file));
-		StringBuffer result = new StringBuffer();
+		StringBuilder result = new StringBuilder();
 		String line;
 		while ((line = input.readLine()) != null) {
 			result.append(line);result.append('\n');
@@ -82,9 +57,5 @@ public class Helper {
 		input.close();return result.toString();
 	}
 
-	public interface whatToRun
-	{
-		public void run() throws NumberFormatException, java.io.IOException, IncompatibleStatesException;
-	}
 }
 

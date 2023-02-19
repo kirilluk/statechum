@@ -41,7 +41,7 @@ import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.rpnicore.WMethod;
@@ -98,14 +98,13 @@ public class TestRecorderIntegration {
 	 * @param name its name
 	 * @param plus positives
 	 * @param minus negatives.
-	 * @param useZip whether to use ZIP compression with the data stream. 
 	 */
 	protected void checkLearnerProgressRecording(String fsmString, String name, final String [][] plus, final String [][] minus)
 	{
 		testConfig.setGdFailOnDuplicateNames(false);
 		if (forceGDfallback) testConfig.setGdMaxNumberOfStatesInCrossProduct(0);
 		testConfig.setCompressLogs(useCompression);
-		final LearnerGraph expected = FsmParser.buildLearnerGraph(fsmString, name,testConfig, null);
+		final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph(fsmString, name,testConfig, null);
 		
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)

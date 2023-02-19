@@ -1,6 +1,6 @@
 package statechum.analysis.Erlang;
 
-import static statechum.Helper.checkForCorrectException;
+import static statechum.TestHelper.checkForCorrectException;
 
 import java.io.File;
 
@@ -10,7 +10,7 @@ import org.junit.Test;
 
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.Helper.whatToRun;
+import statechum.TestHelper.whatToRun;
 
 public class TestErlangStartupFailure 
 {

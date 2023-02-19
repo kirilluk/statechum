@@ -27,7 +27,6 @@ import java.lang.reflect.Method;
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.junit.Assert.fail;
 import static statechum.Helper.throwUnchecked;
 
 public class AttributeMutator {
@@ -59,8 +58,7 @@ public class AttributeMutator {
 				method.invoke(object, Arg);
 			} catch (Exception e) 
 			{
-				e.printStackTrace();
-				fail(e.getMessage());
+				Helper.throwUnchecked("Failed to mutate field",e);
 			}
 		}
 		
@@ -72,8 +70,7 @@ public class AttributeMutator {
 				method.invoke(object, AlternativeArg);
 			} catch (Exception e) 
 			{
-				e.printStackTrace();
-				fail(e.getMessage());
+				Helper.throwUnchecked("Failed to mutate field",e);
 			}
 		}
 	}
@@ -203,6 +200,11 @@ public class AttributeMutator {
 				}
 				else
 				if (var.getType().equals(Integer.class) || var.getType().equals(int.class))
+				{
+					valueA = Math.abs(varName.hashCode());valueB=Math.abs(setter.hashCode());// just some integers likely to be different from each other between different variables.
+				}
+				else
+				if (var.getType().equals(Long.class) || var.getType().equals(long.class))
 				{
 					valueA = Math.abs(varName.hashCode());valueB=Math.abs(setter.hashCode());// just some integers likely to be different from each other between different variables.
 				}

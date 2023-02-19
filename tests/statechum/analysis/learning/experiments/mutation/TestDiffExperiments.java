@@ -1,6 +1,6 @@
 package statechum.analysis.learning.experiments.mutation;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 import java.util.Collection;
 

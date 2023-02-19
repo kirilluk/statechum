@@ -30,11 +30,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import statechum.Configuration;
-import statechum.Helper;
-import statechum.JUConstants;
-import statechum.Helper.whatToRun;
-import statechum.Label;
+import statechum.*;
+import statechum.TestHelper.whatToRun;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
@@ -148,7 +145,7 @@ public class TestLabelParser {
 	@Test
 	public final void testFunctionParser_fail0a()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdLowLevelFunction+" = "
 			}));
@@ -159,7 +156,7 @@ public class TestLabelParser {
 	@Test
 	public final void testFunctionParser_fail0b()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdLowLevelFunction+" ="
 			}));
@@ -170,7 +167,7 @@ public class TestLabelParser {
 	@Test
 	public final void testFunctionParser_fail0c()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdLowLevelFunction+" = AA"
 			}));
@@ -181,7 +178,7 @@ public class TestLabelParser {
 	@Test
 	public final void testFunctionParser_fail0d()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdLowLevelFunction+" = ARITY",
 					QSMTool.cmdLowLevelFunction+" = CONSTRAINARGS true",
@@ -193,7 +190,7 @@ public class TestLabelParser {
 	@Test
 	public final void testFunctionParser_fail1()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdLowLevelFunction+" = ARITY aa",
 					QSMTool.cmdLowLevelFunction+" = CONSTRAINARGS true",
@@ -205,7 +202,7 @@ public class TestLabelParser {
 	@Test
 	public final void testFunctionParser_fail2()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdLowLevelFunction+" = ARITY -8",
 					QSMTool.cmdLowLevelFunction+" = CONSTRAINARGS true",
@@ -217,7 +214,7 @@ public class TestLabelParser {
 	@Test
 	public final void testFunctionParser_fail3()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
@@ -231,7 +228,7 @@ public class TestLabelParser {
 	@Test
 	public final void testFunctionParser_fail4()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
@@ -246,7 +243,7 @@ public class TestLabelParser {
 	@Test
 	public final void testFunctionParser_fail5()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
@@ -259,7 +256,7 @@ public class TestLabelParser {
 	@Test
 	public final void testFunctionParser_fail6()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
@@ -273,7 +270,7 @@ public class TestLabelParser {
 	@Test
 	public final void testFunctionParser_fail7()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			lbls.parseCollection(Arrays.asList(new String[]{
 					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
 					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
@@ -336,7 +333,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_invalidtype()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			parseDataTrace("callA () callB");
 		}},IllegalArgumentException.class,"invalid data trace type");
 	}
@@ -379,7 +376,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail1()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			parseDataTrace("+ callA ()()callB");
 		}},IllegalArgumentException.class,"multiple groups of arguments for label");
 	}
@@ -388,7 +385,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail2()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			parseDataTrace("+ () callA");
 		}},IllegalArgumentException.class,"arguments without a label");
 	}
@@ -509,7 +506,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail_missing_closing_in_first_1()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			parseDataTrace("+ callA((= input  (< output 8)) callB callC( (and (= 5 input) (> (func output input) output)))");
 		}},IllegalArgumentException.class,"missing name of a function");
 	}
@@ -520,7 +517,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail_missing_closing_in_first_2()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			parseDataTrace("+ callA((= input  (< output 8)) callB callC(n (and (= 5 input) (> (func output input) output)))");
 		}},IllegalArgumentException.class,"unexpected end of input");
 	}
@@ -529,7 +526,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail3()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			parseDataTrace("+ callA((= input  (< output 8)))) callB callC((and (= 5 input) (> (func output input) output)))");
 		}},IllegalArgumentException.class,"unexpected closing brace");
 	}
@@ -538,7 +535,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail4()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			parseDataTrace("+ callA((= input 7) (< output 8)) callB( callC((and (= 5 input) (> (func output input) output))))");
 		}},IllegalArgumentException.class,"missing name of a function");
 	}
@@ -548,7 +545,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail5()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			parseDataTrace("+ callA((= input 7) (< output 8)) callB( callC(n (and (= 5 input) (> (func output input) output)))");
 		}},IllegalArgumentException.class,"unexpected end of input");
 	}
@@ -580,7 +577,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail6a()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			checkParsingPre("(and (= 5 input"+_M+") (> (func output"+_N+" input"+_M+") output"+_N+")",true);
 		}},IllegalArgumentException.class,"unexpected end of input");
 	}
@@ -589,7 +586,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail6b()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			checkParsingPre("(and (= 5 input"+_M+") (> (func output"+_N+" input"+_M+") output"+_N+")",false);
 		}},IllegalArgumentException.class,"unexpected end of input");
 	}
@@ -600,7 +597,7 @@ public class TestLabelParser {
 	{
 		checkParsingPre("(and)",false);
 		final SmtLabelParser parser = new SmtLabelParser();
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			parser.interpretPrePostCondition("", lbls.new FunctionVariablesHandler(VARIABLEUSE.PRE));
 		}},IllegalArgumentException.class,"unexpected end of expression");
 	}
@@ -611,7 +608,7 @@ public class TestLabelParser {
 	{
 		checkParsingPre("(and)",false);
 		final SmtLabelParser parser = new SmtLabelParser();
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			parser.interpretTrace("", lbls.new FunctionVariablesHandler(VARIABLEUSE.PRE));
 		}},IllegalArgumentException.class,"unexpected end of expression");
 	}
@@ -622,7 +619,7 @@ public class TestLabelParser {
 	{
 		checkParsingPre("(and)",false);
 		final SmtLabelParser parser = new SmtLabelParser();
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			parser.interpretPrePostCondition("   ", lbls.new FunctionVariablesHandler(VARIABLEUSE.PRE));
 		}},IllegalArgumentException.class,"failed to lex");
 	}
@@ -631,7 +628,7 @@ public class TestLabelParser {
 	@Test
 	public final void testPreParser_fail0c()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			checkParsingPre("()",false);
 		}},IllegalArgumentException.class,"missing function name");
 	}
@@ -640,7 +637,7 @@ public class TestLabelParser {
 	@Test
 	public final void testPreParser_fail1()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			checkParsingPre("",false);
 		}},IllegalArgumentException.class,"expected specification for label func");
 	}
@@ -649,7 +646,7 @@ public class TestLabelParser {
 	@Test
 	public final void testPreParser_fail2()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			checkParsingPre("(",false);
 		}},IllegalArgumentException.class,"unexpected end of expression");
 	}
@@ -665,7 +662,7 @@ public class TestLabelParser {
 	@Test
 	public final void testPreParser_fail4()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			checkParsingPre("(and (",false);
 		}},IllegalArgumentException.class,"unexpected end of expression");
 	}
@@ -674,7 +671,7 @@ public class TestLabelParser {
 	@Test
 	public final void testPreParser_fail5()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			checkParsingPre("(and (or",false);
 		}},IllegalArgumentException.class,"unexpected end of input");
 	}
@@ -691,7 +688,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail7b()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			checkParsingPre("(and (= 5 input"+_M+") (> func output"+_N+" input"+_M+") output"+_N+"))",false);
 		}},IllegalArgumentException.class,"extra text at the end of expression");
 	}
@@ -884,7 +881,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail8()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			checkParsingPre("(and (= 5 input"+_M+") (> (func output"+_N+" (func )))  output"+_N+")",true);
 		}},IllegalArgumentException.class,"function func should take 2 arguments");
 	}
@@ -899,7 +896,7 @@ public class TestLabelParser {
 	/** Inconsistent number of arguments to a function. */
 	public final void testTraceParser_fail9()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			checkParsingPre("(and (= 5 input"+_M+") (> (func output"+_N+" (func a input"+_M+") (func b (func 8))) output"+_N+"))",true);
 		}},IllegalArgumentException.class,"function func should take 2 arguments");
 	}
@@ -915,7 +912,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail10a()
 	{
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			checkParsingPre("(and (= 5 input"+_M+") (> (func output (func (func b 4 6) input"+_M+")) output"+_N+"))",true);
 		}},IllegalArgumentException.class,"function func should take 2 arguments");
 	}

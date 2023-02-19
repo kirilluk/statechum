@@ -37,7 +37,7 @@ import statechum.Label;
 import statechum.StatechumXML;
 import statechum.Configuration.LABELKIND;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.smt.SmtLabelRepresentation;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -47,8 +47,8 @@ import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.apps.QSMTool;
 import static statechum.analysis.learning.observers.TestRecordProgressDecorator.removeTagFromString;
 import static statechum.analysis.learning.smt.SmtLabelRepresentation.INITMEM;
-import static statechum.Helper.checkForCorrectException;
-import static statechum.Helper.whatToRun;
+import static statechum.TestHelper.checkForCorrectException;
+import static statechum.TestHelper.whatToRun;
 
 /**
  * @author kirill
@@ -107,7 +107,7 @@ public class TestWriteReadLearnerEvaluation {
 		anotherconfig = Configuration.getDefaultConfiguration().copy();anotherconfig.setLabelKind(labelKind);anotherconfig.setLegacyXML(legacy);
 		Assert.assertFalse(config.equals(anotherconfig));
 		
-		graph = FsmParser.buildLearnerGraph("A-"+lbl("a")+"->A-"+lbl("b")+"->B-"+lbl("a")+"->C", "TestWriteReadLearnerEvaluation",config,converter);
+		graph = FsmParserStatechum.buildLearnerGraph("A-"+lbl("a")+"->A-"+lbl("b")+"->B-"+lbl("a")+"->C", "TestWriteReadLearnerEvaluation",config,converter);
 		testData = TestFSMAlgo.buildList(new String[][]{
 				new String[]{ lbl("a"),lbl("this is a test"),lbl("3")},
 				new String[]{},
@@ -289,7 +289,7 @@ public class TestWriteReadLearnerEvaluation {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
 		Element learnerConfig = dumper.writeLearnerEvaluationConfiguration(new LearnerEvaluationConfiguration(graph,testData,anotherconfig,ltl,labels));
-		learnerConfig.appendChild(FsmParser.buildLearnerGraph("A-"+lbl("a")+"->A", "testLoadInit_fail7",config,converter)
+		learnerConfig.appendChild(FsmParserStatechum.buildLearnerGraph("A-"+lbl("a")+"->A", "testLoadInit_fail7",config,converter)
 		.storage.createGraphMLNode(dumper.doc));
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		

@@ -1,14 +1,17 @@
 package statechum.analysis.learning;
 
-import static statechum.Helper.checkForCorrectException;
+import static org.junit.Assert.assertTrue;
+import static statechum.TestHelper.checkForCorrectException;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -23,14 +26,21 @@ import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
-import statechum.Helper.whatToRun;
+import statechum.TestHelper;
+import statechum.TestHelper.whatToRun;
 import statechum.analysis.learning.DrawGraphs.RGraph;
+import statechum.analysis.learning.DrawGraphs.ScatterPlot;
+import statechum.analysis.learning.DrawGraphs.AggregateStringValues;
+import statechum.analysis.learning.DrawGraphs.AggregateValues;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.DrawGraphs.StatisticalTestResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
+import static statechum.analysis.learning.DrawGraphs.buildStringMapFromStringPairs;
 
 public class TestDrawGraphs {
 
@@ -259,12 +269,14 @@ public class TestDrawGraphs {
 	@Test
 	public void testWilcoxonTest() throws IOException
 	{
+		@SuppressWarnings("unused")
+		DrawGraphs gr = new DrawGraphs();// loads the R library
 		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
-		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
 
 		StringWriter s=new StringWriter();
 		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
-		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon signed rank test,1.0,0.41421617824252505\n",s.toString());
+		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon signed rank test,1.0,0.5000000000000001\n",s.toString());
 	}
 	
 	@Test
@@ -279,12 +291,14 @@ public class TestDrawGraphs {
 	@Test
 	public void testMann_Whitney_U_Test() throws IOException
 	{
+		@SuppressWarnings("unused")
+		DrawGraphs gr = new DrawGraphs();// loads the R library
 		final DrawGraphs.Mann_Whitney_U_Test w = new DrawGraphs.Mann_Whitney_U_Test(new File("test"));
-		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
 
 		StringWriter s=new StringWriter();
 		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
-		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon rank sum test,3.0,0.6579050194284821\n",s.toString());
+		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon rank sum test,2.0,0.3758250874886983\n",s.toString());
 	}
 	
 	@Test
@@ -299,8 +313,10 @@ public class TestDrawGraphs {
 	@Test
 	public void testKruskal_Wallis_Test() throws IOException
 	{
+		@SuppressWarnings("unused")
+		DrawGraphs gr = new DrawGraphs();// loads the R library
 		final DrawGraphs.Kruskal_Wallis w = new DrawGraphs.Kruskal_Wallis(new File("test"));
-		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
 		StringWriter s=new StringWriter();
 		
 		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
@@ -311,13 +327,56 @@ public class TestDrawGraphs {
 		Assert.assertEquals("Method,Statistic,P-value,parameter\nKruskal-Wallis rank sum test,2.0,0.36787944117144233,2.0\n",s.toString());
 		//System.out.println(result.statistic+" "+result.pvalue+" "+result.alternative+" "+result.parameter+" ");
 	}
+	
+	public static class TestParameters implements ThreadResultID
+	{
+		public String rowID, columnID;
+		public String [] columnText, headerForCell;
+		
+
+		public TestParameters(String row, String column, String [] colText, String [] hForCell)
+		{
+			rowID = row;columnID = column; columnText = colText; headerForCell = hForCell;
+		}
+		
+		@Override
+		public String getRowID() {
+			return rowID;
+		}
+
+		@Override
+		public String[] getColumnText() {
+			return columnText;
+		}
+
+		@Override
+		public String getColumnID() {
+			return columnID;
+		}
+
+		@Override
+		public String[] headerValuesForEachCell() {
+			return headerForCell;
+		}
+
+		@Override
+		public String getSubExperimentName() {
+			return "experiment";
+		}
+
+		@Override
+		public int executionTimeInCell() {
+			return -1;
+		}
+	}
 
 	@Test
 	public void testCSVwriteFile1() throws IOException
 	{
 		File output = new File(testDir,"out.csv");
 		CSVExperimentResult w = new CSVExperimentResult(output);
-		w.add("line A");w.add("line B");w.reportResults(null);
+		TestParameters par = new TestParameters(null,"Col",new String[]{"a"}, new String[]{"b"});
+		par.rowID = "Row1";w.add(par,"line A");par.rowID = "Row2";w.add(par,"line B");w.reportResults(null);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
 		String line = null;
 		StringBuffer buffer = new StringBuffer();
@@ -332,7 +391,7 @@ public class TestDrawGraphs {
 		{
 			reader.close();
 		}
-		Assert.assertEquals("[line A][line B]", buffer.toString());
+		Assert.assertEquals("[,a][experiment,b][Row1,line A][Row2,line B]", buffer.toString());
 	}
 	
 	@Test
@@ -358,12 +417,13 @@ public class TestDrawGraphs {
 	}
 	
 	@Test
-	public void testCSVwriteFile3() throws IOException
+	public void testCSVwriteFile3a() throws IOException
 	{
 		File output = new File(testDir,"out.csv");
 		CSVExperimentResult w = new CSVExperimentResult(output);
-		w.appendToHeader(new String[]{"posNeg","reference"},new String[]{"BCR","Diff","States","PTA states"});
-		w.add("line A");w.add("line B");w.reportResults(null);
+		TestParameters par = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		par.rowID = "Row1";w.add(par,"A BCR, A Diff, A states");par.rowID = "Row2";w.add(par,"B BCR, B Diff, B PTA states");w.reportResults(null);
+		
 		BufferedReader reader = new BufferedReader(new FileReader(output));
 		String line = null;
 		StringBuffer buffer = new StringBuffer();
@@ -378,17 +438,19 @@ public class TestDrawGraphs {
 		{
 			reader.close();
 		}
-		Assert.assertEquals("[posNeg,posNeg,posNeg,posNeg][reference,reference,reference,reference][BCR,Diff,States,PTA states][line A][line B]", buffer.toString());
+		Assert.assertEquals("[,posNeg,posNeg,posNeg][,reference,reference,reference][experiment,BCR,Diff,States][Row1,A BCR,A Diff,A states][Row2,B BCR,B Diff,B PTA states]", buffer.toString());
 	}
 	
 	@Test
-	public void testCSVwriteFile4() throws IOException
+	public void testCSVwriteFile3b() throws IOException
 	{
 		File output = new File(testDir,"out.csv");
 		CSVExperimentResult w = new CSVExperimentResult(output);
-		w.appendToHeader(new String[]{"posNeg","reference"},new String[]{"BCR","Diff","States","PTA states"});
-		w.appendToHeader(new String[]{"positive","reference2"},new String[]{"BCR","A","B"});
-		w.add("line A");w.add("line B");w.reportResults(null);
+		TestParameters par = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		par.rowID = "Row1";w.add(par,"A BCR, A Diff, A states");par.rowID = "Row2";w.add(par,"B BCR, B Diff, B PTA states");
+		par = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		par.rowID = "Row1";w.add(par,"p1,q1");par.rowID = "Row2";w.add(par,"p2,q2");
+		w.reportResults(null);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
 		String line = null;
 		StringBuffer buffer = new StringBuffer();
@@ -403,30 +465,352 @@ public class TestDrawGraphs {
 		{
 			reader.close();
 		}
-		Assert.assertEquals("[posNeg,posNeg,posNeg,posNeg,positive,positive,positive][reference,reference,reference,reference,reference2,reference2,reference2][BCR,Diff,States,PTA states,BCR,A,B][line A][line B]", buffer.toString());
+		Assert.assertEquals("[,posNeg,posNeg,posNeg,pos,pos][,reference,reference,reference,ref,ref][experiment,BCR,Diff,States,P,Q][Row1,A BCR,A Diff,A states,p1,q1][Row2,B BCR,B Diff,B PTA states,p2,q2]", buffer.toString());
+	}
+	
+	/** Same as the test above but entries are filled in a different order. */
+	@Test
+	public void testCSVwriteFile3c() throws IOException
+	{
+		File output = new File(testDir,"out.csv");
+		CSVExperimentResult w = new CSVExperimentResult(output);
+		TestParameters parA = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		TestParameters parB = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		
+		parB.rowID = "Row2";w.add(parB,"p2,q2");
+		parA.rowID = "Row1";w.add(parA,"A BCR, A Diff, A states");parA.rowID = "Row2";w.add(parA,"B BCR, B Diff, B PTA states");
+		parB.rowID = "Row1";w.add(parB,"p1,q1");
+		w.reportResults(null);
+		BufferedReader reader = new BufferedReader(new FileReader(output));
+		String line = null;
+		StringBuffer buffer = new StringBuffer();
+		try
+		{
+			while((line=reader.readLine()) != null)
+			{
+				buffer.append('[');buffer.append(line);buffer.append(']');
+			}
+		}
+		finally
+		{
+			reader.close();
+		}
+		Assert.assertEquals("[,posNeg,posNeg,posNeg,pos,pos][,reference,reference,reference,ref,ref][experiment,BCR,Diff,States,P,Q][Row1,A BCR,A Diff,A states,p1,q1][Row2,B BCR,B Diff,B PTA states,p2,q2]", buffer.toString());
+	}
+	
+	/** Same as the test above but entries are filled in a different order. */
+	@Test
+	public void testCSVwriteFile3d() throws IOException
+	{
+		File output = new File(testDir,"out.csv");
+		CSVExperimentResult w = new CSVExperimentResult(output);w.setMissingValue("MISSING");
+		TestParameters parA = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		TestParameters parB = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		
+		parA.rowID = "Row1";w.add(parA,"A BCR, A Diff, A states");parA.rowID = "Row2";w.add(parA,"B BCR, B Diff, B PTA states");
+		parB.rowID = "Row1";w.add(parB,"p1,q1");
+		w.reportResults(null);
+		BufferedReader reader = new BufferedReader(new FileReader(output));
+		String line = null;
+		StringBuffer buffer = new StringBuffer();
+		try
+		{
+			while((line=reader.readLine()) != null)
+			{
+				buffer.append('[');buffer.append(line);buffer.append(']');
+			}
+		}
+		finally
+		{
+			reader.close();
+		}
+		Assert.assertEquals("[,posNeg,posNeg,posNeg,pos,pos][,reference,reference,reference,ref,ref][experiment,BCR,Diff,States,P,Q][Row1,A BCR,A Diff,A states,p1,q1][Row2,B BCR,B Diff,B PTA states,MISSING,MISSING]", buffer.toString());
+	}
+	
+	// Tests that a spreadsheet can be successfully iterated through.
+	@Test
+	public void testScanMatrix1()
+	{
+		CSVExperimentResult w = new CSVExperimentResult(new File(testDir,"out.csv"));w.setMissingValue("MISSING");
+		TestParameters parA = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		TestParameters parB = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		
+		parA.rowID = "Row1";w.add(parA,"A BCR, A Diff, A states");parA.rowID = "Row2";w.add(parA,"B BCR, B Diff, B PTA states");
+		parB.rowID = "Row1";w.add(parB,"p1,q1");parB.rowID = "Row2";w.add(parB,"p2,q10");
+		
+		final List<String> valueA=new ArrayList<String>(), valueB = new ArrayList<String>();
+		DrawGraphs.spreadsheetAsString(new AggregateStringValues() {
+			@Override
+			public void merge(String A, String B) {
+				valueA.add(A);valueB.add(B);
+			}},w,"Col",1,"Col2",0);
+		Assert.assertEquals("[A Diff, B Diff]", valueA.toString());
+		Assert.assertEquals("[p1, p2]", valueB.toString());
 	}
 	
 	@Test
-	public void testCSVwriteFileFail1()
+	public void testScanMatrix2()
+	{
+		CSVExperimentResult w = new CSVExperimentResult(new File(testDir,"out.csv"));w.setMissingValue("MISSING");
+		TestParameters parA = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		TestParameters parB = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		
+		parA.rowID = "Row1";w.add(parA,"A BCR, A Diff, A states");parA.rowID = "Row2";w.add(parA,"B BCR, B Diff, B PTA states");
+		parB.rowID = "Row1";w.add(parB,"p1,q1");parB.rowID = "Row2";
+		
+		final List<String> valueA=new ArrayList<String>(), valueB = new ArrayList<String>();
+		DrawGraphs.spreadsheetAsString(new AggregateStringValues() {
+			@Override
+			public void merge(String A, String B) {
+				valueA.add(A);valueB.add(B);
+			}},w,"Col",1,"Col2",0);
+		Assert.assertEquals("[A Diff, B Diff]", valueA.toString());
+		Assert.assertEquals("[p1, null]", valueB.toString());
+	}
+	
+	
+	@Test
+	public void testScanMatrix3()
+	{
+		CSVExperimentResult w = new CSVExperimentResult(new File(testDir,"out.csv"));w.setMissingValue("MISSING");
+		TestParameters parA = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		TestParameters parB = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		
+		parA.rowID = "Row1";w.add(parA,"A BCR, 1.5, A states");parA.rowID = "Row2";w.add(parA,"B BCR, 2, B PTA states");
+		parB.rowID = "Row1";w.add(parB,"0.01,q1");parB.rowID = "Row2";w.add(parB,"0.21,q1");
+		
+		final List<Double> valueA=new ArrayList<Double>(), valueB = new ArrayList<Double>();
+		DrawGraphs.spreadsheetAsDouble(new AggregateValues() {
+			@Override
+			public void merge(double A, double B) {
+				valueA.add(A);valueB.add(B);
+			}},w,"Col",1,"Col2",0);
+		Assert.assertEquals("[1.5, 2.0]", valueA.toString());
+		Assert.assertEquals("[0.01, 0.21]", valueB.toString());
+	}
+	
+	// here one of the pairs is missing and is therefore ignored.
+	@Test
+	public void testScanMatrix4()
+	{
+		CSVExperimentResult w = new CSVExperimentResult(new File(testDir,"out.csv"));w.setMissingValue("MISSING");
+		TestParameters parA = new TestParameters(null,"Col",new String[]{"posNeg","reference"}, new String[]{"BCR","Diff","States"});
+		TestParameters parB = new TestParameters(null,"Col2",new String[]{"pos","ref"}, new String[]{"P","Q"});
+		
+		parA.rowID = "Row1";w.add(parA,"A BCR, 1.5, A states");parA.rowID = "Row2";w.add(parA,"B BCR, 2, B PTA states");
+		parB.rowID = "Row1";w.add(parB,"0.01,q1");
+		
+		final List<Double> valueA=new ArrayList<Double>(), valueB = new ArrayList<Double>();
+		DrawGraphs.spreadsheetAsDouble(new AggregateValues() {
+			@Override
+			public void merge(double A, double B) {
+				valueA.add(A);valueB.add(B);
+			}},w,"Col",1,"Col2",0);
+		Assert.assertEquals("[1.5]", valueA.toString());
+		Assert.assertEquals("[0.01]", valueB.toString());
+	}
+	
+	@Test
+	public void testParseObject1()
+	{
+		Object obj = DrawGraphs.parseObject(DrawGraphs.objectAsText("a_string"));
+		Assert.assertSame(String.class,obj.getClass());
+		Assert.assertEquals("a_string", obj);
+	}
+	
+	@Test
+	public void testParseObject2()
+	{
+		Object obj = DrawGraphs.parseObject(DrawGraphs.objectAsText(4.5));
+		Assert.assertSame(Double.class,obj.getClass());
+		Assert.assertEquals("4.5", obj.toString());
+	}
+	
+	@Test
+	public void testParseObjectFail0()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			DrawGraphs.objectAsText(new Object());
+		}},IllegalArgumentException.class,"failed to serialise");
+	}
+	
+	@Test
+	public void testParseObjectFail1()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			DrawGraphs.parseObject("jj");
+		}},IllegalArgumentException.class,"invalid char");
+	}
+	
+	@Test
+	public void testParseObjectFail2()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			DrawGraphs.parseObject("A");
+		}},IllegalArgumentException.class,"should be even");
+	}
+	
+	@Test
+	public void testParseObjectFail3()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			DrawGraphs.parseObject("A0");
+		}},IllegalArgumentException.class,"failed to deserialise");
+	}
+	
+	@Test
+	public void testParseObjectFail4()
+	{
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			DrawGraphs.charToHex(400);
+		}},IllegalArgumentException.class,"invalid byte");
+	}
+	
+	
+	@Test
+	public void testRemoveSpaces1()
+	{
+		Assert.assertEquals("", LearningSupportRoutines.removeSpaces(""));
+	}
+	@Test
+	public void testRemoveSpaces2()
+	{
+		Assert.assertEquals("", LearningSupportRoutines.removeSpaces("   "));
+	}
+	@Test
+	public void testRemoveSpaces3()
+	{
+		Assert.assertEquals("", LearningSupportRoutines.removeSpaces("  \t   "));
+	}
+	@Test
+	public void testRemoveSpaces4()
+	{
+		Assert.assertEquals("a", LearningSupportRoutines.removeSpaces("a"));
+	}
+	@Test
+	public void testRemoveSpaces5()
+	{
+		Assert.assertEquals("a", LearningSupportRoutines.removeSpaces("  a"));
+	}
+	@Test
+	public void testRemoveSpaces6()
+	{
+		Assert.assertEquals("a", LearningSupportRoutines.removeSpaces("a  "));
+	}
+	@Test
+	public void testRemoveSpaces7()
+	{
+		Assert.assertEquals("a", LearningSupportRoutines.removeSpaces("  a  "));
+	}
+	@Test
+	public void testRemoveSpaces8()
+	{
+		Assert.assertEquals("a b", LearningSupportRoutines.removeSpaces("  a b "));
+	}
+	
+	@Test
+	public void testCSVwriteFileFail1a()
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
-		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
-			w.appendToHeader(new String[]{},new String[]{"BCR","Diff","States","PTA states"});
-		}}, IllegalArgumentException.class,"cannot handle zero");
+		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row","col",new String[]{},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"invalid column header");
 	}
 	
+	@Test
+	public void testCSVwriteFileFail1b()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row","col",new String[]{"BCR","Diff","States","PTA states"},new String[]{}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"invalid header values for cell");
+	}
+	
+	/** Number of elements appended does not match the number of the element in supplemental headers. */
+	@Test
+	public void testCSVwriteFileFail1c()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c");
+		}}, IllegalArgumentException.class,"the number of values (");
+	}
+	
+	/** Number of elements appended is zero. */
+	@Test
+	public void testCSVwriteFileFail1d()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{})," ");
+		}}, IllegalArgumentException.class,"invalid header values");
+	}
+	
+	/** Number of elements appended is zero. */
+	@Test
+	public void testCSVwriteFileFail1e()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"a"})," ");
+		}}, IllegalArgumentException.class,"empty line added at");
+	}
+	
+	/** The number of elements in a header between two writes does not match. */
 	@Test
 	public void testCSVwriteFileFail2()
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
-		w.appendToHeader(new String[]{"posNeg","reference"},new String[]{"BCR","Diff","States","PTA states"});
-		Helper.checkForCorrectException(new Helper.whatToRun() { public @Override void run() {
-			w.appendToHeader(new String[]{"positive"},new String[]{"BCR","Diff","States","PTA states"});
-		}}, IllegalArgumentException.class,"cannot append 1");
+		w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row2","col",new String[]{"descr"},new String[]{"BCR","Diff","States"}),"a,b,c");
+		}}, IllegalArgumentException.class,"different values of cell headers");
 	}
 	
+	/** Duplicate values in cell. */
+	@Test
+	public void testCSVwriteFileFail3()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row","col2",new String[]{"descr","descr2"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"with an invalid number of rows in column header");
+	}
+	
+	@Test
+	public void testCSVwriteFileFail4a()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters(null,"col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"cannot add a cell without row id");
+		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"cannot add a cell without row id");
+	}
+	
+	@Test
+	public void testCSVwriteFileFail4b()
+	{
+		File output = new File(testDir,"out.csv");
+		final CSVExperimentResult w = new CSVExperimentResult(output);
+		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row",null,new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"cannot add a cell without column id");
+		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
+			w.add(new TestParameters("row","",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		}}, IllegalArgumentException.class,"cannot add a cell without column id");
+	}
+
 	@Test
 	public void testBagPlotToString1()
 	{
@@ -436,13 +820,27 @@ public class TestDrawGraphs {
 				DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{7.}),"someOther attrs"));
 	}
 
+	public static void mkDirRetryOnFail(File dir)
+	{
+		if (!dir.isDirectory()) 
+		{
+			if (!dir.mkdir())
+			{
+				try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					// can be safely ignored
+				}
+				Assert.assertTrue("could not create "+dir.getAbsolutePath(),dir.mkdir());
+			}
+		}
+		
+	}
 	@Before
 	public void before()
 	{
-		if (!tmpDir.isDirectory()) 
-			Assert.assertTrue("could not create "+tmpDir.getAbsolutePath(),tmpDir.mkdir());
-		if (!testDir.isDirectory()) 
-			Assert.assertTrue("could not create "+testDir.getAbsolutePath(),testDir.mkdir());
+		mkDirRetryOnFail(tmpDir);
+		mkDirRetryOnFail(testDir);
 	}
 
 	@After
@@ -830,5 +1228,189 @@ public class TestDrawGraphs {
 				g.getDrawingCommand());
 	}
 
+
+	public static String arrayToString(List<String> a)
+	{
+		StringBuffer outcome = new StringBuffer();
+		boolean first = true;
+		for(String s:a)
+		{
+			if (first)
+				first = false;
+			else
+				outcome.append(',');
+			
+			outcome.append(s);
+		}
+		return outcome.toString();
+	}
 	
+	@Test
+	public void testDrawingScatterPlot1()
+	{
+		final ScatterPlot plot = new ScatterPlot("x axis", "y axis", new File("plotName"));
+		
+		plot.add(0, 0, "red");plot.add(1, 0, "red");plot.add(0, 1, "red");plot.add(1, 1, "red");
+		Assert.assertEquals(arrayToString(Arrays.asList(new String[]{"plot(c(0.0,1.0,0.0,1.0),c(0.0,0.0,1.0,1.0),type = \"p\",col=\"red\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)"})),arrayToString(plot.getDrawingCommand()));
+	}
+	
+	@Test
+	public void testDrawingScatterPlot2()
+	{
+		final ScatterPlot plot = new ScatterPlot("x axis", "y axis", new File("plotName"));
+		
+		plot.add(0, 0, "red");plot.add(1, 0, "red");plot.add(0, 1, "red");plot.add(1, 1, "red");
+		plot.add(0, 0.5, "blue");plot.add(1.5, 0, "green");plot.add(0, 1.5, "blue");plot.add(1.2, 1, "red");
+		Assert.assertEquals(arrayToString(Arrays.asList(new String[]{
+				"plot(c(0.0,0.0),c(0.5,1.5),type = \"p\",col=\"blue\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)",
+				"par(new=TRUE)",
+				"plot(c(1.5),c(0.0),type = \"p\",col=\"green\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)",
+				"par(new=TRUE)",
+				"plot(c(0.0,1.0,0.0,1.0,1.2),c(0.0,0.0,1.0,1.0,1.0),type = \"p\",col=\"red\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)"				
+		})),arrayToString(plot.getDrawingCommand()));
+	}
+	
+	@Test
+	public void testDrawingScatterFail()
+	{
+		final ScatterPlot plot = new ScatterPlot("x axis", "y axis", new File("plotName"));
+		checkForCorrectException(new whatToRun() { public @Override void run() {
+			plot.getDrawingCommand();
+		}},IllegalArgumentException.class,"empty");
+	}
+
+	@Test
+	public void testRunDrawingScatterPlot() throws IOException
+	{
+		final DrawGraphs gr = new DrawGraphs();
+
+		final String X="axisX", Y="axisY";
+		File output = new File(testDir,"out.pdf");
+		final ScatterPlot plot = new ScatterPlot(X, Y, output);
+		
+		plot.add(0, 0, "red");plot.add(1, 0, "red");plot.add(0, 1, "red");plot.add(1, 1, "red");plot.add(0, 0.5, "blue");plot.add(1.5, 0, "green");plot.add(0, 1.5, "blue");plot.add(1.2, 1, "red");
+		plot.reportResults(gr);
+		
+		BufferedReader reader = new BufferedReader(new FileReader(output));
+		String line = null;
+		List<String> stringsOfInterest = Arrays.asList(new String[]{"Title (R Graphics Output)", X,Y});
+		Map<String,Boolean> encounteredStrings = new TreeMap<String,Boolean>();
+		StringBuffer buffer = new StringBuffer();
+		try
+		{
+			while((line=reader.readLine()) != null)
+			{
+				buffer.append(line);
+				for(String str:stringsOfInterest)
+					if (line.contains(str)) encounteredStrings.put(str,true);
+			}
+		}
+		finally
+		{
+			reader.close();
+		}
+
+		Assert.assertEquals("only found "+encounteredStrings+"\n"+buffer.toString(),stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings
+	}
+
+
+	@Test
+	public final void testBuildStringMapFromPairs1()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+		})));
+	}
+	
+	@Test
+	public final void testBuildStringMapFromPairs2()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"a","value2"},
+				new String[]{"b","value3"}
+		})));
+	}
+	
+	@Test
+	public final void testBuildStringMapFromPairs3()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"strC","value2"},
+				new String[]{"a","value1"},
+				new String[]{"b","value3"}
+		})));
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public final void testBuildStringMapFromPairs4()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"strC","value1"},
+				new String[]{"a"},// an invalid sequence
+				new String[]{"b","value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public final void testBuildStringMapFromPairs5()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"strC","value1"},
+				new String[]{},// an invalid sequence - too few elements
+				new String[]{"b","value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public final void testBuildStringMapFromPairs6()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"strC","value1"},
+				new String[]{"a","c","d"},// an invalid sequence - too many elements
+				new String[]{"b","value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public final void testBuildStringMapFromPairs7()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"strC","value1"},
+				new String[]{null,"value"},// an invalid sequence - null in the first element
+				new String[]{"b","value3"}
+		})));
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public final void testBuildStringMapFromPairs8()
+	{
+		Map<String,String> expectedResult = new HashMap<String,String>();
+		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
+		
+		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
+				new String[]{"strC","value1"},
+				new String[]{"a", null},// an invalid sequence - null in the second element
+				new String[]{"b",null}
+		})));
+	}
+
 }

@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 public class TestParserDot {
     public static final Configuration configLTS = Configuration.getDefaultConfiguration().copy();
@@ -30,7 +30,7 @@ public class TestParserDot {
     public final void testParseID1a() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Premature end of input");
+        TestHelper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Premature end of input");
     }
 
     @Test
@@ -44,13 +44,13 @@ public class TestParserDot {
     public final void testParseID1c() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("0", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseText,IllegalArgumentException.class,"ID cannot start with a digit");
+        TestHelper.checkForCorrectException(parser::parseText,IllegalArgumentException.class,"ID cannot start with a digit");
     }
     @Test
     public final void testParseID1d() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("-", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseText,IllegalArgumentException.class,"Invalid starting character for ID");
+        TestHelper.checkForCorrectException(parser::parseText,IllegalArgumentException.class,"Invalid starting character for ID");
     }
 
     @Test
@@ -133,34 +133,34 @@ public class TestParserDot {
     public final void testParseID8f() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>(" \"a\\", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Premature end of input");    }
+        TestHelper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Premature end of input");    }
 
     @Test
     public final void testParseID8g() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>(" \"a\\Qb\"\n", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Invalid escape character starting from");
+        TestHelper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Invalid escape character starting from");
     }
 
     @Test
     public final void testParseID8h() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>(" \"ab", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Premature end of input");
+        TestHelper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Premature end of input");
     }
 
     @Test
     public final void testParseID8i() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>(" \"ab;", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Premature end of input");
+        TestHelper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Premature end of input");
     }
 
     @Test
     public final void testParseID8j() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>(" \"ab\n", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"string cannot contain a newline starting from");
+        TestHelper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"string cannot contain a newline starting from");
     }
 
     @Test
@@ -174,7 +174,7 @@ public class TestParserDot {
     public final void testParseID9b() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>(" 4a", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"text character cannot be part of a number");
+        TestHelper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"text character cannot be part of a number");
     }
 
     @Test
@@ -196,7 +196,7 @@ public class TestParserDot {
     public final void testParseID9e() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>(" +4", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"invalid character");
+        TestHelper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"invalid character");
     }
 
     @Test
@@ -245,7 +245,7 @@ public class TestParserDot {
     public final void testParseID12d() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("43.9.09", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"multiple dots in a number");
+        TestHelper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"multiple dots in a number");
     }
 
     @Test
@@ -272,13 +272,13 @@ public class TestParserDot {
     public final void testParseID15b() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("-.", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Premature end of input");
+        TestHelper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Premature end of input");
     }
     @Test
     public final void testParseID15c() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("-. ", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"invalid number: should contain a digit");
+        TestHelper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"invalid number: should contain a digit");
     }
     @Test
     public final void testParseID16a() {
@@ -290,13 +290,13 @@ public class TestParserDot {
     public final void testParseID16b() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>(".", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Premature end of input");
+        TestHelper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"Premature end of input");
     }
     @Test
     public final void testParseID16c() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>(". ", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"invalid number: should contain a digit");
+        TestHelper.checkForCorrectException(parser::parseID,IllegalArgumentException.class,"invalid number: should contain a digit");
     }
 
     @Test
@@ -309,25 +309,25 @@ public class TestParserDot {
     public final void testParseID17a2() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>(" ", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"options should begin with '['");
+        TestHelper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"options should begin with '['");
     }
     @Test
     public final void testParseID17b1() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("[;]", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"invalid character starting from ;");
+        TestHelper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"invalid character starting from ;");
     }
     @Test
     public final void testParseID17b2() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("[", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"Premature end of input");
+        TestHelper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"Premature end of input");
     }
     @Test
     public final void testParseID17b3() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("[a=b;\n", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"Premature end of input");
+        TestHelper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"Premature end of input");
     }
     @Test
     public final void testParseID17c1() {
@@ -347,14 +347,14 @@ public class TestParserDot {
     public final void testParseID17c3() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("[;]", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"invalid character starting from ;");
+        TestHelper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"invalid character starting from ;");
     }
 
     @Test
     public final void testParseID17c4() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("[\n,]", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"invalid character starting from ,");
+        TestHelper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"invalid character starting from ,");
     }
     @Test
     public final void testParseID17d() {
@@ -411,7 +411,7 @@ public class TestParserDot {
     public final void testParseID17e7() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("[a=b ,\n;\n ]", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"invalid character starting from ;");
+        TestHelper.checkForCorrectException(parser::parseOptions,IllegalArgumentException.class,"invalid character starting from ;");
     }
 
     @Test
@@ -554,14 +554,14 @@ public class TestParserDot {
     public final void testParse4a() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label=lbl];b->c;__start0->a; }", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Missing label option");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Missing label option");
     }
 
     @Test
     public final void testParse4b() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;b->c; }", configLTS,graph,converter);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Missing label option");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Missing label option");
     }
 
     @Test
@@ -578,7 +578,7 @@ public class TestParserDot {
     public final void testParse5a2() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label=lbl];b->c[label=\"u\"];__start0->a; }", configLTS,graph,converter,false,false);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Missing label option");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Missing label option");
     }
 
     @Test
@@ -651,38 +651,38 @@ public class TestParserDot {
     public final void testParse6a() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label=lbl];b->c[label=\"u\"];__start0->a; __start0->a;}", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"multiple initial state");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"multiple initial state");
     }
     @Test
     public final void testParse6b1() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { ab;c;__start0;a->b[label\t=\tlbl];b->c[label=\"u\"]\n\t__start0->a; }", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"State a not defined");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"State a not defined");
     }
     @Test
     public final void testParse6b2() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->T[label\t=\tlbl];b->c[label=\"u\"]\n\t__start0->a; }", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"State T not defined");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"State T not defined");
     }
     @Test
     public final void testParse6b3() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label\t=\tlbl];b->c[label=\"u\"]\n\ta;__start0->a; }", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"State a already defined");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"State a already defined");
     }
     @Test
     public final void testParse6c() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[lBabel=lbl];b->c[label=u] __start0->a; }", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Missing label option");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Missing label option");
     }
 
     @Test
     public final void testParse6d() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label=lbl];b--c[label=u] __start0->a; }", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"arrow should end with '>'");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"arrow should end with '>'");
     }
     @Test
     public final void testParse7a() {
@@ -697,35 +697,35 @@ public class TestParserDot {
     public final void testParse8a() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("graph a { a;b;c;__start0;a->b[label=lbl];b->c[label=u] __start0->a; }", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"The graph should be labelled as directed graph");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"The graph should be labelled as directed graph");
     }
 
     @Test
     public final void testParse8b() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph { a;b;c;__start0;a->b[label=lbl];b->c[label=u] __start0->a; }", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"invalid character");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"invalid character");
     }
 
     @Test
     public final void testParse8c() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a  a;b;c;__start0;a->b[label=lbl];b->c[label=u] __start0->a; }", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"The graph description should be enclosed in curly braces");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"The graph description should be enclosed in curly braces");
     }
 
     @Test
     public final void testParse8d() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label=lbl];b->c[label=u] __start0->a; ", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Premature end of input");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Premature end of input");
     }
 
     @Test
     public final void testParse8e() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label=lbl];b->c[label=u] __start0->a; } junk", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Extra text at the end of graph");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Extra text at the end of graph");
     }
 
     @Test
@@ -752,26 +752,26 @@ public class TestParserDot {
     public final void testParse9c() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a[abel=3];b;c;__start0;a->b[label=lbl];b->c[label=u] __start0->a; }", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Missing label option");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Missing label option");
     }
 
     @Test
     public final void testParse9d() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label[=lbl];b->c[label=u] __start0->a; }", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"option label should have a value");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"option label should have a value");
     }
     @Test
     public final void testParse9e() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label=[lbl];b->c[label=u] __start0->a; }", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"invalid character");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"invalid character");
     }
     @Test
     public final void testParse9f() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label=lbl[];b->c[label=u] __start0->a; }", configLTS,graph,converter,false,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"invalid character");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"invalid character");
     }
 
     @Test
@@ -790,13 +790,13 @@ public class TestParserDot {
     public final void testParse10a() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label=lbl];b->c[label=u] __start0->a; }", configLTS,graph,converter,true,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"invalid format of label ");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"invalid format of label ");
     }
     @Test
     public final void testParse10b() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;c;__start0;a->b[label=\"lbl/t/r\"];b->c[label=\"u/p\"] __start0->a; }", configLTS,graph,converter,true,true);
-        Helper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"invalid format of label ");
+        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"invalid format of label ");
     }
     /** Tests that transitions with input/output pairs are handled as atomic labels. */
     public final LearnerGraph constructReferenceGraphWithErrorTransition(String label, Configuration config) {

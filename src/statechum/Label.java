@@ -33,7 +33,7 @@ public interface Label extends Comparable<Label>, ConvertibleToInt {
 	 * as to output questions for <em>AutoAnswers</em> to answer and for logging  
 	 * the progress of learning (<em>RecordProgressDecorator</em>).
 	 * 
-	 * @return
+	 * @return label
 	 */
 	String toErlangTerm();
 

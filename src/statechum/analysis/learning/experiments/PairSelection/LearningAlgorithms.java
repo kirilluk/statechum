@@ -1,4 +1,40 @@
+/* Copyright (c) 2016 The University of Sheffield
+ * 
+ * This file is part of StateChum.
+ * 
+ * StateChum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * StateChum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package statechum.analysis.learning.experiments.PairSelection;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Random;
+import java.util.Set;
+import java.util.Stack;
+import java.util.Timer;
+import java.util.Map.Entry;
 
 import harmony.collections.HashMapWithSearch;
 import statechum.*;
@@ -6,17 +42,28 @@ import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
-import statechum.analysis.learning.*;
+import statechum.analysis.learning.Learner;
+import statechum.analysis.learning.MarkovClassifierLG;
+import statechum.analysis.learning.MarkovModel;
+import statechum.analysis.learning.PairOfPaths;
+import statechum.analysis.learning.PairScore;
+import statechum.analysis.learning.RPNIUniversalLearner;
+import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovScoreComputation;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner.OverrideScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceLanguageBCR;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.PredictionEvaluation;
 import statechum.analysis.learning.linear.GDLearnerGraph;
 import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.observers.LearnerReturningOriginalGraph;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.AMEquivalenceClassMergingDetails;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
@@ -26,17 +73,13 @@ import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
-
 public class LearningAlgorithms
 {
 	/** In a number of experiments, evaluation of automata is conducted by exploration either by generating a test set or by generating walks of some length. Both are governed by a bound:
 	 * if a learnt automaton has traces that cannot be explored within that bound, it is quite easy to obtain something with a huge number of states that passes all check with flying colours.
 	 * This is the maximal number of states permitted in a learnt graph, as a multiplier of a number of states in a reference graph. 
 	 */
-	public static int maxStateNumberMultiplier = 2;
+	public static int maxStateNumberMultiplier = 3;
 	
 	public static Collection<List<Label>> computeEvaluationSet(LearnerGraph referenceGraph, int seqLength, int numberOfSeq)
 	{
@@ -68,24 +111,179 @@ public class LearningAlgorithms
 		return computeEvaluationSet(referenceGraph,referenceGraph.getAcceptStateNumber()*maxStateNumberMultiplier,LearningSupportRoutines.makeEven(referenceGraph.getAcceptStateNumber()*referenceGraph.pathroutines.computeAlphabet().size()));
 	}
 	
+	/** Sicco heuristic intentionally undermerges, particularly in dense graphs. In order to easily evaluate whether a subsequent pass of SAT/SMT would
+	 * yield the correct graph, we count the number of correct mergers, the number of missed mergers and the number of invalid mergers.
+	 */
+	public interface StateMergingStatistics
+	{
+		/** Updates the statistics corresponding to the specific pair chosen for a merger. 
+		 * 
+		 * @param graphBeforeMerge graph where states are to be merged.
+		 * @param pair pair selected
+		 */
+		void pairSelectedForMerger(LearnerGraph graphBeforeMerge,StatePair pair);
+		
+		/** Counts the number of reds in a graph where states that were incorrectly separated are assumed to be merged together.
+		 */
+		int countRedsKnowingTheCorrectSolution();
+		
+		/** Updates the merge statistics for the vertices. 
+		 * 
+		 * @param redVertex new vertex selected as red
+		 * @param reds existing red vertices
+		 */
+		void stateSelectedAsRed(LearnerGraph current, CmpVertex redVertex,	Collection<CmpVertex> reds);
+
+		/** Reports the fraction of mergers that are merging different states in a reference graph. */
+		double reportInvalidMergers();
+		/** Reports the fraction of mergers that are labelling clones of states in a reference graph as reds. */
+		double reportMissedMergers();
+	}
+	
+	
+	public static class ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown implements StateMergingStatistics
+	{
+		protected final boolean reportReducedReds;
+		protected final LearnerGraph referenceGraph;
+		protected int totalReds=0;
+		// Statistics
+		protected int validMergers =0, missedMergers=0, invalidMergers=0;
+		
+		@Override
+		public double reportInvalidMergers()
+		{
+			int totalMergers=validMergers+missedMergers+invalidMergers;
+			return ConfusionMatrix.divide(invalidMergers,totalMergers);
+		}
+		
+		@Override
+		public double reportMissedMergers()
+		{
+			int totalMergers=validMergers+missedMergers+invalidMergers;
+			return ConfusionMatrix.divide(missedMergers,totalMergers);
+		}
+
+		public static ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown constructReducerIfUsingSiccoScoring(LearnerGraph reference, ScoringToApply scoringMethod)
+		{
+			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer = null;
+			switch(scoringMethod)
+			{
+			case SCORING_SICCO:
+			case SCORING_SICCO_NIS:
+			case SCORING_SICCO_PTA:
+			case SCORING_SICCO_PTARECURSIVE:
+			case SCORING_SICCO_RED:
+				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, true);
+				break;
+			default:
+				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, false);
+				break;
+			}
+			return redReducer;
+		}
+		public static StateMergingStatistics constructReducerIfUsingSiccoScoring(LearnerGraph reference, OverrideScoringToApply scoringToUse) 
+		{
+			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer = null;
+			switch(scoringToUse)
+			{
+			case SCORING_SICCO:
+			case SCORING_SICCO_NIS:
+			case SCORING_SICCO_PTA:
+			case SCORING_SICCO_PTARECURSIVE:
+			case SCORING_SICCO_RED:
+				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, true);
+				break;
+			default:
+				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, false);
+				break;
+			}
+			return redReducer;
+
+		}
+
+		public ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(LearnerGraph graph, boolean useReducedReds) {
+			referenceGraph = graph;reportReducedReds = useReducedReds;
+		}
+		
+		@Override
+		public int countRedsKnowingTheCorrectSolution() 
+		{
+			if (reportReducedReds)
+				return totalReds-missedMergers;
+			return totalReds;
+		}
+		
+		@Override
+		public void pairSelectedForMerger(LearnerGraph graphBeforeMerge,StatePair pair) 
+		{
+			List<CmpVertex> vertices = new ArrayList<>(3);vertices.add(pair.getQ());vertices.add(pair.getR());
+			Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(graphBeforeMerge, vertices);
+			CmpVertex refVertBlue = referenceGraph.getVertex(stateToPath.get(pair.getQ()));
+			CmpVertex refVertRed = referenceGraph.getVertex(stateToPath.get(pair.getR()));
+			boolean blueAccept = refVertBlue != null && refVertBlue.isAccept(), redAccept = refVertRed != null && refVertRed.isAccept();
+			if (refVertBlue == refVertRed || (!blueAccept && !redAccept))
+				validMergers++;
+			else
+				invalidMergers++;
+		}
+		
+		@Override
+		public void stateSelectedAsRed(LearnerGraph graph, CmpVertex redVertex, Collection<CmpVertex> reds) 
+		{
+			totalReds = reds.size()+1;
+			
+			List<CmpVertex> verts = new ArrayList<CmpVertex>(reds.size()+2);// we ensure there is at least one spare slot left, otherwise array may choose to resize itself.
+			verts.addAll(reds);verts.add(redVertex);
+			Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(graph, verts);
+			CmpVertex refVertRed = referenceGraph.getVertex(stateToPath.get(redVertex));
+			for(CmpVertex v:reds)
+				if (referenceGraph.getVertex(stateToPath.get(v)) == refVertRed)
+				{// found a different red state that corresponds to the same state in a reference graph.
+					missedMergers++;
+					return;// do not proceed with other reds
+				}
+		}		
+	}
+	
 	public static class LearnerAbortedException extends RuntimeException
 	{
-
+		public final LearningAbortedReason reason;
+		
+		public LearnerAbortedException(LearningAbortedReason value)
+		{
+			reason = value;
+		}
+		
 		/**
 		 * ID for serialisation
 		 */
 		private static final long serialVersionUID = 5271079210565150062L;
 		
-		public static void throwExceptionIfTooManyReds( LearnerGraph graph, int maxNumberOfReds )
+		protected static boolean checkTooManyReds(LearnerGraph graph,int maxNumberOfReds)
 		{
 			if (maxNumberOfReds >= 0)
 			{
 				long countOfRed = 0;
 				for(CmpVertex v:graph.transitionMatrix.keySet())
-					if (v.getColour() == JUConstants.RED)
+					if (v.isAccept() && v.getColour() == JUConstants.RED)
 						if (countOfRed++ > maxNumberOfReds)
-							throw new LearnerAbortedException();
+							return true;
 			}
+			return false;
+		}
+		
+		public static void throwExceptionIfTooManyReds( LearnerGraph graph, int maxNumberOfReds,StateMergingStatistics reducerIfNotNull)
+		{
+			if (reducerIfNotNull != null)
+			{
+				if (reducerIfNotNull.countRedsKnowingTheCorrectSolution() > maxNumberOfReds)
+				{
+					throw new LearnerAbortedException(LearningAbortedReason.LEARNING_TOOMANYREDS);
+				}
+			}
+			else // too many reds and no reducer available.
+				if (checkTooManyReds(graph, maxNumberOfReds))
+					throw new LearnerAbortedException(LearningAbortedReason.LEARNING_TOOMANYREDS);
 		}
 	}
 
@@ -93,6 +291,32 @@ public class LearningAlgorithms
 	public static abstract class LearnerWithMandatoryMergeConstraints extends RPNIUniversalLearner
 	{
 		protected LearnerGraph initialPTA;
+		
+		protected boolean taskTimedOut = false;
+		/** Negative means the timer was cancelled. */
+		protected long startTime = -1;
+		
+		public class CancelOnTimeout extends java.util.TimerTask
+		{
+			protected final Timer tmr;
+			protected final long threadID;
+			protected final double scale;
+			
+			public CancelOnTimeout(Timer tm, long id, double s)
+			{
+				tmr = tm;threadID = id;scale = s;
+			}
+			@SuppressWarnings("synthetic-access")
+			@Override
+			public void run() {
+				// thanks to http://stackoverflow.com/questions/14664897/measure-java-short-time-running-thread-execution-time
+				long currTime = java.lang.management.ManagementFactory.getThreadMXBean().getThreadCpuTime(threadID);
+				if (startTime >= 0 && config.getTimeOut() >= 0 && currTime >= config.getTimeOut()*1000000L*scale+startTime)
+				{
+					taskTimedOut = true;startTime = -2;tmr.cancel();
+				}
+			}
+		}
 		
 		public LearnerWithMandatoryMergeConstraints(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA) 
 		{
@@ -145,10 +369,20 @@ public class LearningAlgorithms
 		{
 			throw new UnsupportedOperationException();
 		}			
+		
+		public void checkTimeout()
+		{
+			if (taskTimedOut) // will be set by the timer thread when the task eats its quota of CPU time.
+				throw new LearnerAbortedException(LearningAbortedReason.LEARNING_TIMEOUT);
+		}
+
 		@Override 
 		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
 		{
+			
 			LearnerGraph outcome = null;
+			checkTimeout();
+			
 			if (config.getOverride_usePTAMerging())
 			{
 				outcome = MergeStates.mergeAndDeterminize(original, pair);
@@ -158,14 +392,39 @@ public class LearningAlgorithms
 				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<>();
 				if (original.pairscores.computePairCompatibilityScore_general(pair,null,mergedVertices, false) < 0)
 					throw new IllegalArgumentException("elements of the pair "+pair+" are incompatible, orig score was "+original.pairscores.computePairCompatibilityScore(pair));
-				outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices,false);
+				outcome = MergeStates.mergeCollectionOfVertices(original,pair.getR(),mergedVertices, null,false);
 			}
 			outcome.pathroutines.updateDepthLabelling();// this is important for the choice of representative vertices in merging of states, this in turn affects IDs of merged states which affects selection of pairs for merging.
 			return outcome;
 		}
+		
+		@Override
+		public LearnerGraph learnMachine()
+		{
+			Timer tmTimer =  null;
+			LearnerGraph outcome = null;
+			
+			if (config.getTimeOut() >= 0)
+			{
+				startTime = LearningSupportRoutines.getThreadTime();
+				tmTimer =  new Timer();tmTimer.schedule(new CancelOnTimeout(tmTimer,Thread.currentThread().getId(),LearningSupportRoutines.getFreqCorrectionValue()),1000,1000);
+			}
+			try
+			{
+				outcome = super.learnMachine();
+			}
+			finally
+			{
+				if (tmTimer != null)
+					tmTimer.cancel();
+			}
+			return outcome;
+		}
 	}
 	
-	/** This class knows what the reference automaton is and is able to pick correct pairs out of a set to merge. */
+	/** This class knows what the reference automaton is and is potentially able to pick correct pairs out of a set to merge. 
+	 * It is important to note that this learner does not actually pick such pairs itself, this is expected to be done by derived classes.
+	 */
 	public static class LearnerThatCanClassifyPairs extends ReferenceLearner
 	{
 		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf, int maxNumberOfStates)
@@ -175,10 +434,15 @@ public class LearningAlgorithms
 			return copy;
 		}
 		
-		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA,OverrideScoringToApply scoring) 
+		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA,OverrideScoringToApply scoring, boolean noLimitOnStateNumber,StateMergingStatistics redReducer) 
 		{
-			super(constructConfiguration(evalCnf,reference.getAcceptStateNumber()*maxStateNumberMultiplier),argInitialPTA,scoring);
+			super(constructConfiguration(evalCnf,noLimitOnStateNumber?-1:reference.getAcceptStateNumber()*maxStateNumberMultiplier),argInitialPTA,scoring,redReducer);
 			referenceGraph = reference;
+		}
+		
+		public LearnerThatCanClassifyPairs(LearnerEvaluationConfiguration evalCnf, LearnerGraph reference, LearnerGraph argInitialPTA,OverrideScoringToApply scoring, StateMergingStatistics redReducer) 
+		{
+			this(evalCnf,reference,argInitialPTA,scoring,false,redReducer);
 		}
 
 		protected boolean allMergersCorrect = true;
@@ -214,8 +478,7 @@ public class LearningAlgorithms
 			return correctPairs.iterator().next();
 		}
 		
-		
-		/** There are cases when no selected pair is actually valid. The method below chooses a state to be marked as red because it is the only choice that we can make. */
+		/** There are cases when no selected pair is actually valid. The method below chooses a state to be marked as red if it is the only choice that we can make. */
 		public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<PairScore> pairs) 
 		{
 			
@@ -229,11 +492,12 @@ public class LearningAlgorithms
 		}
 
 		protected Map<Long,TrueFalseCounter> pairQuality;
+		protected PredictionEvaluation predictionQuality;
 		protected LearnerGraph referenceGraph;
 
-		public void setPairQualityCounter(Map<Long,TrueFalseCounter> argCounter, LearnerGraph referenceGraph)
+		public void setPairQualityCounter(Map<Long,TrueFalseCounter> argCounter, LearnerGraph referenceGraph, PredictionEvaluation qualityCounter)
 		{
-			pairQuality = argCounter;this.referenceGraph = referenceGraph;
+			pairQuality = argCounter;this.referenceGraph = referenceGraph;predictionQuality = qualityCounter;
 		}
 
 		/** This method is called after a final set of pairs is generated. Can be overridden to update statistics on scores of pairs by comparison to the reference graph. */
@@ -244,46 +508,13 @@ public class LearningAlgorithms
 				LearningSupportRoutines.updateStatistics(pairQuality, graph,referenceGraph, outcome);
 		}
 	}
-	
-
-	public static class DefaultRedNodeSelectionProcedure implements PairScoreComputation.RedNodeSelectionProcedure
-	{
-		@Override
-		public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph gr, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
-		{
-			return tentativeRedNodes.iterator().next();
-		}
-
-		@SuppressWarnings("unused")
-		@Override
-		public CmpVertex resolvePotentialDeadEnd(LearnerGraph gr, Collection<CmpVertex> reds, List<PairScore> pairs) 
-		{
-			return null;
-		}
-
-		LearnerGraph coregraph = null;
-		
-		@Override
-		public void initComputation(LearnerGraph gr) {
-			coregraph = gr;
-		}
-
-		@Override
-		public long overrideScoreComputation(PairScore p) {
-			return p.getScore();
-		}
-
-		@Override
-		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
-		{
-			return null;// dummy, ignored if null.
-		}
-	}
 
 	/** An enumeration of a number of scoring methods that can be used for learning. Its main use is to iterate through a subset of it, permitting the experiment to run with a range of different scoring methods. */
-	public enum ScoringToApply { SCORING_EDSM("E0"), SCORING_EDSM_1("E1"), SCORING_EDSM_2("E2"), SCORING_EDSM_3("E3"), SCORING_EDSM_4("E4"), SCORING_EDSM_5("E5"), SCORING_EDSM_6("E6"), SCORING_EDSM_7("E7"), SCORING_EDSM_8("E8"), 
+	public enum ScoringToApply { SCORING_EDSM("E0"), SCORING_EDSM_2("E2"), SCORING_EDSM_3("E3"), SCORING_EDSM_4("E4"), SCORING_EDSM_5("E5"), 
+		SCORING_EDSM_6("E6"), SCORING_EDSM_7("E7"), SCORING_EDSM_8("E8"), SCORING_EDSM_9("E9"), SCORING_EDSM_10("E10"), SCORING_EDSM_11("E11"), SCORING_EDSM_12("E12"), 
 		SCORING_SICCO("SICCO"), SCORING_SICCO_PTA("SICPTA"),SCORING_SICCO_PTARECURSIVE("SICREC"), SCORING_SICCO_NIS("SICNIS"), SCORING_SICCO_RED("SICRED"),
 		SCORING_PTAK_1("KTPTA1"),SCORING_PTAK_2("KTPTA2"),SCORING_PTAK_3("KTPTA3"),SCORING_PTAK_4("KTPTA4"),
+		SCORING_PTAK_ALL_1("KTPTL1"),SCORING_PTAK_ALL_2("KTPTL2"),SCORING_PTAK_ALL_3("KTPTL3"),SCORING_PTAK_ALL_4("KTPTL4"),
 		SCORING_KT_1("TAIL1"), SCORING_KT_2("TAIL2"), SCORING_KT_3("TAIL3"), SCORING_KT_4("TAIL4");
 		
 		public final String name;
@@ -291,78 +522,98 @@ public class LearningAlgorithms
 		{
 			name = nameText;
 		}
+		
+		@Override
+		public String toString()
+		{
+			return name;
+		}
 	}
 
-	public static Learner constructLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph initialPTA, ScoringToApply howToScore, Configuration.ScoreMode scoringForEDSM) 
+	public static Learner constructLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph initialPTA, ScoringToApply howToScore, Configuration.ScoreMode scoringForEDSM, StateMergingStatistics redReducer) 
 	{
 		Learner outcome;
 		//final int threadNumber = 1;// we run each experiment on a separate thread hence do not create many threads.
 		switch(howToScore)
 		{
 		case SCORING_EDSM:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, -1);break;
-		case SCORING_EDSM_1:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 1);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, -1, redReducer);break;
 		case SCORING_EDSM_2:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 2);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 2, redReducer);break;
 		case SCORING_EDSM_3:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 3);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 3, redReducer);break;
 		case SCORING_EDSM_4:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 4);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 4, redReducer);break;
 		case SCORING_EDSM_5:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 5);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 5, redReducer);break;
 		case SCORING_EDSM_6:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 6);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 6, redReducer);break;
 		case SCORING_EDSM_7:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 7);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 7, redReducer);break;
 		case SCORING_EDSM_8:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 8);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 8, redReducer);break;
+		case SCORING_EDSM_9:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 9, redReducer);break;
+		case SCORING_EDSM_10:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 10, redReducer);break;
+		case SCORING_EDSM_11:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 11, redReducer);break;
+		case SCORING_EDSM_12:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 12, redReducer);break;
 		case SCORING_KT_1:
 			outcome = new LearnerReturningOriginalGraph() {
 				@Override
 				public LearnerGraph constructGraph() {
-					return  ptaKtails(initialPTA,1);
+					return  ptaKtails(LearningSupportRoutines.removeAllNegatives(initialPTA),1);
 				}};
 			break;
 		case SCORING_KT_2:
 			outcome = new LearnerReturningOriginalGraph() {
 				@Override
 				public LearnerGraph constructGraph() {
-					return  ptaKtails(initialPTA,2);
+					return  ptaKtails(LearningSupportRoutines.removeAllNegatives(initialPTA),2);
 				}};
 			break;
 		case SCORING_KT_3:
 			outcome = new LearnerReturningOriginalGraph() {
 				@Override
 				public LearnerGraph constructGraph() {
-					return  ptaKtails(initialPTA,3);
+					return  ptaKtails(LearningSupportRoutines.removeAllNegatives(initialPTA),3);
 				}};
 			break;
 		case SCORING_KT_4:
 			outcome = new LearnerReturningOriginalGraph() {
 				@Override
 				public LearnerGraph constructGraph() {
-					return  ptaKtails(initialPTA,4);
+					return  ptaKtails(LearningSupportRoutines.removeAllNegatives(initialPTA),4);
 				}};
 			break;
 		case SCORING_PTAK_1:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 1);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 1, redReducer);break;
 		case SCORING_PTAK_2:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 2);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 2, redReducer);break;
 		case SCORING_PTAK_3:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 3);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 3, redReducer);break;
 		case SCORING_PTAK_4:
-			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 4);break;
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS_ANY, 4, redReducer);break;
+		case SCORING_PTAK_ALL_1:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 1, redReducer);break;
+		case SCORING_PTAK_ALL_2:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 2, redReducer);break;
+		case SCORING_PTAK_ALL_3:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 3, redReducer);break;
+		case SCORING_PTAK_ALL_4:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 4, redReducer);break;
 		case SCORING_SICCO_PTA:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_PTA);break;
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_PTA,redReducer);break;
 		case SCORING_SICCO_PTARECURSIVE:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_PTARECURSIVE);break;
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_PTARECURSIVE,redReducer);break;
 		case SCORING_SICCO:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);break;
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO,redReducer);break;
 		case SCORING_SICCO_NIS:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_NIS);break;
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_NIS,redReducer);break;
 		case SCORING_SICCO_RED:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_RED);break;
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_SICCO_RED,redReducer);break;
 		default:
 			throw new IllegalArgumentException("unknown learner "+howToScore);
 
@@ -373,7 +624,7 @@ public class LearningAlgorithms
 	/** This one is a reference learner, delegating the computation to the actual learner and adding a series of different heuristics that are not present there. 
 	 * The primary purpose of this method is to add an additional check to pair score computation, either based on different heuristics such as Sicco heuristic, or mandatory merge constraints. 
 	 * 
-	 *  The nae reflects that apart from possibly minor changes to scoring, there are no significant manipulation of PTA taking place.
+	 *  The name reflects that apart from possibly minor changes to scoring, there are no significant manipulation of PTA taking place.
 	 */
 	public static class ReferenceLearner extends LearnerWithMandatoryMergeConstraints
 	{
@@ -382,10 +633,16 @@ public class LearningAlgorithms
 		// the SCORING_SICCO_EXCEPT_FOR_THE_INITIAL_STATE which applies EDSM rule to the initial state and SICCO rule to all other states.
 		public enum OverrideScoringToApply { SCORING_NO_OVERRIDE, SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_SICCO, SCORING_SICCO_PTA, SCORING_SICCO_PTARECURSIVE, SCORING_SICCO_NIS, SCORING_SICCO_RED }
 		protected final OverrideScoringToApply scoringMethod;
+		protected StateMergingStatistics redReducer = null;
 		
-		public ReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, OverrideScoringToApply scoring) 
+		public void setRedReducer(StateMergingStatistics reducer)
 		{
-			super(evalCnf, argInitialPTA);this.scoringMethod = scoring;
+			redReducer = reducer;
+		}
+		
+		public ReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, OverrideScoringToApply scoring,StateMergingStatistics redReducer) 
+		{
+			super(evalCnf, argInitialPTA);this.scoringMethod = scoring;setRedReducer(redReducer);
 		}
 
 		/** This method is called after a final set of pairs is generated. Can be overridden to update statistics on scores of pairs by comparison to the reference graph. */
@@ -397,8 +654,17 @@ public class LearningAlgorithms
 		/** Override in child classes to permit learning FSM without a limit on state number. Useful in production use but not for research experiments where evaluation explores learnt automata up to a specfic limit. */
 		protected boolean permitUnlimitedNumberOfStates()
 		{
-			return false;
+			return true;
 		}
+		
+		@Override 
+		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
+		{
+			LearnerGraph result = super.MergeAndDeterminize(original, pair);
+			if (redReducer != null)
+				redReducer.pairSelectedForMerger(original,pair);
+			return result;
+		}	
 		
 		@Override
 		public LearnerGraph learnMachine()
@@ -410,12 +676,15 @@ public class LearningAlgorithms
 			try
 			{
 				outcome = super.learnMachine();
-				LearnerAbortedException.throwExceptionIfTooManyReds(outcome, config.getOverride_maximalNumberOfStates());// this is necessary if the selection of the first pair to merge marks everything red and returns an empty set
+				LearnerAbortedException.throwExceptionIfTooManyReds(outcome, config.getOverride_maximalNumberOfStates(),redReducer);// this is necessary if the selection of the first pair to merge marks everything red and returns an empty set
 			}
 			catch(LearnerAbortedException ex)
 			{
 				outcome = new LearnerGraph(config);
 				outcome.getInit().setAccept(false);
+				outcome.setLearningAbortedReason(ex.reason);
+				if (ex.reason == LearningAbortedReason.LEARNING_TIMEOUT)
+					outcome.getInit().setHighlight(true);// abuse highlight to mean 'task timed out'
 			}
 			return outcome;
 		}
@@ -423,7 +692,7 @@ public class LearningAlgorithms
 		@Override 
 		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 		{
-			LearnerAbortedException.throwExceptionIfTooManyReds(graph, config.getOverride_maximalNumberOfStates());
+			LearnerAbortedException.throwExceptionIfTooManyReds(graph, config.getOverride_maximalNumberOfStates(),redReducer);
 			if (graph.config.getLearnerScoreMode() == ScoreMode.ONLYOVERRIDE) // we only check this here because in the constructor it is too early - derived classes may choose to substitute an alternative scoring method.
 				throw new IllegalArgumentException("this method complements an existing scoring routine, it is not a replacement for it, hence ONLYOVERRIDE scoring mode cannot be used");
 
@@ -435,9 +704,12 @@ public class LearningAlgorithms
 				// (b) checks that deadends are flagged. I could iterate this process for a number of decision rules, looking locally for the one that gives best quality of pairs
 				// for a particular pairscore decision procedure.
 				@Override
-				public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph gr, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
+				public CmpVertex selectRedNode(LearnerGraph gr, Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 				{
-					return tentativeRedNodes.iterator().next();
+					CmpVertex redVertex = tentativeRedNodes.iterator().next();
+					if (redReducer != null)
+						redReducer.stateSelectedAsRed(gr,redVertex,reds);
+					return redVertex;
 				}
 
 				@SuppressWarnings("unused")
@@ -459,6 +731,8 @@ public class LearningAlgorithms
 				{
 					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new ArrayList<>();
 					long score = p.getScore();
+					if (ReferenceLearner.this.scoringMethod == null)
+						throw new IllegalArgumentException("scoring method should be set");
 					
 					switch(ReferenceLearner.this.scoringMethod)
 					{
@@ -512,6 +786,7 @@ public class LearningAlgorithms
 					if (!labelsLeadingToStatesToBeMerged.isEmpty() || !labelsLeadingFromStatesToBeMerged.isEmpty())
 						if (LearningSupportRoutines.computeScoreBasedOnMandatoryMerge(p, coregraph, labelsLeadingToStatesToBeMerged, labelsLeadingFromStatesToBeMerged) < 0)
 							score = -1;
+					checkTimeout();
 
 					return score;
 				}
@@ -522,25 +797,40 @@ public class LearningAlgorithms
 					return null;// dummy, ignored if null.
 				}
 			});
-			if (!outcome.isEmpty())
-			{
-					PairScore chosenPair = LearningSupportRoutines.pickPairQSMLike(outcome);
-					updatePairQualityStatistics(graph,outcome);
-					outcome.clear();outcome.push(chosenPair);
-			}
-			
+			updatePairQualityStatistics(graph,outcome);
 			return outcome;
 		}		
 	}
 	
-	/** This learner infers models where all traces start with a specific transition from an initial state. It does not matter whether the graph to start from is a PTA or not.
-	 * Such a learner is different from any other learner in that the starting state is not the initial state but the one entered by a unique transition and the advantage
-	 * is that it takes into account a wide range of outgoing transitions from that state instead of just one.
+	/** This learner infers models where all traces start with a specific transition from an initial state. 
+	 * It does not matter whether the graph to start from is a PTA or not.
+	 * Such a learner is different from any other learner in that the starting state is 
+	 * not the initial state but the one entered by a unique transition and the advantage
+	 * is that it takes into account a wide range of outgoing transitions from that state 
+	 * instead of just one.
+	 * <p/>
+	 * The disadvantages are that unless the real learner this one delegates to (via the parameter of the constructor) 
+	 * utilises the unique transition of interest, the results are likely to be poor because it is not the position of
+	 * the initial state that messes it all up but the long traces. The only learners that use unique transition are 
+	 * constraint learner and pre-merge learner (not the one with Markov but the one that does a merge first and then 
+	 * learns from there as in UAS case study). In both of these cases we do not benefit from the selection of the initial
+	 * state in advance - this only makes a difference if the set of traces is extremely incomplete and the specific 
+	 * unique transition is not present from the initial state of the PTA (for example, there could be multiple outgoing
+	 * transitions in a reference graph and the walk did not happen to choose the one that was uniquely-identifying 
+	 * the initial state). In this case, {@link LearningSupportRoutines#findBestMatchForInitialVertexInGraph} would 
+	 * certainly help.
 	 */
 	public static class LearnerWithUniqueFromInitial implements Learner
 	{
 		final Learner learner;
-		final Label uniqueLabel;
+		final Configuration config;
+		LearnerGraph initPTA;
+		protected StateMergingStatistics redReducer = null;
+		
+		public void setRedReducer(StateMergingStatistics reducer)
+		{
+			redReducer = reducer;
+		}
 		
 		@Override
 		public LearnerGraph learnMachine() 
@@ -548,17 +838,52 @@ public class LearningAlgorithms
 			throw new UnsupportedOperationException("Not supported by this learner");
 		}
 
-		private static LearnerGraph recolouredInitialPTA(LearnerGraph graph,List<Label> initialSeq)
+		private static LearnerGraph recolouredInitialPTA(LearnerGraph graph,CmpVertex newInit)
 		{
 			LearnerGraph recolouredPTA = new LearnerGraph(graph,graph.config);
-			recolouredPTA.getInit().setColour(null);recolouredPTA.getVertex(initialSeq).setColour(JUConstants.RED);
+			assert recolouredPTA.transitionMatrix.containsKey(newInit);
+			recolouredPTA.getInit().setColour(null);recolouredPTA.findVertex(newInit).setColour(JUConstants.RED);
 			return recolouredPTA;
 		}
 		
 		public LearnerWithUniqueFromInitial(Learner learnerToUse, LearnerGraph argInitialPTA, Label uniqueFromInitial) 
 		{
-			uniqueLabel = uniqueFromInitial;
-			LearnerGraph initPTA = recolouredInitialPTA(argInitialPTA,Arrays.asList(uniqueFromInitial));
+			config = argInitialPTA.config;
+			
+			Set<CmpVertex> visited = new HashSet<CmpVertex>();
+			Collection<CmpVertex> frontLine = new LinkedList<CmpVertex>(), nextLine = new LinkedList<CmpVertex>();
+			
+			CmpVertex stateWithUniqueTransition = null;
+			if (argInitialPTA.transitionMatrix.get(argInitialPTA.getInit()).containsKey(uniqueFromInitial))
+				stateWithUniqueTransition = argInitialPTA.getInit();
+			else
+			{
+				frontLine.add(argInitialPTA.getInit());visited.add(argInitialPTA.getInit());
+			}
+			while(!frontLine.isEmpty() && stateWithUniqueTransition == null)
+			{
+				for(CmpVertex vert:frontLine)
+					for(CmpVertex next:argInitialPTA.transitionMatrix.get(vert).values())
+						if (!visited.contains(next))
+						{
+							if (argInitialPTA.transitionMatrix.get(vert).containsKey(uniqueFromInitial))
+							{
+								stateWithUniqueTransition = vert;break;
+							}
+							else
+							{
+								nextLine.add(next);visited.add(next);
+							}
+						}
+				
+				frontLine = nextLine;nextLine=new LinkedList<CmpVertex>();
+			}
+
+			if (stateWithUniqueTransition == null)
+				throw new IllegalArgumentException(
+						"supplied PTA does not have a state reachable from an initial state with "+uniqueFromInitial+
+						" label that should be present unless the walk from which PTA was built is extremely incomplete");
+			initPTA = recolouredInitialPTA(argInitialPTA,argInitialPTA.transitionMatrix.get(stateWithUniqueTransition).get(uniqueFromInitial));// re-colour using the state entered by the unique transition as the initial state.
 			learner = learnerToUse;learner.init(initPTA);
 		}
 
@@ -578,33 +903,26 @@ public class LearningAlgorithms
 		@Override
 		public LearnerGraph learnMachine(Collection<List<Label>> plus, Collection<List<Label>> minus) 
 		{
-			LearnerGraph outcome = learner.learnMachine(plus, minus);
-			if (outcome.getInit().getColour() == null)
-			{// if the initial state only has one transition to the state reached by the uniqueFromInitial, it will not participate in state merging.
-				LearnerGraph tmp = new LearnerGraph(outcome,outcome.config);
-				CmpVertex dummyVertex=AbstractLearnerGraph.generateNewCmpVertex(tmp.nextID(true), tmp.config);dummyVertex.setColour(JUConstants.RED);
-				MapWithSearch<Label,Label,CmpVertex> outOfDummy = tmp.createNewRow();
-				tmp.transitionMatrix.put(dummyVertex, outOfDummy);outOfDummy.put(uniqueLabel, tmp.getInit());
-				Stack<PairScore> pairs = learner.ChooseStatePairs(tmp);
-				PairScore initialToMergeWith = null;
-				for(PairScore p:pairs)
-					if (p.getQ() == tmp.getInit() && p.getR() != dummyVertex)
-					{
-						initialToMergeWith = p;break;
-					}
-				if (initialToMergeWith != null)
-				{// merge the initial vertex with one of the existing ones
-					//tmp=learner.MergeAndDeterminize(tmp, initialToMergeWith);
-					Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices = new LinkedList<>();
-					if (tmp.pairscores.computePairCompatibilityScore_general(initialToMergeWith,null,mergedVertices, false) < 0)
-						throw new IllegalArgumentException("elements of the pair "+initialToMergeWith+" are incompatible, orig score was "+tmp.pairscores.computePairCompatibilityScore(initialToMergeWith));
-					tmp = MergeStates.mergeCollectionOfVertices(tmp,initialToMergeWith.getR(),mergedVertices,false);
-					tmp.setInit(tmp.findVertex(initialToMergeWith.getR()));
+			LearnerGraph outcome = null;
+			try
+			{
+				outcome = learner.learnMachine(plus, minus);
+				LearnerAbortedException.throwExceptionIfTooManyReds(outcome, config.getOverride_maximalNumberOfStates(),redReducer);// this is necessary if the selection of the first pair to merge marks everything red and returns an empty set
+
+				if (outcome.getInit().getColour() == null)
+				{// If the initial graph is a PTA, the initial state only has one transition to the state reached by the uniqueFromInitial, it will not hence receive a colour and hence will not participate in state merging.
+					CmpVertex newInit = LearningSupportRoutines.findBestMatchForInitialVertexInGraph(outcome,initPTA);// will only return null if the learner failed (and returned an single-state reject graph)
+					if (newInit != null)
+						outcome.setInit(newInit);
 				}
-				tmp.transitionMatrix.remove(dummyVertex);
-				//
-				outcome = tmp;
 			}
+			catch(LearnerAbortedException ex)
+			{
+				outcome = new LearnerGraph(config);
+				outcome.getInit().setAccept(false);
+				outcome.setLearningAbortedReason(ex.reason);
+			}
+			
 			//Visualiser.updateFrame(outcome, null);
 			return outcome;
 		}
@@ -694,9 +1012,9 @@ public class LearningAlgorithms
 
 		protected final boolean scoringSiccoRecursive;
 		
-		public ReferenceLearnerUsingSiccoScoring(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean SiccoRecursive) 
+		public ReferenceLearnerUsingSiccoScoring(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean SiccoRecursive,StateMergingStatistics redReducer) 
 		{
-			super(constructLearningConfiguration(evalCnf, Configuration.ScoreMode.COMPATIBILITY),argInitialPTA,SiccoRecursive? OverrideScoringToApply.SCORING_SICCO_PTARECURSIVE:OverrideScoringToApply.SCORING_SICCO_PTA);
+			super(constructLearningConfiguration(evalCnf, Configuration.ScoreMode.COMPATIBILITY),argInitialPTA,SiccoRecursive? OverrideScoringToApply.SCORING_SICCO_PTARECURSIVE:OverrideScoringToApply.SCORING_SICCO_PTA,redReducer);
 			scoringSiccoRecursive = SiccoRecursive;
 		}
 
@@ -720,7 +1038,7 @@ public class LearningAlgorithms
 		
 		public KTailsReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean allPaths, int k) 
 		{
-			super(constructConfiguration(evalCnf,allPaths,k),argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE);
+			super(constructConfiguration(evalCnf,allPaths,k),argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE,null);
 		}
 		
 		@Override
@@ -743,9 +1061,10 @@ public class LearningAlgorithms
 			return copy;
 		}
 
-		public EDSMReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, Configuration.ScoreMode scoringForEDSM, int threshold) 
+		public EDSMReferenceLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, Configuration.ScoreMode scoringForEDSM, int threshold,StateMergingStatistics redReducer) 
 		{
-			super(constructConfiguration(evalCnf,scoringForEDSM,threshold), argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE);
+			super(constructConfiguration(evalCnf,scoringForEDSM,threshold), argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE,redReducer);
+			setRedReducer(redReducer);
 		}
 
 		@Override
@@ -850,9 +1169,9 @@ public class LearningAlgorithms
 			return copy;
 		}
 
-		public LearnerThatDelegatesToTheSuppliedClassifier(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA) 
+		public LearnerThatDelegatesToTheSuppliedClassifier(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA,StateMergingStatistics redReducer) 
 		{
-			super(constructConfiguration(evalCnf),argReferenceGraph,argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE);
+			super(constructConfiguration(evalCnf),argReferenceGraph,argInitialPTA,OverrideScoringToApply.SCORING_NO_OVERRIDE,redReducer);
 		}
 		
 		public static String refToString(Object obj)
@@ -861,28 +1180,15 @@ public class LearningAlgorithms
 		}
 		
 		@Override 
-		public Stack<PairScore> ChooseStatePairs(final LearnerGraph graph)
-		{
-			Stack<PairScore> outcome = graph.pairscores.chooseStatePairs(LearnerThatDelegatesToTheSuppliedClassifier.this.computationOverride);
-			
-			if (!outcome.isEmpty())
-			{
-				PairScore result = null;
-				
-				result=LearningSupportRoutines.pickPairQSMLike(outcome);
-				assert result!=null;
-				assert result.getScore()>=0;
-
-				outcome.clear();outcome.push(result);
-			}	
-			return outcome;
-
-		}
-
-		@Override 
 		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
 		{
 			return MergeStates.mergeAndDeterminize(original, pair);
+		}
+
+		@Override 
+		public Stack<PairScore> ChooseStatePairs(final LearnerGraph graph)
+		{
+			return graph.pairscores.chooseStatePairs(LearnerThatDelegatesToTheSuppliedClassifier.this.computationOverride);
 		}
 	}
 	
@@ -911,14 +1217,14 @@ public class LearningAlgorithms
 		
 		LearnerGraph coregraph = null;
 		LearnerGraph extendedGraph = null;
-		MarkovClassifier cl=null;
+		MarkovClassifierLG cl=null;
 		
 		@Override
 		public void initComputation(LearnerGraph graph) 
 		{
 			coregraph = graph;
 
-			cl = new MarkovClassifier(m, coregraph);
+			cl = new MarkovClassifierLG(m, coregraph,null);
 		    extendedGraph = cl.constructMarkovTentative();
 		}
 		
@@ -1124,7 +1430,7 @@ public class LearningAlgorithms
 	{
 		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
 		Pair<Integer,Integer> acceptRejectNumber = existingGraph.getAcceptAndRejectStateNumber();
-		MapWithSearch<VertID,CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =
+		MapWithSearch<DeterministicDirectedSparseGraph.VertID,CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =
 				existingGraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
 						new ArrayMapWithSearch<>(acceptRejectNumber.firstElem + 1, acceptRejectNumber.secondElem + 1):
 						new HashMapWithSearch<>(acceptRejectNumber.firstElem + acceptRejectNumber.secondElem + 1);
@@ -1152,6 +1458,8 @@ public class LearningAlgorithms
 			Map<Label,CmpVertex> next = existingGraph.transitionMatrix.get(vA);
 			if (!next.isEmpty())
 				vA=next.values().iterator().next();// there can only be one 'next' element because our PTA is built from a sequence.
+				// Therefore, the expression vA=existingGraph.transitionMatrix.get(vA).values().iterator().next() when executed a 
+				// number of times will return all states associated with the added path.
 			else
 				vA=null;
 		}
@@ -1254,7 +1562,7 @@ public class LearningAlgorithms
 				}
 				else
 				{
-					CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(graphWithTraces.nextID(true),graphWithTraces.config);
+					CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(graphWithTraces.nextID(false),graphWithTraces.config);
 					graphWithTraces.transitionMatrix.put(startForPath,graphWithTraces.createNewRow());
 					graphWithTraces.paths.augmentPTA(neg, startForPath, false, false,null);
 					graphWithTraces.pairscores.mergePair(new StatePair(graphWithTraces.getInit(),startForPath),stateToEquivalenceClass,mergingDetails);

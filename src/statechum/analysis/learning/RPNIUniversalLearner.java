@@ -268,6 +268,8 @@ public class RPNIUniversalLearner extends RPNILearner
 		{
 			iterations++;
 			PairScore pair = possibleMerges.pop();
+			//System.out.println(pair	);
+			//Visualiser.updateFrame(getTentativeAutomaton().transform.trimGraph(3, getConfig()), null);
 			final LearnerGraph temp = topLevelListener.MergeAndDeterminize(getTentativeAutomaton(), pair);
 			Collection<List<Label>> questions = new LinkedList<List<Label>>();
 			long score = pair.getScore();

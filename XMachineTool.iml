@@ -80,15 +80,6 @@
       </library>
     </orderEntry>
     <orderEntry type="module-library">
-      <library name="OtpErlang.jar">
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/OtpErlang.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
       <library name="javaGD.jar">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/javaGD.jar!/" />
@@ -115,5 +106,6 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="OtpErlang-24" level="project" />
   </component>
 </module>

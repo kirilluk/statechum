@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.Pair;
@@ -136,7 +137,7 @@ public class MapWithSearchAndCounter<K extends ConvertibleToInt & VertID,V> impl
 
 	@Override
 	public void putAll(Map<? extends K, ? extends V> m) {
-		for(java.util.Map.Entry<? extends K, ? extends V> entry:m.entrySet())
+		for(Entry<? extends K, ? extends V> entry:m.entrySet())
 			put(entry.getKey(),entry.getValue());
 	}
 
@@ -145,7 +146,7 @@ public class MapWithSearchAndCounter<K extends ConvertibleToInt & VertID,V> impl
 	public Set<K> keySet() {
 		final Set<K> returnedKeys = parent.keySet();
 		final MapWithSearchAndCounter<K, V> map = this;
-		return new Set<>() {
+		return new Set<K>() {
 
 			/* (non-Javadoc)
 			 * @see java.lang.Object#hashCode()
@@ -247,7 +248,7 @@ public class MapWithSearchAndCounter<K extends ConvertibleToInt & VertID,V> impl
 	public Collection<V> values() {
 		final Collection<V> returnedValues = parent.values();
 		final MapWithSearchAndCounter<K, V> map = this;
-		return new Collection<>() {
+		return new Collection<V>() {
 
 			/* (non-Javadoc)
 			 * @see java.lang.Object#hashCode()
@@ -343,10 +344,10 @@ public class MapWithSearchAndCounter<K extends ConvertibleToInt & VertID,V> impl
 
 
 	@Override
-	public Set<java.util.Map.Entry<K, V>> entrySet() {
-		final Set<java.util.Map.Entry<K, V>> returnedEntries = parent.entrySet();
+	public Set<Entry<K, V>> entrySet() {
+		final Set<Entry<K, V>> returnedEntries = parent.entrySet();
 		final MapWithSearchAndCounter<K, V> map = this;
-		return new Set<>() {
+		return new Set<Entry<K,V>>() {
 
 			/* (non-Javadoc)
 			 * @see java.lang.Object#hashCode()
@@ -403,7 +404,7 @@ public class MapWithSearchAndCounter<K extends ConvertibleToInt & VertID,V> impl
 			}
 
 			@Override
-			public boolean add(@SuppressWarnings("unused") java.util.Map.Entry<K, V> e) {
+			public boolean add(@SuppressWarnings("unused") Entry<K, V> e) {
 				throw new UnsupportedOperationException("adding transitions by manipulating entries of transition matrix is not supported");
 			}
 
@@ -418,7 +419,7 @@ public class MapWithSearchAndCounter<K extends ConvertibleToInt & VertID,V> impl
 			}
 
 			@Override
-			public boolean addAll(@SuppressWarnings("unused") Collection<? extends java.util.Map.Entry<K, V>> c) {
+			public boolean addAll(@SuppressWarnings("unused") Collection<? extends Entry<K, V>> c) {
 				throw new UnsupportedOperationException("adding transitions by manipulating entries of transition matrix is not supported");
 			}
 
@@ -448,13 +449,13 @@ public class MapWithSearchAndCounter<K extends ConvertibleToInt & VertID,V> impl
 
 
 	@Override
-	public Set<java.util.Map.Entry<K, V>> getTreeEntrySet() {
+	public Set<Entry<K, V>> getTreeEntrySet() {
 		return parent.getTreeEntrySet();
 	}
 
 
 	@Override
-	public Set<java.util.Map.Entry<K, V>> getPotentiallyOrderedEntrySet(boolean ordered) {
+	public Set<Entry<K, V>> getPotentiallyOrderedEntrySet(boolean ordered) {
 		return parent.getPotentiallyOrderedEntrySet(ordered);
 	}
 

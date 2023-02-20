@@ -20,7 +20,6 @@
 // checked out Dec 3, 2022.
 package harmony.collections;
 
-import com.sun.source.tree.Tree;
 import statechum.collections.MapWithSearch;
 
 import java.io.IOException;
@@ -1298,7 +1297,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
     @Override
     public Set<Map.Entry<K, V>> entrySet() {
         if (entrySet == null) {
-            entrySet = new AbstractSet<>() {
+            entrySet = new AbstractSet<Map.Entry<K, V>>() {
                 @Override
                 public int size() {
                     return size;
@@ -1498,7 +1497,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
     @Override
     public Set<K> keySet() {
         if (keySet == null) {
-            keySet = new AbstractSet<>() {
+            keySet = new AbstractSet<K>() {
                 @Override
                 public boolean contains(Object object) {
                     return TreeMapWithSearch.this.containsKey(object);
@@ -2516,7 +2515,7 @@ public class TreeMapWithSearch<I, K extends I, V> extends HarmonyAbstractMap<K, 
     @Override
     public Collection<V> values() {
         if (valuesCollection == null) {
-            valuesCollection = new AbstractSet<>() {
+            valuesCollection = new AbstractSet<V>() {
                 @Override
                 public boolean contains(Object object) {
                     return containsValue(object);

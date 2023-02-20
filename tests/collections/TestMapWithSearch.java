@@ -10,7 +10,6 @@ import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.ParameterizedWithName.ParametersToString;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.Helper;
 import statechum.TestHelper;
 import statechum.collections.*;
 
@@ -1088,7 +1087,7 @@ public class TestMapWithSearch
 		
 		checkArrayWithNoPairs(map);
 
-		Assert.assertFalse(map.keySet().removeAll(List.of()));
+		Assert.assertFalse(map.keySet().removeAll(Collections.emptyList()));
 		checkArrayWithNoPairs(map);
 	}
 		
@@ -1313,7 +1312,7 @@ public class TestMapWithSearch
 		Assert.assertTrue(map.keySet().containsAll(createMapOne(keyOne,valueOne).keySet()));// contains all on an empty set returns true
 		Assert.assertFalse(map.keySet().containsAll(Arrays.asList(keyOne,keyTwo)));
 		Assert.assertTrue(map.keySet().containsAll(Arrays.asList(keyOne,keyOne)));
-		Assert.assertTrue(map.keySet().containsAll(List.of()));
+		Assert.assertTrue(map.keySet().containsAll(Collections.emptyList()));
 				
 		Iterator<CInteger> iter = map.keySet().iterator();
 		Assert.assertTrue(iter.hasNext());
@@ -1343,7 +1342,7 @@ public class TestMapWithSearch
 	public void testSizeOne_KeySetRemoveAll1()
 	{
 		final Attempt<CInteger,Long> map = createMapOne(keyOne,valueOne);
-		Assert.assertFalse(map.keySet().removeAll(List.of()));
+		Assert.assertFalse(map.keySet().removeAll(Collections.emptyList()));
 		checkArrayWithOnePair(map, keyOne, valueOne);
 	}
 	
@@ -1375,7 +1374,7 @@ public class TestMapWithSearch
 	public void testSizeOne_KeySetRetainAll2()
 	{
 		final Attempt<CInteger,Long> map = createMapOne(keyOne,valueOne);
-		Assert.assertTrue(map.keySet().retainAll(List.of(new CInteger(9))));
+		Assert.assertTrue(map.keySet().retainAll(Collections.singletonList(new CInteger(9))));
 		checkArrayWithNoPairs(map);
 	}
 	
@@ -1383,7 +1382,7 @@ public class TestMapWithSearch
 	public void testSizeOne_KeySetRetainAll3()
 	{
 		final Attempt<CInteger,Long> map = createMapOne(keyOne,valueOne);
-		Assert.assertTrue(map.keySet().retainAll(List.of()));
+		Assert.assertTrue(map.keySet().retainAll(Collections.emptyList()));
 		checkArrayWithNoPairs(map);
 	}
 	
@@ -1415,7 +1414,7 @@ public class TestMapWithSearch
 	public void testSizeOne_KeySetContainsAll3()
 	{
 		final Attempt<CInteger,Long> map = createMapOne(keyOne,valueOne);
-		Assert.assertTrue(map.keySet().containsAll(List.of()));
+		Assert.assertTrue(map.keySet().containsAll(Collections.emptyList()));
 		checkArrayWithOnePair(map, keyOne, valueOne);
 	}
 	
@@ -1803,7 +1802,7 @@ public class TestMapWithSearch
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
 		//noinspection SuspiciousMethodCalls
-		Assert.assertFalse(map.keySet().removeAll(List.of()));
+		Assert.assertFalse(map.keySet().removeAll(Collections.emptyList()));
 		checkArrayWithTwoPairs(map,keyOne,valueOne, keyTwo, valueTwo);
 	}
 	
@@ -1843,7 +1842,7 @@ public class TestMapWithSearch
 	public void testSizeTwo_KeySetRetainAll2()
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
-		Assert.assertTrue(map.keySet().retainAll(List.of(new CInteger(9))));
+		Assert.assertTrue(map.keySet().retainAll(Collections.singletonList(new CInteger(9))));
 		checkArrayWithNoPairs(map);
 	}
 	
@@ -1852,7 +1851,7 @@ public class TestMapWithSearch
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
 		//noinspection SuspiciousMethodCalls
-		Assert.assertTrue(map.keySet().retainAll(List.of()));
+		Assert.assertTrue(map.keySet().retainAll(Collections.emptyList()));
 		checkArrayWithNoPairs(map);
 	}
 	
@@ -1901,7 +1900,7 @@ public class TestMapWithSearch
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
 		//noinspection SuspiciousMethodCalls
-		Assert.assertTrue(map.keySet().containsAll(List.of()));
+		Assert.assertTrue(map.keySet().containsAll(Collections.emptyList()));
 		checkArrayWithTwoPairs(map,keyOne,valueOne, keyTwo, valueTwo);
 	}
 	

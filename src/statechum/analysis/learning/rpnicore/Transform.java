@@ -574,7 +574,7 @@ public class Transform
 			if (object == null)
 				return null;
 			else if (object instanceof ExplorationElement)
-				return new Iterator<>() {
+				return new Iterator<ExplorationElement>() {
 					private boolean elementReturned = false;
 
 					@Override
@@ -585,7 +585,7 @@ public class Transform
 					@Override
 					public ExplorationElement next() {
 						if (elementReturned)
-							throw new NoSuchElementException("no more elments in the iterator over exploration elements");
+							throw new NoSuchElementException("no more elements in the iterator over exploration elements");
 						elementReturned = true;
 						return (ExplorationElement) object;
 					}

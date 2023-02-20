@@ -490,7 +490,8 @@ public class PairScoreComputation {
 	 *  @param mergedVertices collection of sets of merged vertices. Singleton sets reflect those which were not merged with any other.
 	 *  @param fullMergedVertices whether to add all states to equivalence classes, even for states that correspond to singleton equivalence classes. Makes everything slow but may be needed for question generation as well as for SMT.
 	 */ 
-	public int computePairCompatibilityScore_general(StatePair pairToMerge, Collection<StatePair> pairsToMerge, Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices, boolean fullMergedVertices) 
+	public int computePairCompatibilityScore_general(StatePair pairToMerge, Collection<StatePair> pairsToMerge,
+													 Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices, boolean fullMergedVertices)
 	{
 		int score=-1;
 		

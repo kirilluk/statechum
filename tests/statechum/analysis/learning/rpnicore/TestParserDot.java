@@ -4,10 +4,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import statechum.*;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
@@ -536,7 +533,7 @@ public class TestParserDot {
         parser.parseGraph();
         Assert.assertNotNull(graph.findVertex(DeterministicDirectedSparseGraph.VertexID.parseID("a")));
         Assert.assertTrue(graph.transitionMatrix.get(graph.findVertex(DeterministicDirectedSparseGraph.VertexID.parseID("a"))).isEmpty());
-        Assert.assertEquals(List.of(new LabelInputOutput("in1/error"),new LabelInputOutput("in2/error")),
+        Assert.assertEquals(Arrays.asList(new LabelInputOutput("in1/error"),new LabelInputOutput("in2/error")),
                 new LinkedList<>(graph.pathroutines.computeAlphabet()));
     }
 
@@ -547,7 +544,7 @@ public class TestParserDot {
         parser.parseGraph();
         LearnerGraph gr = buildLearnerGraph("a-in1/out1->b","testParse3", configMealy,null);
         Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.findVertex("a"), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
-        Assert.assertEquals(Set.of(new LabelInputOutput("in1/out1"),new LabelInputOutput("in2/error")),
+        Assert.assertEquals(new TreeSet<Label>(Arrays.asList(new LabelInputOutput("in1/out1"),new LabelInputOutput("in2/error"))),
                 graph.pathroutines.computeAlphabet());
     }
     @Test

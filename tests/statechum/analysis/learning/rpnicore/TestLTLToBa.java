@@ -80,7 +80,7 @@ public class TestLTLToBa
 	@Test
 	public final void testLtlConcat1a()
 	{
-		Assert.assertEquals("",LTL_to_ba.concatenateLTL(List.of()).toString());
+		Assert.assertEquals("",LTL_to_ba.concatenateLTL(Collections.emptyList()).toString());
 	}
 	
 	@SuppressWarnings("static-method")
@@ -122,14 +122,14 @@ public class TestLTLToBa
 	@Test(expected=IllegalArgumentException.class)
 	public final void testLTL_fail1()
 	{
-		LTL_to_ba.concatenateLTL(List.of(QSMTool.cmdLTL + "  */ "));
+		LTL_to_ba.concatenateLTL(Collections.singletonList(QSMTool.cmdLTL + "  */ "));
 	}
 
 	@SuppressWarnings("static-method")
 	@Test(expected=IllegalArgumentException.class)
 	public final void testLTL_fail2()
 	{
-		LTL_to_ba.concatenateLTL(List.of(QSMTool.cmdLTL + "  /* "));
+		LTL_to_ba.concatenateLTL(Collections.singletonList(QSMTool.cmdLTL + "  /* "));
 	}
 
 	@SuppressWarnings("static-method")
@@ -1119,7 +1119,7 @@ public class TestLTLToBa
 		ba=new LTL_to_ba(config,converter);
 		ConstructAlphabet(ba,new String[]{"load","save","edit","close","open"});
 		checkForCorrectException(
-				() -> ba.ltlToBA(List.of(QSMTool.cmdLTL + " ([](close-><>open))"),null,false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA)),
+				() -> ba.ltlToBA(Collections.singletonList(QSMTool.cmdLTL + " ([](close-><>open))"),null,false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA)),
 				IllegalArgumentException.class,"not all states are accept");
 	}
 
@@ -1166,7 +1166,7 @@ public class TestLTLToBa
 		ba=new LTL_to_ba(config,converter);
 		ConstructAlphabet(ba,new String[]{"load","save","edit","close"});
 		LearnerGraph whatToAugment = buildLearnerGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem",config,converter);
-		ba.ltlToBA(List.of(QSMTool.cmdLTL + " ([]((close)-> X((load) V !((save) || (edit) || (close)))))"),whatToAugment.pathroutines.computeAlphabet(),false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
+		ba.ltlToBA(Collections.singletonList(QSMTool.cmdLTL + " ([]((close)-> X((load) V !((save) || (edit) || (close)))))"),whatToAugment.pathroutines.computeAlphabet(),false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		LearnerGraph result = new LearnerGraph(config);
 		LearnerGraph automatonLoadedFromLTL = automatonLoadedFromLTL(ba);
 		AbstractPathRoutines.removeRejectStates(automatonLoadedFromLTL, result);
@@ -1180,7 +1180,7 @@ public class TestLTLToBa
 		ba=new LTL_to_ba(config,converter);
 		ConstructAlphabet(ba,new String[]{"load","save","edit","close"});
 		LearnerGraph whatToAugment = buildLearnerGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem",config,converter);
-		ba.ltlToBA(List.of(QSMTool.cmdLTL + " ([]((close)-> X((load) V !((save) || (edit) || (close)))))"),whatToAugment.pathroutines.computeAlphabet(),false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
+		ba.ltlToBA(Collections.singletonList(QSMTool.cmdLTL + " ([]((close)-> X((load) V !((save) || (edit) || (close)))))"),whatToAugment.pathroutines.computeAlphabet(),false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 		LearnerGraph result = new LearnerGraph(config);
 		LearnerGraph automatonLoadedFromLTL = automatonLoadedFromLTL(ba);
 		AbstractPathRoutines.removeRejectStates(automatonLoadedFromLTL, result);
@@ -1196,7 +1196,7 @@ public class TestLTLToBa
 		ba=new LTL_to_ba(config,converter);
 		ConstructAlphabet(ba,new String[]{"load","save","edit","close"});
 		LearnerGraph whatToAugment = buildLearnerGraph("A-load->B-edit->C-edit->D-save->E-close->F", "testLTL_integration_subsystem",config,converter);
-		ba.ltlToBA(List.of(QSMTool.cmdLTL + " ([]((close)-> X((load) V !((save) || (edit) || (close)))))"),whatToAugment.pathroutines.computeAlphabet(),false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
+		ba.ltlToBA(Collections.singletonList(QSMTool.cmdLTL + " ([]((close)-> X((load) V !((save) || (edit) || (close)))))"),whatToAugment.pathroutines.computeAlphabet(),false,GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.LTL2BA));
 
 		LearnerGraph automatonLoadedFromLTL = automatonLoadedFromLTL(ba), expected  = automatonLoadedFromLTL(ba);
 		Assert.assertNull(WMethod.checkM(uniteAndDeterminise(new LearnerGraph(Configuration.getDefaultConfiguration()),automatonLoadedFromLTL),expected));

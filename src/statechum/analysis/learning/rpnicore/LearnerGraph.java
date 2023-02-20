@@ -385,7 +385,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	public
 	Collection<CmpVertex> getTargets(final CmpVertex targ) 
 	{
-		return new Collection<>() {
+		return new Collection<CmpVertex>() {
 
 			@Override
 			public boolean add(@SuppressWarnings("unused") CmpVertex e) {
@@ -419,7 +419,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 
 			@Override
 			public Iterator<CmpVertex> iterator() {
-				return new Iterator<>() {
+				return new Iterator<CmpVertex>() {
 					boolean elementReturned = false;
 
 					@Override

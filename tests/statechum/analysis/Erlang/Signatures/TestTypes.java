@@ -268,7 +268,7 @@ public class TestTypes
 	{
 		Writer wr = new FileWriter(erlangFile);wr.write("-module(testFile).\n-behaviour(gen_server).\n");
 		Random rnd = new Random(0);
-		Set<Integer> num = new HashSet<Integer>();
+		Set<Integer> num = new HashSet<>();
 		for(int i=0;i< 30;++i)
 			if (!num.contains(i))
 			{
@@ -712,9 +712,11 @@ public class TestTypes
 		wr.write(otherMethods);wr.close();
 		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
 		ErlangModule mod = ErlangModule.loadModule(config);
+		//noinspection OverwrittenKey
 		mod.sigs.put("strNonEmpty", new FuncSignature(defaultConfig, ErlangLabel.parseText(
 			"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[],[[]]}],{'Int',[values],[1]}}}"),
 			null));
+		//noinspection OverwrittenKey
 		mod.sigs.put("strNonEmpty", new FuncSignature(defaultConfig, ErlangLabel.parseText(
 			"{\"testFile.erl\",3,handle_call,1,{'Func',[],[{'String',[],[[]]}],{'Int',[values],[1]}}}"),
 			null));
@@ -842,18 +844,16 @@ public class TestTypes
 	public void testTypeCompatibilityPid()
 	{
 		checkForCorrectExceptionAnyOf(() -> Signature.buildFromType(defaultConfig, runner.evaluateString(
-				ErlangRuntime.getTyperPackageName()+":t_to_Statechum(erl_types:t_from_term(self()),dict:new())")),IllegalArgumentException.class, List.of("we cannot instantiate PIDs","PID/Port/reference types are not supported"));
-		//Assert.assertFalse(sig.instantiateAllAlts().isEmpty());
-		//Assert.assertTrue(sig.instantiateAllAlts().iterator().next() instanceof OtpErlangPid);
-		
+				ErlangRuntime.getTyperPackageName()+":t_to_Statechum(erl_types:t_from_term(self()),dict:new())")),IllegalArgumentException.class,
+				Arrays.asList("we cannot instantiate PIDs","PID/Port/reference types are not supported"));
 	}
+
 	@Test
 	public void testTypeCompatibilityPort()
 	{
 		checkForCorrectExceptionAnyOf(() -> Signature.buildFromType(defaultConfig, runner.evaluateString(
-				"[P|_]=erlang:ports(),"+ErlangRuntime.getTyperPackageName()+":t_to_Statechum(erl_types:t_from_term(P),dict:new())")),IllegalArgumentException.class,List.of("we cannot instantiate Ports","PID/Port/reference types are not supported"));
-		//Assert.assertFalse(sig.instantiateAllAlts().isEmpty());
-		//Assert.assertTrue(sig.instantiateAllAlts().iterator().next() instanceof OtpErlangPort);
+				"[P|_]=erlang:ports(),"+ErlangRuntime.getTyperPackageName()+":t_to_Statechum(erl_types:t_from_term(P),dict:new())")),IllegalArgumentException.class,
+				Arrays.asList("we cannot instantiate Ports","PID/Port/reference types are not supported"));
 	}
 	
 	/** Non-intersecting values of records give rise to "any" - type. */

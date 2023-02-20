@@ -1199,7 +1199,7 @@ class MapEntry implements Map.Entry<K, V>, Cloneable {
     @Override
     public Set<Map.Entry<K, V>> entrySet() {
         if (entrySet == null) {
-            entrySet = new AbstractSet<>() {
+            entrySet = new AbstractSet<Map.Entry<K, V>>() {
                 @Override
                 public int size() {
                     return size;
@@ -1358,7 +1358,7 @@ class MapEntry implements Map.Entry<K, V>, Cloneable {
     @Override
     public Set<K> keySet() {
         if (keySet == null) {
-            keySet = new AbstractSet<>() {
+            keySet = new AbstractSet<K>() {
                 @Override
                 public boolean contains(Object object) {
                     return HarmonyTreeMap.this.containsKey(object);
@@ -2355,7 +2355,7 @@ class MapEntry implements Map.Entry<K, V>, Cloneable {
     @Override
     public Collection<V> values() {
         if (valuesCollection == null) {
-            valuesCollection = new AbstractCollection<>() {
+            valuesCollection = new AbstractCollection<V>() {
                 @Override
                 public boolean contains(Object object) {
                     return containsValue(object);

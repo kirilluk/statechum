@@ -104,12 +104,13 @@ public class TestMarkovLearner
 	@Before
 	public void beforeTest()
 	{
-		trainingGraphForClosures = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-b->E / C-c->C / B-a->C / D-a->E","testComputeClosure",config, converter);
+		trainingGraphForClosures = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-b->E / C-c->C / B-a->C / D-a->E","testComputeClosure",
+				config, converter);
 	}
 	
 	@Test
 	public void testGetChunks1() {
-		List<Trace> l = MarkovModel.splitTrace(new Trace(List.of(),true),1);
+		List<Trace> l = MarkovModel.splitTrace(new Trace(Collections.emptyList(),true),1);
 		Assert.assertTrue(l.isEmpty());
 	}
 
@@ -153,14 +154,8 @@ public class TestMarkovLearner
 	@Test
 	public void testCreateMarkovMatrixFail()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			@SuppressWarnings("unused")
-			@Override
-			public void run() throws NumberFormatException
-			{
-				new MarkovModel(1,true, true,true,markovPTAUseMatrix);
-			}
-		}, IllegalArgumentException.class, "chunkLen");
+		TestHelper.checkForCorrectException(() ->
+				new MarkovModel(1,true, true,true,markovPTAUseMatrix), IllegalArgumentException.class, "chunkLen");
 	}
 	
 	@Test
@@ -668,299 +663,186 @@ public class TestMarkovLearner
 	}
 	
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExplorePaths1()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C / B-b->C","testUpdateMarkovSideways1",config, converter);
-		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a"},new String[]{"b"} },config,converter), pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.findVertex(VertexID.parseID("B")),1,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a"},new String[]{"b"} },config,converter), pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.findVertex(VertexID.parseID("B")),1, pathsActual::add
 		);
 		Assert.assertEquals(pathsExpected,pathsActual);
 	}
 	
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExplorePaths2()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C / B-b->C","testUpdateMarkovSideways1",config, converter);
 		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
-		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a"} },config,converter), pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(inverseGraph,inverseGraph.findVertex(VertexID.parseID("B")),1,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a"} },config,converter), pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(inverseGraph,inverseGraph.findVertex(VertexID.parseID("B")),1, pathsActual::add
 		);
 		Assert.assertEquals(pathsExpected,pathsActual);
 	}
 	
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExplorePaths3a()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C / B-b->C","testUpdateMarkovSideways1",config, converter);
 		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
-		final Set<List<Label>> pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(inverseGraph,inverseGraph.findVertex(VertexID.parseID("B")),2,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(inverseGraph,inverseGraph.findVertex(VertexID.parseID("B")),2, pathsActual::add
 		);
 		Assert.assertTrue(pathsActual.isEmpty());
 	}
 
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExplorePaths3b()
 	{
 		final LearnerGraph graph = new LearnerGraph(config);
-		final Set<List<Label>> pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.getInit(),2,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.getInit(),2, pathsActual::add
 		);
 		Assert.assertTrue(pathsActual.isEmpty());
 	}
 
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExplorePaths3c()
 	{
 		final LearnerGraph graph = new LearnerGraph(config);
-		final Set<List<Label>> pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.getInit(),1,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.getInit(),1, pathsActual::add
 		);
 		Assert.assertTrue(pathsActual.isEmpty());
 	}
 
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExplorePaths3d()
 	{
 		final LearnerGraph graph = new LearnerGraph(config);
-		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{} },config,converter), pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.getInit(),0,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{} },config,converter), pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.getInit(),0, pathsActual::add
 		);
 		Assert.assertEquals(pathsExpected,pathsActual);
 	}
 
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExplorePaths3e()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C / B-b->C","testUpdateMarkovSideways1",config, converter);
-		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{} },config,converter), pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.getInit(),0,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{} },config,converter), pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(graph,graph.getInit(),0, pathsActual::add
 		);
 		Assert.assertEquals(pathsExpected,pathsActual);
 	}
 
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExplorePaths4()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C / B-b->C / D-a->E-a->C","testExplorePaths4",config, converter);
 		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
-		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a","a"}, new String[]{"b","a"} },config,converter), pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),2,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a","a"}, new String[]{"b","a"} },config,converter), pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),2, pathsActual::add
 		);
 		Assert.assertEquals(pathsExpected,pathsActual);
 	}
 
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExplorePaths5()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->A-b->C / D-a->E-a->C","testExplorePaths4",config, converter);
 		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
-		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"b","a","a"} },config,converter), pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),3,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"b","a","a"} },config,converter), pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sequences(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),3, pathsActual::add
 		);
 		Assert.assertEquals(pathsExpected,pathsActual);
 	}
 
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExploreSets1()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->A-b->C / D-a->E-a->C","testExplorePaths4",config, converter);
 		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
-		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a"}, new String[]{"b"} },config,converter), pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),1,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a"}, new String[]{"b"} },config,converter), pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),1, pathsActual::add
 		);
 		Assert.assertEquals(pathsExpected,pathsActual);
 	}
 
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExploreSets2()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->A-b->C / D-a->E-a->C","testExplorePaths4",config, converter);
 		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
-		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a","b"} },config,converter), pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),2,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a","b"} },config,converter), pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),2, pathsActual::add
 		);
 		Assert.assertEquals(pathsExpected,pathsActual);
 	}
 
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExploreSets3()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->A-b->C / D-a->E-a->C","testExplorePaths4",config, converter);
 		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
-		final Set<List<Label>> pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),3,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),3, pathsActual::add
 		);
 		Assert.assertTrue(pathsActual.isEmpty());
 	}
 
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExploreSets4()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->A-b->C / D-a->E-a->C","testExplorePaths4",config, converter);
 		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
-		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{} },config,converter), pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),0,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{} },config,converter), pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),0, pathsActual::add
 		);
 		Assert.assertEquals(pathsExpected,pathsActual);
 	}
 
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExploreSets5()
 	{
 		final LearnerGraph graph = new LearnerGraph(config);
-		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{} },config,converter), pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(graph,graph.getInit(),0,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{} },config,converter), pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(graph,graph.getInit(),0, pathsActual::add
 		);
 		Assert.assertEquals(pathsExpected,pathsActual);
 	}
 
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExploreSets6()
 	{
 		final LearnerGraph graph = new LearnerGraph(config);
-		final Set<List<Label>> pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(graph,graph.getInit(),1,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
+		final Set<List<Label>> pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(graph,graph.getInit(),1, pathsActual::add
 		);
 		Assert.assertTrue(pathsActual.isEmpty());
 	}
 
 	@Test
-	/** Tests for exploration of paths. */
+	/* Tests for exploration of paths. */
 	public void testExploreSets7()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->A-b->C / D-a->E-a->C / E-b->C / E-c->C","testExploreSets7",config, converter);
 		LearnerGraphND inverseGraph = MarkovClassifier.computeInverseGraph(graph);
-		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a","b"},new String[]{"a","c"},new String[]{"b","c"} },config,converter), pathsActual = new HashSet<List<Label>>();
-		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),2,new MarkovClassifier.ForEachCollectionOfPaths() 
-	        {
-				@Override
-				public void handlePath(List<Label> pathToNewState) 
-				{
-					pathsActual.add(pathToNewState);
-				}
-	        }
-		);
+		final Set<List<Label>> pathsExpected = buildSet(new String[][] { new String[]{"a","b"},new String[]{"a","c"},new String[]{"b","c"} },config,converter), pathsActual = new HashSet<>();
+		MarkovClassifier.WalkThroughAllPathsOfSpecificLength_Sets(inverseGraph,inverseGraph.findVertex(VertexID.parseID("C")),2, pathsActual::add);
 		Assert.assertEquals(pathsExpected,pathsActual);
 	}
 
@@ -1006,12 +888,12 @@ public class TestMarkovLearner
 		new MarkovClassifierLG(m,graph,null).updateMarkov(false);
 		Map<List<Label>,MarkovOutcome> mPredictionsMatrix = m.computePredictionMatrix();
 		Assert.assertEquals(9,mPredictionsMatrix.size());
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblA})));
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblB})));
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblA})));
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblB})));
-		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblA})));
-		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblB})));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblA,lblA)));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblA,lblB)));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblB,lblA)));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblB,lblB)));
+		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(lblC,lblA)));
+		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(lblC,lblB)));
 
 		Assert.assertEquals(MarkovOutcome.failure,mPredictionsMatrix.get(Collections.singletonList(lblA)));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Collections.singletonList(lblB)));
@@ -1060,9 +942,9 @@ public class TestMarkovLearner
 		new MarkovClassifierLG(m,graph,null).updateMarkov(true);
 		Map<List<Label>,MarkovOutcome> mPredictionsMatrix = m.computePredictionMatrix();
 		Assert.assertEquals(3,mPredictionsMatrix.size());
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblA})));// this is obvious: if we have a label 'a' leading from a state then the prediction reports that in this case we can find 'a'. 
-		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblC})));
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblC})));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblA,lblA)));// this is obvious: if we have a label 'a' leading from a state then the prediction reports that in this case we can find 'a'.
+		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(lblB,lblC)));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblC,lblC)));
 	}
 	
 	@Test
@@ -1077,8 +959,8 @@ public class TestMarkovLearner
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblA,lblC)));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblC,lblA)));
 		
-		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblU,lblB})));
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblB})));
+		Assert.assertEquals(MarkovOutcome.negative,mPredictionsMatrix.get(Arrays.asList(lblU,lblB)));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblB,lblB)));
 		
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblC,lblC)));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblU,lblU)));
@@ -1094,14 +976,14 @@ public class TestMarkovLearner
 		new MarkovClassifierLG(m,graph,null).updateMarkov(true);
 		Map<List<Label>,MarkovOutcome> mPredictionsMatrix = m.computePredictionMatrix();
 		Assert.assertEquals(6,mPredictionsMatrix.size());
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblB,lblA})));
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblB,lblA})));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblC,lblB,lblA)));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblA,lblB,lblA)));
 		
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblU,lblC})));
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblU,lblC})));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblC,lblU,lblC)));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblA,lblU,lblC)));
 		
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblC,lblC,lblC})));
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblA,lblC,lblC})));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblC,lblC,lblC)));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblA,lblC,lblC)));
 	}
 	
 	@Test
@@ -1151,16 +1033,16 @@ public class TestMarkovLearner
 		Map<List<Label>,MarkovOutcome> mPredictionsMatrix = m.computePredictionMatrix();
 		Assert.assertEquals(8,mPredictionsMatrix.size());
 		
-		Assert.assertEquals(MarkovOutcome.failure,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblU,lblB})));
+		Assert.assertEquals(MarkovOutcome.failure,mPredictionsMatrix.get(Arrays.asList(lblU,lblB)));
 		
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblA,lblA)));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblC,lblA)));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblA,lblC)));
 		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblC,lblC)));
 		
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblU})));
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblB,lblB})));
-		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(new Label[]{lblU,lblU})));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblB,lblU)));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblB,lblB)));
+		Assert.assertEquals(MarkovOutcome.positive,mPredictionsMatrix.get(Arrays.asList(lblU,lblU)));
 	}
 
 	/** Tests that upon a label labelled as invalid, subsequent inconsistency checks are stopped. It is hence equivalent to a single incoming path. */
@@ -1279,7 +1161,7 @@ public class TestMarkovLearner
 		Assert.assertEquals(9+graph.getCache().getAlphabet().size(),m.computePredictionMatrix().size());
 		
 		final LearnerGraph graph2 = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->A / T-u->T-b->T","testCheckFanoutInconsistencySideways4",config, converter);// T is there to ensure that graph2's alphabet is the same as that of graph.
-		Map<Label, MarkovOutcome> predictions = new MarkovClassifierLG(m, graph2,null).predictTransitionsFromState(graph2.getInit(),Arrays.asList(new Label[]{}),m.getChunkLen(),true, null);
+		Map<Label, MarkovOutcome> predictions = new MarkovClassifierLG(m, graph2,null).predictTransitionsFromState(graph2.getInit(), Collections.emptyList(),m.getChunkLen(),true, null);
 		
 		Assert.assertEquals(MarkovOutcome.positive,predictions.get(lblU));
 		Assert.assertEquals(MarkovOutcome.positive,predictions.get(lblC));
@@ -1297,13 +1179,7 @@ public class TestMarkovLearner
 		
 		final LearnerGraph graph2 = FsmParserStatechum.buildLearnerGraph("A-a->B","testPredictTransitionsFromStatesWithPathBeyondCurrentState2",config, converter);
 		
-		TestHelper.checkForCorrectException(new whatToRun() {
-			@Override
-			public void run() throws NumberFormatException
-			{
-				new MarkovClassifierLG(m, graph2,null).predictTransitionsFromState(graph2.getInit(),Arrays.asList(new Label[]{lblC}),m.getChunkLen(),true, null);
-			}
-		}, IllegalArgumentException.class, "cannot be made by extension");
+		TestHelper.checkForCorrectException(() -> new MarkovClassifierLG(m, graph2,null).predictTransitionsFromState(graph2.getInit(), Collections.singletonList(lblC),m.getChunkLen(),true, null), IllegalArgumentException.class, "cannot be made by extension");
 	}
 	
 	/** Almost the same as {@link TestMarkovLearner#testPredictTransitionsFromStatesForward2a()} except that the path beyond is empty rather than null. */
@@ -1316,7 +1192,7 @@ public class TestMarkovLearner
 		Assert.assertEquals(4,m.computePredictionMatrix().size());
 		
 		final LearnerGraph graph2 = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->A/ T-u->T-b->T","testPredictTransitionsFromStatesForward2",config, converter);
-		Map<Label,MarkovOutcome> outgoing_labels_probabilities=new MarkovClassifierLG(m, graph2,null).predictTransitionsFromState(graph2.findVertex("B"),Arrays.asList(new Label[]{}),m.getChunkLen(),true, null);
+		Map<Label,MarkovOutcome> outgoing_labels_probabilities=new MarkovClassifierLG(m, graph2,null).predictTransitionsFromState(graph2.findVertex("B"), Collections.emptyList(),m.getChunkLen(),true, null);
 		Assert.assertEquals(2,outgoing_labels_probabilities.size());
 		Assert.assertEquals(MarkovOutcome.negative,outgoing_labels_probabilities.get(lblU));
 		Assert.assertEquals(MarkovOutcome.positive,outgoing_labels_probabilities.get(lblB));
@@ -1334,7 +1210,7 @@ public class TestMarkovLearner
 		Assert.assertEquals(4,m.computePredictionMatrix().size());
 		
 		final LearnerGraph graph2 = FsmParserStatechum.buildLearnerGraph("A-d->B / A-c->A/ T-u->T-b->T","testPredictTransitionsFromStatesForward2",config, converter);
-		Map<Label,MarkovOutcome> outgoing_labels_probabilities=new MarkovClassifierLG(m, graph2,null).predictTransitionsFromState(graph2.findVertex("B"),Arrays.asList(new Label[]{lblA}),m.getChunkLen(),true, null);
+		Map<Label,MarkovOutcome> outgoing_labels_probabilities=new MarkovClassifierLG(m, graph2,null).predictTransitionsFromState(graph2.findVertex("B"), Collections.singletonList(lblA),m.getChunkLen(),true, null);
 		Assert.assertEquals(2,outgoing_labels_probabilities.size());
 		Assert.assertEquals(MarkovOutcome.negative,outgoing_labels_probabilities.get(lblU));
 		Assert.assertEquals(MarkovOutcome.positive,outgoing_labels_probabilities.get(lblB));
@@ -1352,13 +1228,7 @@ public class TestMarkovLearner
 		Assert.assertEquals(4,m.computePredictionMatrix().size());
 		
 		final LearnerGraph graph2 = FsmParserStatechum.buildLearnerGraph("A-d->B / A-c->A/ T-u->T-b->T","testPredictTransitionsFromStatesForward2",config, converter);
-		TestHelper.checkForCorrectException(new whatToRun() {
-			@Override
-			public void run() throws NumberFormatException
-			{
-				new MarkovClassifierLG(m, graph2,null).predictTransitionsFromState(graph2.findVertex("B"),Arrays.asList(new Label[]{lblA,lblB}),m.getChunkLen(),true, null);
-			}
-		}, IllegalArgumentException.class, "supplied path");
+		TestHelper.checkForCorrectException(() -> new MarkovClassifierLG(m, graph2,null).predictTransitionsFromState(graph2.findVertex("B"),Arrays.asList(lblA,lblB),m.getChunkLen(),true, null), IllegalArgumentException.class, "supplied path");
 	}
 
 	
@@ -1711,7 +1581,7 @@ public class TestMarkovLearner
 		
 		Assert.assertNull(graph.findVertex("A").getColour());Assert.assertNull(graph.findVertex("D").getColour());
 
-		Set<CmpVertex> expected = new TreeSet<CmpVertex>(Arrays.asList(new CmpVertex[]{graph.findVertex("A")})), actual = new TreeSet<CmpVertex>(previousFrontline);
+		Set<CmpVertex> expected = new TreeSet<>(Collections.singletonList(graph.findVertex("A"))), actual = new TreeSet<>(previousFrontline);
 		Assert.assertEquals(expected,actual);
 	}
 	
@@ -1724,7 +1594,7 @@ public class TestMarkovLearner
 		Assert.assertNull(graph.findVertex("A").getColour());Assert.assertNull(graph.findVertex("B").getColour());Assert.assertNull(graph.findVertex("C").getColour());
 		Assert.assertSame(JUConstants.RED, graph.findVertex("D").getColour());
 
-		Set<CmpVertex> expected = new TreeSet<CmpVertex>(Arrays.asList(new CmpVertex[]{graph.findVertex("B"),graph.findVertex("C")})), actual = new TreeSet<CmpVertex>(previousFrontline);
+		Set<CmpVertex> expected = new TreeSet<>(Arrays.asList(graph.findVertex("B"), graph.findVertex("C"))), actual = new TreeSet<>(previousFrontline);
 		Assert.assertEquals(expected,actual);
 	}
 	
@@ -1733,13 +1603,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->C-a->A-b->B-a->D / C-b->C","testLabelStatesAwayFromRoot1",config, converter);
 		
-		TestHelper.checkForCorrectException(new whatToRun() {
-			@Override
-			public void run() throws NumberFormatException
-			{
-				LearningSupportRoutines.labelStatesAwayFromRoot(graph,3);
-			}
-		}, IllegalArgumentException.class, "no states");
+		TestHelper.checkForCorrectException(() -> LearningSupportRoutines.labelStatesAwayFromRoot(graph,3), IllegalArgumentException.class, "no states");
 	}
 
 	@Test
@@ -1747,13 +1611,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E","testIdentifyUncoveredTransitions1a",config, converter);
 		final LearnerGraph reference = FsmParserStatechum.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / B-x->B / T-b->T-u->T","testIdentifyUncoveredTransitions1b",config, converter);
-		TestHelper.checkForCorrectException(new whatToRun() {
-			@Override
-			public void run() throws NumberFormatException
-			{
-				LearningSupportRoutines.identifyUncoveredTransitions(graph,reference);
-			}
-		}, IllegalArgumentException.class, "PTA is not");		
+		TestHelper.checkForCorrectException(() -> LearningSupportRoutines.identifyUncoveredTransitions(graph,reference), IllegalArgumentException.class, "PTA is not");
 	}
 	
 	@Test
@@ -1889,13 +1747,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C1 / B-u->E","testIdentifyUncoveredTransitions2a",config, converter);
 		final LearnerGraph reference = FsmParserStatechum.buildLearnerGraph("A-a->D","testIdentifyUncoveredTransitions3",config, converter);
-		TestHelper.checkForCorrectException(new whatToRun() {
-			@Override
-			public void run() throws NumberFormatException
-			{
-				LearningSupportRoutines.identifyUncoveredTransitions(graph,reference);
-			}
-		}, IllegalArgumentException.class, "coverage has more transitions");		
+		TestHelper.checkForCorrectException(() -> LearningSupportRoutines.identifyUncoveredTransitions(graph,reference), IllegalArgumentException.class, "coverage has more transitions");
 	}
 	
 	@Test
@@ -1912,13 +1764,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C1 / B-u->E","testIdentifyUncoveredTransitions2a",config, converter);
 		final LearnerGraph reference = FsmParserStatechum.buildLearnerGraph("A-a->D","testIdentifyUncoveredTransitions3",config, converter);
-		TestHelper.checkForCorrectException(new whatToRun() {
-			@Override
-			public void run() throws NumberFormatException
-			{
-				LearningSupportRoutines.trimUncoveredTransitions(graph,reference);
-			}
-		}, IllegalArgumentException.class, "coverage has more transitions");		
+		TestHelper.checkForCorrectException(() -> LearningSupportRoutines.trimUncoveredTransitions(graph,reference), IllegalArgumentException.class, "coverage has more transitions");
 	}
 	
 	@Test
@@ -2252,7 +2098,7 @@ public class TestMarkovLearner
 		{
 			ndFSM.addVertex(ndFSM.addVertex(fsm.findVertex("A"), true, lblA),true,lblA);
 		}
-		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(List.of(),config,converter),fsm.findVertex("A")));
+		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Collections.emptyList(),config,converter),fsm.findVertex("A")));
 		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("a","b"),config,converter),fsm.findVertex("A")));
 		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("a","a"),config,converter),fsm.findVertex("A")));
 	}
@@ -2287,7 +2133,7 @@ public class TestMarkovLearner
 			ndFSM.addVertex(ndFSM.addVertex(ndFSM.addVertex(fsm.findVertex("A"), true, lblA),true,lblA),true,lblA);
 		}
 		Assert.assertEquals(10,ndFSM.getStateNumber());
-		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(List.of(),config,converter),fsm.findVertex("A")));
+		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Collections.emptyList(),config,converter),fsm.findVertex("A")));
 		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("a","b"),config,converter),fsm.findVertex("A")));
 		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("a","a","a"),config,converter),fsm.findVertex("A")));
 		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("a","a","a","a"),config,converter),fsm.findVertex("A")));
@@ -2306,7 +2152,7 @@ public class TestMarkovLearner
 			ndFSM.addVertex(ndFSM.addVertex(ndFSM.addVertex(fsm.findVertex("B"), true, lblA),true,lblA),true,lblC);
 		}
 		Assert.assertEquals(10,ndFSM.getStateNumber());
-		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(List.of(),config,converter),fsm.findVertex("A")));
+		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Collections.emptyList(),config,converter),fsm.findVertex("A")));
 		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("t","b"),config,converter),fsm.findVertex("A")));
 		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("t","a","a","a"),config,converter),fsm.findVertex("A")));
 		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("t","a","a","a","a"),config,converter),fsm.findVertex("A")));
@@ -2330,7 +2176,7 @@ public class TestMarkovLearner
 			ndFSM.addVertex(Brej,false,lblC);
 		}
 		Assert.assertEquals(13,ndFSM.getStateNumber());
-		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(List.of(),config,converter),fsm.findVertex("A")));
+		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Collections.emptyList(),config,converter),fsm.findVertex("A")));
 		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("t","b"),config,converter),fsm.findVertex("A")));
 		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("t","a","a","a"),config,converter),fsm.findVertex("A")));
 		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("t","a","a","a","a"),config,converter),fsm.findVertex("A")));
@@ -2340,8 +2186,8 @@ public class TestMarkovLearner
 		Assert.assertFalse(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("t","a","a","a","c"),config,converter),fsm.findVertex("A")));
 		Assert.assertFalse(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("t","a","a","a","a","a"),config,converter),fsm.findVertex("A")));
 
-		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(List.of(),config,converter),fsm.findVertex("B")));
-		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(List.of("b"),config,converter),fsm.findVertex("B")));
+		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Collections.emptyList(),config,converter),fsm.findVertex("B")));
+		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Collections.singletonList("b"),config,converter),fsm.findVertex("B")));
 		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("a","a","a"),config,converter),fsm.findVertex("B")));
 		Assert.assertTrue(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("a","a","a","a"),config,converter),fsm.findVertex("B")));
 		Assert.assertFalse(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("a","a","c"),config,converter),fsm.findVertex("B")));
@@ -2350,9 +2196,9 @@ public class TestMarkovLearner
 		Assert.assertFalse(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("a","a","a","c"),config,converter),fsm.findVertex("B")));
 		Assert.assertFalse(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Arrays.asList("a","a","a","a","a"),config,converter),fsm.findVertex("B")));
 
-		Assert.assertFalse(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(List.of(),config,converter),Brej));
-		Assert.assertFalse(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(List.of("t"),config,converter),Brej));
-		Assert.assertFalse(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(List.of("b"),config,converter),Brej));
+		Assert.assertFalse(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Collections.emptyList(),config,converter),Brej));
+		Assert.assertFalse(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Collections.singletonList("t"),config,converter),Brej));
+		Assert.assertFalse(MarkovClassifier.tracePath(ndFSM,AbstractLearnerGraph.buildList(Collections.singletonList("b"),config,converter),Brej));
 	}
 	
 	

@@ -366,7 +366,7 @@ public class LearningSupportRoutines
 	public static PairScore pickPairQSMLike(Collection<PairScore> pairs)
 	{
 		ArrayList<PairScore> pairsSorted = new ArrayList<>(pairs);
-		Collections.sort(pairsSorted, new Comparator<>() {
+		Collections.sort(pairsSorted, new Comparator<PairScore>() {
 
 			@Override
 			public int compare(PairScore o1, PairScore o2) {

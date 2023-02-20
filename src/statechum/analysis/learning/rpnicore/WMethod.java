@@ -91,7 +91,7 @@ public class WMethod
 	{
 		Set<Label> alphabet =  coregraph.learnerCache.getAlphabet();
 		List<List<Label>> partialSet = coregraph.pathroutines.computeStateCover(coregraph.getInit());
-		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(List.of());
+		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Collections.emptyList());
 		transitionCover = crossWithSet(partialSet,alphabet);transitionCover.addAll(partialSet);
 
 		SlowPrefixFreeCollection testsequenceCollection = new SlowPrefixFreeCollection();
@@ -110,7 +110,7 @@ public class WMethod
 	{
 		Set<Label> alphabet =  coregraph.learnerCache.getAlphabet();
 		List<List<Label>> stateCover = coregraph.pathroutines.computeStateCover(initialState);
-		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(List.of());
+		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Collections.emptyList());
 		transitionCover = crossWithSet(stateCover,alphabet);transitionCover.addAll(stateCover);
 
 		PTASequenceEngine engine = new PTA_FSMStructure(coregraph,initialState);

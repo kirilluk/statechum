@@ -235,7 +235,7 @@ public final class TestGraphConstruction extends TestWithMultipleConfigurations
 	{
 		Map<Label,List<CmpVertex>> trans = createLabelToStateMap(labelList(new String[] {"t"}), new StringVertex("A"),
 			createLabelToStateMap(AbstractLearnerGraph.buildList(Arrays.asList("b","e"),config,converter), new StringVertex("A"),
-				createLabelToStateMap(AbstractLearnerGraph.buildList(List.of("f"),config,converter), new StringVertex("C"),null)));
+				createLabelToStateMap(AbstractLearnerGraph.buildList(Collections.singletonList("f"),config,converter), new StringVertex("C"),null)));
 		List<CmpVertex> 
 			A=Arrays.asList(new CmpVertex[]{new StringVertex("A")}),
 			C=Arrays.asList(new CmpVertex[]{new StringVertex("C")}),

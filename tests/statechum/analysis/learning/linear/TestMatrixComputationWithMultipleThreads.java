@@ -234,7 +234,7 @@ public class TestMatrixComputationWithMultipleThreads {
 	/** "Identity" sets diagonal to 2 because that's what we do 
 	 * in order to normalise the result of linear solution. 
 	 */
-	private static DoubleMatrix2D createIdentity(int size)
+	private static DoubleMatrix2D createIdentity(@SuppressWarnings("SameParameterValue") int size)
 	{
 		DoubleMatrix2D matrix=DoubleFactory2D.sparse.make(size, size);
 		for(int i=0;i<size;++i) matrix.setQuick(i, i, 2);
@@ -515,7 +515,7 @@ public class TestMatrixComputationWithMultipleThreads {
 		final GDLearnerGraph ndGraph = new GDLearnerGraph(gr, filter, false);
 		List<GDLearnerGraph.HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
 		for (int threadCnt = 0; threadCnt < ThreadNumber; ++threadCnt)
-			handlerList.add(new GDLearnerGraph.HandleRow<>() {
+			handlerList.add(new GDLearnerGraph.HandleRow<List<CmpVertex>>() {
 				@Override
 				public void init(@SuppressWarnings("unused") int threadNo) {
 					// No per-thread initialisation is needed.
@@ -605,7 +605,7 @@ public class TestMatrixComputationWithMultipleThreads {
 	public final void TestFindIncompatibleStates1()
 	{
 		LearnerGraph gr=buildLearnerGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A-c-#R","TestFindIncompatibleStates1",config,converter);
-		findIncompatibleTestHelper(gr, List.of(new StringPair("A", "D")));
+		findIncompatibleTestHelper(gr, Collections.singletonList(new StringPair("A", "D")));
 	}
 
 	/** Tests that if A is not compatible to C and D, this is recorded. */
@@ -711,7 +711,7 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr=buildLearnerGraph("E-a->C-a->A-b-#R\nE-c->C-c->E\nB-c->H-c->G-c->F-c->D-c->B-b->Q\n"
 				,"TestFindIncompatibleStates8",config,converter);
 
-		findIncompatibleTestHelper(gr, List.of(new StringPair("A", "B")));
+		findIncompatibleTestHelper(gr, Collections.singletonList(new StringPair("A", "B")));
 	}
 	
 	@Test
@@ -731,7 +731,7 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr=buildLearnerGraph("B-a->C-a-#A\nC-b-#A"
 				,"TestFindIncompatibleStates10",config,converter);
 
-		findIncompatibleTestHelper(gr, List.of(new StringPair("C", "B")));
+		findIncompatibleTestHelper(gr, Collections.singletonList(new StringPair("C", "B")));
 	}
 	
 	public static Set<PairScore> addAllPermutations(Collection<PairScore> scores)

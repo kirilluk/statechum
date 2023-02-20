@@ -650,7 +650,7 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
     @Override
     public Set<K> keySet() {
         if (keySet == null) {
-            keySet = new AbstractSet<>() {
+            keySet = new AbstractSet<K>() {
                 @Override
                 public boolean contains(Object object) {
                     return containsKey(object);
@@ -722,7 +722,7 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
     @Override
     public Collection<V> values() {
         if (valuesCollection == null) {
-            valuesCollection = new AbstractSet<>() {
+            valuesCollection = new AbstractSet<V>() {
                 @Override
                 public boolean contains(Object object) {
                     return containsValue(object);

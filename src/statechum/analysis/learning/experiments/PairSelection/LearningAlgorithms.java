@@ -19,21 +19,7 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Random;
-import java.util.Set;
-import java.util.Stack;
-import java.util.Timer;
+import java.util.*;
 import java.util.Map.Entry;
 
 import harmony.collections.HashMapWithSearch;
@@ -232,7 +218,7 @@ public class LearningAlgorithms
 		{
 			totalReds = reds.size()+1;
 			
-			List<CmpVertex> verts = new ArrayList<CmpVertex>(reds.size()+2);// we ensure there is at least one spare slot left, otherwise array may choose to resize itself.
+			List<CmpVertex> verts = new ArrayList<>(reds.size() + 2);// we ensure there is at least one spare slot left, otherwise array may choose to resize itself.
 			verts.addAll(reds);verts.add(redVertex);
 			Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(graph, verts);
 			CmpVertex refVertRed = referenceGraph.getVertex(stateToPath.get(redVertex));
@@ -850,8 +836,8 @@ public class LearningAlgorithms
 		{
 			config = argInitialPTA.config;
 			
-			Set<CmpVertex> visited = new HashSet<CmpVertex>();
-			Collection<CmpVertex> frontLine = new LinkedList<CmpVertex>(), nextLine = new LinkedList<CmpVertex>();
+			Set<CmpVertex> visited = new HashSet<>();
+			Collection<CmpVertex> frontLine = new LinkedList<>(), nextLine = new LinkedList<>();
 			
 			CmpVertex stateWithUniqueTransition = null;
 			if (argInitialPTA.transitionMatrix.get(argInitialPTA.getInit()).containsKey(uniqueFromInitial))
@@ -876,7 +862,7 @@ public class LearningAlgorithms
 							}
 						}
 				
-				frontLine = nextLine;nextLine=new LinkedList<CmpVertex>();
+				frontLine = nextLine;nextLine= new LinkedList<>();
 			}
 
 			if (stateWithUniqueTransition == null)
@@ -1650,7 +1636,7 @@ public class LearningAlgorithms
 				}
 			List<HandleRow<CmpVertex>> handlerList = new LinkedList<>();
 			for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
-			handlerList.add(new HandleRow<>() {
+			handlerList.add(new HandleRow<CmpVertex>() {
 				@Override
 				public void init(@SuppressWarnings("unused") int threadNo) {
 					// No per-thread initialisation is needed.

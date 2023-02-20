@@ -20,7 +20,6 @@ package statechum.model.testset;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -569,7 +568,7 @@ public class PTASequenceEngine
 	public List<List<Label>> getData(final FilterPredicate predicate)
 	{
 		final List<List<Label>> result = new LinkedList<>();
-		PTAExploration<Boolean> exploration = new PTAExploration<>(PTASequenceEngine.this) {
+		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(PTASequenceEngine.this) {
 			@Override
 			public Boolean newUserObject() {
 				return Boolean.TRUE;
@@ -655,7 +654,7 @@ public class PTASequenceEngine
 	public Map<String,String> getDebugDataMapDepth(final SequenceSet targetNodes)
 	{
 		final Map<String,String> setToBeReturned = new HashMap<>();
-		PTAExploration<Boolean> exploration = new PTAExploration<>(PTASequenceEngine.this) {
+		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(PTASequenceEngine.this) {
 			@Override
 			public Boolean newUserObject() {
 				return Boolean.TRUE;
@@ -800,7 +799,7 @@ public class PTASequenceEngine
 		 * The value is set to false if we've discovered that not 
 		 * all paths from the current node lead to reject nodes. 
 		 */ 
-		PTAExploration<Boolean> exploration = new PTAExploration<>(PTASequenceEngine.this) {
+		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(PTASequenceEngine.this) {
 			@Override
 			public Boolean newUserObject() {
 				return Boolean.TRUE;
@@ -873,7 +872,7 @@ public class PTASequenceEngine
 	{
 		final AtomicInteger counterCompressed = new AtomicInteger(-1), counterUncompressed = new AtomicInteger(0);
 		
-		PTAExploration<Boolean> exploration = new PTAExploration<>(pta) {
+		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(pta) {
 			@Override
 			public Boolean newUserObject() {
 				return null;

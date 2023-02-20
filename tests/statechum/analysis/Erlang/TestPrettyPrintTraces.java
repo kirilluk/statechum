@@ -56,13 +56,7 @@ public class TestPrettyPrintTraces {
 	}
 
 	private Configuration config;
-	
-	@BeforeClass
-	public static void beforeClass()
-	{
-		ErlangRuntime.getDefaultRuntime();
-	}
-	
+
 	@AfterClass
 	public static void afterClass()
 	{

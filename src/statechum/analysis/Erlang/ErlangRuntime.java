@@ -101,7 +101,7 @@ public class ErlangRuntime {
 	/** Most of the time, one would not need to start multiple runtime instances, or use custom parameters. For this purpose, a single runner is good enough and it can be obtained by calling the method below. */
 	public static ErlangRuntime getDefaultRuntime()
 	{
-		if (defaultRuntime == null) 
+		if (defaultRuntime == null || defaultRuntime.erlangProcess == null)
 		{
 			defaultRuntime = new ErlangRuntime();defaultRuntime.startRunner();
 		}

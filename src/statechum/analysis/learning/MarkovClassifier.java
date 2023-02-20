@@ -841,13 +841,11 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 								PredictionForSequence prediction = MarkovMatrixEngine.getPredictionIfExists(lastElementToPrediction, label);
 								MarkovOutcome predicted_from_Markov = prediction != null ? prediction.prediction : null;
 								MarkovOutcome outcome = MarkovOutcome.reconcileOpinions_PosNeg_Overrides_Null(predictedFromEalierTrace, predicted_from_Markov);
-								if (outcome != predictedFromEalierTrace) {// we learnt something new, be it a new value (or a non-null value) or a failure, record it
+								if (outcome != predictedFromEalierTrace) // we learnt something new, be it a new value (or a non-null value) or a failure, record it
 									if (outcome == MarkovOutcome.failure) {
 										failureLabels.add(label);
 										outgoing_labels_probabilities.remove(label);
 									} else
-										outgoing_labels_probabilities.put(label, outcome);
-								} else
 									outgoing_labels_probabilities.put(label, outcome);// update the current prediction based on a composition of results from this path (pathToNewState) and the previous one (predictedFromEalierTrace).
 							}
 						}

@@ -14,9 +14,18 @@
  * 
  * You should have received a copy of the GNU General Public License
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * Erlang 24.3.3 requires updated JInterface.jar because connections from the old one are rejected by the
- * Erlang runtime.
+ */
+
+/*
+ * IMPORTANT:
+ * Compared to Erlang OTP 18 and earlier, Erlang 24.3.3 requires updated OtpErlang.jar because connections from the old one are
+ * rejected by the Erlang runtime. In a similar way, new OtpErlang.jar does not wrok with OTP 18. For this reason, one has to select
+ * the correct OtpErlang.jar. This can be done at runtime using classloaders but rather inconvenient during development
+ * because new OtpErlang supports Map type that is missing from old Erlang and maps are part of type system that is
+ * supported by newer typer and statechum's Erlang parser. When a jar is loaded at runtime, it will not be visible to an IDE
+ * used during development. Hence we expect an end-developer-user to configure Statechum to use either one or another OtpErlang.
+ * In addition to the above, map types are included in the lib/Erlang24 that needs to be compiled into Statechum.
+ * build.xml for ant build has been modified to support Erlang24 only.
  *
  * In order to run Erlang on Win32, the following VM args can be used:
  * -ea -DVIZ_CONFIG=kirill_office -Dthreadnum=2 -Djava.library.path="linear/.libs;smt/.libs" -Xmx1500m -DERLANGHOME="D:\Program~1\erl5.8.2"
@@ -208,7 +217,7 @@ public class ErlangRunner {
 
 
 	/** Maps different processes on our node. */
-	protected static final Map<String,ErlangRunner> nameToRunnerMap = new HashMap<String,ErlangRunner>();
+	protected static final Map<String,ErlangRunner> nameToRunnerMap = new HashMap<>();
 	protected static int runnerNumber = 0;
 	protected final String runnerMBox;
 
@@ -294,7 +303,7 @@ public class ErlangRunner {
 	{
 		synchronized(nameToRunnerMap)
 		{
-			List<ErlangRunner> whatToRemove = new LinkedList<ErlangRunner>();
+			List<ErlangRunner> whatToRemove = new LinkedList<>();
 			for(Map.Entry<String,ErlangRunner> r:nameToRunnerMap.entrySet())
 				if (r.getValue().traceRunnerNode.equals(traceRunnerNode))
 					whatToRemove.add(r.getValue());
@@ -413,7 +422,7 @@ public class ErlangRunner {
 	/** Passes Statechum configuration to Erlang. */
 	public void configurationToErlang(Configuration config) {
 		Class<? extends Configuration> clazz = config.getClass();
-		List<OtpErlangTuple> nameToValue = new LinkedList<OtpErlangTuple>();
+		List<OtpErlangTuple> nameToValue = new LinkedList<>();
 
 		for (Field var : clazz.getDeclaredFields()) {
 			// based on constructArgList of AttributeMutator

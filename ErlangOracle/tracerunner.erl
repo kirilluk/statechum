@@ -245,7 +245,8 @@ handle_call({evaluateTerm,String}, _From, State) ->
 		{ value, Value, _NewBindings} = erl_eval:exprs(Tree,[]),
 		{ reply, { ok, Value }, State }
 	catch
-		ErrClass:Error:StackTrace -> {reply, {failed,[ErrClass,Error,StackTrace]}, State}
+		ErrClass:Error -> {reply, {failed,[ErrClass,Error]}, State}
+%		ErrClass:Error:StackTrace -> {reply, {failed,[ErrClass,Error,StackTrace]}, State}
 	end;
 
 %% Compiles modules into .beam files, Dir is where to put results, should exist.

@@ -58,7 +58,12 @@ public class TestErlangModule
 	protected Configuration config = Configuration.getDefaultConfiguration().copy();
 	protected ErlangRunner runner = null;
 	protected static ErlangRuntime erlRuntime;
-	
+
+	/** The name of test file - should not be static to ensure it picks the value of TestErlangRunner's variable
+	 * after it has been initialised.
+	 */
+	protected String erlangFile = null, erlangFileOther = null;
+
 	public TestErlangModule()
 	{
 	}
@@ -565,11 +570,6 @@ public class TestErlangModule
 		Assert.assertEquals(expected,trace);
 	}
 
-	/** The name of test file - should not be static to ensure it picks the value of TestErlangRunner's variable
-     * after it has been initialised.
-     */
-	protected String erlangFile = null, erlangFileOther = null;
-    
     @Test
     public void testInvalidModuleName() throws IOException
     {
@@ -809,96 +809,6 @@ public class TestErlangModule
 				"]"
 				,TestTypes.getAlphabetAsString(mod ));
     }
-
-	@Test
-	public void testLoadExports3() throws IOException
-	{
-		final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun(3)->#{4 => 5}.";
-		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
-		ErlangModule mod = ErlangModule.loadModule(config);
-		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{4 => 5}}"+
-						"]"
-				,TestTypes.getAlphabetAsString(mod ));
-	}
-
-	@Test
-	public void testLoadExports4() throws IOException
-	{
-		final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun(3)->#{4 => 5};\ntestFun(4)->#{6 => 6}.";
-		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
-		ErlangModule mod = ErlangModule.loadModule(config);
-		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{4 => 5,6 => 6}}," +
-						"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{}}" +// this is technically incorrect but cannot be made correct due to the abstraction of the data types by typer.
-						"]"
-				,TestTypes.getAlphabetAsString(mod ));
-	}
-
-	@Test
-	public void testLoadExports5() throws IOException
-	{
-		final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun(3)->#{4 => 5};\ntestFun(4)->#{4 => 6}.";
-		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
-		ErlangModule mod = ErlangModule.loadModule(config);
-		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{4 => 5}}" + // instantiate all pairs picks one of the values from a set of values hence we only get one pair.
-						"]"
-				,TestTypes.getAlphabetAsString(mod ));
-	}
-
-	@Test
-	public void testLoadExports6() throws IOException
-	{
-		final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun(3)->#{4 => 5, 6 =>8};\ntestFun(4)->#{6 => 1}.";
-		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
-		ErlangModule mod = ErlangModule.loadModule(config);
-		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{6 => 1,4 => 5}}," +
-						"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{6 => 1}}" +// 6 is a mandatory key hence always present and 4 is an optional one hence not always present.
-						"]"
-				,TestTypes.getAlphabetAsString(mod ));
-	}
-
-	@Test
-	public void testLoadExports7() throws IOException
-	{
-		final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun(3)->#{}.";
-		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
-		ErlangModule mod = ErlangModule.loadModule(config);
-		Assert.assertEquals("[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[3],#{}}" +
-						"]"
-				,TestTypes.getAlphabetAsString(mod ));
-	}
-
-	@Test
-	public void testLoadExports8() throws IOException
-	{
-		final String someErlang = "-module(testFile).\n-export([testFun/1]).\ntestFun(3)->#{4 => 5};\ntestFun(Arg) ->#{4 => 8,Arg => 6}.";
-		Writer wr = new FileWriter(erlangFile);wr.write(someErlang);wr.close();
-		ErlangModule.setupErlangConfiguration(config,new File(erlangFile));
-		ErlangModule mod = ErlangModule.loadModule(config);
-		Assert.assertEquals(
-			// here Arg has Any type and value is 6.
-			"[{"+ErlangLabel.missingFunction+",'testFile:testFun/1',['JustAnythingA'],#{4 => 5,'JustAnythingA' => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',['JustAnythingA'],#{4 => 5,[] => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',['JustAnythingA'],#{4 => 5,['WibbleA'] => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',['JustAnythingA'],#{4 => 5,['WibbleA','WobbleA'] => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],#{4 => 5,'JustAnythingA' => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],#{4 => 5,[] => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],#{4 => 5,['WibbleA'] => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[[]],#{4 => 5,['WibbleA','WobbleA'] => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA']],#{4 => 5,'JustAnythingA' => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA']],#{4 => 5,[] => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA']],#{4 => 5,['WibbleA'] => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA']],#{4 => 5,['WibbleA','WobbleA'] => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA','WobbleA']],#{4 => 5,'JustAnythingA' => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA','WobbleA']],#{4 => 5,[] => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA','WobbleA']],#{4 => 5,['WibbleA'] => 6}}," +
-			"{"+ErlangLabel.missingFunction+",'testFile:testFun/1',[['WibbleA','WobbleA']],#{4 => 5,['WibbleA','WobbleA'] => 6}}]"
-				,TestTypes.getAlphabetAsString(mod ));
-	}
 
 	@Test
 	public void testLoadExports9() throws IOException

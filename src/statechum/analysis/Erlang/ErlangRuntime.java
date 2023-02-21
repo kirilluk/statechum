@@ -277,9 +277,9 @@ public class ErlangRuntime {
 				// there is no need for dialyzer_options:build(Opts) to call
 				// dialyzer_plt:get_default_plt()
 				// before build_options(Opts, DefaultOpts1).
-				List<String> envpList = new LinkedList<String>();
+				List<String> envpList = new LinkedList<>();
 				
-				Map<String,String> newValues = new TreeMap<String,String>();
+				Map<String,String> newValues = new TreeMap<>();
 				newValues.put("HOME",new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_ERLANGBEAM)).getAbsolutePath());
 				newValues.put("ERL_MAX_PORTS","1024");// to limit the size of each Erlang instance to a few meg from a few hundred meg
 
@@ -336,7 +336,7 @@ public class ErlangRuntime {
 					try {
 						processWithErlangRuntime.exitValue();
 						// process terminated, record this as a failure
-						timeout = 0;
+						timeout = -1;
 					} catch (IllegalThreadStateException e) {
 						// process not yet terminated, hence we keep waiting
 						--timeout;
@@ -345,6 +345,9 @@ public class ErlangRuntime {
 				if (timeout <= 0) 
 				{
 					final long endTime = System.currentTimeMillis();
+					if (timeout < 0)
+						throw new IllegalArgumentException("server failed to start");
+
 					throw new IllegalArgumentException("timeout waiting for a server to start after " + (endTime - startTime) + "ms");
 				}
 				ErlangRunner runner = new ErlangRunner(traceRunnerNode);

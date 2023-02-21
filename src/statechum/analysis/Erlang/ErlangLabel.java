@@ -25,10 +25,9 @@ import statechum.analysis.Erlang.Signatures.FuncSignature;
 import statechum.analysis.Erlang.Signatures.Signature;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
 
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.util.*;
-
-import static statechum.analysis.Erlang.ErlangLabel.ErlangMap.ParseState.EXPECT_SEPARATOR;
 
 /**
  * 
@@ -200,134 +199,6 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		 */
 		OtpErlangObject parseObject(Lexer lex);
 	}
-	public static class ErlangMap implements ErlangParserComponent {
-		private static final ErlangMap singleton = new ErlangMap();
-
-		public static ErlangMap getSingleton() {
-			return singleton;
-		}
-
-		@Override
-		public void dump(OtpErlangObject arg, StringBuffer resultHolder) {
-			OtpErlangMap tuple = (OtpErlangMap) arg;
-
-			resultHolder.append("#{");
-			boolean first = true;
-			for (Map.Entry<OtpErlangObject, OtpErlangObject> pair : tuple.entrySet()) {
-				if (!first)
-					resultHolder.append(',');
-				else
-					first = false;
-				classToDumper.get(pair.getKey().getClass()).dump(pair.getKey(), resultHolder);
-				resultHolder.append(" => ");
-				classToDumper.get(pair.getValue().getClass()).dump(pair.getValue(), resultHolder);
-			}
-			resultHolder.append("}");
-		}
-		enum ParseState {
-				EXPECT_FIRST("first element of pair"), EXPECT_SEPARATOR("=>"), EXPECT_SECOND("second element of pair"), EXPECT_COMMA(",");
-			private final String token;
-
-			public String getToken() {
-				return token;
-			}
-
-			ParseState(String tok) {
-				token = tok;
-			}
-		}
-
-		@Override
-		public OtpErlangObject parseObject(Lexer lexer) {
-			assert lexer.getLastMatchType() == erlMapBegin;
-
-			List<OtpErlangObject> mapKeys = new ArrayList<>(), mapValues = new ArrayList<>();
-
-			OtpErlangObject firstElementOfPair = null;
-			// Parser state.
-			ParseState parseState = ParseState.EXPECT_FIRST;
-			boolean pullNextToken = true;// this will normally be true - it is false where we called ourselves recursively to
-			 	// parse a chunk of data and the parser stopped at the end of that data. This means we need that ending token
-				// to continue parsing thus should not grab another token (effectively discarding the current one).
-			int currentMatch = lexer.getMatchType();
-			while (currentMatch != erlTupleEnd) {// parsing ErlangMap that is expected to end via erlTupleEnd
-				if (currentMatch < 0)
-					throw new IllegalArgumentException(
-							"unexpected end of map");
-
-				switch (currentMatch) {
-					case erlMapSep:
-						if (parseState != EXPECT_SEPARATOR)
-							throw new IllegalArgumentException(
-									"expecting => in parsing map, looking at "
-											+ lexer.getMatch());
-						parseState = ParseState.EXPECT_SECOND;
-						break;
-					case erlMapBegin:
-					case erlTupleBegin:
-					case erlListBegin:
-					case erlAtomQuote:
-					case erlBitStrBegin:
-					case erlString:
-						if (parseState == ParseState.EXPECT_FIRST) {
-							assert firstElementOfPair == null;
-							firstElementOfPair = tokenToParser.get(currentMatch).parseObject(lexer);
-							parseState = EXPECT_SEPARATOR;
-						} else
-						if (parseState == ParseState.EXPECT_SECOND) {
-							assert firstElementOfPair != null;
-							mapKeys.add(firstElementOfPair);mapValues.add(tokenToParser.get(currentMatch).parseObject(lexer));
-							parseState = ParseState.EXPECT_COMMA;firstElementOfPair = null;
-						} else
-							throw new IllegalArgumentException(
-									"expecting "+parseState.getToken()+" in parsing map, looking at "
-											+ lexer.getMatch());
-						break;
-					case erlPositiveNumber:
-					case erlNegativeNumber:
-					case erlDot:
-					case erlE:
-					case erlText:
-						if (parseState == ParseState.EXPECT_FIRST) {
-							assert firstElementOfPair == null;
-							firstElementOfPair = tokenToParser.get(currentMatch).parseObject(lexer);
-							parseState = EXPECT_SEPARATOR;
-						} else
-						if (parseState == ParseState.EXPECT_SECOND) {
-							assert firstElementOfPair != null;
-							mapKeys.add(firstElementOfPair);mapValues.add(tokenToParser.get(currentMatch).parseObject(lexer));
-							parseState = ParseState.EXPECT_COMMA;firstElementOfPair = null;
-						} else
-							throw new IllegalArgumentException(
-									"expecting "+parseState.getToken()+" in parsing map, looking at "
-											+ lexer.getMatch());
-
-						pullNextToken = false;
-						break;
-					case erlComma:
-						if (parseState != ParseState.EXPECT_COMMA)
-							throw new IllegalArgumentException(
-									"unexpected token in parsing map, looking at "
-											+ lexer.getMatch());
-						parseState = ParseState.EXPECT_FIRST;
-						break;
-					default:
-						throw new IllegalArgumentException("invalid token type "
-								+ currentMatch + " in parsing map, looking at "
-								+ lexer.getMatch()+ " so far parsed: "+mapKeys+" keys");
-				}
-				if (pullNextToken)
-					currentMatch = lexer.getMatchType();
-				else {// use the last token but pull the next one next time
-					// 'round
-					currentMatch = lexer.getLastMatchType();
-					pullNextToken = true;
-				}
-			}
-			return new OtpErlangMap(mapKeys.toArray(new OtpErlangObject[0]), mapValues.toArray(new OtpErlangObject[0]));
-		}
-
-	}
 
 	public static class ErlangTuple implements ErlangParserComponent {
 		private static final ErlangTuple singleton = new ErlangTuple();
@@ -476,6 +347,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				case erlString:
 					if (expectComma)
 						throw new IllegalArgumentException("expecting comma in parsing list, looking at "+lexer.getText());
+					//noinspection ConstantConditions
 					if (tail != null)
 						throw new IllegalArgumentException("an expression past the end of a tail of an improper list, matched "+
 								lexer.getMatch()+" was parsing "+lexer.getText());
@@ -501,6 +373,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 					if (expectComma)
 						throw new IllegalArgumentException(
 								"expecting comma in parsing list but matched "+lexer.getMatch()+" was parsing "+lexer.getText());
+					//noinspection ConstantConditions
 					if (tail != null)
 						throw new IllegalArgumentException("an expression past the end of a tail of an improper list, matched "+
 								lexer.getMatch()+" was parsing "+lexer.getText());
@@ -576,7 +449,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 			return singleton;
 		}
 
-		protected static final Set<Character> whatToQuoteForAtom = new HashSet<Character>();
+		protected static final Set<Character> whatToQuoteForAtom = new HashSet<>();
 
 		static {
 			for (char ch : new char[] { '\'', '\\', '\n', '\r' })
@@ -788,7 +661,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 			return singleton;
 		}
 
-		protected static final Set<Character> whatToQuoteForString = new HashSet<Character>();
+		protected static final Set<Character> whatToQuoteForString = new HashSet<>();
 
 		static {// perhaps make these if ( !Character.isAlphabetic(ch) && !Character.isDigit(ch) && ch != ' ')
 			for (char ch : new char[] { '\"', '\\', '\n', '\r' })
@@ -918,7 +791,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		public static final Set<String> typeStringsIgnored;
 
 		static {
-			Set<String> strings = new TreeSet<String>();
+			Set<String> strings = new TreeSet<>();
 			strings.add("integer");
 			typeStringsIgnored = Collections.unmodifiableSet(strings);
 		}
@@ -1075,7 +948,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 			}
 		}
 
-		List<Byte> data = new LinkedList<Byte>();
+		List<Byte> data = new LinkedList<>();
 		byte lastByte = 0;
 		int totalLen = 0;
 
@@ -1644,7 +1517,15 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 				return result;
 			}
 		};
-		classToDumper.put(OtpErlangMap.class, ErlangMap.getSingleton());
+
+		try {
+			Class statechumErlangMap = Class.forName("statechum.analysis.Erlang.ErlangMap");
+			Class erlangMap = Class.forName("com.ericsson.otp.erlang.OtpErlangMap");
+			classToDumper.put(erlangMap,(ErlangParserComponent)statechumErlangMap.getMethod("getSingleton",(Class[])null).invoke(null));
+		} catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | IllegalAccessException ignored) {
+			// ignore this - if we are here, the class is not available
+		}
+
 		classToDumper.put(OtpErlangTuple.class, ErlangTuple.getSingleton());
 		classToDumper.put(OtpErlangList.class, ErlangList.getSingleton());
 		classToDumper.put(OtpErlangAtom.class, ErlangQuotedAtom.getSingleton());
@@ -1665,9 +1546,14 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 	}
 	protected final static Map<Integer, ErlangParserComponent> tokenToParser;
 	static {
-		tokenToParser = new TreeMap<Integer, ErlangParserComponent>();
+		tokenToParser = new TreeMap<>();
 
-		tokenToParser.put(erlMapBegin, ErlangMap.getSingleton());
+		try {
+			Class mapClass = Class.forName("statechum.analysis.Erlang.ErlangMap");
+			tokenToParser.put(erlMapBegin, (ErlangParserComponent)mapClass.getMethod("getSingleton",(Class[])null).invoke(null));
+		} catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | IllegalAccessException ignored) {
+			// ignore this - if we are here, the class is not available
+		}
 		tokenToParser.put(erlTupleBegin, ErlangTuple.getSingleton());
 		tokenToParser.put(erlListBegin, ErlangList.getSingleton());
 		tokenToParser.put(erlAtomQuote, ErlangQuotedAtom.getSingleton());

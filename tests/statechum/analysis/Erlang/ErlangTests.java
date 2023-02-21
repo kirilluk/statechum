@@ -18,10 +18,11 @@
 package statechum.analysis.Erlang;
 
 import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import org.junit.runners.SuiteWithOptionalClasses.SuiteOptionalClasses;
+import org.junit.runners.SuiteWithOptionalClasses.SuiteClasses;
+import org.junit.runners.SuiteWithOptionalClasses;
 
-@RunWith(Suite.class)
+@RunWith(SuiteWithOptionalClasses.class)
 @SuiteClasses({
     statechum.analysis.Erlang.TestErlangStartupFailure.class,
     statechum.analysis.Erlang.TestErlangModule.class,
@@ -38,6 +39,7 @@ import org.junit.runners.Suite.SuiteClasses;
     statechum.analysis.Erlang.TestSynapse.class,
     statechum.analysis.Erlang.TestPrettyPrintTraces.class
 })
+@SuiteOptionalClasses({"statechum.analysis.Erlang.TestErlang24"})
 public class ErlangTests {// all tests are included in the annotation.
 }
 

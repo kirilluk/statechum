@@ -102,7 +102,7 @@ defK = possible_keys - all_used_in_pairs. Hence if defK - K is constructible it 
 
     @Override
     public List<OtpErlangObject> instantiateAllAlts() {
-        List<OtpErlangObject> result = new LinkedList<OtpErlangObject>();
+        List<OtpErlangObject> result = new LinkedList<>();
         List<Signature> mandatoryKeyValues = new ArrayList<>();
         for(int i=0;i<mandatoryKeys.size();++i) {
             mandatoryKeyValues.add(mandatoryKeys.get(i));mandatoryKeyValues.add(mandatoryValues.get(i));

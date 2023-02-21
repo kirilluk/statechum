@@ -1,8 +1,10 @@
 package statechum.analysis.Erlang;
 
 import static statechum.TestHelper.checkForCorrectException;
+import static statechum.TestHelper.checkForCorrectExceptionAnyOf;
 
 import java.io.File;
+import java.util.Arrays;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -55,25 +57,27 @@ public class TestErlangStartupFailure
 	@Test
 	public void testStartErlangFailure1b()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectExceptionAnyOf(new whatToRun() { public @Override void run() {
 			erlRuntime.startErlang("halt", 1000);
-		}},IllegalArgumentException.class,"timeout");
+		}},
+				IllegalArgumentException.class,Arrays.asList(new String[]{"timeout", "server failed to start"}));
 	}
 	
 	@Test
 	public void testStartErlangFailure2a()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectExceptionAnyOf(new whatToRun() { public @Override void run() {
 			erlRuntime.startErlang("error", 0);
-		}},IllegalArgumentException.class,"timeout");
+		}},IllegalArgumentException.class,Arrays.asList(new String[]{"timeout", "server failed to start"}));
 	}
 	
 	@Test
 	public void testStartErlangFailure2b()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectExceptionAnyOf(new whatToRun() { public @Override void run() {
 			erlRuntime.startErlang("error", 1000);
-		}},IllegalArgumentException.class,"timeout");
+		}},
+				IllegalArgumentException.class,Arrays.asList(new String[]{"timeout", "server failed to start"}));
 	}
 	
 	@Test
@@ -95,9 +99,9 @@ public class TestErlangStartupFailure
 		
 		
 		// Now attempt to start Erlang fails
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectExceptionAnyOf(new whatToRun() { public @Override void run() {
 			erlRuntime.startErlang("error", 1000);
-		}},IllegalArgumentException.class,"timeout");
+		}},IllegalArgumentException.class, Arrays.asList(new String[]{"timeout", "server failed to start"}));
 		
 		
 		// Still no runner

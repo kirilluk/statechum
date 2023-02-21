@@ -10,12 +10,9 @@ import statechum.Configuration;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
 
 import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
 
 import static statechum.TestHelper.checkForCorrectException;
 import static statechum.analysis.Erlang.ErlangLabel.erlBar;
-import static statechum.analysis.Erlang.ErlangLabel.erlMapSep;
 
 public class TestErlangParser {
 	
@@ -832,163 +829,6 @@ public class TestErlangParser {
 		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 
-
-	@Test
-	public void testParseMap1()
-	{
-		for(String text:new String[]{
-				" #{ a =>5, b =>text}"," #{ a =>5, b =>text }"," #{a =>5, b =>text}"," #{a =>5,b =>text}",
-				" #{ a => 5, b => text}"," #{ a => 5, b => text }"," #{a => 5, b => text}"," #{a => 5,b => text}"})
-		{
-			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangMap);
-			checkResponse(runner, "#{'a' => 5,'b' => 'text'}",text);
-		}
-	}
-
-	@Test
-	public void testParseMap2()
-	{
-		for(String text:new String[]{
-				" #{ }"," #{}","#{}"," #{ } "})
-		{
-			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangMap);
-			checkResponse(runner, "#{}",text);
-		}
-	}
-
-	@Test
-	public void testParseMap3()
-	{
-		for(String text:new String[]{
-				" #{ a => b }"," #{a => b}","#{a =>b }"," #{  a => b} "})
-		{
-			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangMap);
-			OtpErlangMap map = (OtpErlangMap) ErlangLabel.parseText(text);
-			Set<Map.Entry<OtpErlangObject, OtpErlangObject>> entryset = map.entrySet();
-			Assert.assertEquals(1, entryset.size());
-			Map.Entry<OtpErlangObject, OtpErlangObject> entry = entryset.iterator().next();
-			Assert.assertEquals(new OtpErlangAtom("a"),entry.getKey());
-			Assert.assertEquals(new OtpErlangAtom("b"),entry.getValue());
-			checkResponse(runner, "#{'a' => 'b'}",text);
-		}
-	}
-
-	@Test
-	public void testParseMap4()
-	{
-		for(String text:new String[]{
-				" #{ 45.8 => 8, e => 267.5E40 }"," #{45.8 =>8, e=> 267.5E40 }"," #{45.8 => 8, e =>267.5E40}"," #{ 45.8 => 8, e => 267.5E40}"})
-		{
-			Assert.assertTrue( ErlangLabel.parseText(text) instanceof OtpErlangMap);
-			checkResponse(runner, "#{45.8 => 8,'e' => 2.675E42}",text);
-		}
-	}
-
-	@Test
-	public void testParseMap1Fail1()
-	{
-		final String text = "#{a";
-		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected end of map");
-		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
-	}
-
-	@Test
-	public void testParseMap1Fail2()
-	{
-		final String text = "#{a #{";
-		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"expecting => in parsing map");
-		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
-	}
-
-	@Test
-	public void testParseMap1Fail3()
-	{
-		final String text = "#{a{}";
-		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"expecting => in parsing map");
-		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
-	}
-
-	@Test
-	public void testParseMap1Fail4()
-	{
-		final String text = "#{a,";
-		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected token in parsing map");
-		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
-	}
-
-	@Test
-	public void testParseMap1Fail5()
-	{
-		final String text = "#{a{ ";
-		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"expecting => in parsing map");
-		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
-	}
-
-	@Test
-	public void testParseMap1Fail6()
-	{
-		final String text = "#{a , ";
-		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected token in parsing map");
-		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
-	}
-
-	@Test
-	public void testParseMap1Fail7()
-	{
-		final String text = "#{a => ";
-		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected end of map");
-		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
-	}
-
-	@Test
-	public void testParseMap1Fail8()
-	{
-		final String text = "#{,";
-		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected token in parsing map");
-		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
-	}
-
-	@Test
-	public void testParseMap1Fail9()
-	{
-		final String text = "#{ , ";
-		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected token in parsing map");
-		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
-	}
-
-	@Test
-	public void testParseMap1Fail10()
-	{
-		final String text = "#{ 56 => u, hh";
-		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected end of map");
-		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
-	}
-
-	@Test
-	public void testParseMap1Fail11()
-	{
-		final String text = "#{ 56 => u, hh =>";
-		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected end of map");
-		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
-	}
-
-	@Test
-	public void testParseMap1Fail12()
-	{
-		final String text = "#{ 56 => u, hh => tt";
-		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected end of map");
-		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
-	}
-
-	@Test
-	public void testParseMap1Fail13()
-	{
-		final String text = "#{ 56 => u, hh => tt,";
-		checkForCorrectException(() -> ErlangLabel.parseText(text),IllegalArgumentException.class,"unexpected end of map");
-		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
-	}
-
-
 	@Test
 	public void testParseTuple1()
 	{
@@ -1513,36 +1353,6 @@ public class TestErlangParser {
 	}
 
 
-	@Test
-	public void testParseMapBig()
-	{
-		final String text = "#{'this is an atom' => \"this is a string\",[[-234],#{'a' => 'n',#{'c' => 'd'} => #{6 => 'l'}}] => ['another']}";
-		OtpErlangObject obtained = ErlangLabel.parseText(text);
-		checkResponse(runner, text, text);
-		Assert.assertEquals(new OtpErlangMap(new OtpErlangObject[]{
-				new OtpErlangAtom("this is an atom"),
-				new OtpErlangList(new OtpErlangObject[]{
-						new OtpErlangList(new OtpErlangObject[]{
-								new OtpErlangInt(-234)
-						}),
-						new OtpErlangMap(new OtpErlangObject[]{
-								new OtpErlangMap(new OtpErlangObject[]{
-										new OtpErlangAtom("c")}, new OtpErlangObject[]{new OtpErlangAtom("d") }),
-								new OtpErlangAtom("a")
-						},
-								new OtpErlangObject[]{
-										new OtpErlangMap(new OtpErlangObject[]{
-												new OtpErlangInt(6)}, new OtpErlangObject[]{new OtpErlangAtom("l") }),
-										new OtpErlangAtom("n")
-								})
-				})},
-				new OtpErlangObject[]{
-						new OtpErlangString("this is a string"),
-						new OtpErlangList(new OtpErlangObject[]{
-								new OtpErlangAtom("another")
-						})
-				}),obtained);
-	}
 
 	@Test
 	public void testParseBoolean()

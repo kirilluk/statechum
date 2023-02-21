@@ -127,10 +127,10 @@ obtainCookie(MergedOptions) ->
 
 selectOtpLibrary() ->
   case erlang:system_info(otp_release) of
-    14 ->"lib/OtpErlang/14/OtpErlang.jar";
-    16 ->"lib/OtpErlang/14/OtpErlang.jar";
-    17 ->"lib/OtpErlang/14/OtpErlang.jar";
-    18 ->"lib/OtpErlang/14/OtpErlang.jar";
+    "14" ->"lib/OtpErlang/14/OtpErlang.jar";
+    "16" ->"lib/OtpErlang/14/OtpErlang.jar";
+    "17" ->"lib/OtpErlang/14/OtpErlang.jar";
+    "18" ->"lib/OtpErlang/14/OtpErlang.jar";
     _ ->"lib/OtpErlang/24/OtpErlang.jar"
   end.
 

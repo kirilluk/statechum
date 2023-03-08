@@ -22,6 +22,7 @@ import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
+import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.analysis.Erlang.Synapse;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
@@ -190,7 +191,7 @@ public class DifferenceVisualiser {
 		 */
 		protected DeterministicVertex addVertex(DirectedSparseGraph graphToUpdate, CmpVertex vertex)
 		{
-			DeterministicVertex vert = new DeterministicVertex(vertex.getStringId());
+			DeterministicVertex vert = AbstractLearnerGraph.generateNewJungVertex(vertex.getStringId());
 			
 			vert.setAccept(vertex.isAccept());
 			vert.setColour(vertex.getColour());
@@ -218,7 +219,7 @@ public class DifferenceVisualiser {
 						DeterministicEdge e = pairsToNewEdges.get(new StatePair(from,target));
 						if (e == null)
 						{
-								e = new DeterministicEdge(fromVertex,targetVertex);
+								e = AbstractLearnerGraph.generateNewJungEdge(fromVertex,targetVertex);
 								Set<Label> labels = new TreeSet<>();labels.add(transition.getKey());
 								e.addUserDatum(JUConstants.LABEL, labels, UserData.CLONE);e.addUserDatum(JUConstants.DIFF, color, UserData.SHARED);
 								graphToUpdate.addEdge(e);

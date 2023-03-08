@@ -19,6 +19,7 @@ package statechum.analysis.learning.rpnicore;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
+import harmony.collections.HashMapWithSearch;
 import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
@@ -294,19 +295,15 @@ public class PathRoutines {
 		if (currentState == null)
 		{// the supplied path does not exist in PTA, the first non-existing vertex is from state prevState with label lastInput
 
-			synchronized (AbstractLearnerGraph.syncObj) 
+			while(inputIt.hasNext())
 			{
-				while(inputIt.hasNext())
-				{
-					prevState = coregraph.addVertex(prevState, true, lastInput);prevState.setColour(newColour);
-					prevState.setColour(newColour);prevState.setDepth(position++);
-					lastInput = inputIt.next();
-				}
-				// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
-				CmpVertex newVertex = coregraph.addVertex(prevState, accepted, lastInput);
-				newVertex.setColour(newColour);newVertex.setDepth(position++);
+				prevState = coregraph.addVertex(prevState, true, lastInput);prevState.setColour(newColour);
+				prevState.setColour(newColour);prevState.setDepth(position++);
+				lastInput = inputIt.next();
 			}
-			
+			// at this point, we are at the end of the sequence. Last vertex is prevState and last input if lastInput
+			CmpVertex newVertex = coregraph.addVertex(prevState, accepted, lastInput);
+			newVertex.setColour(newColour);newVertex.setDepth(position++);
 		}
 		else
 		{// we reached the end of the string to add to the PTA, with currentState being the current PTA state.
@@ -330,13 +327,12 @@ public class PathRoutines {
 				if (!accepted && currentState.isAccept())
 				{
 					if (prevState != null)
+					{
 						// truncate the current path, as long as it is not empty
-						synchronized (AbstractLearnerGraph.syncObj) 
-						{
 							coregraph.removeTransition(coregraph.transitionMatrix.get(prevState), lastInput, currentState);
 							CmpVertex newVertex = coregraph.addVertex(prevState, accepted, lastInput);
 							newVertex.setColour(newColour);newVertex.setDepth(position++);
-						}
+					}
 					else
 					{// for an empty path, set the current (i.e. initial state) to a reject-state and clear outgoing transitions.
 						currentState.setAccept(false);coregraph.transitionMatrix.get(currentState).clear();
@@ -378,11 +374,8 @@ public class PathRoutines {
 					{// this one will happily add lots of reject nodes along the same path, however this cannot
 					 // happen because due to the way addVertex is used by nodeEntered and leafEntered
 					 // accept == true everyone other than the last node in a path.
-						synchronized (AbstractLearnerGraph.syncObj) 
-						{
-							ourVertex = coregraph.addVertex(prevNode.userObject, accepted, prevNode.getInput());
-							ourVertex.setDepth(pathToInit.size());
-						}
+						ourVertex = coregraph.addVertex(prevNode.userObject, accepted, prevNode.getInput());
+						ourVertex.setDepth(pathToInit.size());
 					}
 				}
 				currentNode.userObject = ourVertex;
@@ -434,39 +427,35 @@ public class PathRoutines {
 	 */
 	public DirectedSparseGraph OrigGetGraph(String name)
 	{
-		DirectedSparseGraph result;
-		synchronized (AbstractLearnerGraph.syncObj) 
+		DirectedSparseGraph result = new DirectedSparseGraph();
+		if (name != null)
+			result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
+		Map<CmpVertex,Map<CmpVertex,Set<Label>>> flowgraph = coregraph.pathroutines.getFlowgraph();
+		Map<CmpVertex,DeterministicVertex> oldToNew = new HashMap<>(coregraph.vertPositiveID+coregraph.vertNegativeID);
+		// add states
+		for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:flowgraph.entrySet())
 		{
-			result = new DirectedSparseGraph();
-			if (name != null)
-				result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
-			Map<CmpVertex,Map<CmpVertex,Set<Label>>> flowgraph = coregraph.pathroutines.getFlowgraph();
-			Map<CmpVertex,DeterministicVertex> oldToNew = new HashMap<>(coregraph.vertPositiveID + coregraph.vertNegativeID);
-			// add states
-			for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:flowgraph.entrySet())
+			CmpVertex source = entry.getKey();
+			DeterministicVertex vert = AbstractLearnerGraph.generateNewJungVertex(source);
+			if (coregraph.getInit() == source)
+				vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+			vert.setAccept(source.isAccept());
+			vert.setColour(source.getColour());
+			vert.setHighlight(source.isHighlight());
+			result.addVertex(vert);
+			oldToNew.put(source,vert);
+		}
+
+		// now add transitions
+		for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:flowgraph.entrySet())
+		{
+			DeterministicVertex source = oldToNew.get(entry.getKey());
+			for(Entry<CmpVertex,Set<Label>> tgtEntry:entry.getValue().entrySet())
 			{
-				CmpVertex source = entry.getKey();
-				DeterministicVertex vert = new DeterministicVertex(source);
-				if (coregraph.getInit() == source)
-					vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-				vert.setAccept(source.isAccept());
-				vert.setColour(source.getColour());
-				vert.setHighlight(source.isHighlight());
-				result.addVertex(vert);
-				oldToNew.put(source,vert);
-			}
-			
-			// now add transitions
-			for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:flowgraph.entrySet())
-			{
-				DeterministicVertex source = oldToNew.get(entry.getKey());
-				for(Entry<CmpVertex,Set<Label>> tgtEntry:entry.getValue().entrySet())
-				{
-					DeterministicVertex target = oldToNew.get(tgtEntry.getKey());
-					DeterministicEdge e = new DeterministicEdge(source,target);
-					e.addUserDatum(JUConstants.LABEL, tgtEntry.getValue(), UserData.CLONE);
-					result.addEdge(e);
-				}
+				DeterministicVertex target = oldToNew.get(tgtEntry.getKey());
+				DeterministicEdge e = AbstractLearnerGraph.generateNewJungEdge(source,target);
+				e.addUserDatum(JUConstants.LABEL, tgtEntry.getValue(), UserData.CLONE);
+				result.addEdge(e);
 			}
 		}
 		return result;
@@ -991,7 +980,7 @@ public class PathRoutines {
 		{
 			rowsProcessed.add(entry.getKey());
 			for(Entry<CmpVertex,PAIRCOMPATIBILITY> associations:entry.getValue().entrySet())
-				if (!rowsProcessed.contains(associations.getKey()))
+				if (!rowsProcessed.contains(associations.getKey())) // ensures we only explore a triangle from a rectangle of possible pairs.
 				{
 					Label label = AbstractLearnerGraph.generateNewLabel(associationPrefix+associations.getValue().name(),config,converter);
 					if (alphabet.contains(label))
@@ -1016,7 +1005,7 @@ public class PathRoutines {
 		}
 		catch(EquivalentStatesException ex)
 		{
-			result = MergeStates.mergeCollectionOfVertices(coregraph, null,ex.getStatesToComputeReduction(),true);
+			result = MergeStates.mergeCollectionOfVertices(coregraph, null,ex.getStatesToComputeReduction(), null,true);
 		}
 		
 		// Now we need to eliminate the sink vertex - due to merging, there will only be one of them,

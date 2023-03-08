@@ -21,8 +21,8 @@
 
 package statechum.analysis.learning.linear;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,12 +31,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-import statechum.DeterministicDirectedSparseGraph;
-import statechum.GlobalConfiguration;
-import statechum.Helper;
-import statechum.JUConstants;
-import statechum.Label;
-import statechum.StatechumXML;
+import statechum.*;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -46,7 +41,6 @@ import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairScore;
@@ -60,8 +54,8 @@ import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
-import static statechum.Helper.checkForCorrectException;
-import static statechum.Helper.whatToRun;
+import static statechum.TestHelper.checkForCorrectException;
+import static statechum.TestHelper.whatToRun;
 
 /**
  * @author kirill
@@ -264,7 +258,7 @@ public class TestGD {
 		LearnerGraph gr = buildLearnerGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a", Configuration.getDefaultConfiguration(),converter);
 		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addRelabelling(VertexID.parseID("Q"), VertexID.parseID("U"));
-		Helper.checkForCorrectException(new whatToRun() { @Override	public void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { @Override	public void run() {
 			patcher.addRelabelling(VertexID.parseID("S"), VertexID.parseID("S"));
 		}},IllegalArgumentException.class,"does not exist");
 	}
@@ -276,7 +270,7 @@ public class TestGD {
 		LearnerGraph gr = buildLearnerGraph("T-a-#C\nQ-a->Q","testAddIncompatibles1a", Configuration.getDefaultConfiguration(),converter);
 		final LearnerGraphMutator<CmpVertex,LearnerGraphCachedData> patcher = new LearnerGraphMutator<CmpVertex,LearnerGraphCachedData>(gr, cloneConfig,null);
 		patcher.addRelabelling(VertexID.parseID("T"), VertexID.parseID("Q"));
-		Helper.checkForCorrectException(new whatToRun() { @Override public void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { @Override public void run() {
 			patcher.relabel(new LearnerGraph(Configuration.getDefaultConfiguration()));
 		}},IllegalArgumentException.class,"duplicate vertex");
 	}

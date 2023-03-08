@@ -17,7 +17,7 @@
  */
 package statechum.apps;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 
 import java.util.List;
 

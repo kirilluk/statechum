@@ -34,6 +34,7 @@ import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.Configuration.IDMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.JUConstants.VERTEXLABEL;
@@ -114,6 +115,32 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		return graphName;
 	}
 	
+	public enum LearningAbortedReason { LEARNING_OK("L_OK"), LEARNING_TIMEOUT("L_TM"), LEARNING_TOOMANYREDS("L_REDS");
+
+		public final String name;
+		private LearningAbortedReason(String n)
+		{
+			name = n;
+		}
+		@Override
+		public String toString()
+		{
+			return name;
+		}
+	}
+
+	protected LearningAbortedReason learningResult = LearningAbortedReason.LEARNING_OK;
+
+	public void setLearningAbortedReason(LearningAbortedReason value)
+	{
+		learningResult = value;
+	}
+
+	public LearningAbortedReason getLearningAbortedReason()
+	{
+		return learningResult;
+	}
+
 	public static final String unknownName = "<UNKNOWN>";
 	
 	/** Returns a name if assigned and "Unknown" otherwise. 
@@ -215,7 +242,18 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		return new Pair<>(countAccept, countReject);
 	}
 
-	
+	/** Returns the number of states that have no outgoing transitions. It is
+	 * assumed that they are all reachable from the root state, otherwise they are not really leaf. */
+	public int getLeafStateNumber()
+	{
+		int count=0;
+		for(Map<Label,TARGET_TYPE> transition:transitionMatrix.values())
+			if (transition.isEmpty())
+				++count;
+
+		return count;
+	}
+
 	/** Identifies maximal values of currently used IDs and makes sure 
 	 * that generation of IDs will not return any of the existing ones.
 	 * <p>
@@ -403,13 +441,38 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	public static CmpVertex generateNewCmpVertex(VertID name,Configuration conf)
 	{
 			if (conf.isLearnerUseStrings()) 
-					return  new StringVertex(name);
-			synchronized(syncObj)
-			{
-				return new DeterministicVertex(name);			
-			}		
+				return  new StringVertex(name);
+			else
+				return generateNewJungVertex(name);
 	}
-		
+
+	/** Constructs a new Jung vertex. */
+	public static DeterministicVertex generateNewJungVertex(VertID name)
+	{
+		synchronized(syncObj)
+		{
+			return new DeterministicVertex(name);
+		}
+	}
+
+	/** Constructs a new Jung vertex. */
+	public static DeterministicVertex generateNewJungVertex(String name)
+	{
+		synchronized(syncObj)
+		{
+			return new DeterministicVertex(name);
+		}
+	}
+
+	/** Constructs a new Jung edge. */
+	public static DeterministicEdge generateNewJungEdge(DeterministicVertex v, DeterministicVertex w)
+	{
+		synchronized(syncObj)
+		{
+			return new DeterministicEdge(v,w);
+		}
+	}
+
 	/** This is not quite like a real clone - it clones depending on the 
 	 * global configuration, so it is possible to turn a DeterministicVertex 
 	 * into a StringVertex and the other way around. Moreover, cloning a 
@@ -520,7 +583,6 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 */
 	public CmpVertex addVertex(CmpVertex prevState, boolean accepted, Label input)
 	{
-		assert Thread.holdsLock(syncObj);
 		CmpVertex newVertex = generateNewCmpVertex(nextID(accepted),config);
 		assert !transitionMatrix.containsKey(newVertex);
 		newVertex.setAccept(accepted);
@@ -558,7 +620,8 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	 * as is the case for VertexID.
 	 * The second component of <i>pos_neg</i> is the expected maximal number of reject states (with indices {@link CmpVertex#toInt()} values going down to -sizeNeg).
 	 */
-	public <TARGET_TYPE_A,CACHE_TYPE_A extends CachedData<TARGET_TYPE_A,CACHE_TYPE_A>> MapWithSearch<VertID,CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE_A>> createNewTransitionMatrix(Pair<Integer,Integer> pos_neg)
+	public <TARGET_TYPE_A,CACHE_TYPE_A extends CachedData<TARGET_TYPE_A,CACHE_TYPE_A>> MapWithSearch<VertID,CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE_A>>
+		createNewTransitionMatrix(Pair<Integer,Integer> pos_neg)
 	{
 		return constructMap(config, pos_neg);
 	}
@@ -586,7 +649,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	
 	/** Given that we should be able to accommodate both deterministic and non-deterministic graphs,
 	 * this method expected to be used when a row for a transition matrix needs to be updated with
-	 * a new label and a target state, it will add an input and/or a state to the row.
+	 * a new label and a target state, it will add an input and/or a state to the row. The row
+	 * corresponding to the target state may not exist at the point when this is called
+	 * (refer to {@link AbstractLearnerGraph#addAndRelabelGraphs(AbstractLearnerGraph, Map, AbstractLearnerGraph)}).
 	 * 
 	 * @param row the row to update
 	 * @param input the input to use
@@ -698,7 +763,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		result.transitionMatrix = result.createNewTransitionMatrix(from);
 		result.vertNegativeID = from.vertNegativeID;result.vertPositiveID=from.vertPositiveID;
 		result.setName(from.getName());
-
+		result.setLearningAbortedReason(from.learningResult);
 		Map<CmpVertex,CmpVertex> oldToNew = constructMap(result.config,from);
 		
 		// First, clone vertices
@@ -713,7 +778,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Copies a transition matrix and incompatible sets between graphs, relabelling states as specified.
 	 * The relabelling map has to be total; it is not checked for duplicate target states. If any target
 	 * states have the same IDs as those of existing states, new transitions lead to existing states.
-	 * 
+	 * This method expects the target graph to already have rows for all the states reported by oldToNew to be available.
+	 * This is why {@link AbstractLearnerGraph#copyGraphs(AbstractLearnerGraph, AbstractLearnerGraph)} clones vertices first.
+	 *
 	 * @param from graph to copy
 	 * @param oldToNew map relabelling states
 	 * @param result where to store result of copying
@@ -899,9 +966,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	/** Verifies whether a supplied pair is either incompatible (one state is accept and another one - reject) 
 	 * or recorded as incompatible.
 	 *  
-	 * @param Q first state to check
-	 * @param R second state to check. It is assumed that the two states belong to the graph.
-	 * @param compatibility the compatibility relation to use to determine whether vertices are incompatible.
+	 * @param Q the state to check.
+	 * @param R the other state to check. It is assumed that the two states belong to the graph.
+	 * @param compatibility the map that can be used to mark state compatibility or incompatibility
 	 * @return false if a pair is incompatible, true otherwise.
 	 */
 	public static boolean checkCompatible(CmpVertex Q, CmpVertex R, PairCompatibility<CmpVertex> compatibility)

@@ -52,6 +52,10 @@ public class ExperimentRunner
 {
 	/** Field separator in CSV. */
 	protected static final String FS = ",";
+
+	public static final String testSGEDirectory = "__Test_SGE__";
+	public static final File testDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),testSGEDirectory);
+
 	
 	public enum FileType { 
 		LEARNT {@Override String getFileName(String prefix, String suffix) { return prefix+"_learnt"+suffix+".xml"; } }, 
@@ -327,7 +331,7 @@ public class ExperimentRunner
 		 * 
 		 * @param inputFile input file to process
 		 * @param per percentage
-		 * @param instance a single number which can be used to identify this file/percentage/learner_kind combo.
+		 * @param inID instanceID - a single number which can be used to identify this file/percentage/learner_kind combo.
 		 * @param exp the enclosing instance of the experiment - a poor man's way to subclassing nested classes.
 		 * @param cnf configuration to base this learner experiment on
 		 * @param name the name to give to this learner.
@@ -417,6 +421,7 @@ public class ExperimentRunner
 			return fileName+FS+getLearnerName()+FS+percentValue+currentOutcome;
 		}
 
+		@SuppressWarnings("resource")
 		protected void loadGraph()
 		{
 			Configuration cnf = config.copy();cnf.setLearnerCloneGraph(true);cnf.setLearnerUseStrings(true);
@@ -502,7 +507,7 @@ public class ExperimentRunner
 	/** Given a name containing a file with file names, this one adds names of those which can be read, to the
 	 * list of them.
 	 * 
-	 * @param inputFiles the name of a file containing a list of files to load.
+	 * @param fileNameListReader Reader containing a list of files to load.
 	 * @throws IOException 
 	 */
 	private void loadFileNames(Reader fileNameListReader) throws IOException
@@ -537,7 +542,7 @@ public class ExperimentRunner
 	/** The set of possible numbers (non-negative) is divided into sets for each learner, and then into a number
 	 * of percent divisions.
 	 * 
-	 * @param inputFile the input file
+	 * @param fileNameListReader Reader containing a list of files to process.
 	 * @param Number the parameter of the array task. negative means "return the highest positive number which can be passed" 
 	 * @return what Java process should return
 	 * @throws IOException 
@@ -969,7 +974,6 @@ public class ExperimentRunner
 				if (currentTime - probeInterval > prevTime)
 				{
 					prevTime = currentTime;
-				
 					int avail = err.available();
 					while (avail>0) 
 					{// some data available
@@ -987,6 +991,8 @@ public class ExperimentRunner
 						avail = err.available();
 					}
 					
+					avail = out.available();
+					if (!processRunning && avail == 0)
 					avail = out.available();
 					while (avail>0) 
 					{ // some data available
@@ -1024,10 +1030,19 @@ public class ExperimentRunner
 					{// process not terminated yet, hence continue
 						
 					}
+
 			} while(processRunning);
 		} catch(IOException e)
 		{// assume that child process terminated.
 			
+		}
+		
+		{// this is a kludge introduced to capture the output of a terminated process on Windows 7, where output from a process that just terminated might be unavailable for a period of time.
+			try {
+				Thread.sleep(10*probeInterval);// wait for a bit.
+			} catch (InterruptedException e1) {
+				// ignore this
+			}
 		}
 		
 		try
@@ -1084,10 +1099,10 @@ public class ExperimentRunner
 			{
 				if (f.isDirectory())
 				{
-					if (f.getName().equals("A") || f.getName().equals("B") || f.getName().startsWith(outputDirNamePrefix)) 
+					if (f.getName().equals("A") || f.getName().equals("B") || f.getName().startsWith(outputDirNamePrefix) || f.getAbsolutePath().contains(ExperimentRunner.testDir.getName()))
 						zapDir(f);
 					else
-						throw new IllegalArgumentException("directory to erase should not contain directories other than A or B , got "+f.getName());
+						throw new IllegalArgumentException("directory to erase should not contain directories other than A or B or temporary directory, got "+f.getAbsolutePath());
 				}
 				else
 				if (!f.delete())

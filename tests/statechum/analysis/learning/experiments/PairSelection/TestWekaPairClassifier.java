@@ -20,50 +20,35 @@ package statechum.analysis.learning.experiments.PairSelection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import statechum.Configuration;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Helper;
-import statechum.Helper.whatToRun;
+import statechum.TestHelper;
+import statechum.TestHelper.whatToRun;
 import statechum.JUConstants;
-import statechum.Label;
-import statechum.Pair;
+import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.CollectionOfPairsEstimator;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairMeasurements;
+import statechum.analysis.learning.experiments.PairSelection.ConstructClassifier.NearestClassifier;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.FilteredPairMeasurements;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
-import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.EquivalenceClass;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
-import statechum.analysis.learning.rpnicore.WMethod;
-import statechum.apps.QSMTool;
 import weka.core.Attribute;
-import weka.core.FastVector;
+import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -73,8 +58,8 @@ public class TestWekaPairClassifier {
 	final ConvertALabel converter = null;
 	
 	public TestWekaPairClassifier() {
-		correctGraph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
-		tentativeGraph = FsmParser.buildLearnerGraph("A1-a->B1-c->B2 / B1-b->A2 / B2-a-#C1 / B1-a-#C2", "testSplitPTA", mainConfiguration,converter);
+		correctGraph = FsmParserStatechum.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
+		tentativeGraph = FsmParserStatechum.buildLearnerGraph("A1-a->B1-c->B2 / B1-b->A2 / B2-a-#C1 / B1-a-#C2", "testSplitPTA", mainConfiguration,converter);
 	}
 
 	
@@ -197,76 +182,108 @@ public class TestWekaPairClassifier {
 	}
 	
 	@Test
+	public void testNewTransitionsFromStateB0()
+	{
+		long transitions = PairQualityLearner.newTransitionsFromStateB(tentativeGraph, tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("A1")));
+		Assert.assertEquals(0,transitions);
+	}
+	
+	@Test
+	public void testNewTransitionsFromStateB2()
+	{
+		long transitions = PairQualityLearner.newTransitionsFromStateB(tentativeGraph, tentativeGraph.findVertex(VertexID.parseID("C1")),tentativeGraph.findVertex(VertexID.parseID("C1")));
+		Assert.assertEquals(0,transitions);
+	}
+	
+	@Test
+	public void testNewTransitionsFromStateB3()
+	{
+		long transitions = PairQualityLearner.newTransitionsFromStateB(tentativeGraph, tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")));
+		Assert.assertEquals(2,transitions);
+	}
+	
+	@Test
+	public void testNewTransitionsFromStateB4()
+	{
+		long transitions = PairQualityLearner.newTransitionsFromStateB(tentativeGraph, tentativeGraph.findVertex(VertexID.parseID("B1")),tentativeGraph.findVertex(VertexID.parseID("A1")));
+		Assert.assertEquals(0,transitions);
+	}
+	
+	
+	public static final DataCollectorParameters testDataCollectionParameters = new DataCollectorParameters(1,null,true,DataCollectorParameters.enabledAll());
+	
+	@Test
 	public void testBuildSetsForComparators1()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{});
-		classifier.buildSetsForComparators(pairs, tentativeGraph);
-		Assert.assertTrue(classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.isEmpty());
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		classifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
+		Assert.assertTrue(classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.isEmpty());
+		Assert.assertTrue(classifier.measurementsObtainedFromPairs.isEmpty());
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 	
 	@Test
 	public void testBuildSetsForComparators2()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("A1")),1,0);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA
 		});
-		classifier.buildSetsForComparators(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 
-		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
-		Assert.assertEquals(pairA,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet().iterator().next());
-		PairMeasurements m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairA);
+		Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.size());
+		Assert.assertEquals(pairA,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.keySet().iterator().next());
+		FilteredPairMeasurements m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairA);
 		Assert.assertFalse(m.adjacent);Assert.assertEquals(0,m.nrOfAlternatives);
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 	
 	@Test
 	public void testBuildSetsForComparators3()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0)
 				;
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA
 		});
-		classifier.buildSetsForComparators(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 
-		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
-		Assert.assertEquals(pairA,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet().iterator().next());
-		PairMeasurements m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairA);
+		Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.size());
+		Assert.assertEquals(pairA,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.keySet().iterator().next());
+		FilteredPairMeasurements m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairA);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(0,m.nrOfAlternatives);
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 	
 	@Test
 	public void testBuildSetsForComparators4()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A2")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0)
 				;
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB
 		});
-		classifier.buildSetsForComparators(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 
-		Assert.assertEquals(2,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
+		Assert.assertEquals(2,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.size());
 		Set<StatePair> expectedInMap = new LinkedHashSet<StatePair>();expectedInMap.add(pairA);expectedInMap.add(pairB);
-		Assert.assertEquals(expectedInMap,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet());
-		PairMeasurements m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairA);
+		Assert.assertEquals(expectedInMap,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.keySet());
+		FilteredPairMeasurements m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairA);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(1,m.nrOfAlternatives);
-		m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairB);
+		m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairB);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(1,m.nrOfAlternatives);
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 	
 	@Test
 	public void testBuildSetsForComparators5()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A2")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairC = new PairScore(tentativeGraph.findVertex(VertexID.parseID("C1")),tentativeGraph.findVertex(VertexID.parseID("C2")),2,0) // the score of 2 ensures it will be at the end of the keySet
@@ -274,25 +291,25 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB,pairC
 		});
-		classifier.buildSetsForComparators(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 
-		Assert.assertEquals(3,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
+		Assert.assertEquals(3,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.size());
 		Set<StatePair> expectedInMap = new LinkedHashSet<StatePair>();expectedInMap.add(pairA);expectedInMap.add(pairB);expectedInMap.add(pairC);
-		Assert.assertEquals(expectedInMap,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet());
+		Assert.assertEquals(expectedInMap,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.keySet());
 		
-		PairMeasurements m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairA);
+		FilteredPairMeasurements m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairA);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(1,m.nrOfAlternatives);
-		m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairB);
+		m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairB);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(1,m.nrOfAlternatives);
-		m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairC);
+		m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairC);
 		Assert.assertFalse(m.adjacent);Assert.assertEquals(0,m.nrOfAlternatives);
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 	
 	@Test
 	public void testBuildSetsForComparators6()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A2")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairC = new PairScore(tentativeGraph.findVertex(VertexID.parseID("C1")),tentativeGraph.findVertex(VertexID.parseID("C2")),2,0) // the score of 2 ensures it will be at the end of the keySet
@@ -300,40 +317,40 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB,pairC,pairC,pairC,pairC // we add the same pair a few times and it then seems to buildSetsForComparators that it has a few alternatives
 		});
-		classifier.buildSetsForComparators(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 
-		Assert.assertEquals(3,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
+		Assert.assertEquals(3,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.size());
 		Set<StatePair> expectedInMap = new LinkedHashSet<StatePair>();expectedInMap.add(pairA);expectedInMap.add(pairB);expectedInMap.add(pairC);
-		Assert.assertEquals(expectedInMap,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet());
+		Assert.assertEquals(expectedInMap,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.keySet());
 
-		PairMeasurements m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairA);
+		FilteredPairMeasurements m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairA);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(1,m.nrOfAlternatives);
-		m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairB);
+		m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairB);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(1,m.nrOfAlternatives);
-		m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairC);
+		m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairC);
 		Assert.assertFalse(m.adjacent);Assert.assertEquals(3,m.nrOfAlternatives);
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 	
 	/** Adjacency in Blue rather than in Red should not be considered */
 	public void testBuildSetsForComparators7()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B2")),2,0) // the score of 2 ensures it will be at the end of the keySet
 				;
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB
 		});
-		classifier.buildSetsForComparators(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 
-		Assert.assertEquals(2,classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.size());
-		Iterator<StatePair> iter = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.keySet().iterator();Assert.assertEquals(pairA,iter.next());Assert.assertEquals(pairB,iter.next());
-		PairMeasurements m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairA);
+		Assert.assertEquals(2,classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.size());
+		Iterator<StatePair> iter = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.keySet().iterator();Assert.assertEquals(pairA,iter.next());Assert.assertEquals(pairB,iter.next());
+		FilteredPairMeasurements m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairA);
 		Assert.assertTrue(m.adjacent);Assert.assertEquals(0,m.nrOfAlternatives);
-		m = classifier.measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(pairB);
+		m = classifier.measurementsForFilteredCollectionOfPairs.measurementsForComparators.get(pairB);
 		Assert.assertFalse(m.adjacent);Assert.assertEquals(0,m.nrOfAlternatives);
-		Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(0, classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 	}
 		
 	@Test
@@ -350,14 +367,14 @@ public class TestWekaPairClassifier {
 	public void TestCreateInstances1()
 	{
 		int attributeNumber = 4;
-		FastVector vecA = new FastVector(3);vecA.addElement(WekaDataCollector.MINUSONE);vecA.addElement(WekaDataCollector.ZERO);vecA.addElement(WekaDataCollector.ONE);
-		FastVector vecBool = new FastVector(2);vecBool.addElement(Boolean.TRUE.toString());vecBool.addElement(Boolean.FALSE.toString());
+		List<String> vecA = new ArrayList<String>(3);vecA.add(WekaDataCollector.MINUSONE);vecA.add(WekaDataCollector.ZERO);vecA.add(WekaDataCollector.ONE);
+		List<String> vecBool = new ArrayList<String>(2);vecBool.add(Boolean.TRUE.toString());vecBool.add(Boolean.FALSE.toString());
 		Attribute attrA = new Attribute("a", vecA), attrB= new Attribute("b",vecA), attrC=new Attribute("c",vecA),attrClass=new Attribute("class",vecBool);
 		
-		FastVector attributes = new FastVector(attributeNumber);attributes.addElement(attrA);attributes.addElement(attrB);attributes.addElement(attrC);attributes.addElement(attrClass);
+		ArrayList<Attribute> attributes = new ArrayList<Attribute>(attributeNumber);attributes.add(attrA);attributes.add(attrB);attributes.add(attrC);attributes.add(attrClass);
 		Instances trainingData = new Instances("trainingdata",attributes,10);// this assigns indices to attributes, without these indices I cannot create instances.
 		trainingData.setClassIndex(attrClass.index());
-		Instance inst = new Instance(attributeNumber);
+		Instance inst = new DenseInstance(attributeNumber);
 		inst.setValue(attrA,0);inst.setValue(attrB, 1);inst.setValue(attrC, 1);inst.setValue(attrClass, 0);
 		Assert.assertEquals(4,trainingData.numAttributes());
 		Assert.assertEquals(0,trainingData.numInstances());
@@ -369,7 +386,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testConstructTooBig1()
 	{
-		final WekaDataCollector classifier = new WekaDataCollector();
+		final WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		final List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("statechum score")
 		{
@@ -383,7 +400,7 @@ public class TestWekaPairClassifier {
 				return false;
 			}
 		});
-		Helper.checkForCorrectException(new whatToRun() {
+		TestHelper.checkForCorrectException(new whatToRun() {
 			@Override
 			public void run() throws NumberFormatException
 			{
@@ -395,7 +412,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testConstructTooBig2()
 	{
-		final WekaDataCollector classifier = new WekaDataCollector();
+		final WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		final List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("statechum score")
 		{
@@ -422,19 +439,19 @@ public class TestWekaPairClassifier {
 					return false;
 				}
 			});
-		Helper.checkForCorrectException(new whatToRun() {
+		TestHelper.checkForCorrectException(new whatToRun() {
 			@Override
 			public void run() throws NumberFormatException
 			{
 				classifier.initialise("TestCreateInstances2", 10, assessors,15);
 			}
-		}, IllegalArgumentException.class, "too many attributes per instance");
+		}, IllegalArgumentException.class, "too many levels for the");
 	}
 	
 	@Test
 	public void testConstructTooBig3()
 	{
-		final WekaDataCollector classifier = new WekaDataCollector();
+		final WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		final List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("statechum score")
 		{
@@ -461,7 +478,7 @@ public class TestWekaPairClassifier {
 					return false;
 				}
 			});
-		Helper.checkForCorrectException(new whatToRun() {
+		TestHelper.checkForCorrectException(new whatToRun() {
 			@Override
 			public void run() throws NumberFormatException
 			{
@@ -471,12 +488,40 @@ public class TestWekaPairClassifier {
 	}
 	
 	@Test
-	public void testConstructEmptyInstance1()
+	public void testConstructEmptyInstanceFail()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
-		classifier.initialise("TestCreateInstances2", 10, new ArrayList<PairRank>(),0);
-		Instance instance = classifier.constructInstance(new int []{},false);
-		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(1,instance.numValues());
+		final WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
+		final ArrayList<PairRank> assessors = new ArrayList<PairRank>();
+		TestHelper.checkForCorrectException(new whatToRun() {
+			@Override
+			public void run() throws NumberFormatException
+			{
+				classifier.initialise("testConstructEmptyInstanceFail", 10, assessors,0);
+			}
+		}, IllegalArgumentException.class, "too many levels");
+
+	}
+	
+	@Test
+	public void testConstructMostlyEmptyInstance1()
+	{
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
+		ArrayList<PairRank> assessors = new ArrayList<PairRank>();
+		assessors.add(classifier.new PairRank("statechum score")
+		{
+			@Override
+			public long getValue(@SuppressWarnings("unused") PairScore pair) {
+				throw new UnsupportedOperationException("in this test, this method should not be called");
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		classifier.initialise("TestCreateInstances2", 10, assessors,0);
+		Instance instance = classifier.constructInstance(new int []{1,2},false);
+		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(3,instance.numValues());
 		Assert.assertFalse(instance.hasMissingValue());
 		Assert.assertTrue(instance.classAttribute().isNominal());
 		Assert.assertEquals(2,instance.classAttribute().numValues());// true/false
@@ -486,12 +531,25 @@ public class TestWekaPairClassifier {
 	
 	/** Construction of instances. */
 	@Test
-	public void testConstructEmptyInstance2a()
+	public void testConstructMostlyEmptyInstance2a()
 	{
-		final WekaDataCollector classifier = new WekaDataCollector();
+		final WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(classifier.new PairRank("statechum score")
+		{
+			@Override
+			public long getValue(@SuppressWarnings("unused") PairScore pair) {
+				throw new UnsupportedOperationException("in this test, this method should not be called");
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+
 		classifier.initialise("TestCreateInstances2", 10, assessors,0);
-		Helper.checkForCorrectException(new whatToRun() {
+		TestHelper.checkForCorrectException(new whatToRun() {
 			@Override
 			public void run() throws NumberFormatException
 			{
@@ -503,9 +561,9 @@ public class TestWekaPairClassifier {
 	
 	/** Construction of instances. */
 	@Test
-	public void TestCreateInstances2()
+	public void TestCreateInstances2a()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);classifier.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("statechum score")
 		{
@@ -530,12 +588,35 @@ public class TestWekaPairClassifier {
 		Assert.assertEquals(WekaDataCollector.ONE,instance.stringValue(classifier.attributesOfAnInstance[0]));
 		Assert.assertEquals(WekaDataCollector.ZERO,instance.stringValue(classifier.attributesOfAnInstance[1]));
 	}
+	/** Construction of instances. */
+	@Test
+	public void TestCreateInstances2b()
+	{
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);classifier.setUseDenseInstance(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(classifier.new PairRank("statechum score")
+		{
+			@Override
+			public long getValue(@SuppressWarnings("unused") PairScore pair) {
+				throw new UnsupportedOperationException("in this test, this method should not be called");
+			}
 
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		classifier.initialise("TestCreateInstances2", 0, assessors,0);
+		
+		Instance instance = classifier.constructInstance(new int []{1,0},true);
+		Assert.assertFalse(instance.classIsMissing());Assert.assertEquals(1,instance.numValues());
+	}
+	
 	/** Construction of instances. Same as TestCreateInstances2 but initialises with zero max number of values in the training set. */
 	@Test
 	public void TestCreateInstances3()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);classifier.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("conventional score")
 		{
@@ -571,7 +652,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void TestCreateInstances4()
 	{
-		final WekaDataCollector classifier = new WekaDataCollector();
+		final WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("conventional score")
 		{
@@ -587,22 +668,22 @@ public class TestWekaPairClassifier {
 		});
 		classifier.initialise("TestCreateInstances2", 10, assessors,0);
 
-		Helper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
+		TestHelper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
 			{
 				classifier.constructInstance(new int []{3,1},true);
 			}
 		}, IllegalArgumentException.class, "invalid");
-		Helper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
+		TestHelper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
 			{
 				classifier.constructInstance(new int []{-3,1},true);
 			}
 		}, IllegalArgumentException.class, "invalid");
-		Helper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
+		TestHelper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
 			{
 				classifier.constructInstance(new int []{1,3},true);
 			}
 		}, IllegalArgumentException.class, "invalid");
-		Helper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
+		TestHelper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
 			{
 				classifier.constructInstance(new int []{1,-3},true);
 			}
@@ -613,7 +694,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void TestCreateInstances5()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);classifier.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("conventional score")
 		{// 1
@@ -669,7 +750,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void TestCreateInstances6()
 	{
-		final WekaDataCollector classifier = new WekaDataCollector();
+		final WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("conventional score")
 		{// 1
@@ -697,7 +778,7 @@ public class TestWekaPairClassifier {
 		});
 		classifier.initialise("TestCreateInstances2", 10, assessors,0);
 		
-		Helper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
+		TestHelper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
 			{
 			classifier.constructInstance(new int []{2,0,0,-2}, true);
 			}
@@ -707,7 +788,7 @@ public class TestWekaPairClassifier {
 	@Test
 	public void testComputeAverageAndSD0()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(classifier.new PairRank("conventional score")
@@ -727,18 +808,18 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA
 		});
-		classifier.buildSetsForComparators(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 
-		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 		double ave = 1;
-		Assert.assertEquals(ave,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage[0], Configuration.fpAccuracy);
-		Assert.assertEquals( 0.,classifier.measurementsForUnfilteredCollectionOfPairs.valueSD[0], Configuration.fpAccuracy);
+		Assert.assertEquals(ave,classifier.measurementsForFilteredCollectionOfPairs.valueAverage[0], Configuration.fpAccuracy);
+		Assert.assertEquals( 0.,classifier.measurementsForFilteredCollectionOfPairs.valueSD[0], Configuration.fpAccuracy);
 	}
 	
 	@Test
 	public void testComputeAverageAndSD1()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A2")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairC = new PairScore(tentativeGraph.findVertex(VertexID.parseID("C1")),tentativeGraph.findVertex(VertexID.parseID("C2")),2,0) // the score of 2 ensures it will be at the end of the keySet
@@ -761,18 +842,18 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB,pairC
 		});
-		classifier.buildSetsForComparators(pairs, tentativeGraph);
+		classifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 
-		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 		double ave = 4d/3;
-		Assert.assertEquals(ave,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage[0], Configuration.fpAccuracy);
-		Assert.assertEquals( Math.sqrt(((1d-ave)*(1d-ave)*2+(2d-ave)*(2d-ave))/3),classifier.measurementsForUnfilteredCollectionOfPairs.valueSD[0], Configuration.fpAccuracy);
+		Assert.assertEquals(ave,classifier.measurementsForFilteredCollectionOfPairs.valueAverage[0], Configuration.fpAccuracy);
+		Assert.assertEquals( Math.sqrt(((1d-ave)*(1d-ave)*2+(2d-ave)*(2d-ave))/3),classifier.measurementsForFilteredCollectionOfPairs.valueSD[0], Configuration.fpAccuracy);
 	}
 
 	@Test
 	public void testComputeAverageAndSD1_absolute()
 	{
-		WekaDataCollector classifier = new WekaDataCollector();
+		WekaDataCollector classifier = new WekaDataCollector(null,null, testDataCollectionParameters);
 		PairScore pairA = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A1")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairB = new PairScore(tentativeGraph.findVertex(VertexID.parseID("A2")),tentativeGraph.findVertex(VertexID.parseID("B1")),1,0),
 				pairC = new PairScore(tentativeGraph.findVertex(VertexID.parseID("C1")),tentativeGraph.findVertex(VertexID.parseID("C2")),2,0) // the score of 2 ensures it will be at the end of the keySet
@@ -795,11 +876,11 @@ public class TestWekaPairClassifier {
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{
 				pairA,pairB,pairC
 		});
-		classifier.buildSetsForComparators(pairs, tentativeGraph);
-		Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForUnfilteredCollectionOfPairs.valueSD.length);
+		classifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
+		Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.valueAverage.length);Assert.assertEquals(1,classifier.measurementsForFilteredCollectionOfPairs.valueSD.length);
 		double ave = 4d/3;
-		Assert.assertEquals(ave,classifier.measurementsForUnfilteredCollectionOfPairs.valueAverage[0], Configuration.fpAccuracy);
-		Assert.assertEquals( Math.sqrt(((1d-ave)*(1d-ave)*2+(2d-ave)*(2d-ave))/3),classifier.measurementsForUnfilteredCollectionOfPairs.valueSD[0], Configuration.fpAccuracy);
+		Assert.assertEquals(ave,classifier.measurementsForFilteredCollectionOfPairs.valueAverage[0], Configuration.fpAccuracy);
+		Assert.assertEquals( Math.sqrt(((1d-ave)*(1d-ave)*2+(2d-ave)*(2d-ave))/3),classifier.measurementsForFilteredCollectionOfPairs.valueSD[0], Configuration.fpAccuracy);
 		
 		Assert.assertEquals(1, assessors.get(0).getValue(pairA) );
 		Assert.assertEquals(1, assessors.get(0).getValue(pairB) );
@@ -812,7 +893,7 @@ public class TestWekaPairClassifier {
 	@Before
 	public void beforeTest()
 	{
-		testClassifier = new WekaDataCollector();
+		testClassifier = new WekaDataCollector(null,null, testDataCollectionParameters);testClassifier.setUseDenseInstance(true);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(testClassifier.new PairRank("statechum score")
 		{// 1
@@ -852,9 +933,9 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
-		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 		int [] buffer= new int[2];
-		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0);
+		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0,0);
 		Assert.assertArrayEquals(new int[]{0,0},buffer);
 	}	
 	
@@ -869,9 +950,9 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
-		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 		int [] buffer= new int[2];
-		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0);
+		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0,0);
 		Assert.assertArrayEquals(new int[]{1,0},buffer);
 	}	
 	
@@ -886,9 +967,9 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
-		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 		int [] buffer= new int[2];
-		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0);
+		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0,0);
 		Assert.assertArrayEquals(new int[]{1,-1},buffer);
 	}	
 	
@@ -903,9 +984,9 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
-		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 		int [] buffer= new int[]{9,8,7,6};
-		testClassifier.comparePairWithOthers(pairA, pairs,buffer,1);
+		testClassifier.comparePairWithOthers(pairA, pairs,buffer,1,0);
 		Assert.assertArrayEquals(new int[]{9,1,-1,6},buffer);
 	}	
 	
@@ -920,9 +1001,9 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),2,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC});
-		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 		int [] buffer= new int[2];
-		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0);
+		testClassifier.comparePairWithOthers(pairA, pairs,buffer,0,0);
 		Assert.assertArrayEquals(new int[]{0,-1},buffer);
 	}
 	
@@ -937,16 +1018,16 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),2,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairC});
-		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 		int [] buffer= new int[2];
-		testClassifier.comparePairWithOthers(pairB, pairs,buffer,0);
+		testClassifier.comparePairWithOthers(pairB, pairs,buffer,0,0);
 		Assert.assertArrayEquals(new int[]{-1,1},buffer);
 	}
 	
 	
 	/** Tests comparison of a pair to other pairs, taking into account if-then conditions. */
 	@Test
-	public void TestCreateComparePairs6()
+	public void TestCreateComparePairs6a()
 	{
 		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
 		PairScore 
@@ -955,7 +1036,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
 			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
 
-		WekaDataCollector dataCollector = new WekaDataCollector();
+		WekaDataCollector dataCollector = new WekaDataCollector(null,null, testDataCollectionParameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
 		{// 1
@@ -983,36 +1064,327 @@ public class TestWekaPairClassifier {
 		});
 		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
-		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 		int []comparisonResults = new int[dataCollector.getInstanceLength()];
 		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
 		Assert.assertEquals(1,comparisonResults[0]); // a
 		Assert.assertEquals(-1,comparisonResults[1]);// b
 
-		// a=-1 4+4*0 0, 0,0,0
-		// a=1  4+4*1 0,-1,@,@
-		// b=-1 4+4*2 0, 0,0,0
-		// b=1  4+4*3 0, 0,0,0
+		Assert.assertEquals(0,comparisonResults[2]); // SD for a
+		Assert.assertEquals(-1,comparisonResults[3]);// SD for b
+
+		// 4+4*0 0, 0,0,0
+		// 4+4*1 0,-1, -1 // for top value of attribute a => lowest in b; the next one is SD for for top value of attribute a => lowest in b
 		
 		Assert.assertEquals(0,comparisonResults[4]);
 		Assert.assertEquals(0,comparisonResults[5]);
-		Assert.assertEquals(0,comparisonResults[6]);
+		Assert.assertEquals(-1,comparisonResults[6]);
 		Assert.assertEquals(0,comparisonResults[7]);
 
 		Assert.assertEquals(0,comparisonResults[8]);
-		Assert.assertEquals(-1,comparisonResults[9]);
+		Assert.assertEquals(0,comparisonResults[9]);
 
-		Assert.assertEquals(0,comparisonResults[12]);
-		Assert.assertEquals(0,comparisonResults[13]);
-		Assert.assertEquals(0,comparisonResults[14]);
-		Assert.assertEquals(0,comparisonResults[15]);
-
-		Assert.assertEquals(0,comparisonResults[16]);
-		Assert.assertEquals(0,comparisonResults[17]);
-		Assert.assertEquals(0,comparisonResults[18]);
-		Assert.assertEquals(0,comparisonResults[19]);
+		Assert.assertEquals(0,comparisonResults[10]);
+		Assert.assertEquals(0,comparisonResults[11]);
 	}
 	
+	/** Tests masking of attributes. */
+	@Test
+	public void TestCreateComparePairs6b_usingmask1()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,-1),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,-1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
+			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
+
+		WekaDataCollector dataCollector = new WekaDataCollector(null,null, testDataCollectionParameters);dataCollector.setEnableSD(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
+		dataCollector.setBlock(1);dataCollector.configureNoRecurse();
+
+		int mask[] = dataCollector.getMask();
+		Assert.assertEquals(6, mask.length);
+		
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[0]);
+		Assert.assertEquals(WekaDataCollector.fillin_MASKED,mask[1]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[2]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[3]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[4]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[5]);
+
+		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
+		int []comparisonResults = new int[dataCollector.getInstanceLength()];
+		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
+		Assert.assertEquals(1,comparisonResults[0]); // pairA is best in attribute 1 ...
+		Assert.assertEquals(0,comparisonResults[1]);// ignored due to mask
+
+		Assert.assertEquals(0,comparisonResults[2]);// unused - pairA is not 'bottom' in attribute 1.
+		Assert.assertEquals(-1,comparisonResults[3]);// pairA is now compared (using attribute 2) with all pairs (both correct and wrong) that score 'top' in attribute 1.
+		Assert.assertEquals(0,comparisonResults[4]);// ignored due to mask 
+		Assert.assertEquals(0,comparisonResults[5]);// ignored due to mask
+	}
+
+	/** Tests masking of attributes. */
+	@Test
+	public void TestCreateComparePairs6b_usingmask2()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,-1),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,-1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
+			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
+
+		WekaDataCollector dataCollector = new WekaDataCollector(null,null, testDataCollectionParameters);dataCollector.setEnableSD(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
+		dataCollector.setBlock(2);dataCollector.configureNoRecurse();
+
+		int mask[] = dataCollector.getMask();
+		Assert.assertEquals(6, mask.length);
+		
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[0]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[1]);
+		Assert.assertEquals(WekaDataCollector.fillin_MASKED,mask[2]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[3]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[4]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[5]);
+
+		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
+		int []comparisonResults = new int[dataCollector.getInstanceLength()];
+		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
+		Assert.assertEquals(1,comparisonResults[0]); // pairA is best in attribute 1 ...
+		Assert.assertEquals(-1,comparisonResults[1]);// ... and worst in attribute 2
+
+		Assert.assertEquals(0,comparisonResults[2]);// ignored due to mask
+		Assert.assertEquals(-1,comparisonResults[3]);// pairA is now compared (using attribute 2) with all pairs (both correct and wrong) that score 'top' in attribute 1.
+		Assert.assertEquals(1,comparisonResults[4]);// pairA is now compared (using attribute 1) with all pairs (both correct and wrong) that score 'bottom' in attribute 2. 
+		Assert.assertEquals(0,comparisonResults[5]);// unused - pairA is not 'top' in attribute 2.
+	}
+	
+	/** Tests masking of attributes. */
+	@Test
+	public void TestCreateComparePairs6b_usingmask3()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,-1),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,-1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
+			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
+
+		WekaDataCollector dataCollector = new WekaDataCollector(null,null, testDataCollectionParameters);dataCollector.setEnableSD(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
+		dataCollector.setBlock(2);dataCollector.setBlock(3);dataCollector.configureNoRecurse();
+
+		int mask[] = dataCollector.getMask();
+		Assert.assertEquals(6, mask.length);
+		
+		Assert.assertEquals(WekaDataCollector.fillin_NORECURSE,mask[0]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[1]);
+		Assert.assertEquals(WekaDataCollector.fillin_MASKED,mask[2]);
+		Assert.assertEquals(WekaDataCollector.fillin_MASKED,mask[3]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[4]);
+		Assert.assertEquals(WekaDataCollector.fillin_FILL,mask[5]);
+
+		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
+		int []comparisonResults = new int[dataCollector.getInstanceLength()];
+		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
+		Assert.assertEquals(1,comparisonResults[0]); // pairA is best in attribute 1 ...
+		Assert.assertEquals(-1,comparisonResults[1]);// ... and worst in attribute 2
+
+		Assert.assertEquals(0,comparisonResults[2]);// ignored due to mask
+		Assert.assertEquals(0,comparisonResults[3]);// ignored due to mask
+		Assert.assertEquals(1,comparisonResults[4]);// pairA is now compared (using attribute 1) with all pairs (both correct and wrong) that score 'bottom' in attribute 2. 
+		Assert.assertEquals(0,comparisonResults[5]);// unused - pairA is not 'top' in attribute 2.
+	}
+	
+	/** Tests comparison of a Correct pair to other pairs, taking into account if-then conditions. */
+	@Test
+	public void TestCreateComparePairs6c()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),0,-1),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),1,-1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
+			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
+
+		WekaDataCollector dataCollector = new WekaDataCollector(null,null, testDataCollectionParameters);dataCollector.setEnableSD(false);
+		dataCollector.setUseDenseInstance(true);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
+		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
+		dataCollector.updateDatasetWithPairsOrig(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph), correctGraph);
+		double []comparisonResults = dataCollector.trainingData.get(0).toDoubleArray();
+		double []expectedResults = dataCollector.constructInstanceValuesBasedOnComparisonResults(new int[]{
+		-1,// 0 pairA is worst in attribute 1 ...
+		-1,// 1 ... and worst in attribute 2
+
+		-1,// 2 pairA is now compared (using attribute 2) with wrong pairs that score 'bottom' in attribute 1. Only one pair (the last one) qualifies.
+		0, // 3 unused - pairA is not 'top' in attribute 1.
+		-1, // 4 pairA is now compared (using attribute 1) with wrong pairs that score 'bottom' in attribute 2. There are no pairs like that, hence the score remains 0.
+		0, // 5 unused - pairA is not 'top' in attribute 2.
+		},true);
+		Assert.assertArrayEquals(expectedResults, comparisonResults, Configuration.fpAccuracy);
+	}
+
+	/** Tests comparison of a Wrong pair to other pairs, taking into account if-then conditions.  */
+	@Test
+	public void TestCreateComparePairs6d()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),0,1),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),1,0),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,-1),
+			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,-1);
+
+		WekaDataCollector dataCollector = new WekaDataCollector(null,null, new DataCollectorParameters());dataCollector.setEnableSD(false);
+		dataCollector.setUseDenseInstance(true);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
+		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
+		dataCollector.updateDatasetWithPairsOrig(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph), correctGraph);
+		double []comparisonResults = dataCollector.trainingData.get(2).toDoubleArray();// we are looking at pair 3 (aka pairC) here.
+		double []expectedResults = dataCollector.constructInstanceValuesBasedOnComparisonResults(new int[]{
+		-1,// 0 pairC is worst in attribute 1 ...
+		-1,// 1 ... and worst in attribute 2
+
+		-1,// 2 pairC is now compared (using attribute 2) with correct pairs that score 'bottom' in attribute 1. Only one pair (the first one) qualifies.
+		0, // 3 unused - pairC is not 'top' in attribute 1.
+		-1, // 4 pairC is now compared (using attribute 1) with correct pairs that score 'bottom' in attribute 2. There are no pairs like that, hence the score remains 0.
+		0, // 5 unused - pairC is not 'top' in attribute 2.
+		},false);
+		Assert.assertArrayEquals(expectedResults, comparisonResults, Configuration.fpAccuracy);
+	}
+
 	/** Tests comparison of a pair to other pairs, taking into account if-then conditions. */
 	@Test
 	public void TestCreateComparePairs7()
@@ -1024,7 +1396,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0),
 			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
 
-		WekaDataCollector dataCollector = new WekaDataCollector();
+		WekaDataCollector dataCollector = new WekaDataCollector(null,null, testDataCollectionParameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
 		{// 1
@@ -1064,86 +1436,130 @@ public class TestWekaPairClassifier {
 		});
 		dataCollector.initialise("TestCreateInstances2", 10, assessors,2);
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
-		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 		int []comparisonResults = new int[dataCollector.getInstanceLength()];
 		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
 		Assert.assertEquals(1,comparisonResults[0]); // a
 		Assert.assertEquals(1,comparisonResults[1]);// b
 		Assert.assertEquals(-1,comparisonResults[2]);// c
-
-		// a=-1 6+6*0 0, 0,0
-		// a=1  6+6*1 0,-1,@
-		// b=-1 6+6*2 0, 0,0
-		// b=1  6+6*3 0, 0,0
-		// c=-1 6+6*4 0, 0,0
-		// c=1  6+6*5 0, 0,0
+/*
+		for(int i=0;i<comparisonResults.length;++i)
+			if (comparisonResults[i] != 0)
+				System.out.println(i+" = " + comparisonResults[i]);
+*/
 		
 		// The pairs are: 			A=(1,1,0), B=(1,1,1), C=(0,0,1), D=(1,0,0) 
 		//comparing A with others, 	  (1,1,-1)
-		Assert.assertEquals(0,comparisonResults[6+0]); // a
-		Assert.assertEquals(0,comparisonResults[6+1]);// b
-		Assert.assertEquals(0,comparisonResults[6+2]);// c
 
 		// a is at 1, A is being compared to B and D
-		Assert.assertEquals(0, comparisonResults[6+6*1+0]); // a
-		Assert.assertEquals(1, comparisonResults[6+6*1+1]);// if a=1 then b=1
-		Assert.assertEquals(-1,comparisonResults[6+6*1+2]);// if a=1 then c=-1
+		Assert.assertEquals(1, comparisonResults[10]);// if a=1 then b=1
+		Assert.assertEquals(-1,comparisonResults[11]);// if a=1 then c=-1
 
-		Assert.assertEquals(0, comparisonResults[6+6*2+0]); // a
-		Assert.assertEquals(0, comparisonResults[6+6*2+1]);// b
-		Assert.assertEquals(0, comparisonResults[6+6*2+2]);// c
 
 		// b is at 1, A is being compared to B
-		Assert.assertEquals(0, comparisonResults[6+6*3+0]); // a
-		Assert.assertEquals(0, comparisonResults[6+6*3+1]);// b
-		Assert.assertEquals(-1,comparisonResults[6+6*3+2]);// if b=1 then c=-1
+		Assert.assertEquals(-1,comparisonResults[19]);// if b=1 then c=-1
 
 		// c is at -1, A is being compared to D
-		Assert.assertEquals(0, comparisonResults[6+6*4+0]); // a
-		Assert.assertEquals(1, comparisonResults[6+6*4+1]);// if c=-1 then b=1
-		Assert.assertEquals(0, comparisonResults[6+6*4+2]);// c
-
-		Assert.assertEquals(0, comparisonResults[6+6*5+0]); // a
-		Assert.assertEquals(0, comparisonResults[6+6*5+1]);// b
-		Assert.assertEquals(0, comparisonResults[6+6*5+2]);// c
-		
-		//      a=-1 	a=1 	b=-1 	b=1		c=-1	c=1 (the "if" component above)
-		// a=-1  				8		12		16		20
-		// a=1   				9		13		17		21
-		// b=-1  0		4						18		22
-		// b=1   1		[5]						[19]	23
-		// c=-1  2		[6]		10		[14]	
-		// c=1   3		7		11		15
-		// ^
-		// |
-		// the "then" component above
-		
-		// if a=1 then b=1 hence we are comparing A with B at this stage
-		// if a=1 then c=-1 hence we are comparing A with D at this stage
-		// if b=1 then c=-1, then no pair other than A with b at 1 and c at -1
-		// if a=1 then b=1, then no pair other than A with b at 1 and c at -1
-		final int s=6+6*6;
-		for(int i=0;i<16;++i)
-			if (i != 5 && i != 6)
-			{
-				Assert.assertEquals("position "+i,0, comparisonResults[s+6*i+0]); // a
-				Assert.assertEquals("position "+i,0, comparisonResults[s+6*i+1]);// b
-				Assert.assertEquals("position "+i,0, comparisonResults[s+6*i+2]);// c
-			}
+		Assert.assertEquals(1, comparisonResults[23]);// if c=-1 then b=1
 		
 		// if a=1 then b=1, then comparing A and B
-		Assert.assertEquals(0, comparisonResults[s+6*5+0]); // a
-		Assert.assertEquals(0, comparisonResults[s+6*5+1]);// b
-		Assert.assertEquals(-1,comparisonResults[s+6*5+2]);// c=-1
+		Assert.assertEquals(-1,comparisonResults[40]);// c=-1
 		
 		// if a=1 then c=-1, then comparing A and D
-		Assert.assertEquals(0, comparisonResults[s+6*6+0]); // a
-		Assert.assertEquals(1, comparisonResults[s+6*6+1]);// b = 1
-		Assert.assertEquals(0, comparisonResults[s+6*6+2]);// c=-1
-		
-		
+		Assert.assertEquals(1, comparisonResults[42]);// c=-1
+		for(int i=0;i<comparisonResults.length;++i)
+			if (!Arrays.asList(new Integer[]{0,1,2,10,11,19,23,40,42}).contains(i))
+				Assert.assertEquals("entry "+i+" should be zero",0, comparisonResults[i]);
 	}
 	
+	/** Similar to TestCreateComparePairs8 but without SD. */
+	@Test
+	public void TestCreateComparePairs8()
+	{
+		// Using test data from testSplitSetOfPairsIntoRightAndWrong3, pairs A and B are right and C is wrong. 
+		final PairScore 
+			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,1),
+			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),1,1),
+			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0),
+			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
+
+		WekaDataCollector dataCollector = new WekaDataCollector(null,null, testDataCollectionParameters);
+		dataCollector.setEnableSD(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(testClassifier.new PairRank("1 for B or C, 0 otherwise")
+		{// 3
+			@Override
+			public long getValue(PairScore pair) {
+				return (pair == pairB || pair == pairC)?1:0;
+			}
+
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		dataCollector.initialise("TestCreateInstances2", 10, assessors,2);
+		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC,pairD});
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
+		int []comparisonResults = new int[dataCollector.getInstanceLength()];
+		dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
+		Assert.assertEquals(1,comparisonResults[0]); // a
+		Assert.assertEquals(1,comparisonResults[1]);// b
+		Assert.assertEquals(-1,comparisonResults[2]);// c
+/*
+		for(int i=0;i<comparisonResults.length;++i)
+			if (comparisonResults[i] != 0)
+				System.out.println(i+" = " + comparisonResults[i]);
+*/
+		
+		// The pairs are: 			A=(1,1,0), B=(1,1,1), C=(0,0,1), D=(1,0,0) 
+		//comparing A with others, 	  (1,1,-1)
+
+		// a is at 1, A is being compared to B and D
+		Assert.assertEquals(1, comparisonResults[5]);// if a=1 then b=1
+		Assert.assertEquals(-1,comparisonResults[6]);// if a=1 then c=-1
+
+
+		// b is at 1, A is being compared to B
+		Assert.assertEquals(-1,comparisonResults[10]);// if b=1 then c=-1
+
+		// c is at -1, A is being compared to D
+		Assert.assertEquals(1, comparisonResults[12]);// if c=-1 then b=1
+		
+		// if a=1 then b=1, then comparing A and B
+		Assert.assertEquals(-1,comparisonResults[20]);// c=-1
+		
+		// if a=1 then c=-1, then comparing A and D
+		Assert.assertEquals(1, comparisonResults[21]);// c=-1
+		for(int i=0;i<comparisonResults.length;++i)
+			if (!Arrays.asList(new Integer[]{0,1,2,5,6,10,12,20,21}).contains(i))
+				Assert.assertEquals("entry "+i+" should be zero",0, comparisonResults[i]);
+	}
+
 	/** Tests comparison of a pair to other pairs, taking into account if-then conditions. */
 	@Test
 	public void TestCreateComparePairs6_arrayTooSmall()
@@ -1155,7 +1571,7 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,1),
 			pairD=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),1,0);
 
-		final WekaDataCollector dataCollector = new WekaDataCollector();
+		final WekaDataCollector dataCollector = new WekaDataCollector(null,null, testDataCollectionParameters);
 		List<PairRank> assessors = new ArrayList<PairRank>(20);
 		assessors.add(dataCollector.new PairRank("statechum score")
 		{// 1
@@ -1183,9 +1599,9 @@ public class TestWekaPairClassifier {
 		});
 		dataCollector.initialise("TestCreateInstances2", 10, assessors,1);
 		final List<PairScore> pairs = Arrays.asList(new PairScore[]{pairB,pairC,pairD});
-		dataCollector.buildSetsForComparators(pairs, tentativeGraph);
+		dataCollector.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 		final int []comparisonResults = new int[1];
-		Helper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
+		TestHelper.checkForCorrectException(new whatToRun() { @Override	public void run() throws NumberFormatException
 			{
 				dataCollector.fillInPairDetails(comparisonResults,pairA, pairs);
 			}
@@ -1201,9 +1617,9 @@ public class TestWekaPairClassifier {
 			pairA = new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("A2"),1,-1);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA});
-		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 		int [] buffer= new int[2];
-		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0);Assert.assertArrayEquals(new int[]{0,0},buffer);
+		testClassifier.assessPair(pairA,testClassifier.measurementsForFilteredCollectionOfPairs,buffer,0,0);Assert.assertArrayEquals(new int[]{0,0},buffer);
 	}	
 	
 	/** Tests comparison of a pair scores to average and SD. */
@@ -1217,10 +1633,10 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC});
-		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 		int [] buffer= new int[2];
-		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0);Assert.assertArrayEquals(new int[]{0,-1},buffer);
-		testClassifier.assessPair(pairB,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,0);Assert.assertArrayEquals(new int[]{1,0},buffer);
+		testClassifier.assessPair(pairA,testClassifier.measurementsForFilteredCollectionOfPairs,buffer,0,0);Assert.assertArrayEquals(new int[]{0,-1},buffer);
+		testClassifier.assessPair(pairB,testClassifier.measurementsForFilteredCollectionOfPairs,buffer,0,0);Assert.assertArrayEquals(new int[]{1,0},buffer);
 	}	
 	
 	/** Tests comparison of a pair scores to average and SD. Takes an offset into account. */
@@ -1234,10 +1650,10 @@ public class TestWekaPairClassifier {
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
 		List<PairScore> pairs = Arrays.asList(new PairScore[]{pairA,pairB,pairC});
-		testClassifier.buildSetsForComparators(pairs, tentativeGraph);
+		testClassifier.buildSetsForComparators(pairs, tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph));
 		int [] buffer= new int[]{9,8,7,6};
-		testClassifier.assessPair(pairA,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,1);Assert.assertArrayEquals(new int[]{9,0,-1,6},buffer);
-		testClassifier.assessPair(pairB,testClassifier.measurementsForUnfilteredCollectionOfPairs,buffer,1);Assert.assertArrayEquals(new int[]{9,1,0,6},buffer);
+		testClassifier.assessPair(pairA,testClassifier.measurementsForFilteredCollectionOfPairs,buffer,1,0);Assert.assertArrayEquals(new int[]{9,0,-1,6},buffer);
+		testClassifier.assessPair(pairB,testClassifier.measurementsForFilteredCollectionOfPairs,buffer,1,0);Assert.assertArrayEquals(new int[]{9,1,0,6},buffer);
 	}	
 	
 	/** Construction of instances. */
@@ -1250,8 +1666,7 @@ public class TestWekaPairClassifier {
 			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,1),
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),2,0);
 
-		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, correctGraph);
-		@SuppressWarnings("unchecked")
+		testClassifier.updateDatasetWithPairsOrig(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph), correctGraph);
 		Enumeration<Instance> instEnum = testClassifier.trainingData.enumerateInstances();
 
 		{// pairA - the correct pair
@@ -1318,8 +1733,7 @@ public class TestWekaPairClassifier {
 			pairB=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("B2"),0,1),
 			pairC=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,0);
 
-		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, correctGraph);
-		@SuppressWarnings("unchecked")
+		testClassifier.updateDatasetWithPairsOrig(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph), correctGraph);
 		Enumeration<Instance> instEnum = testClassifier.trainingData.enumerateInstances();
 
 		{// pairA - the correct pair
@@ -1356,7 +1770,7 @@ public class TestWekaPairClassifier {
 			pairD2=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("C2"),0,0),// wrong pair
 			pairE=new PairScore(tentativeGraph.findVertex("C1"), tentativeGraph.findVertex("C2"),0,-1);// correct pair
 
-		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairD1,pairD2,pairE}), tentativeGraph, correctGraph);
+		testClassifier.updateDatasetWithPairsOrig(Arrays.asList(new PairScore[]{pairD1,pairD2,pairE}), tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph), correctGraph);
 		Assert.assertEquals(0,testClassifier.trainingData.numInstances());
 	}
 	
@@ -1373,9 +1787,8 @@ public class TestWekaPairClassifier {
 			pairD=new PairScore(tentativeGraph.findVertex("B1"), tentativeGraph.findVertex("A2"),0,0),// wrong pair
 			pairE=new PairScore(tentativeGraph.findVertex("A1"), tentativeGraph.findVertex("B2"),0,-1);// wrong pair
 
-		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, correctGraph);
-		testClassifier.updateDatasetWithPairs(Arrays.asList(new PairScore[]{pairD,pairE}), tentativeGraph, correctGraph);
-		@SuppressWarnings("unchecked")
+		testClassifier.updateDatasetWithPairsOrig(Arrays.asList(new PairScore[]{pairA,pairB,pairC}), tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph), correctGraph);
+		testClassifier.updateDatasetWithPairsOrig(Arrays.asList(new PairScore[]{pairD,pairE}), tentativeGraph, MarkovClassifier.computeInverseGraph(tentativeGraph), correctGraph);
 		Enumeration<Instance> instEnum = testClassifier.trainingData.enumerateInstances();
 
 		{// pairA - the correct pair, only compared with B and C
@@ -1431,8 +1844,9 @@ public class TestWekaPairClassifier {
 		Assert.assertFalse(instEnum.hasMoreElements());
 	}
 	
-	/** Classification of instances. 
-	 * @throws Exception if classification fails which signifies a test failure 
+	/** Classification of instances.
+	 *  
+	 * @throws Exception if classification fails which signifies a test failure. 
 	 */
 	@Test
 	public void TestClassification() throws Exception
@@ -1454,724 +1868,121 @@ public class TestWekaPairClassifier {
 		instance = testClassifier.constructInstance(new int []{0,0,1,0},true);
 		Assert.assertEquals(instance.classValue(), cl.classifyInstance(instance),Configuration.fpAccuracy);
 	}
+
 	
 	@Test
-	public void TestUniqueIntoState1()
+	public void TestNearestNeighbourClassifier1() throws Exception
 	{
-		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		Assert.assertTrue(LearningSupportRoutines.uniqueIntoState(graph).isEmpty());
-	}
+		WekaDataCollector dataCollector = new WekaDataCollector(null,null, testDataCollectionParameters);
+		dataCollector.setEnableSD(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
 	
-	@Test
-	public void TestUniqueFromState1()
-	{
-		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		Assert.assertTrue(LearningSupportRoutines.uniqueFromState(graph).isEmpty());
-	}
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(dataCollector.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
 	
-	@Test
-	public void TestUniqueIntoState2()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInto=LearningSupportRoutines.uniqueIntoState(graph);
-		Assert.assertEquals(2, mapUniqueInto.size());
-		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInto.entrySet()) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
-		Iterator<Entry<Label,Pair<CmpVertex,CmpVertex>>> entryIter = mapUniqueInto.entrySet().iterator();
-		Entry<Label,Pair<CmpVertex,CmpVertex>> entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue().secondElem);Assert.assertEquals(graph.findVertex("B"),entry.getValue().firstElem);
-		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue().secondElem);Assert.assertEquals(graph.findVertex("B"),entry.getValue().firstElem);
-	}
-
-	@Test
-	public void TestUniqueIntoState3()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->A", "TestUniqueIntoInitial3", mainConfiguration,converter);
-		Assert.assertTrue(LearningSupportRoutines.uniqueIntoState(graph).isEmpty());
-	}
-
-	@Test
-	public void TestUniqueFromState3()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->A", "TestUniqueIntoInitial3", mainConfiguration,converter);
-		Assert.assertTrue(LearningSupportRoutines.uniqueFromState(graph).isEmpty());
-	}
-
-	/** Multiple labels to choose from. */
-	@Test
-	public void TestUniqueIntoState4a()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-d->A / B-a-#C", "TestUniqueIntoInitial4", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInfo=LearningSupportRoutines.uniqueIntoState(graph);
-		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInfo.entrySet()) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
-		Assert.assertEquals(3, mapUniqueInfo.size());
-		Iterator<Entry<Label,Pair<CmpVertex,CmpVertex>>> entryIter = mapUniqueInfo.entrySet().iterator();
-		Entry<Label,Pair<CmpVertex,CmpVertex>> entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue().secondElem);Assert.assertEquals(graph.findVertex("B"),entry.getValue().firstElem);
-		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue().secondElem);Assert.assertEquals(graph.findVertex("B"),entry.getValue().firstElem);
-		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue().secondElem);Assert.assertEquals(graph.findVertex("B"),entry.getValue().firstElem);
-	}
-
-	/** Multiple labels to choose from. */
-	@Test
-	public void TestUniqueIntoState4b()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-c->A / A-a->B-c->B-b->A / B-d->A / B-a-#C", "TestUniqueIntoInitial4b", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInfo=LearningSupportRoutines.uniqueIntoState(graph);
-		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInfo.entrySet()) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
-		Assert.assertEquals(2, mapUniqueInfo.size());
-		Iterator<Entry<Label,Pair<CmpVertex,CmpVertex>>> entryIter = mapUniqueInfo.entrySet().iterator();
-		Entry<Label,Pair<CmpVertex,CmpVertex>> entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue().secondElem);Assert.assertEquals(graph.findVertex("B"),entry.getValue().firstElem);
-		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue().secondElem);Assert.assertEquals(graph.findVertex("B"),entry.getValue().firstElem);
-	}
-
-	/** d is incoming into A from both A and B. */
-	@Test
-	public void TestUniqueIntoState4c()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-c->A / A-a->B-c->B-b->A / A-d->A / B-d->A / B-a-#C", "TestUniqueIntoInitial4b", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInfo=LearningSupportRoutines.uniqueIntoState(graph);
-		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInfo.entrySet()) if (entry.getValue().firstElem != null) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
-		Assert.assertEquals(2, mapUniqueInfo.size());
-		Iterator<Entry<Label,Pair<CmpVertex,CmpVertex>>> entryIter = mapUniqueInfo.entrySet().iterator();
-		Entry<Label,Pair<CmpVertex,CmpVertex>> entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue().secondElem);Assert.assertEquals(graph.findVertex("B"),entry.getValue().firstElem);
-		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue().secondElem);Assert.assertNull(entry.getValue().firstElem);
-	}
-
-	/** Multiple labels to choose from. */
-	@Test
-	public void TestUniqueIntoState5()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-d->A / B-e-#C", "TestUniqueIntoInitial4", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> mapUniqueInto=LearningSupportRoutines.uniqueIntoState(graph);
-		for(Entry<Label,Pair<CmpVertex,CmpVertex>> entry:mapUniqueInto.entrySet()) Assert.assertSame(entry.getValue().secondElem, graph.transitionMatrix.get(entry.getValue().firstElem).get(entry.getKey()));
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(dataCollector.new PairRank("statechum compatibility score 2")
+		{// 3
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+	
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
 		
-		Assert.assertEquals(5, mapUniqueInto.size());
-		Iterator<Entry<Label,Pair<CmpVertex,CmpVertex>>> entryIter = mapUniqueInto.entrySet().iterator();
-		Entry<Label,Pair<CmpVertex,CmpVertex>> entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue().secondElem);Assert.assertEquals(graph.getInit(),entry.getValue().firstElem);
-		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue().secondElem);Assert.assertEquals(graph.findVertex("B"),entry.getValue().firstElem);
-		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("B"),entry.getValue().secondElem);Assert.assertEquals(graph.findVertex("B"),entry.getValue().firstElem);
-		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.getInit(),entry.getValue().secondElem);Assert.assertEquals(graph.findVertex("B"),entry.getValue().firstElem);
-		entry = entryIter.next();
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("e", mainConfiguration,converter),entry.getKey());Assert.assertEquals(graph.findVertex("C"),entry.getValue().secondElem);Assert.assertEquals(graph.findVertex("B"),entry.getValue().firstElem);
+		dataCollector.initialise("TestNearestNeighbourClassifier1", 10, assessors,0);
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{1,1,0},true));
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{0,1,1},false));
+		NearestClassifier classifier = new NearestClassifier();
+		classifier.buildClassifier(dataCollector.trainingData);
+		Assert.assertFalse(classifier.classifyInstanceBoolean(dataCollector.constructInstance(new int []{0,1,1},false)));
+		Assert.assertTrue(classifier.classifyInstanceBoolean(dataCollector.constructInstance(new int []{1,1,0},false)));
+		Assert.assertTrue(classifier.classifyInstanceBoolean(dataCollector.constructInstance(new int []{1,0,0},false)));
+		Assert.assertFalse(classifier.classifyInstanceBoolean(dataCollector.constructInstance(new int []{0,0,1},false)));
 	}
+	
+	@Test
+	public void TestNearestNeighbourClassifier2() throws Exception
+	{
+		WekaDataCollector dataCollector = new WekaDataCollector(null,null, testDataCollectionParameters);
+		dataCollector.setEnableSD(false);
+		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		assessors.add(dataCollector.new PairRank("statechum score")
+		{// 1
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getScore();
+			}
+	
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(dataCollector.new PairRank("statechum compatibility score")
+		{// 2
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+	
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
+		assessors.add(dataCollector.new PairRank("statechum compatibility score 2")
+		{// 3
+			@Override
+			public long getValue(PairScore pair) {
+				return pair.getAnotherScore();
+			}
+	
+			@Override
+			public boolean isAbsolute() {
+				return false;
+			}
+		});
 		
-	@Test
-	public void TestMergeBasedOnUniques()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->A1-a->B1-b->A2-b->A3-c-#C / A3 -a->B3-a->D / B3-b->A", "TestMergeBasedOnUniques", mainConfiguration,converter);
-		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)}),Collections.<Label>emptyList());
-		Set<StatePair> pairsSet = new HashSet<StatePair>();pairsSet.addAll(pairsList);
-		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A3"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"), mainConfiguration))));
-		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A1"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A2"), mainConfiguration))));
-		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A2"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A3"), mainConfiguration))));
-		Assert.assertTrue(graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false) >= 0);
-	}
-	
-	@Test
-	public void TestMergeBasedOnUniquesFail()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-b->A1-a->B1-b->A2-b->A3-c-#C / A3 -a-#D", "TestMergeBasedOnUniquesFail", mainConfiguration,converter);
-		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)}),Collections.<Label>emptyList());
-		Assert.assertTrue(graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false) < 0);
-	}
-	
-	@Test
-	public void TestConstructIfThenForUniques1()
-	{
-		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> map=LearningSupportRoutines.uniqueIntoState(graph);
-		Assert.assertNull(evaluationConfiguration.ifthenSequences);
-		LearningSupportRoutines.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
-		Assert.assertEquals(2,evaluationConfiguration.ifthenSequences.size());
-		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
-		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+"Mandatory_1_via_b A- !b || toMerge_1_b ->A-b->B - b ->B / B- !b || toMerge_1_b ->A / B == THEN == C / C-toMerge_1_b->D",ifthenIterator.next());
-		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+"Mandatory_2_via_c A- !c || toMerge_2_c ->A-c->B - c ->B / B- !c || toMerge_2_c ->A / B == THEN == C / C-toMerge_2_c->D",ifthenIterator.next());
-	}
-
-	@Test
-	public void TestConstructIfThenForUniques2()
-	{
-		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
-		Map<Label,Pair<CmpVertex,CmpVertex>> map=LearningSupportRoutines.uniqueIntoState(graph);
-		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
-		LearningSupportRoutines.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
-		Assert.assertEquals(3,evaluationConfiguration.ifthenSequences.size());
-		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
-		Assert.assertEquals("junk",ifthenIterator.next());
-		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+"Mandatory_1_via_b A- !b || toMerge_1_b ->A-b->B - b ->B / B- !b || toMerge_1_b ->A / B == THEN == C / C-toMerge_1_b->D",ifthenIterator.next());
-		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+"Mandatory_2_via_c A- !c || toMerge_2_c ->A-c->B - c ->B / B- !c || toMerge_2_c ->A / B == THEN == C / C-toMerge_2_c->D",ifthenIterator.next());
-	}
-	
-	@Test
-	public void TestDetectionOfMandatoryTransitions()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-"+LearningSupportRoutines.prefixOfMandatoryMergeTransition+"_1->B-c->B-b->A / B-"+LearningSupportRoutines.prefixOfMandatoryMergeTransition+"_1->C-"+LearningSupportRoutines.prefixOfMandatoryMergeTransition+"_2->D", "TestDetectionOfMandatoryTransitions", mainConfiguration,converter);
-		Assert.assertTrue(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("B"),graph.findVertex("A"),0,0),graph));
-		Assert.assertTrue(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("A"),0,0),graph));
-		Assert.assertTrue(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("B"),0,0),graph));
-		Assert.assertFalse(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("C"),graph.findVertex("A"),0,0),graph));
-		Assert.assertFalse(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("C"),0,0),graph));
-		Assert.assertFalse(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("D"),graph.findVertex("A"),0,0),graph));
-		Assert.assertFalse(LearningSupportRoutines.checkForMerge(new PairScore(graph.findVertex("A"),graph.findVertex("D"),0,0),graph));
-	}
-	
-	@Test
-	public void TestConstructIfThenForUniques3()
-	{
-		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
-		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		Map<Label,Pair<CmpVertex,CmpVertex>> map=LearningSupportRoutines.uniqueIntoState(graph);
-		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
-		LearningSupportRoutines.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
-		Assert.assertEquals(1,evaluationConfiguration.ifthenSequences.size());
-		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
-		Assert.assertEquals("junk",ifthenIterator.next());
-	}
-	
-	@Test
-	public void TestConstructPairsOfInfeasibleTransitions0()
-	{
-		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		Map<Label,Set<Label>> mapOfLabelToSet = LearningSupportRoutines.computeInfeasiblePairs(graph);
-		Assert.assertTrue(mapOfLabelToSet.isEmpty());
-	}
-	
-	@Test
-	public void TestConstructIfThenForInfeasible0()
-	{
-		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
-		LearningSupportRoutines.addIfThenForPairwiseConstraints(evaluationConfiguration, LearningSupportRoutines.computeInfeasiblePairs(graph));
-		Assert.assertTrue(evaluationConfiguration.ifthenSequences.isEmpty());
-	}
-
-	@Test
-	public void TestConstructPairsOfInfeasibleTransitions1()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
-		// the list of lists below is in the order of labels, a,b,c
-		List<List<Label>> expected = statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList(new String[][]{new String[]{},new String[]{"b","c"},new String[]{}}, mainConfiguration,converter);
-		Map<Label,Set<Label>> mapOfLabelToSet = LearningSupportRoutines.computeInfeasiblePairs(graph);
-		Assert.assertEquals(graph.pathroutines.computeAlphabet(),mapOfLabelToSet.keySet());
-		Iterator<List<Label>> listsIterator = expected.iterator();
-		for(String lblString:new String[]{"a","b","c"})
-		{
-			Set<Label> infeasible = new TreeSet<Label>();infeasible.addAll(listsIterator.next());
-			Assert.assertEquals(infeasible,mapOfLabelToSet.get(AbstractLearnerGraph.generateNewLabel(lblString, mainConfiguration, converter)));
-		}
-	}
-	
-	@Test
-	public void TestConstructIfThenForInfeasible1()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
-		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
-		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
-		LearningSupportRoutines.addIfThenForPairwiseConstraints(evaluationConfiguration, LearningSupportRoutines.computeInfeasiblePairs(graph));
-		Assert.assertEquals(2,evaluationConfiguration.ifthenSequences.size());
-		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
-		Assert.assertEquals("junk",ifthenIterator.next());
-		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+LearningSupportRoutines.pairwiseAutomata+"_b A- !b ->A-b->B - b ->B / B- !b ->A / C -b-#D/ C -c-#D/ B == THEN == C",ifthenIterator.next());
-	}
-	
-	@Test
-	public void TestConstructPairsOfInfeasibleTransitions2()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-c->A-a->B-c->B-b->A / B-a-#C", "TestConstructPairsOfInfeasibleTransitions2", mainConfiguration,converter);
-		// the list of lists below is in the order of labels, a,b,c
-		List<List<Label>> expected = statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList(new String[][]{new String[]{},new String[]{"b"},new String[]{}}, mainConfiguration,converter);
-		Map<Label,Set<Label>> mapOfLabelToSet = LearningSupportRoutines.computeInfeasiblePairs(graph);
-		Assert.assertEquals(graph.pathroutines.computeAlphabet(),mapOfLabelToSet.keySet());
-		Iterator<List<Label>> listsIterator = expected.iterator();
-		for(String lblString:new String[]{"a","b","c"})
-		{
-			Set<Label> infeasible = new TreeSet<Label>();infeasible.addAll(listsIterator.next());
-			Assert.assertEquals(infeasible,mapOfLabelToSet.get(AbstractLearnerGraph.generateNewLabel(lblString, mainConfiguration, converter)));
-		}
-	}
-	
-	@Test
-	public void TestConstructPairsOfInfeasibleTransitions3()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-b->A-a->B-a->C-a->A / D-e->D", "TestConstructPairsOfInfeasibleTransitions3", mainConfiguration,converter);
-		// the list of lists below is in the order of labels, a,b,c
-		List<List<Label>> expected = statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList(new String[][]{new String[]{"e"},new String[]{"e"},new String[]{"a","b"}}, mainConfiguration,converter);
-		Map<Label,Set<Label>> mapOfLabelToSet = LearningSupportRoutines.computeInfeasiblePairs(graph);
-		Assert.assertEquals(graph.pathroutines.computeAlphabet(),mapOfLabelToSet.keySet());
-		Iterator<List<Label>> listsIterator = expected.iterator();
-		for(String lblString:new String[]{"a","b","e"})
-		{
-			Set<Label> infeasible = new TreeSet<Label>();infeasible.addAll(listsIterator.next());
-			Assert.assertEquals(infeasible,mapOfLabelToSet.get(AbstractLearnerGraph.generateNewLabel(lblString, mainConfiguration, converter)));
-		}
-	}
-	
-	@Test
-	public void TestConstructIfThenForInfeasible3()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-b->A-a->B-a->C-a->A / D-e->D", "TestConstructPairsOfInfeasibleTransitions3", mainConfiguration,converter);
-		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
-		LearningSupportRoutines.addIfThenForPairwiseConstraints(evaluationConfiguration, LearningSupportRoutines.computeInfeasiblePairs(graph));
-		Assert.assertEquals(3,evaluationConfiguration.ifthenSequences.size());
-		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
-		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+LearningSupportRoutines.pairwiseAutomata+"_a A- !a ->A-a->B - a ->B / B- !a ->A / C -e-#D/ B == THEN == C",ifthenIterator.next());
-		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+LearningSupportRoutines.pairwiseAutomata+"_b A- !b ->A-b->B - b ->B / B- !b ->A / C -e-#D/ B == THEN == C",ifthenIterator.next());
-		Assert.assertEquals(QSMTool.cmdIFTHENAUTOMATON +" "+LearningSupportRoutines.pairwiseAutomata+"_e A- !e ->A-e->B - e ->B / B- !e ->A / C -a-#D/ C -b-#D/ B == THEN == C",ifthenIterator.next());
-	}
-	
-	/** This one uses chooseStatePairs with a stub of decision maker to compute different sets of pairs depending on the choices made by the decision procedure, 
-	 * and compares them to choices made by the evaluator of the quality of the selection of red states. 
-	 */
-	@Test
-	public void TestDecisionProcedureForRedStates1()
-	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a-#Rc / B-b->D-a-#Rd / B-c->E-a-#Re / F-a->G-a-#Rg","TestDecisionProcedureForRedStates1",mainConfiguration, converter);
-		final Collection<CmpVertex> redToBeExpected = new ArrayList<CmpVertex>();redToBeExpected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C"),graph.findVertex("D"),graph.findVertex("E"),graph.findVertex("G")}));
-		final Collection<CmpVertex> redsAlways = new ArrayList<CmpVertex>();redsAlways.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("A"),graph.findVertex("B"),graph.findVertex("F")}));
-		TestDecisionProcedureForRedStatesHelper(graph,redToBeExpected,redsAlways, new LinkedList<CmpVertex>(),true);
-	}
-	
-	/** This one uses chooseStatePairs with a stub of decision maker to compute different sets of pairs depending on the choices made by the decision procedure, 
-	 * and compares them to choices made by the evaluator of the quality of the selection of red states. 
-	 */
-	@Test
-	public void TestDecisionProcedureForRedStates2()
-	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a-#Rc / B-b->D-a-#Rd / B-c->E-a-#Re / B-d->F","TestDecisionProcedureForRedStates2",mainConfiguration, converter);
-		final Collection<CmpVertex> redToBeExpected = new ArrayList<CmpVertex>();redToBeExpected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C"),graph.findVertex("D"),graph.findVertex("E")}));
-		final Collection<CmpVertex> redsAlways = new ArrayList<CmpVertex>();redsAlways.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("A"),graph.findVertex("B")}));
-		TestDecisionProcedureForRedStatesHelper(graph,redToBeExpected,redsAlways, Arrays.asList(new CmpVertex[]{graph.findVertex("F")}),true);
-	}
-	
-	/** This one uses chooseStatePairs with a stub of decision maker to compute different sets of pairs depending on the choices made by the decision procedure, 
-	 * and compares them to choices made by the evaluator of the quality of the selection of red states. 
-	 */
-	@Test
-	public void TestDecisionProcedureForRedStates3()
-	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-b->F / C-b->G / B-b-#E","TestDecisionProcedureForRedStates3",mainConfiguration, converter);
+		dataCollector.initialise("TestNearestNeighbourClassifier1", 10, assessors,0);
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{1,1,0},true));
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{0,1,1},false));
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{0,1,1},false));
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{0,1,1},true));
+		dataCollector.trainingData.add(dataCollector.constructInstance(new int []{0,1,1},false));
 		
-		final Collection<CmpVertex> redToBeExpected = new ArrayList<CmpVertex>();redToBeExpected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C"),graph.findVertex("E")}));
-		final Collection<CmpVertex> redsAlways = new ArrayList<CmpVertex>();redsAlways.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("A"),graph.findVertex("B")}));
-		TestDecisionProcedureForRedStatesHelper(graph,redToBeExpected,redsAlways, Arrays.asList(new CmpVertex[]{}),false);// the decision procedure is tasked with choosing between E and C which both generate the same set of pairs so any of the two can be chosen. This is why we disable a check for the specific vertex chosen.
-	}
-	
-	protected void TestDecisionProcedureForRedStatesHelper(final LearnerGraph graph, final Collection<CmpVertex> redToBeExpected, final Collection<CmpVertex> redsAlways,
-			final Collection<CmpVertex> blueStates, final boolean checkCorrectNodeChosen)
-	{
-		final Map<CmpVertex,Collection<PairScore>> redToPairsObtained = new TreeMap<CmpVertex,Collection<PairScore>>();
-		final Set<CmpVertex> tentativeRedsChosen = new TreeSet<CmpVertex>();// vertices already chosen.
-		
-		for(final CmpVertex bestVertex:redToBeExpected)
-		{
-			graph.clearColours();
-			for(CmpVertex vertRed:redsAlways) vertRed.setColour(JUConstants.RED);
-			for(CmpVertex vertToColourBlue:redToBeExpected)	vertToColourBlue.setColour(JUConstants.BLUE);for(CmpVertex vertToColourBlue:blueStates)	vertToColourBlue.setColour(JUConstants.BLUE);
-			
-			Collection<PairScore> pairsReturned = graph.pairscores.chooseStatePairs(new RedNodeSelectionProcedure() {
-				
-				CmpVertex redChosen = null;
-				
-				@Override
-				public CmpVertex selectRedNode(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
-				{
-					Assert.assertNull(redChosen);// we choose graphs in such a way that red states chosen subsequently are decided without calls to selectRedNode before chooseStatePairs returns.
-					Assert.assertSame(graph,coregraph);
-					Assert.assertTrue(reds.contains(graph.findVertex("A")));Assert.assertTrue(reds.contains(graph.findVertex("B")));
-					Assert.assertTrue(redToBeExpected.equals(tentativeRedNodes));
-					
-					Set<CmpVertex> available = new TreeSet<CmpVertex>();available.addAll(tentativeRedNodes);available.removeAll(tentativeRedsChosen);
-					redChosen = bestVertex;
-					return redChosen;
-				}
-				
-				@SuppressWarnings("unused")
-				@Override
-				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs) 
-				{
-					Assert.assertNotNull(redChosen);// ensure that selectRedNode was called.
-					Set<PairScore> copyOfPairs = new TreeSet<PairScore>(pairs);
-					redToPairsObtained.put(redChosen,copyOfPairs);// record the pairs we got, these should be the same pairs as those to be returned from chooseStatePairs so long as resolvePotentialDeadEnd returns null.
-					return null;// no resolution
-				}
-				
-				@Override
-				public void initComputation(@SuppressWarnings("unused") LearnerGraph gr) {
-					// dummy
-				}
+		NearestClassifier classifier = new NearestClassifier();
+		classifier.buildClassifier(dataCollector.trainingData);
+		Assert.assertEquals(2, classifier.getTrainingSize());
+		double first []= classifier.distributionForInstance(dataCollector.constructInstance(new int []{1,1,0},false));
+		Assert.assertEquals(1.0,first[classifier.posForTrue()],Configuration.fpAccuracy);Assert.assertEquals(0.0,first[classifier.posForFalse()],Configuration.fpAccuracy);
 
-				@Override
-				public long overrideScoreComputation(PairScore p) {
-					return p.getScore();// dummy
-				}
-
-				@Override
-				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
-				{
-					return null;// dummy, ignored if null.
-				}
-			});
-			
-			Set<PairScore> pairsReturnedAsSet = new TreeSet<PairScore>(pairsReturned);
-			Assert.assertEquals(redToPairsObtained.get(bestVertex),pairsReturnedAsSet);
-		}
-		
-		
-		// Now I verify that if my quality selection routine returns the expected value for a collection of pairs corre
-		for(CmpVertex bestVertex:redToBeExpected)
-		{
-			graph.clearColours();
-			for(CmpVertex vertRed:redsAlways) vertRed.setColour(JUConstants.RED);
-			for(CmpVertex vertToColourBlue:redToBeExpected)	vertToColourBlue.setColour(JUConstants.BLUE);for(CmpVertex vertToColourBlue:blueStates)	vertToColourBlue.setColour(JUConstants.BLUE);
-
-			final CmpVertex bestVertexFinal = bestVertex;
-			Collection<PairScore> pairsReturned = graph.pairscores.chooseStatePairs(new RedNodeSelectionProcedure() {
-				
-				@Override
-				public CmpVertex selectRedNode(LearnerGraph coregraph, final Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
-				{
-					final Set<Collection<PairScore>> collectionOfPairsSeen = new HashSet<Collection<PairScore>>();
-					CmpVertex nodeSelected = LearnerThatUsesWekaResults.selectRedNodeUsingQualityEstimator(coregraph, tentativeRedNodes, new CollectionOfPairsEstimator() {
-	
-						@Override
-						public double obtainEstimateOfTheQualityOfTheCollectionOfPairs(LearnerGraph argGraph, Collection<PairScore> pairs) 
-						{
-							Assert.assertSame(graph,argGraph);Assert.assertEquals(redsAlways,reds);
-							Set<PairScore> AdditionalPairs = new TreeSet<PairScore>(pairs);
-							collectionOfPairsSeen.add(AdditionalPairs);// we'll check that pairs passed to us were the same as those computed during the forward-run of the chooseStatePairs.
-								// It is important to do this check because pairs passed to obtainEstimateOfTheQualityOfTheCollectionOfPairs are computed by selectRedNode.
-							
-							if (AdditionalPairs.equals(redToPairsObtained.get(bestVertexFinal))) // pairs passed to this one should be some of the same collections of pairs seen by resolvePotentialDeadEnd above. 
-								return 1;
-							return 0;
-						}
-						
-					});
-					final Set<Collection<PairScore>> collectionOfPairsExpected = new HashSet<Collection<PairScore>>();collectionOfPairsExpected.addAll(redToPairsObtained.values());
-					Assert.assertEquals(collectionOfPairsExpected,collectionOfPairsSeen);
-					if (checkCorrectNodeChosen) Assert.assertEquals(bestVertexFinal,nodeSelected);// check that the expected vertex has been selected
-					return bestVertexFinal;
-				}
-	
-				@SuppressWarnings("unused")
-				@Override
-				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs) {
-					return null;
-				}
-				
-				@Override
-				public void initComputation(@SuppressWarnings("unused") LearnerGraph gr) {
-					// dummy
-				}
-
-				@Override
-				public long overrideScoreComputation(PairScore p) {
-					return p.getScore();// dummy
-				}
-
-				@Override
-				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
-				{
-					return null;// dummy, ignored if null.
-				}
-			});
-			
-			Set<PairScore> pairsReturnedAsSet = new TreeSet<PairScore>(pairsReturned);
-			Assert.assertEquals(redToPairsObtained.get(bestVertex),pairsReturnedAsSet);
-		}
+		double second []= classifier.distributionForInstance(dataCollector.constructInstance(new int []{0,1,1},false));
+		Assert.assertEquals(0.25,second[classifier.posForTrue()],Configuration.fpAccuracy);Assert.assertEquals(0.75,second[classifier.posForFalse()],Configuration.fpAccuracy);
 	}
-	
-	@Test
-	public void testAutomatonConnected1()
-	{
-		LearnerGraph graph = new LearnerGraph(mainConfiguration);graph.initEmpty();
-		Assert.assertNull(LearningSupportRoutines.uniqueFromInitial(graph));
-		Assert.assertTrue(graph.pathroutines.automatonConnected());
-		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
-		Assert.assertTrue(actual.transitionMatrix.isEmpty());Assert.assertNull(actual.getInit());
-	}
-	
-	@Test
-	public void testAutomatonConnected2()
-	{
-		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		Assert.assertNull(LearningSupportRoutines.uniqueFromInitial(graph));
-		Assert.assertTrue(graph.pathroutines.automatonConnected());
-		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
-		LearnerGraph expected = new LearnerGraph(mainConfiguration);
-		DifferentFSMException ex = WMethod.checkM(expected, actual);
-		if (ex != null) throw ex;
-	}
-	
-	@Test
-	public void testAutomatonConnected3()
-	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-b->A","testAutomatonConnected3",mainConfiguration, converter);
-		Assert.assertNull(LearningSupportRoutines.uniqueFromInitial(graph));
-		Assert.assertTrue(graph.pathroutines.automatonConnected());
-		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
-		DifferentFSMException ex = WMethod.checkM(graph, actual);
-		if (ex != null) throw ex;
-	}
-	
-	@Test
-	public void testUniqueFromInitial1()
-	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->C-b->A","testAutomatonConnected3",mainConfiguration, converter);
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter), LearningSupportRoutines.uniqueFromInitial(graph));
-	}
-	@Test
-	public void testUniqueFromInitial2()
-	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-c->C-b->A-b->B / C-a->A-t->A","testAutomatonConnected3",mainConfiguration, converter);
-		Assert.assertEquals(AbstractLearnerGraph.generateNewLabel("t", mainConfiguration, converter), LearningSupportRoutines.uniqueFromInitial(graph));
-	}
-	
-	@Test
-	public void testAutomatonConnected4()
-	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C","testAutomatonConnected4",mainConfiguration, converter);
-		Assert.assertFalse(graph.pathroutines.automatonConnected());
-		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
-		LearnerGraph expected = new LearnerGraph(mainConfiguration);
-		DifferentFSMException ex = WMethod.checkM(expected, actual);
-		if (ex != null) throw ex;
-	}
-	
-	@Test
-	public void testAutomatonConnected5()
-	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-b->A / D-a->D","testAutomatonConnected5",mainConfiguration, converter);
-		Assert.assertFalse(graph.pathroutines.automatonConnected());
-		LearnerGraph actual = new LearnerGraph(mainConfiguration);graph.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(actual);
-		final LearnerGraph expected = FsmParser.buildLearnerGraph("A-a->B-a->C-b->A","testAutomatonConnected3a",mainConfiguration, converter);
-		DifferentFSMException ex = WMethod.checkM(expected, actual);
-		if (ex != null) throw ex;
-	}
-		
-	@Test
-	public void testConstructPairsToMergeWithOutgoing1()
-	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>(), expectedTargets = new TreeSet<CmpVertex>(), actualTargets = new TreeSet<CmpVertex>();
-		Label unique = AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter);
-		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
-		Assert.assertEquals(4,actual.size());
-		expectedTargets.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C1"),graph.findVertex("C2"),graph.findVertex("C3"),graph.findVertex("C4")}));
-		for(CmpVertex v:actual)
-		{
-			Map<Label,CmpVertex> next = graph.transitionMatrix.get(v);
-			if (!v.equals(graph.getInit())) Assert.assertEquals(1,next.size());
-			Assert.assertTrue(next.keySet().contains(unique));
-			actualTargets.add(next.get(unique));
-		}
-		Assert.assertEquals(expectedTargets,actualTargets);
-	}
-	
-	@Test
-	public void testConstructPairsToMergeWithOutgoing2()
-	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c-#C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing2",mainConfiguration, converter);
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>(), expectedTargets = new TreeSet<CmpVertex>(), actualTargets = new TreeSet<CmpVertex>();
-		Label unique = AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter);
-		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
-		Assert.assertEquals(3,actual.size());
-		expectedTargets.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C2"),graph.findVertex("C3"),graph.findVertex("C4")}));
-		for(CmpVertex v:actual)
-		{
-			Map<Label,CmpVertex> next = graph.transitionMatrix.get(v);Assert.assertEquals(1,next.size());
-			if (!v.equals(graph.getInit())) Assert.assertEquals(1,next.size());
-			Assert.assertTrue(next.keySet().contains(unique));
-			actualTargets.add(next.get(unique));
-		}
-		Assert.assertEquals(expectedTargets,actualTargets);
-	}
-	
-	// Here transition from M3 goes to a reject state, hence M3 is not considered a candidate for a valid merge with other M-transitions. 
-	@Test
-	public void testConstructPairsToMergeWithOutgoing3()
-	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c-#D / M2-b->B","testConstructPairsToMergeWithOutgoing3",mainConfiguration, converter);
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>(), expectedTargets = new TreeSet<CmpVertex>(), actualTargets = new TreeSet<CmpVertex>();
-		Label unique = AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter);
-		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
-		Assert.assertEquals(3,actual.size());
-		expectedTargets.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C1"),graph.findVertex("C2"),graph.findVertex("C4")}));
-		for(CmpVertex v:actual)
-		{
-			Map<Label,CmpVertex> next = graph.transitionMatrix.get(v);
-			if (!v.equals(graph.getInit())) Assert.assertEquals(1,next.size());
-			Assert.assertTrue(next.keySet().contains(unique));
-			actualTargets.add(next.get(unique));
-		}
-		Assert.assertEquals(expectedTargets,actualTargets);
-	}
-	
-	@Test
-	public void testConstructPairsToMergeWithOutgoing4()
-	{
-		final LearnerGraph graph = FsmParser.buildLearnerGraph("M1-c-#C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing2",mainConfiguration, converter);
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>();
-		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter)));
-		Assert.assertTrue(actual.isEmpty());
-	}
-	
-	@Test
-	public void testConstructPairsToMergeWithOutgoing5()
-	{
-		final LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>();
-		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter)));
-		Assert.assertTrue(actual.isEmpty());
-	}
-	
-	@Test
-	public void testMergeStatesForUniqueFromInitial1()
-	{
-		String graphSrc = "M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B";
-		final LearnerGraph graph = FsmParser.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter),
-				graphCopy = FsmParser.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);// create a completely unrelated graph with same states and structure
-		final LearnerGraph expected = FsmParser.buildLearnerGraph("M1-c->C1-d-#D / C1-a->A3-b->M4-c->P03 /  M1-a->A1-b->M2-c->C2 / M2-a->A2-b->M3-c->C3 / M2-b->B","testMergeStatesForUniqueFromInitial1b",mainConfiguration, converter);
-
-		LearnerGraph actual = LearningSupportRoutines.mergeStatesForUnique(graph, AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter));
-		DifferentFSMException ex = WMethod.checkM(expected, actual);
-		if (ex != null)
-			throw ex;
-		ex = WMethod.checkM(graphCopy, graph);
-		if (ex != null)
-			throw ex;
-	}
-	
-	@Test
-	public void testMergeStatesForUniqueFromInitial2()
-	{
-		String graphSrc = "M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B";
-		final LearnerGraph graph = FsmParser.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter),
-				graphCopy = FsmParser.buildLearnerGraph(graphSrc,"testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);// create a completely unrelated graph with same states and structure
-		final LearnerGraph expected = FsmParser.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
-		LearnerGraph actual = LearningSupportRoutines.mergeStatesForUnique(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter));
-		DifferentFSMException ex = WMethod.checkM(expected, actual);
-		if (ex != null)
-			throw ex;
-		ex = WMethod.checkM(graphCopy, graph);
-		if (ex != null)
-			throw ex;
-	}
-	
-	@Test
-	public void testMergeStatesForUniqueFromInitial3()
-	{
-		final LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		LearnerGraph actual = LearningSupportRoutines.mergeStatesForUnique(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter));
-		Assert.assertEquals(1,actual.getStateNumber());
-		Assert.assertTrue(actual.transitionMatrix.get(actual.getInit()).isEmpty());
-	}
-	
-	@Test
-	public void testRemoveNegatives1()
-	{
-		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
-		DifferentFSMException ex = WMethod.checkM(graph,actual);
-		if (ex != null)
-			throw ex;
-		
-	}
-
-	@Test
-	public void testRemoveNegatives2()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->A","testRemoveNegatives2",mainConfiguration,converter);
-		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
-		DifferentFSMException ex = WMethod.checkM(graph,actual);
-		if (ex != null)
-			throw ex;
-		
-	}
-
-	@Test
-	public void testRemoveNegatives3()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->A","testRemoveNegatives3",mainConfiguration,converter);
-		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
-		DifferentFSMException ex = WMethod.checkM(graph,actual);
-		if (ex != null)
-			throw ex;
-		
-	}
-
-	@Test
-	public void testRemoveNegatives4()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C / A-b->A","testRemoveNegatives4a",mainConfiguration,converter);
-		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
-		DifferentFSMException ex = WMethod.checkM(FsmParser.buildLearnerGraph("A-a->B / A-b->A","testRemoveNegatives4b",mainConfiguration,converter),actual);
-		if (ex != null)
-			throw ex;
-		
-	}
-
-	@Test
-	public void testRemoveNegatives5()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a-#C / A-b->A-c-#D","testRemoveNegatives5a",mainConfiguration,converter);
-		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
-		DifferentFSMException ex = WMethod.checkM(FsmParser.buildLearnerGraph("A-a->B / A-b->A","testRemoveNegatives5b",mainConfiguration,converter),actual);
-		if (ex != null)
-			throw ex;
-		
-	}
-
-	// This one covers the case of a graph with a single state
-	@Test
-	public void testRemoveNegatives6()
-	{
-		LearnerGraph graph = new LearnerGraph(mainConfiguration);graph.getInit().setAccept(false);
-		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
-		Assert.assertEquals(0,actual.getStateNumber());				
-	}
-
-	// This one covers the case of a graph that will develop holes if negatives are removed.
-	@Test
-	public void testRemoveNegatives7()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives7a",mainConfiguration,converter);
-		graph.findVertex("B").setAccept(false);
-		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
-		DifferentFSMException ex = WMethod.checkM(new LearnerGraph(mainConfiguration),actual);
-		if (ex != null)
-			throw ex;
-		
-	}
-
-	// This one covers the case of a graph that will develop holes if negatives are removed.
-	@Test
-	public void testRemoveNegatives8()
-	{
-		LearnerGraph graph = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D","testRemoveNegatives8a",mainConfiguration,converter);
-		graph.findVertex("C").setAccept(false);
-		LearnerGraph actual = LearningSupportRoutines.removeAllNegatives(graph);
-		DifferentFSMException ex = WMethod.checkM(FsmParser.buildLearnerGraph("A-a->B","testRemoveNegatives8b",mainConfiguration,converter),actual);
-		if (ex != null)
-			throw ex;
-		
-	}
-
 }
 
 

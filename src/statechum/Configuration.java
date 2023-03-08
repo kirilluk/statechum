@@ -26,7 +26,6 @@ import java.util.*;
 import static statechum.Helper.throwUnchecked;
 
 import harmony.collections.HashMapWithSearch;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -101,7 +100,7 @@ public class Configuration implements Cloneable {
 		// GENERAL_PLUS_NOFULLMERGE means two things:
 		// 1. scoring is based only on positive vertices, so if a number of negatives are merged, we do not count this towards a score. This gives a similar score to 'compatible' mergers and much better learning results.
 		// 2. that during a merger, we should not construct a full partition of vertices - those are left out are in singleton clusters. This is much faster but may fail where questions are generated.
-		CONVENTIONAL("CONV"), COMPATIBILITY("COMP"), KTAILS("KT"), KTAILS_ANY("KANY"), GENERAL("GEN"), GENERAL_PLUS_NOFULLMERGE("GPLS"), ONLYOVERRIDE("OVR");
+		CONVENTIONAL("CONV"), COMPATIBILITY("COMP"), KTAILS("KT"), KTAILS_ANY("KANY"), GENERAL("GEN"), GENERAL_NOFULLMERGE("GENN"), GENERAL_PLUS_NOFULLMERGE("GPLS"), ONLYOVERRIDE("OVR");
 
 		public final String name;
 		ScoreMode(String nameText)
@@ -177,7 +176,6 @@ public class Configuration implements Cloneable {
 
 	/** In many experiments, FSM evaluation only explores paths of length up to a specific boundary. If an outcome of learning has many long paths, anything beyond that boundary will not be explored.
 	 * We therefore put a bound on the length of paths, stopping the learning process with an error that can be caught and a special 'failure' FSM returned (that can be stored as an outcome of learning).
-	 * Such routines are not standard in the main learner but are implemented as part of {@link LearningAlgorithms.ReferenceLearner}.
 	 * The default is a negative indicating that no restriction is to be applied.
 	 */
 	protected int override_maximalNumberOfStates = -1;
@@ -539,26 +537,12 @@ public class Configuration implements Cloneable {
 				.asList(new Object[][] { { same }, { clone }, { strings }, {sameCompat},{ cloneCompat },{stringsCompat},{stringsArray}});
 	}
 
-	/**
-	 * Given a test configuration, returns a textual description of its purpose.
-	 * 
-	 * @param config
-	 *            configuration to consider
-	 * @return description.
-	 */
-	@ParametersToString
-	public static String parametersToString(Configuration config) {
-		return (config.isLearnerUseStrings() ? "String vertex" : "Jung vertex")
-				+ ", " + (config.isLearnerCloneGraph() ? "clone" : "no_clone") 
-				+ ", " + (config.getTransitionMatrixImplType())				
-				;
-	}
-
 	/*
 	 * (non-Javadoc)
 	 * 
 	 * @see java.lang.Object#hashCode()
 	 */
+	@SuppressWarnings("null")
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -1445,7 +1429,13 @@ public class Configuration implements Cloneable {
 	 * typically lead to slightly different learning outcomes hence the possibility of compatibility mode. 
 	 */
 	public enum STATETREE {
-		STATETREE_SLOWTREE, STATETREE_LINKEDHASH, STATETREE_ARRAY
+		STATETREE_SLOWTREE("TREE"), STATETREE_LINKEDHASH("LNHASH"), STATETREE_ARRAY("ARRAY");
+		
+		public final String name;
+		private STATETREE(String nameText)
+		{
+			name = nameText;
+		}
 	}
 
 	protected STATETREE transitionMatrixImplType = STATETREE.STATETREE_LINKEDHASH;
@@ -1669,6 +1659,19 @@ public class Configuration implements Cloneable {
 	{
 		erlangDisplayStatistics = newValue;
 	}
+
+	/** How long to run learner (in ms), negative means it will not time out. Important: this value will be scaled based on the CPU frequency correction value, in order to time out at the same time on different platforms. */
+	protected long timeOut = -1;
+	
+	public long getTimeOut()
+	{
+		return timeOut;
+	}
+	
+	public void setTimeOut(long v)
+	{
+		timeOut = v;
+	}
 	
 	/** Writes modified fields of this configuration into a text file.
 	 * A field is considered modified if its value is different from the
@@ -1819,6 +1822,9 @@ public class Configuration implements Cloneable {
 			} else if (var.getType().equals(Integer.class)
 					|| var.getType().equals(int.class)) {
 				value = Integer.valueOf(attrValue);
+			} else if (var.getType().equals(Long.class)
+					|| var.getType().equals(long.class)) {
+				value = Long.valueOf(attrValue);
 			} else if (var.getType().equals(File.class)) {
 				value = new File(attrValue);
 			} else

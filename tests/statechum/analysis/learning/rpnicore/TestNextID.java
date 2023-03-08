@@ -33,7 +33,7 @@ import statechum.Configuration.IDMode;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.JUConstants.VERTEXLABEL;
 import statechum.analysis.learning.TestRpniLearner;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 
 @RunWith(ParameterizedWithName.class)
 public class TestNextID {

@@ -47,13 +47,13 @@ public class ProgressIndicator
 		}
 	}
 	
-	private void printStr(String str)
+	private static void printStr(String str)
 	{
 		if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 			System.out.print(str);
 	}
 	
-	private void end()
+	private static void end()
 	{
 		printStr(".] ");
 	}

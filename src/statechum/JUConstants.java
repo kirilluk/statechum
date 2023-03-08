@@ -55,7 +55,7 @@ public enum JUConstants {
 		THEN(-22); // used in the if-then FSM constraints. If a "match" state of an "if" machine is entered, then
 			// the "then" machine is unrolled starting from the corresponding state.
 
-		private int pairConstant;
+		private final int pairConstant;
 		
 		public int getInteger()
 		{
@@ -74,7 +74,7 @@ public enum JUConstants {
 		 */
 		public static PAIRCOMPATIBILITY compatibilityToJUConstants(long compat)
 		{
-			PAIRCOMPATIBILITY result = null;
+			PAIRCOMPATIBILITY result;
 			if (compat == PAIRCOMPATIBILITY.INCOMPATIBLE.getInteger()) result = PAIRCOMPATIBILITY.INCOMPATIBLE;
 			else
 			if (compat == PAIRCOMPATIBILITY.MERGED.getInteger()) result = PAIRCOMPATIBILITY.MERGED;

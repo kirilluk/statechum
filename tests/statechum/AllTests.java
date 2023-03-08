@@ -20,7 +20,6 @@ package statechum;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
-import statechum.analysis.learning.rpnicore.testLTLToBa;
 
 /*
 Important: when running via IntelliJ Idea, the console will not show the progress of initialisation until
@@ -28,127 +27,22 @@ a custom property editable.java.test.console=true is set (Help->Edit Custom Prop
  */
 
 
+/*
+Important: when running via IntelliJ Idea, the console will not show the progress of initialisation until
+a custom property editable.java.test.console=true is set (Help->Edit Custom Properties).
+ */
+
 /**
  * @author Kirill
  *
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    statechum.AllTests.BasicTests.class,
-    statechum.AllTests.GraphTests.class,
-    statechum.AllTests.LearnerTests.class,
-    statechum.AllTests.ObserversTests.class,
-    statechum.AllTests.LinearTests.class,
-    statechum.AllTests.SmtTests.class,
-    statechum.analysis.Erlang.ErlangTests.class,
+    statechum.FastTests.class,
     //statechum.AllTests.TestErlangWithDifferentOTP.class,
     statechum.AllTests.LengthyTests.class
 })
 public class AllTests {
-
-    @RunWith(Suite.class)
-    @Suite.SuiteClasses({
-        statechum.analysis.learning.TestPTAConstruction.class,
-        statechum.analysis.learning.TestRpniLearner.class,
-        testLTLToBa.class,
-        statechum.analysis.learning.rpnicore.TestAugmentUsingIFTHEN.class,
-        statechum.analysis.learning.rpnicore.TestAugmentUsingIFTHEN.TestQuestionPTA.class,
-        statechum.analysis.learning.rpnicore.TestRandomPathGenerator.class,
-        statechum.analysis.learning.TestLoadAnswers.class,
-        statechum.model.testset.TestPTA_computePrecisionRecall.class,
-        statechum.analysis.learning.TestLearnerWithLabelRefinementViaPta.class
-    }) // commas after the last entry compile from within Eclipse but not from ant
-    public static class LearnerTests {// all tests are included in the annotation.
-    }
-
-    @RunWith(Suite.class)
-    @Suite.SuiteClasses({
-        statechum.analysis.learning.observers.TestRecordProgressDecorator.class,
-        statechum.analysis.learning.observers.TestRecordProgressDecorator.TestSequenceDumping.class,
-        statechum.analysis.learning.observers.TestWriteReadPair.class,
-        statechum.analysis.learning.observers.TestWriteReadInit.class,
-        statechum.analysis.learning.observers.TestWriteReadLearnerEvaluation.class,
-        statechum.analysis.learning.observers.TestWriteReadAugmentPta.class,
-        statechum.analysis.learning.observers.TestGraphSeries.class,
-        statechum.analysis.learning.observers.TestRecorderIntegration.class,
-        statechum.analysis.learning.observers.TestAutoAnswers.class
-    })
-    public static class ObserversTests {// all tests are included in the annotation.
-    }
-
-    @RunWith(Suite.class)
-    @Suite.SuiteClasses({
-        statechum.TestConfiguration.class,
-        collections.TestMapWithSearch.class,
-        collections.TestMapWithSearchMisc.class,
-        statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.class,
-        statechum.analysis.learning.rpnicore.TestFSMParser.class,
-        statechum.analysis.learning.rpnicore.TestFSMAlgo.class,
-        statechum.analysis.learning.rpnicore.TestLearnerGraphND.class,
-        statechum.analysis.learning.rpnicore.TestEquivalenceChecking.class,
-        statechum.analysis.learning.rpnicore.TestRejectManipulation.class,
-        statechum.apps.TestQSMTool.class,
-        statechum.apps.TestQSMTool.TestInvalidTraces.class,
-        statechum.analysis.learning.experiments.TestPaperUAS.class,
-        collections.TestArrayOperations.class,
-        statechum.analysis.learning.rpnicore.TestNextID.class,
-        statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.class,
-        statechum.analysis.learning.rpnicore.TestGraphConstruction.class,
-        statechum.analysis.learning.rpnicore.TestGraphConstructionWithDifferentConf.class,
-        statechum.analysis.learning.experiments.PairSelection.TestWekaPairClassifier.class,
-        statechum.analysis.learning.experiments.TestSGE_ExperimentRunner.class,
-        statechum.analysis.learning.rpnicore.TestParserDot.class
-    })
-    public static class BasicTests {// all tests are included in the annotation.
-    }
-
-    @RunWith(Suite.class)
-    @Suite.SuiteClasses({
-        statechum.analysis.learning.TestEVGraphGeneration.class,
-        statechum.analysis.learning.TestPathTracing.class,
-        statechum.model.testset.TestPrefixRemovingCollection.class,
-        statechum.model.testset.TestPTASequenceEngine.class,
-        statechum.analysis.learning.rpnicore.TestMiscTransformFunctions.class,
-        statechum.analysis.learning.rpnicore.TestTransform.class,
-        statechum.analysis.learning.rpnicore.TestWMethodUniversal.class,
-        statechum.analysis.learning.rpnicore.TestWMethod.class,
-        statechum.analysis.learning.experiments.TestForestFireGenerator.class,
-        statechum.analysis.learning.TestDrawGraphs.class,
-        statechum.analysis.learning.experiments.mutation.TestGraphMutator.class,
-        statechum.analysis.learning.experiments.mutation.TestDiffExperiments.class,
-        statechum.analysis.learning.experiments.mutation.TestExperimentResult.class,
-        statechum.analysis.learning.experiments.PairSelection.TestMarkovLearner.class,
-    	statechum.analysis.learning.TestStateMerging.class,
-        statechum.TestProgressIndicator.class
-    })
-    public static class GraphTests {// all tests are included in the annotation.
-    }
-
-    @RunWith(Suite.class)
-    @Suite.SuiteClasses({
-        statechum.analysis.learning.linear.TestLinear.class,
-        statechum.analysis.learning.linear.TestSolverRandomly.class,
-        statechum.analysis.learning.linear.TestSolver.class,
-        statechum.analysis.learning.linear.TestMatrixComputationWithMultipleThreads.class,
-        statechum.analysis.learning.linear.TestGD.class,
-        statechum.analysis.learning.linear.TestGD_Multithreaded.class,
-        statechum.analysis.learning.linear.TestGD_Multithreaded_NonArray.class,
-        statechum.analysis.learning.linear.TestGD_MultipleCasesOfRenaming.class,
-        statechum.apps.TestVisualDemo.class
-    })
-    public static class LinearTests {// all tests are included in the annotation.
-    }
-
-    @RunWith(Suite.class)
-    @SuiteClasses({
-        statechum.analysis.learning.TestSmt.class,
-        statechum.analysis.learning.smt.TestSmtLabelRepresentation.class,
-        statechum.analysis.learning.smt.TestSmtLabelRepresentation.TestFeaturesOfAbstractStates.class,
-        statechum.analysis.learning.smt.TestLabelParser.class,
-        statechum.analysis.learning.smt.TestSmtLabelRepresentation.TestChecksInTwoContexts.class
-    })
-    public static class SmtTests {// all tests are included in the annotation.
-    }
 /*
     @RunWith(ParameterizedSuite.class)
     @SuiteClasses({
@@ -209,9 +103,21 @@ public class AllTests {
     */
     @RunWith(Suite.class)
     @SuiteClasses({
+            harmony.collections.HarmonyAbstractMapTest.class,
+            harmony.collections.HarmonyHashMapTest.class,
+            harmony.collections.HarmonyTreeMapTest.class,
+            harmony.collections.LinkedHashMapTest.class,
+            harmony.collections.TreeMapWithSearchTest.class
+    })
+    public static class HarmonyTests {// of these tests, only HarmonyAbstractMap and HarmonyHashMap need to be tested.
+    }
+
+    @RunWith(Suite.class)
+    @SuiteClasses({
     	statechum.analysis.learning.experiments.TestPaperUAS_Large.class,
     	statechum.analysis.learning.TestStateMerging.TestRandomFSMMergers.class,
         statechum.analysis.learning.experiments.PairSelection.TestLearnFromTracesUsingMarkov.class,
+        statechum.analysis.learning.experiments.PairSelection.TestMarkov_i2c.class,
         statechum.analysis.learning.experiments.mutation.TestDiffExperimentWithLogs.class,
         statechum.analysis.learning.TestLearnerFromLargePTA.class,
         statechum.analysis.learning.experiments.TestExperimentRunner.class,
@@ -224,5 +130,6 @@ public class AllTests {
     })
     public static class LengthyTests {// all tests are included in the annotation.
     }
-  
+
+
 }

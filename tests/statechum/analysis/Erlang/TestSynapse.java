@@ -17,7 +17,7 @@
  */
 package statechum.analysis.Erlang;
 
-import static statechum.Helper.checkForCorrectException;
+import static statechum.TestHelper.checkForCorrectException;
 
 import java.io.File;
 import java.util.Collection;
@@ -35,9 +35,10 @@ import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangPid;
 import com.ericsson.otp.erlang.OtpErlangTuple;
 
+import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.Helper.whatToRun;
+import statechum.TestHelper.whatToRun;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 
 @RunWith(ParameterizedWithName.class)
@@ -110,8 +111,8 @@ public class TestSynapse {
 	public static Collection<Object[]> data() 
 	{
 		Collection<Object []> result = new LinkedList<Object []>();
-		result.add(new Object[]{Boolean.valueOf(false)});
-		result.add(new Object[]{Boolean.valueOf(true)});
+		result.add(new Object[]{Boolean.FALSE});
+		result.add(new Object[]{Boolean.TRUE});
 		
 		return result;
 	}
@@ -194,7 +195,7 @@ public class TestSynapse {
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
 		Assert.assertTrue(
 				runner.evaluateString("process_flag(trap_exit, true),"+
-						"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"]},{'AccumulateOutput','false'},[{'pp','qq'}] ]) end)," // this will fail if we cannot start Erlang
+						"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'bindir','"+getJavaBinDir()+"'},{'JavaOptionsList',["+javaOptions+"]},{'AccumulateOutput','false'},[{'pp','qq'}] ]) end)," // this will fail if we cannot start Erlang
 						+ "Response = receive Arg -> Arg end,"
 						+ "process_flag(trap_exit, false),Response").toString().contains("Tuple is not key-value pair"));
 	}
@@ -205,7 +206,7 @@ public class TestSynapse {
 	{
 		Assert.assertTrue(
 			runner.evaluateString("process_flag(trap_exit, true),"+
-					"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','aa'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
+					"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','aa'},{'bindir','"+getJavaBinDir()+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
 					+ "Response = receive Arg -> Arg end,"
 					+ "process_flag(trap_exit, false),Response").toString().contains("spawn_executable,aa"));
 	}
@@ -217,7 +218,7 @@ public class TestSynapse {
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
 		Assert.assertTrue(
 				runner.evaluateString("process_flag(trap_exit, true),"+
-						"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+",{'pp','qq'}] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
+						"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'bindir','"+getJavaBinDir()+"'},{'JavaOptionsList',["+javaOptions+",{'pp','qq'}] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
 						+ "Response = receive Arg -> Arg end,"
 						+ "process_flag(trap_exit, false),Response").toString().contains("Timeout waiting for node"));
 	}
@@ -227,7 +228,7 @@ public class TestSynapse {
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
 		String response = runner.evaluateString("process_flag(trap_exit, true),"+
-				"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+",{'-DSYNAPSE_TERMINATE','true'}] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
+				"spawn_link(fun() -> synapselauncher:startStatechum([{'Java','"+java+"'},{'bindir','"+getJavaBinDir()+"'},{'JavaOptionsList',["+javaOptions+",{'-DSYNAPSE_TERMINATE','true'}] },{'AccumulateOutput','false'} ]) end)," // this will fail if we cannot start Erlang
 				+ "Response = receive Arg -> Arg end,"
 				+ "process_flag(trap_exit, false),Response").toString();
 		Assert.assertTrue(
@@ -238,7 +239,7 @@ public class TestSynapse {
 	public void testRunSynapse1()
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		String response = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','true'}]),"
+		String response = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'bindir','"+getJavaBinDir()+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','true'}]),"
 				+ "synapselauncher:find_statechum()!terminate," //io:format(\"waiting for response~n\"),"
 				+ "receive Arg -> Arg end"));
 		Assert.assertTrue(response.contains("Synapse started"));Assert.assertTrue(response.contains("Synapse terminated"));
@@ -249,7 +250,7 @@ public class TestSynapse {
 	public void testRunSynapse2a_longnames() throws InterruptedException
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'}]),"
+		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'bindir','"+getJavaBinDir()+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'}]),"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()!{self(),Ref,getNodeName},"
 				+ "receive {Ref,ok,Value} -> "
@@ -267,12 +268,12 @@ public class TestSynapse {
 	}
 	
 	/** Tests that termination of a parent Erlang process kills Java. 
-	 * @throws InterruptedException */
+	 */
 	@Test
 	public void testRunSynapse2b() throws InterruptedException
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		OtpErlangTuple pid_node = (OtpErlangTuple)runner.evaluateString("OurPid=self(),Pid = spawn(fun () -> synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'}]),OurPid!ok,receive stop -> ok end end),"
+		OtpErlangTuple pid_node = (OtpErlangTuple)runner.evaluateString("OurPid=self(),Pid = spawn(fun () -> synapselauncher:startStatechum([{'Java','"+java+"'},{'bindir','"+getJavaBinDir()+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'}]),OurPid!ok,receive stop -> ok end end),"
 				+ "receive ok -> ok end,"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()!{self(),Ref,getNodeName},"
@@ -298,12 +299,12 @@ public class TestSynapse {
 	}
 	
 	/** Tests that termination of a process linked to a worker kill the worker.
-	 * @throws InterruptedException */
+	 */
 	@Test
 	public void testRunSynapse2c() throws InterruptedException
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','true'}]),"+
+		runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'bindir','"+getJavaBinDir()+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','true'}]),"+
 				"OurPid=self(),Ref=make_ref(),Pid = spawn(fun () -> synapselauncher:find_statechum()!{self(),Ref,getStatechumWorker},receive {Ref,WorkerPid} -> "
 				+"WorkerPid!{Ref,echo},receive {Ref,workerok} ->ok,throw(worker_parent_failed)" // check that worker is ok and then make an abnormal termination. Nnow the worker should terminate and this is to appear on standard output.
 				+" end end end)" //
@@ -329,7 +330,7 @@ public class TestSynapse {
 	public void testRunSynapse3() throws InterruptedException
 	{// ,{'Cookie','"+ErlangNode.getErlangNode().getNode().cookie()+"'}
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','true'}]),"
+		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'bindir','"+getJavaBinDir()+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','true'}]),"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()!{self(),Ref,getNodeName},"
 				+ "receive {Ref,ok,Value} -> "
@@ -354,7 +355,14 @@ public class TestSynapse {
 	{
 		return startSynapse(false);
 	}
-	
+
+	protected static String getJavaBinDir() {
+		// Thanks to https://stackoverflow.com/questions/227486/find-where-java-class-is-loaded-from
+		return Configuration.class.getResource("/" + Configuration.class.getCanonicalName().replace(".", "/") + ".class").toString().
+				replace(Configuration.class.getSimpleName()+".class","").replace("file:/","")+"..";
+
+	}
+
 	/** Starts Synapse and returns the associated pid. */
 	public OtpErlangPid startSynapse(boolean accumulateOutput)
 	{
@@ -362,18 +370,18 @@ public class TestSynapse {
 		String ErlangHome = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.ERLANGHOME), ErlangHomeSetting="";
 		if (ErlangHome != null)
 			ErlangHomeSetting=",{'-DERLANGHOME','"+ErlangHome.replace('\\', '/')+"'}";
-		return (OtpErlangPid)runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+ErlangHomeSetting+"] },{'AccumulateOutput','" + Boolean.valueOf(accumulateOutput).toString().toLowerCase()+"'}]),"
+		return (OtpErlangPid)runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'bindir','"+getJavaBinDir()+"'},{'JavaOptionsList',["+javaOptions+ErlangHomeSetting+"] },{'AccumulateOutput','" + Boolean.toString(accumulateOutput).toLowerCase()+"'}]),"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()");		
 	}
 	
 	/** Same as above but we do not accumulate output. 
-	 * @throws InterruptedException */
+	 */
 	@Test
 	public void testRunSynapse4() throws InterruptedException
 	{
 		String java = (System.getProperty("java.home")+File.separator+"bin/java").replace(File.separatorChar,'/');
-		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'}]),"
+		String synapseNode = ErlangLabel.dumpErlangObject(runner.evaluateString("synapselauncher:startStatechum([{'Java','"+java+"'},{'bindir','"+getJavaBinDir()+"'},{'JavaOptionsList',["+javaOptions+"] },{'AccumulateOutput','false'}]),"
 				+ "Ref=make_ref(),"
 				+ "synapselauncher:find_statechum()!{self(),Ref,getNodeName},"
 				+ "receive {Ref,ok,Value} -> "

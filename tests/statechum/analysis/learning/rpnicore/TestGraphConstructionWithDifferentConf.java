@@ -17,34 +17,33 @@
  */ 
 package statechum.analysis.learning.rpnicore;
 
-import static org.junit.Assert.assertTrue;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
-import statechum.Configuration.STATETREE;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.DeterministicDirectedSparseGraph.VertexID;
-
-import java.util.Collection;
-import java.util.Set;
-import java.util.TreeSet;
-
+import edu.uci.ics.jung.graph.Vertex;
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
+import edu.uci.ics.jung.utils.UserData;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.ParameterizedWithName.ParametersToString;
-
 import statechum.Configuration;
+import statechum.Configuration.STATETREE;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.JUConstants;
 import statechum.StringVertex;
+import statechum.TestConfiguration;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import edu.uci.ics.jung.graph.Vertex;
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
-import edu.uci.ics.jung.utils.UserData;
-import static statechum.Helper.checkForCorrectException;
-import static statechum.Helper.whatToRun;
+
+import java.util.Collection;
+import java.util.Set;
+import java.util.TreeSet;
+
+import static org.junit.Assert.assertTrue;
+import static statechum.TestHelper.checkForCorrectException;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper; 
 
 @RunWith(ParameterizedWithName.class)
@@ -69,7 +68,7 @@ public class TestGraphConstructionWithDifferentConf {
 	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
-		return Configuration.parametersToString(config);
+		return TestConfiguration.parametersToString(config);
 	}
 	
 	/** Make sure that whatever changes a test have made to the 
@@ -85,7 +84,7 @@ public class TestGraphConstructionWithDifferentConf {
 	}
 
 	/** The configuration to use when running tests. */
-	Configuration config = null, mainConfiguration = null;
+	Configuration config = null, mainConfiguration;
 
 	/** Used as arguments to equalityTestingHelper. */
 	private LearnerGraph differentA = null, differentB = null;
@@ -96,10 +95,11 @@ public class TestGraphConstructionWithDifferentConf {
 		LearnerGraph a=new LearnerGraph(config),b=new LearnerGraph(config);
 		equalityTestingHelper(a,b,differentA,differentB, true);
 
-		Assert.assertFalse(a.equals(null));
-		Assert.assertFalse(a.equals("hello"));
+		Assert.assertNotEquals(null, a);
+		Assert.assertNotEquals("hello", a);
 		config.setDefaultInitialPTAName("B");
-		b = new LearnerGraph(config);Assert.assertFalse(a.equals(b));
+		b = new LearnerGraph(config);
+		Assert.assertNotEquals(a, b);
 	}
 	
 	@Test
@@ -331,9 +331,9 @@ public class TestGraphConstructionWithDifferentConf {
 		new LearnerGraph(g,config);// without the vertex being added, everything should be fine.
 		g.addVertex(v);// add the vertex
 
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectException(() -> {
 			new LearnerGraph(g,config);// now getGraphData should choke.
-		}},IllegalArgumentException.class,expectedExceptionString);
+		},IllegalArgumentException.class,expectedExceptionString);
 	}
 	
 	@Test
@@ -388,11 +388,7 @@ public class TestGraphConstructionWithDifferentConf {
 	@Test
 	public void testGraphConstructionFail6() 
 	{
-		checkForCorrectException(new whatToRun() {
-		@SuppressWarnings("unused")
-		public @Override void run() {
-			new LearnerGraph(new DirectedSparseGraph(),config);			
-		}},IllegalArgumentException.class,"missing initial");
+		checkForCorrectException(() -> new LearnerGraph(new DirectedSparseGraph(),config),IllegalArgumentException.class,"missing initial");
 	}
 
 	/** Unlabelled states. */
@@ -410,16 +406,14 @@ public class TestGraphConstructionWithDifferentConf {
 	public final void testGraphConstruction_nondet_1a()
 	{
 		LearnerGraphND graph = buildLearnerGraphND("A-a->B-b->C\nB-b->D", "testGraphConstruction_nondet_1a",config,converter);
-		Set<CmpVertex> targets_a = new TreeSet<CmpVertex>();targets_a.add(graph.findVertex("B"));
-		Set<CmpVertex> targets_b = new TreeSet<CmpVertex>();targets_b.add(graph.findVertex("C"));targets_b.add(graph.findVertex("D"));
-		Set<CmpVertex> actual_a = new TreeSet<CmpVertex>();
-		actual_a.addAll(graph.transitionMatrix.get(graph.findVertex("A"))
-				.get(AbstractLearnerGraph.generateNewLabel("a",config,converter))); 
-		Assert.assertTrue(targets_a.equals(actual_a));
-		Set<CmpVertex> actual_b = new TreeSet<CmpVertex>();
-		actual_b.addAll(graph.transitionMatrix.get(graph.findVertex("B"))
-				.get(AbstractLearnerGraph.generateNewLabel("b",config,converter)));
-		Assert.assertTrue(targets_b.equals(actual_b));
+		Set<CmpVertex> targets_a = new TreeSet<>();targets_a.add(graph.findVertex("B"));
+		Set<CmpVertex> targets_b = new TreeSet<>();targets_b.add(graph.findVertex("C"));targets_b.add(graph.findVertex("D"));
+		Set<CmpVertex> actual_a = new TreeSet<>(graph.transitionMatrix.get(graph.findVertex("A"))
+				.get(AbstractLearnerGraph.generateNewLabel("a", config, converter)));
+		Assert.assertEquals(targets_a, actual_a);
+		Set<CmpVertex> actual_b = new TreeSet<>(graph.transitionMatrix.get(graph.findVertex("B"))
+				.get(AbstractLearnerGraph.generateNewLabel("b", config, converter)));
+		Assert.assertEquals(targets_b, actual_b);
 		Assert.assertTrue(graph.transitionMatrix.get(graph.findVertex("C")).isEmpty());
 		Assert.assertTrue(graph.transitionMatrix.get(graph.findVertex("D")).isEmpty());
 	}
@@ -428,8 +422,8 @@ public class TestGraphConstructionWithDifferentConf {
 	@Test
 	public final void testGraphConstruction_nondet_1b()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			buildLearnerGraph("A-a->B-b->C\nB-b->D", "testGraphConstruction_nondet_1a",config,converter);
-		}},IllegalArgumentException.class,"non-determinism");
+		checkForCorrectException(
+				() -> buildLearnerGraph("A-a->B-b->C\nB-b->D", "testGraphConstruction_nondet_1a",config,converter),
+				IllegalArgumentException.class,"non-determinism");
 	}
 }

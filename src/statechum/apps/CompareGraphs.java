@@ -25,7 +25,7 @@ import statechum.Configuration;
 import statechum.Label;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine;
@@ -46,16 +46,15 @@ public class CompareGraphs {
 	final static ConvertALabel converter = null;
 	
 	/**
-	 * @param hypothesis followed by actual graph
 	 */
 	public static void main(String[] args) {
-		LearnerGraph specGraph = FsmParser.buildLearnerGraph("q0-initialise->q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5-setfiletype->q4\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q17\nq3-changedir->q9-listnames->q10-delete->q10-changedir->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedir->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "specgraph",config,converter);
-		LearnerGraph impGraph = FsmParser.buildLearnerGraph("q0-initialise->q1-connect->q2-login->q3-storefile->q9-logout->q12-disconnect->q13\nq3-makedir->q8-makedir->q8-logout->q12\nq3-setfiletype->q4-storefile->q5-appendfile->q6-setfiletype->q4-rename->q7-storefile->q6\nq7-logout->q12\nq3-listfiles->q11-retrievefile->q11-changedirectory->q10-listfiles->q11-logout->q12\nq3-changedirectory->q17-listnames->q16-changedirectory->q17\nq16-delete->q14-delete->q15-delete->q16\nq14-changedirectory->q13\nq14-appendfile->q7", "impGraph",config,converter);
+		LearnerGraph specGraph = FsmParserStatechum.buildLearnerGraph("q0-initialise->q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5-setfiletype->q4\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q17\nq3-changedir->q9-listnames->q10-delete->q10-changedir->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedir->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "specgraph",config,converter);
+		LearnerGraph impGraph = FsmParserStatechum.buildLearnerGraph("q0-initialise->q1-connect->q2-login->q3-storefile->q9-logout->q12-disconnect->q13\nq3-makedir->q8-makedir->q8-logout->q12\nq3-setfiletype->q4-storefile->q5-appendfile->q6-setfiletype->q4-rename->q7-storefile->q6\nq7-logout->q12\nq3-listfiles->q11-retrievefile->q11-changedirectory->q10-listfiles->q11-logout->q12\nq3-changedirectory->q17-listnames->q16-changedirectory->q17\nq16-delete->q14-delete->q15-delete->q16\nq14-changedirectory->q13\nq14-appendfile->q7", "impGraph",config,converter);
 		compare(specGraph, impGraph);
 	}
 	
 	public static void compare(String spec, LearnerGraph imp){
-		LearnerGraph specGraph = FsmParser.buildLearnerGraph(spec, "specGraph",config,converter);
+		LearnerGraph specGraph = FsmParserStatechum.buildLearnerGraph(spec, "specGraph",config,converter);
 		compare(specGraph, imp);
 	}
 	

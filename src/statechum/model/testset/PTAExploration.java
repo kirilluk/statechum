@@ -78,6 +78,8 @@ public abstract class PTAExploration<USEROBJECT>
 		@Override
 		public String toString()
 		{
+			if (getInput() == null)
+				return "NULL";
 			return getInput().toString();
 		}
 		
@@ -96,8 +98,6 @@ public abstract class PTAExploration<USEROBJECT>
 	/** Performs a depth-first exploration of the PTA, calling supplied 
 	 * (by the virtue of extending this class) callbacks for every node.
 	 * In a sense, this is what SAX is doing for XML. 
-	 * 
-	 * @param whomToCall the callback to receive notifications.
 	 */
 	public void walkThroughAllPaths()
 	{
@@ -140,7 +140,7 @@ public abstract class PTAExploration<USEROBJECT>
 	 * children of this node are processed. Not called for tail nodes.
 	 * 
 	 * @param currentNode the current node
-	 * @param pathFromInit the current call stack. Does not include the current element (hence can be empty).
+	 * @param pathToInit the current call stack. Does not include the current element (hence can be empty).
 	 */
 	public abstract void nodeEntered(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit);
 
@@ -148,14 +148,14 @@ public abstract class PTAExploration<USEROBJECT>
 	 * children of this node are processed. Only called for tail nodes.
 	 * 
 	 * @param currentNode the current node
-	 * @param pathFromInit the current call stack. Does not include the current element (hence can be empty).
+	 * @param pathToInit the current call stack. Does not include the current element (hence can be empty).
 	 */
 	public abstract void leafEntered(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit);
 
 	/** Called after children of this node have been processed. Not called for tail nodes.
 	 * 
 	 * @param currentNode the current node
-	 * @param pathFromInit the current call stack. Does not include the current element (hence can be empty).
+	 * @param pathToInit the current call stack. Does not include the current element (hence can be empty).
 	 */
 	public abstract void nodeLeft(PTAExplorationNode currentNode, LinkedList<PTAExplorationNode> pathToInit);
 

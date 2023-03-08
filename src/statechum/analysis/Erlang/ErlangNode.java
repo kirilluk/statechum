@@ -65,7 +65,7 @@ public class ErlangNode {
 	protected ErlangNode()
 	{
 		String hostName = "@localhost";
-		if (false == Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANG_SHORTNODENAME)))
+		if (!Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ERLANG_SHORTNODENAME)))
 		{
 			try
 			{
@@ -75,9 +75,8 @@ public class ErlangNode {
 			{// ignore this, host name remains as "localhost".
 			}
 		}
-		/** This ID is used to construct node name as well as cookie value if it is not provided to us. */
+		/* This ID is used to construct node name as well as cookie value if it is not provided to us. */
 		final String uniqueID = System.nanoTime()+ hostName;
-		System.out.println("Unique ID is "+uniqueID);
 		ourNode = "java" + uniqueID;
 		cookie = "cookie_"+ uniqueID;
 	}

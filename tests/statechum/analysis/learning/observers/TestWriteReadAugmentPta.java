@@ -18,7 +18,7 @@
 
 package statechum.analysis.learning.observers;
 
-import static statechum.Helper.checkForCorrectException;
+import static statechum.TestHelper.checkForCorrectException;
 import static statechum.analysis.learning.observers.TestRecordProgressDecorator.removeTagFromString;
 
 import java.io.ByteArrayInputStream;
@@ -36,9 +36,9 @@ import statechum.Configuration;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.StatechumXML;
-import statechum.Helper.whatToRun;
+import statechum.TestHelper.whatToRun;
 import statechum.analysis.learning.Learner.RestartLearningEnum;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;

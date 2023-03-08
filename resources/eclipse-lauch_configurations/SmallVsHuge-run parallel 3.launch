@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.eclipse.jdt.launching.localJavaApplication">
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+<listEntry value="/XMachineTool-current/src/statechum/analysis/learning/experiments/EvaluationOfLearners/SmallVsHuge.java"/>
+</listAttribute>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+<listEntry value="1"/>
+</listAttribute>
+<mapAttribute key="org.eclipse.debug.core.environmentVariables">
+<mapEntry key="R_HOME" value="C:\Program Files\R\R-3.5.2"/>
+<mapEntry key="R_LIBS_USER" value="C:/Users/Kirill/Documents/R/win-library/3.5"/>
+</mapAttribute>
+<booleanAttribute key="org.eclipse.jdt.launching.ATTR_USE_START_ON_FIRST_THREAD" value="true"/>
+<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="statechum.analysis.learning.experiments.EvaluationOfLearners.SmallVsHuge"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="RUN_PARALLEL 4"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="XMachineTool-current"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;C:/Users/Kirill/Documents/R/win-library/3.5/rJava/jri/x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;C:\Program Files\erl7.3&quot; -DERLANGOUTPUT_ENABLED=false -Xmx25500m  -DPATH_EXPERIMENTRESULTS=&quot;C:\\experiment\\research_experiments&quot; -DPATH_UASPAPER=&quot;C:\\experiment\\research\\xmachine\\ModelInferenceUAS\\traces&quot;"/>
+</launchConfiguration>

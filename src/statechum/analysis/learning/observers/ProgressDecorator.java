@@ -193,13 +193,13 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		
 		public LearnerEvaluationConfiguration(LearnerGraph gr, Collection<List<Label>> tests, Configuration cnf, Collection<String> ltl, SmtLabelRepresentation lblDetails)
 		{
-			graph = gr;testSet = tests;config = cnf;ifthenSequences = ltl;labelDetails=lblDetails;
+			graph = gr;testSet = tests;config = cnf.copy();ifthenSequences = ltl;labelDetails=lblDetails;
 		}
 
-		/** A copy-constructor that does not clone its arguments. */
+		/** A copy-constructor that does not clone its arguments, except for the configuration. */
 		public LearnerEvaluationConfiguration(LearnerEvaluationConfiguration from)
 		{
-			graph = from.graph;testSet = from.testSet;config = from.config;ifthenSequences = from.ifthenSequences; labelDetails = from.labelDetails;labelConverter = from.labelConverter;
+			graph = from.graph;testSet = from.testSet;config = from.config.copy();ifthenSequences = from.ifthenSequences; labelDetails = from.labelDetails;labelConverter = from.labelConverter;
 		}
 		
 		/* (non-Javadoc)
@@ -467,10 +467,10 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		}
 		
 		/** Constructs an instance containing the data from which an initial PTA can be built.
-		 * @param plus positive sequences
-		 * @param plusSize the number of positive sequences, perhaps greater than plus if plus was prefix-reduced.
-		 * @param minus negative sequences
-		 * @param minusSize the number of negative sequences, should be equal to the number of sequences in minus - negatives cannot be prefix-reduced.
+		 * @param argPlus positive sequences
+		 * @param argPlusSize the number of positive sequences, perhaps greater than plus if plus was prefix-reduced.
+		 * @param argMinus negative sequences
+		 * @param argMinusSize the number of negative sequences, should be equal to the number of sequences in minus - negatives cannot be prefix-reduced.
 		 * @param pta the initial PTA
 		 */
 		public InitialData(Collection<List<Label>> argPlus, int argPlusSize, 
@@ -497,10 +497,10 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		}
 		/**
 		* Constructs a class representing arguments to AugmentPTA
-		* @param kind which kind of PTA to modify
+		* @param argKind which kind of PTA to modify
 		* @param argSequence what to add
-		* @param accept whether it is an accept or a reject sequence
-		* @param colour the colour to give to the new nodes to be constructed.
+		* @param argAccept whether it is an accept or a reject sequence
+		* @param argColour the colour to give to the new nodes to be constructed.
 		*/
 		public AugmentPTAData(RestartLearningEnum argKind,List<Label> argSequence, boolean argAccept, JUConstants argColour)
 		{

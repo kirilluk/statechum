@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Run All tests with old OTP" type="JUnit" factoryName="JUnit">
+    <module name="XMachineTool" />
+    <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+    <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.ErlangTests" />
+    <option name="METHOD_NAME" value="" />
+    <option name="TEST_OBJECT" value="class" />
+    <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;C:\Program Files\erl7.3&quot; -DERLANGOUTPUT_ENABLED=false -Xmx25500m" />
+    <envs>
+      <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+      <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+    </envs>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

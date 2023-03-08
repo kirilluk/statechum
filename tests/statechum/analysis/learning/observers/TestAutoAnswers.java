@@ -32,6 +32,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
 import java.io.StringReader;
+import java.util.Collections;
 import java.util.List;
 
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
@@ -82,7 +83,7 @@ public class TestAutoAnswers {
 	@Test
 	public void testPrettyPrintTrace0()
 	{
-		Assert.assertEquals("[]",RPNILearner.questionToString(List.of()));
+		Assert.assertEquals("[]",RPNILearner.questionToString(Collections.emptyList()));
 	}
 
 	private final ConvertALabel converter = null;

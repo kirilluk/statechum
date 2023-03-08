@@ -30,8 +30,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import org.junit.runners.ParameterizedWithName;
 import statechum.Configuration.EXPANSIONOFANY;
-import statechum.Helper.whatToRun;
+import statechum.TestHelper.whatToRun;
 import statechum.AttributeMutator.MethodAndArgs;
 import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper;
 
@@ -41,7 +42,21 @@ public class TestConfiguration {
 		mainConfiguration = Configuration.getDefaultConfiguration().copy();
 		mainConfiguration.setAllowedToCloneNonCmpVertex(true);
 	}
-	
+
+	/**
+	 * Given a test configuration, returns a textual description of its purpose.
+	 *
+	 * @param config
+	 *            configuration to consider
+	 * @return description.
+	 */
+	@ParameterizedWithName.ParametersToString
+	public static String parametersToString(Configuration config) {
+		return (config.isLearnerUseStrings() ? "String vertex" : "Jung vertex")
+				+ ", " + (config.isLearnerCloneGraph() ? "clone" : "no_clone")
+				+ ", " + (config.getTransitionMatrixImplType())
+				;
+	}
 	org.w3c.dom.Document doc = null;
 	
 	/** Make sure that whatever changes a test have made to the 
@@ -153,7 +168,7 @@ public class TestConfiguration {
 		final Writer result = new StringWriter();result.append(value);
 		conf.setAllowedToCloneNonCmpVertex(false);
 		conf.setErlangAlphabetAnyElements(null);
-		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public @Override void run() {
+		statechum.TestHelper.checkForCorrectException(new statechum.TestHelper.whatToRun() { public @Override void run() {
 			conf.writeModifiedIntoWriter(result);
 		}},IllegalArgumentException.class,"cannot record resetting");
 	}
@@ -247,7 +262,7 @@ public class TestConfiguration {
 		oldData.setAttribute(Configuration.configVarAttrValue, "junk");
 		
 		elem.appendChild(oldData);
-		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		statechum.TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			new Configuration().readXML(elem,true);
 		}}, IllegalArgumentException.class,"cannot deserialise unknown field");
 	}
@@ -259,7 +274,7 @@ public class TestConfiguration {
 	{
 		final org.w3c.dom.Element cnf = new Configuration().writeXML(doc);
 		cnf.appendChild(doc.createElement("junk"));
-		statechum.Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		statechum.TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 			new Configuration().readXML(cnf);
 		}},IllegalArgumentException.class,"unexpected element");
 	}
@@ -280,7 +295,7 @@ public class TestConfiguration {
 	{
 		final org.w3c.dom.Element cnf = new Configuration().writeXML(doc);
 		cnf.appendChild(doc.createComment(Configuration.configVarTag));
-		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public @Override void run() {
+		statechum.TestHelper.checkForCorrectException(new statechum.TestHelper.whatToRun() { public @Override void run() {
 			new Configuration().readXML(cnf);
 		}},IllegalArgumentException.class,"unexpected element");
 	}
@@ -289,7 +304,7 @@ public class TestConfiguration {
 	@Test
 	public void testSerialisationFailure4()
 	{
-		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public @Override void run() {
+		statechum.TestHelper.checkForCorrectException(new statechum.TestHelper.whatToRun() { public @Override void run() {
 			new Configuration().readXML(doc.createTextNode(Configuration.configXMLTag));
 		}},IllegalArgumentException.class,"invalid node type passed to readXML");
 	}
@@ -298,7 +313,7 @@ public class TestConfiguration {
 	@Test
 	public void testSerialisationFailure5()
 	{
-		statechum.Helper.checkForCorrectException(new statechum.Helper.whatToRun() { public @Override void run() {
+		statechum.TestHelper.checkForCorrectException(new statechum.TestHelper.whatToRun() { public @Override void run() {
 			new Configuration().readXML(doc.createElement("junk"));
 		}},IllegalArgumentException.class,"configuration cannot be loaded from element");
 	}

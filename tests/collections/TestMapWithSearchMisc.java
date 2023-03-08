@@ -9,7 +9,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.collections.ArrayMapWithSearchPos;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 
 /** Tests a few methods that are unique to some of the collections. */
@@ -20,7 +20,7 @@ public class TestMapWithSearchMisc {
 	public void testCannotAddNegativesToPosMap()
 	{
 		final ArrayMapWithSearchPos<CInteger,CInteger, Long> ourMap = new ArrayMapWithSearchPos<>();
-		statechum.Helper.checkForCorrectException(() -> ourMap.put(new CInteger(-2), 5L),
+		statechum.TestHelper.checkForCorrectException(() -> ourMap.put(new CInteger(-2), 5L),
 				IllegalArgumentException.class,"negative indices are not supported");
 	}
 	

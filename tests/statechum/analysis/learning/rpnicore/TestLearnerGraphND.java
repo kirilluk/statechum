@@ -25,13 +25,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.ParameterizedWithName;
 import org.junit.runners.ParameterizedWithName.ParametersToString;
-import statechum.Configuration;
+import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.Helper;
-import statechum.JUConstants;
-import statechum.Label;
 import statechum.analysis.learning.linear.GDLearnerGraph;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
@@ -40,8 +37,8 @@ import statechum.collections.MapWithSearch;
 import java.util.*;
 import java.util.Map.Entry;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 
 /* Note that many methods are also tested by TestLTL_to_ba. */
 @RunWith(ParameterizedWithName.class)
@@ -189,7 +186,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	{
 		final LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C\nA-a->D\nB-b->C\nA-c->C", "testbuildDeterministicGraph2_a",config,converter);
 		graph.addToCompatibility(graph.findVertex("B"), graph.findVertex("C"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		Helper.checkForCorrectException(
+		TestHelper.checkForCorrectException(
 				graph.pathroutines::buildDeterministicGraph,
 				IncompatibleStatesException.class,"");
 	}
@@ -199,7 +196,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	public final void testbuildDeterministicGraph_fail2()
 	{
 		final LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C\nA-a-#D\nB-b->C\nA-c->C", "testbuildDeterministicGraph_fail2",config,converter);
-		Helper.checkForCorrectException(
+		TestHelper.checkForCorrectException(
 				graph.pathroutines::buildDeterministicGraph,
 				IncompatibleStatesException.class,"");
 	}
@@ -210,7 +207,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	{
 		final LearnerGraphND graph = buildLearnerGraphND(complexgraphND,"testbuildDeterministicGraphComplexND",config,converter);
 		graph.addToCompatibility(graph.findVertex("A"),graph.findVertex("E"),JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE);
-		Helper.checkForCorrectException(
+		TestHelper.checkForCorrectException(
 				graph.pathroutines::buildDeterministicGraph,
 				IncompatibleStatesException.class,"");
 	}
@@ -247,7 +244,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	{
 		final LearnerGraphND graph = buildLearnerGraphND(complexgraphND,"testbuildDeterministicGraphComplexND",config,converter);
 		final CmpVertex junkVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("junk"), graph.config);
-		Helper.checkForCorrectException(
+		TestHelper.checkForCorrectException(
 				() -> graph.pathroutines.buildDeterministicGraph(junkVertex),
 				IllegalArgumentException.class,"the supplied state");
 		
@@ -259,7 +256,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	{
 		final LearnerGraphND graph = new LearnerGraphND(config);graph.initEmpty();
 		final CmpVertex junkVertex = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("junk"), graph.config);
-		Helper.checkForCorrectException(
+		TestHelper.checkForCorrectException(
 				() -> graph.pathroutines.buildDeterministicGraph(junkVertex),
 				IllegalArgumentException.class,"non-null");
 		
@@ -673,7 +670,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	 * @param filterClass which states to filter out
 	 * @param expectedToRemain which states are expected to remain after filtering.
 	 */
-	private final void checkConsideringIgnoredStates(String graph, String graphName, Class<? extends StatesToConsider> filterClass, String [] expectedToRemain)
+	private void checkConsideringIgnoredStates(String graph, String graphName, Class<? extends StatesToConsider> filterClass, String [] expectedToRemain)
 	{
 		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		LearnerGraph gr=buildLearnerGraph(graph,graphName,conf,null);

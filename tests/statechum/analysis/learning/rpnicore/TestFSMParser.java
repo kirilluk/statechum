@@ -75,7 +75,7 @@ public class TestFSMParser {
 		{
 			try
 			{
-				FsmParser p = new FsmParser(text,true);
+				FsmParserStatechum p = new FsmParserStatechum(text, true);
 				p.parse(this,Configuration.getDefaultConfiguration(),null);
 			}
 			catch(IllegalArgumentException e)
@@ -269,12 +269,12 @@ public class TestFSMParser {
 
 	protected static void checkEx(final String whatToParse, String exceptionSubString)
 	{
-		statechum.Helper.checkForCorrectException(() -> new FsmParser(whatToParse,true).parse(new TransitionReceiver()
+		statechum.TestHelper.checkForCorrectException(() ->	new FsmParserStatechum(whatToParse, true).parse(new TransitionReceiver()
 		{
 			@Override
 			public void accept(@SuppressWarnings("unused") String from,
-					@SuppressWarnings("unused")	String to,
-					@SuppressWarnings("unused")	Label label)
+							   @SuppressWarnings("unused")	String to,
+							   @SuppressWarnings("unused")	Label label)
 			{
 				// do nothing at all
 			}

@@ -17,6 +17,7 @@
  */ 
 package statechum.analysis.learning.experiments.PairSelection;
 
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -27,15 +28,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import statechum.Configuration;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelperClassifier;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DataCollectorParameters;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.FilteredPairMeasurements;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.PairMeasurements;
+import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
+import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
+import statechum.analysis.learning.rpnicore.PairScoreComputation;
 import weka.classifiers.Classifier;
 import weka.core.Attribute;
-import weka.core.FastVector;
+import weka.core.BinarySparseInstance;
+import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -46,6 +59,11 @@ public class WekaDataCollector
 	/** The maximal number of attributes to use as part of a conditional statement. Where 0, no conditionals are considered, for QSM (Score/Red/Blue) it has to be 2.
 	 */
 	int maxLevel;
+	
+	public int getLevel()
+	{
+		return maxLevel;
+	}
 	
 	/**
 	 * The length of an instance, taking {@link WekaDataCollector#maxLevel} into account.
@@ -60,21 +78,53 @@ public class WekaDataCollector
 		return instanceLength;
 	}
 	
+	protected final DataCollectorParameters dataCollectorParameters;
+	
 	/**
 	 * Begins construction of an instance of pair classifier.
+	 * @param helper helper used to construct inconsistencies for the use with Markov experiments. The associated ranking routines are not used if this is null.
+	 * @param manyHelpers used where we'd like to compute different variation of inconsistencies. Slower than doing a single one.
+	 * @param p parameters.
 	 */
-	public WekaDataCollector()
+	public WekaDataCollector(MarkovHelper helper, MarkovHelperClassifier manyHelpers, DataCollectorParameters p)
 	{
-		FastVector vecBool = new FastVector(2);vecBool.addElement(Boolean.TRUE.toString());vecBool.addElement(Boolean.FALSE.toString());
-		classAttribute = new Attribute("class",vecBool);
+		markovHelper = helper;markovMultiHelper = manyHelpers; dataCollectorParameters = p;
+		classAttribute = new Attribute("class",Arrays.asList(new String[]{Boolean.TRUE.toString(),Boolean.FALSE.toString()}));
 	}
 
-	protected int n,L;
+	protected int n,attrMult=2;
+
+	/** If this is false, uses nominal attributes determined by comparison of each pair with other pairs. Where it is false, uses numerical attributes and hence no filtering. */
+	protected boolean useNumericalAttributes = false;
 	
-	/** Number of values for attributes to consider. */
+	public void setEnableSD(boolean value)
+	{
+		if (value)
+			attrMult = 2;
+		else
+			attrMult = 1;
+	}
+	
+	public boolean getUseNumericalAttributes()
+	{
+		return useNumericalAttributes;
+	}
+	
+	/** Number of values for attributes to consider. This means where a pair scores at the top or at the bottom of a list of pairs according to each attribute from comparators.size(); pairs with values outside SD are recorded but not used for splitting to reduce the amount of data thrown at the machine learner. */
 	protected final static int V=2;
+	
+	/** Attributes of this collection. Constructed by the {@link WekaDataCollector#initialise(String, int, List, int)} call. */
+	ArrayList<Attribute> attributes = null;
+	
+	public ArrayList<Attribute> getAttributes()
+	{
+		return attributes;
+	}
+	
 	/**
-	 * Completes construction of an instance of pair classifier. Comparators contain attributes that are tied into the training set when it is constructed in this method.
+	 * Completes construction of an instance of pair classifier. Entries reflect relative values of attributes in each collection of pairs.
+	 * 
+	 * Comparators contain attributes that are tied into the training set when it is constructed in this method.
 	 * 
 	 * @param trainingSetName the name for a training set.
 	 * @param capacity the maximal number of elements in the training set
@@ -85,7 +135,7 @@ public class WekaDataCollector
 	{
 		if (assessors != null) throw new IllegalArgumentException("WekaDataCollector should not be re-initialised");
 		
-		assessors = argAssessor;measurementsForUnfilteredCollectionOfPairs.valueAverage = new double[assessors.size()];measurementsForUnfilteredCollectionOfPairs.valueSD=new double[assessors.size()];
+		assessors = argAssessor;measurementsForFilteredCollectionOfPairs.valueAverage = new double[assessors.size()];measurementsForFilteredCollectionOfPairs.valueSD=new double[assessors.size()];
 		comparators = new ArrayList<PairComparator>(assessors.size());
 		for(PairRank pr:assessors)
 			comparators.add(new PairComparator(pr));
@@ -95,56 +145,153 @@ public class WekaDataCollector
 		maxLevel = level;
 
 		n = comparators.size();// the number of indices we go through
-		L = comparators.size()*2;// the length of the attributes accumulated for each pair.
-		long instanceLen = L, sectionLen=1;
-		if (V*n<maxLevel)
+		long instanceLen = 0;
+		int prev_section_size=1;
+		if (n<=maxLevel)
 			throw new IllegalArgumentException("too many levels for the considered number of attributes");
 			
-		for(int i=0;i<maxLevel;++i)
+		for(int currentLevel=0;currentLevel<=maxLevel;++currentLevel)
 		{
-			sectionLen*=V*(n-i);
-			instanceLen+=L*sectionLen;
-			if (sectionLen > Integer.MAX_VALUE)
+			final int attrCountAtThisLevel = (n-currentLevel);// at the top level, we consider min/max of n attributes, at level 1 it is n-1 attribute. This shows that at each level, we have one less attribute to consider. Hence at level i, we split into (n-i) values.
+			final int currentSectionSize = prev_section_size*attrCountAtThisLevel*(currentLevel == 0?1:V);// at each level, we have V*attrCountAtThisLevel parts for each element of the previous level, except for the first level.
+
+			instanceLen+=currentSectionSize*attrMult;
+			if (instanceLen > Integer.MAX_VALUE)
 				throw new IllegalArgumentException("too many attributes per instance");
+			prev_section_size = currentSectionSize;
 		}
 		instanceLength = (int)instanceLen;
+		useNumericalAttributes = false;
 
-		
-		FastVector attributes = new FastVector(instanceLength+1);
+		boolean [] uniqueArray = new boolean[instanceLength];
+		attributes = new ArrayList<Attribute>(instanceLength+1);
 		attributesOfAnInstance = new Attribute[instanceLength];
-		fillInAttributeNames(attributesOfAnInstance,0,0,1,0,"",0);for(int i=0;i<instanceLength;++i) attributes.addElement(attributesOfAnInstance[i]);
-		attributes.addElement(classAttribute);
+		fillInAttributeNames(attributesOfAnInstance,0,0,1,0,"",0,uniqueArray);
+		for(int i=0;i<instanceLength;++i)
+			if (!uniqueArray[i])
+				throw new IllegalArgumentException("entry "+i+" was not filled in");
+		for(int i=0;i<instanceLength;++i) attributes.add(attributesOfAnInstance[i]);
+		attributes.add(classAttribute);
 		trainingData = new Instances(trainingSetName,attributes,capacity);
 		trainingData.setClass(classAttribute);
+		
+		fillinMask = new int[instanceLength];
+		Arrays.fill(fillinMask, fillin_FILL);
 	}
-
-	protected void fillInAttributeNames(Attribute[] whatToFillIn, int section_start, int idx_in_section, int section_size, long xyz, String pathToThisLevel, int currentLevel)
+	
+	/** Completes construction of an instance of pair classifier. 
+	 * The classifier will not do any relative ranking but will only collect numerical values from all attributes. 
+	 * 
+	 * Comparators contain attributes that are tied into the training set when it is constructed in this method.
+	 * 
+	 * @param trainingSetName the name for a training set.
+	 * @param capacity the maximal number of elements in the training set
+	 * @param argAssessor a collection of assessors to use.
+	 */
+	public void initialise(String trainingSetName, int capacity, List<PairRank> argAssessor)
 	{
-		final int sectionPlusOffset = section_start + L*idx_in_section;
+		if (assessors != null) throw new IllegalArgumentException("WekaDataCollector should not be re-initialised");
+		
+		pairValues = new ArrayList<PairEvaluator>(argAssessor.size());
+		for(PairRank pr:argAssessor)
+			pairValues.add(new PairEvaluator(pr));
+
+		maxLevel = 0;attrMult=1;
+
+		n = pairValues.size();// the number of indices we go through
+		instanceLength = n;
+		useNumericalAttributes = true;
+		
+		attributes = new ArrayList<Attribute>(instanceLength+1);
+		for(int i=0;i<instanceLength;++i)
+			attributes.add(pairValues.get(i).getAttribute());
+		attributes.add(classAttribute);
+		trainingData = new Instances(trainingSetName,attributes,capacity);
+		trainingData.setClass(classAttribute);
+		
+		fillinMask = new int[instanceLength];
+		Arrays.fill(fillinMask, fillin_FILL);
+	}
+	
+	public void setBlock(int attr)
+	{
+		fillinMask[attr]=fillin_MASKED;
+	}
+	
+	public int [] getMask()
+	{
+		int outcome[] = new int[fillinMask.length];System.arraycopy(fillinMask, 0, outcome, 0, fillinMask.length);return outcome;
+	}
+	
+	/** Fills in the names attributes for the current level and position in the level, recursing across all the positions in the next level.
+	 * 
+	 * @param whatToFillIn array where data is to be stored.
+	 * @param section_start the buffer for the current level will start at this offset, in units of int (or whatever the type of buffer is).
+	 * @param idx_in_section we iterate over attributes, then recurse, then again and so on. This reflects an offset from section_start we are at, in units of attrMult.
+	 * The reason to have both section_start and idx_in_section rather than a combined offset is that we need to know where the next section should start and for this we need the 
+	 * start of the current section (or we'll have to compute it based on currentLevel).
+	 * @param prev_section_size the size of the previous level in terms of attrMult. Current level is all that multiplied by prev_section_size*V*(n-currentLevel) 
+	 * because for each entry at the previous level we need to have +1 and -1 entries of (n-currentLevel) attributes at the current level. Hence multiplying by V*(n-currentLevel). 
+	 * @param xyz bitmask of the attributes used in the previous levels.
+	 * @param pathToThisLevel the string reflecting the condition for the position at this level to be active.
+	 * @param currentLevel current level in construction of the attributes.
+	 * @param checkUniqueness only used for testing, an array to verify that computation of indices is hitting unique cells.
+	 */
+	protected void fillInAttributeNames(Attribute[] whatToFillIn, int section_start, int idx_in_section, int prev_section_size, long xyz, String pathToThisLevel, int currentLevel, boolean checkUniqueness[])
+	{
+		final int attrCountAtThisLevel = (n-currentLevel);
+		final int sectionPlusOffset = attrMult*(section_start + idx_in_section);
+		final int currentSectionSize = prev_section_size*attrCountAtThisLevel*(currentLevel == 0?1:V);
+
+		assert idx_in_section >= 0 && idx_in_section < currentSectionSize;
 
 		int i=0;
+		for(int attr=0;attr<n;++attr)
+			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used
+			{
+				//System.out.println("level "+currentLevel+" start="+section_start+" offset="+idx_in_section+" filling cmp attribute "+attr+" final offset is "+(sectionPlusOffset+i));
+				PairComparator cmp = comparators.get(attr);
+				final int offsetOfCmp = sectionPlusOffset+i;
+				whatToFillIn[offsetOfCmp]=cmp.getAttribute().copy(pathToThisLevel+cmp.getAttribute().name());
 
-		for(PairComparator cmp:comparators)
-			whatToFillIn[sectionPlusOffset+i++]=cmp.getAttribute().copy(pathToThisLevel+cmp.getAttribute().name());
-		for(PairRank pr:assessors)
-			whatToFillIn[sectionPlusOffset+i++]=pr.getAttribute().copy(pathToThisLevel+pr.getAttribute().name());
+				if (checkUniqueness != null)
+				{
+					if (checkUniqueness[offsetOfCmp])
+						throw new IllegalArgumentException("duplicate assignment to cell "+(offsetOfCmp));
+					checkUniqueness[offsetOfCmp]=true;
+				}
 
+				if (attrMult > 1)
+				{
+					PairRank pr = assessors.get(attr);
+					//System.out.println("level "+currentLevel+" start="+section_start+" offset="+idx_in_section+" filling SD  attribute "+attr+" final offset is "+(sectionPlusOffset+attrCountAtThisLevel+i));
+					final int offsetOfSD = sectionPlusOffset+attrCountAtThisLevel+i;
+					whatToFillIn[sectionPlusOffset+attrCountAtThisLevel+i]=pr.getAttribute().copy(pathToThisLevel+pr.getAttribute().name());
+
+					if (checkUniqueness != null)
+					{
+						if (checkUniqueness[offsetOfSD])
+							throw new IllegalArgumentException("duplicate assignment to cell "+(offsetOfSD));
+						checkUniqueness[offsetOfSD]=true;
+					}
+				}
+				++i;
+			}
 		if (currentLevel < maxLevel)
 		{
-			final int rowNumber = V*(n-currentLevel);
-			final int nextSectionStart = section_start+L*section_size;
-			int z=0;
+			i=0;
 			for(int attr=0;attr<n;++attr)
 			{
 				long positionalBit = 1 << attr;
 				if ((xyz & positionalBit) == 0) // this attribute was not already used on a path to the current instance of fillInEntry
 				{
-
-					fillInAttributeNames(whatToFillIn,nextSectionStart,idx_in_section*rowNumber+z+0,section_size*rowNumber, xyz|positionalBit,pathToThisLevel+" if "+comparators.get(attr).getAttribute().name()+"==-1 then ",currentLevel+1);
-					fillInAttributeNames(whatToFillIn,nextSectionStart,idx_in_section*rowNumber+z+1,section_size*rowNumber, xyz|positionalBit,pathToThisLevel+" if "+comparators.get(attr).getAttribute().name()+"==1 then ",currentLevel+1);
-					z+=V;
+					int newOffset = (idx_in_section+i)*V*(attrCountAtThisLevel-1);
+					fillInAttributeNames(whatToFillIn,section_start+currentSectionSize,newOffset,currentSectionSize, xyz|positionalBit,pathToThisLevel+" if "+comparators.get(attr).getAttribute().name()+"==-1 then ",currentLevel+1,checkUniqueness);
+					fillInAttributeNames(whatToFillIn,section_start+currentSectionSize,newOffset+(attrCountAtThisLevel-1),currentSectionSize, xyz|positionalBit,pathToThisLevel+" if "+comparators.get(attr).getAttribute().name()+"==1 then ",currentLevel+1,checkUniqueness);
+					++i;
 				}
 			}
+			assert i == attrCountAtThisLevel;
 		}
 	}
 
@@ -175,7 +322,31 @@ public class WekaDataCollector
 		return outcome;
 	}
 	
-	/**  Constructs a Weka {@link Instance} for a pair of interest.
+	protected boolean useDenseInstance = true;
+	
+	public void setUseDenseInstance(boolean value)
+	{
+		useDenseInstance = value;
+	}
+	
+	public double []constructInstanceValuesBasedOnComparisonResults(int []comparisonResults, boolean classification)
+	{
+		double []instanceValues=new double[instanceLength+1];
+		if (useNumericalAttributes)
+		{
+			for(int i=0;i<instanceLength;++i)
+				instanceValues[i]=comparisonResults[i];
+		}
+		else
+		{
+			for(int i=0;i<instanceLength;++i)
+				instanceValues[i]=convertAssessmentResultToString(comparisonResults[i],attributesOfAnInstance[i]);
+		}
+		instanceValues[instanceLength]=trainingData.classAttribute().indexOfValue(Boolean.toString(classification));
+		return instanceValues;
+	}
+	
+	/** Constructs a Weka {@link Instance} for a pair of interest.
 	 * 
 	 * @param comparisonResults metrics related to the considered pair.
 	 * @param classification whether this is a correct pair
@@ -186,12 +357,9 @@ public class WekaDataCollector
 		if (comparisonResults.length != instanceLength)
 			throw new IllegalArgumentException("results' length does not match the number of comparators");
 
-		double []instanceValues=new double[instanceLength+1];
-		for(int i=0;i<instanceLength;++i)
-			instanceValues[i]=convertAssessmentResultToString(comparisonResults[i],attributesOfAnInstance[i]);
-		
-		instanceValues[instanceLength]=trainingData.classAttribute().indexOfValue(Boolean.toString(classification));
-		Instance outcome = new Instance(1,instanceValues);outcome.setDataset(trainingData);
+		double []instanceValues=constructInstanceValuesBasedOnComparisonResults(comparisonResults, classification);		
+		Instance outcome = useDenseInstance?new DenseInstance(1,instanceValues):new BinarySparseInstance(1,instanceValues);
+		outcome.setDataset(trainingData);
 		return outcome;
 	}
 	
@@ -221,36 +389,115 @@ public class WekaDataCollector
 
 	protected List<PairComparator> comparators;
 	protected List<PairRank> assessors;
+	protected List<PairEvaluator> pairValues;
+	/** This is where we use a single helper. Useful because an array of helpers requires calling MarkovHelperClassifier's 
+	 * routines which evaluate closure both in the forward and backward direction assuming a whole range of 
+	 * different ways to compute inconsistencies. This is slower than using a more specialised 
+	 * version with a single helper. */
+	protected final MarkovHelper markovHelper;
+	
+	protected final MarkovHelperClassifier markovMultiHelper;
 	
 	class MeasurementsForCollectionOfPairs
 	{
-		Map<StatePair,PairMeasurements> measurementsForComparators=new HashMap<StatePair,PairMeasurements>();
+		Map<StatePair,FilteredPairMeasurements> measurementsForComparators=new HashMap<StatePair,FilteredPairMeasurements>();
 		double valueAverage[]=new double[0], valueSD[]=new double[0];
+		
+		
 	}
+	Map<StatePair,PairMeasurements> measurementsObtainedFromPairs = new HashMap<StatePair,PairMeasurements>();
 	
 	Map<CmpVertex,Integer> treeForComparators = new TreeMap<CmpVertex,Integer>();
-	MeasurementsForCollectionOfPairs measurementsForUnfilteredCollectionOfPairs = new MeasurementsForCollectionOfPairs();
 	
+	MeasurementsForCollectionOfPairs measurementsForFilteredCollectionOfPairs = new MeasurementsForCollectionOfPairs();
+	
+	/** The current tentative graph. */
 	LearnerGraph tentativeGraph = null;
+	/** The inverse of the current tentative graph. */
+	LearnerGraphND invTentativeGraph = null;
 	
 	
-	void buildSetsForComparators(Collection<PairScore> pairs, LearnerGraph graph)
+	/** Cache for non-deterministic score computation, in the backward direction. */
+	AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData> scoreNDbackwardCache;
+	/** Cache for non-deterministic score computation, in the forward direction. */
+	AbstractPathRoutines.CacheOfStateGroups<CmpVertex,LearnerGraphCachedData> scoreNDforwardCache;
+	/** Stores the data to compute linear scores on the trimmed graph forwards. */
+	PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> linearForwards;
+	/** Stores the data to compute linear scores on the trimmed graph backwards. */
+	PairScoreComputation.LinearScoring<List<CmpVertex>,LearnerGraphNDCachedData> linearBackwards;
+	
+	void buildSetsForComparators(Collection<PairScore> pairs, LearnerGraph graph, LearnerGraphND inverseGraph)
 	{
 		treeForComparators.clear();
-		tentativeGraph = graph;
+		tentativeGraph = graph;invTentativeGraph = inverseGraph;
 		
+		// First, we obtain measurements that only depend on a specific pair of states, regardless of other pairs in a collection of pairs. 
 		for(PairScore pair:pairs)
 		{
 			if (!treeForComparators.containsKey(pair.getQ()))
 				treeForComparators.put(pair.getQ(),PairQualityLearner.computeTreeSize(graph, pair.getQ()));
+
+			PairMeasurements m = new PairMeasurements();
+			ScoreMode origScore = tentativeGraph.config.getLearnerScoreMode();tentativeGraph.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
+			if (dataCollectorParameters.graphIsPTA)
+				m.compatibilityScore = tentativeGraph.pairscores.computePairCompatibilityScore(pair);
+			if (markovHelper!= null)
+				m.inconsistencyScore = markovHelper.onlyComputeInconsistency(pair);
+			if (markovMultiHelper != null)
+				m.markovScores = markovMultiHelper.computeInconsistency(pair);
+			tentativeGraph.config.setLearnerScoreMode(origScore);
+			measurementsObtainedFromPairs.put(pair,m);
 		}
-		buildSetsForComparatorsDependingOnFiltering(measurementsForUnfilteredCollectionOfPairs,pairs);
+
+		scoreNDbackwardCache = new AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData>(invTentativeGraph);
+		scoreNDforwardCache = new AbstractPathRoutines.CacheOfStateGroups<CmpVertex,LearnerGraphCachedData>(tentativeGraph);
+		
+		if(dataCollectorParameters.depthToTrim >= 0)
+		{
+			Configuration configForLinear = tentativeGraph.config.copy();configForLinear.setAttenuationK(dataCollectorParameters.attenuation);
+			LearnerGraph trimmedGraph = tentativeGraph.transform.trimGraph(dataCollectorParameters.depthToTrim,configForLinear);
+			linearForwards = new PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData>(trimmedGraph,dataCollectorParameters.threadNumber,null,LearnerGraphND.ignoreNone, null); // StateBasedRandom is set to null since we are not using it.
+			linearBackwards = new PairScoreComputation.LinearScoring<List<CmpVertex>,LearnerGraphNDCachedData>(MarkovClassifier.computeInverseGraph(trimmedGraph),dataCollectorParameters.threadNumber,
+					null,LearnerGraphND.ignoreNone, null); // StateBasedRandom is set to null since we are not using it.
+		}
+		
+		// Second, obtain measurements that depend on other pairs in a collection of pairs.  
+		buildSetsForComparatorsDependingOnFiltering(measurementsForFilteredCollectionOfPairs,pairs);
 	}
 	
+	void buildAuxiliarySets(Collection<PairScore> pairs)
+	{
+		// prepare auxiliary information that is supposed to be cached rather than recomputed by individual instances of comparators in measurementsForComparators 
+		for(PairScore pair:pairs)
+		{
+			FilteredPairMeasurements m = new FilteredPairMeasurements();m.nrOfAlternatives=-1;
+			for(PairScore p:pairs)
+			{
+				if (p.getR() == pair.getR())
+					++m.nrOfAlternatives;
+			}
+			
+			Collection<CmpVertex> adjacentOutgoingBlue = tentativeGraph.transitionMatrix.get(pair.getQ()).values(), adjacentOutgoingRed = tentativeGraph.transitionMatrix.get(pair.getR()).values(); 
+			m.adjacent = adjacentOutgoingBlue.contains(pair.getR()) || adjacentOutgoingRed.contains(pair.getQ());
+			measurementsForFilteredCollectionOfPairs.measurementsForComparators.put(pair, m);
+		}			
+	}
+	
+	protected void fillInNumericalEntry(int [] whatToFillIn,PairScore pair)
+	{
+		if (pairValues != null)
+		{
+			for(int i=0;i<pairValues.size();++i)
+			{
+				whatToFillIn[i] = (int) pairValues.get(i).getValue(pair);
+			}
+		}
+	}
+
 	/** Given a collection of pairs and a tentative automaton, constructs auxiliary structures used by comparators and stores it as an instance variable.
-	 * The graph used for construction is the one that was passed earlier to {@link WekaDataCollector#buildSetsForComparators(Collection, LearnerGraph)}.
-	 * @param pairs pairs to build sets for
+	 * The graph used for construction is the one that was passed earlier to {@link WekaDataCollector#buildSetsForComparators(Collection, LearnerGraph, LearnerGraphND)}.
 	 * @param measurements where to store the result of measurement.
+	 * @param pairs pairs to build sets for.
 	 */
 	void buildSetsForComparatorsDependingOnFiltering(MeasurementsForCollectionOfPairs measurements, Collection<PairScore> pairs)
 	{
@@ -261,27 +508,11 @@ public class WekaDataCollector
 			measurements.valueSD = new double[n];
 		
 		Arrays.fill(measurements.valueAverage, 0);Arrays.fill(measurements.valueSD, 0);
-		
-		// prepare auxiliary information that is supposed to be cached rather than recomputed by individual instances of comparators in measurementsForComparators 
-		for(PairScore pair:pairs)
-		{
-			PairMeasurements m = new PairMeasurements();m.nrOfAlternatives=-1;
-			for(PairScore p:pairs)
-			{
-				if (p.getR() == pair.getR())
-					++m.nrOfAlternatives;
-			}
-			
-			Collection<CmpVertex> adjacentOutgoingBlue = tentativeGraph.transitionMatrix.get(pair.getQ()).values(), adjacentOutgoingRed = tentativeGraph.transitionMatrix.get(pair.getR()).values(); 
-			m.adjacent = adjacentOutgoingBlue.contains(pair.getR()) || adjacentOutgoingRed.contains(pair.getQ());
-			ScoreMode origScore = tentativeGraph.config.getLearnerScoreMode();tentativeGraph.config.setLearnerScoreMode(ScoreMode.COMPATIBILITY);
-			m.compatibilityScore = tentativeGraph.pairscores.computePairCompatibilityScore(pair);
-			tentativeGraph.config.setLearnerScoreMode(origScore);
-			measurements.measurementsForComparators.put(pair,m);
-		}
+		buildAuxiliarySets(pairs);
 
-		// now run comparators
+		// now run comparators. These obtain values based both on filtered an unfiltered values.
 		if (assessors != null)
+		{
 			for(PairScore pair:pairs)
 				for(int i=0;i<assessors.size();++i)
 				{
@@ -290,42 +521,48 @@ public class WekaDataCollector
 					measurements.valueSD[i]+=value*value;// abuse valueSD into storing squares of values.
 				}
 
-		if (assessors != null)
 			for(int i=0;i<assessors.size();++i)
 			{
 				measurements.valueAverage[i]/=pairs.size();measurements.valueSD[i]=Math.sqrt(measurements.valueSD[i]/pairs.size()-measurements.valueAverage[i]*measurements.valueAverage[i]);
 			}
+		}
 	}
 
 	/** Used to denote a value corresponding to an "inconclusive" verdict where a comparator returns values greater for some points and less for others. */
-	public static final int comparison_inconclusive=-10;
-
-	int comparePairWithOthers(PairComparator cmp, PairScore pair, Collection<PairScore> others)
+	public static final int comparison_inconclusive=Integer.MIN_VALUE;
+	
+	/** Compares a pair with all others. 
+	 * 
+	 * @param badPairs we only compare the current pair with all the pairs that are 'bad'. By using all pairs here, we mimic the implementation that existed for some time; using only wrong pairs or correct pairs, one can build a classifier that intends to discriminate between good and bad pairs rather than picking top pair and hence being too selective.  
+	 */ 
+	int comparePairWithOthers(PairComparator cmp, PairScore pair, Collection<PairScore> badPairs)
 	{
-		int comparisonResult = 0;
-		for(PairScore w:others)
-		{// it does not matter if w==pair, the comparison result will be zero so it will not affect anything
-				int newValue = cmp.compare(pair, w);
-				assert newValue != comparison_inconclusive;
-				// comparisonResults[i] can be 1,0,-1, same for newValue
-				if (newValue > 0)
-				{
-					if (comparisonResult < 0)
+		//noinspection EqualsWithItself
+		int comparisonResult = cmp.compare(pair, pair);// first of all, compare the pair with itself. It hence does not matter whether badPairs includes this pair or not (it will for comparePairOnlyWithBadPairs == false and not otherwise).
+		for(PairScore w:badPairs)
+			if (w != null) // in order to permit sparse collections, we allow null-entries.
+			{// it does not matter if w==pair, the comparison result will be zero so it will not affect anything
+					int newValue = cmp.compare(pair, w);
+					assert newValue != comparison_inconclusive;
+					// comparisonResults[i] can be 1,0,-1, same for newValue
+					if (newValue > 0)
 					{
-						comparisonResult= comparison_inconclusive;break;
-					}
-					comparisonResult=newValue;
-				}
-				else
-					if (newValue < 0)
-					{
-						if (comparisonResult > 0)
+						if (comparisonResult < 0)
 						{
-							comparisonResult = comparison_inconclusive;break;
+							comparisonResult= comparison_inconclusive;break;
 						}
 						comparisonResult=newValue;
 					}
-		}
+					else
+						if (newValue < 0)
+						{
+							if (comparisonResult > 0)
+							{
+								comparisonResult = comparison_inconclusive;break;
+							}
+							comparisonResult=newValue;
+						}
+			}
 		return comparisonResult;
 	}
 	
@@ -335,23 +572,30 @@ public class WekaDataCollector
 	 * In a similar way, -1 means that it does not dominate any other pairs.
 	 * 
 	 * @param pair pair to consider
-	 * @param others other pairs (possibly, both valid and invalid mergers).
+	 * @param badPairs invalid mergers.
 	 * @param whatToFillIn array to populate with results
 	 * @param offset the starting position to fill in.
+	 * @param xyz bitmask indicating attributes to be ignored.
 	 */
-	void comparePairWithOthers(PairScore pair, Collection<PairScore> others, int []whatToFillIn, int offset)
+	void comparePairWithOthers(PairScore pair, Collection<PairScore> badPairs, int []whatToFillIn, int offset, long xyz)
 	{
 		assert !comparators.isEmpty();
 		
 		int i=0;
-		for(PairComparator cmp:comparators)
-		{
-			whatToFillIn[i+offset] = comparePairWithOthers(cmp, pair, others);
-			++i;
-		}
-		
-		for(int cnt=0;cnt<comparators.size();++cnt)
-			if (whatToFillIn[cnt+offset] == comparison_inconclusive) whatToFillIn[cnt+offset]=0;
+		for(int attr=0;attr<n;++attr)
+			if (  ((1 << attr) & xyz) == 0) // if the attribute has not been already used. Important: the number of attributes available at each level is taken into account during computation of offsets, therefore skipping this check will make the data no longer fit in the space provided.
+			{
+				if (fillinMask[i+offset] != fillin_MASKED)
+				{
+					PairComparator cmp = comparators.get(attr);
+					int value = comparePairWithOthers(cmp, pair, badPairs);
+					if (value == comparison_inconclusive)
+						value = 0;
+					whatToFillIn[i+offset] = value;
+				}
+
+				++i;
+			}
 	}
 
 	/** Assesses a supplied pair based on the values.
@@ -360,73 +604,172 @@ public class WekaDataCollector
 	 * @param measurements set of measurements to use for assessment
 	 * @param whatToFillIn array to populate with results
 	 * @param offset the starting position to fill in.
+	 * @param xyz bitmask indicating attributes to be ignored.
 	 */
-	void assessPair(PairScore pair, MeasurementsForCollectionOfPairs measurements, int []whatToFillIn, int offset)
+	void assessPair(PairScore pair, MeasurementsForCollectionOfPairs measurements, int []whatToFillIn, int offset, long xyz)
 	{
 		assert !assessors.isEmpty();
-		//Arrays.fill(whatToFillIn, offset, comparators.size(), 0);
-		for(int i=0;i<assessors.size();++i)
-			whatToFillIn[i+offset]=assessors.get(i).getRanking(pair, measurements.valueAverage[i], measurements.valueSD[i]);
+		int i=0;
+		for(int attr=0;attr<n;++attr)
+			if ( ((1 << attr) & xyz) == 0) // if the attribute has not been already used. Important: the number of attributes available at each level is taken into account during computation of offsets, therefore skipping this check will make the data no longer fit in the space provided.
+			{
+				if (fillinMask[i+offset] != fillin_MASKED)
+				{
+					final int value = assessors.get(attr).getRanking(pair, measurements.valueAverage[attr], measurements.valueSD[attr]);
+					whatToFillIn[i+offset]=value;
+				}
+				++i;
+			}
 	}
 
-	protected void fillInEntry(int [] whatToFillIn,int section_start, int idx_in_section, int section_size, long xyz, PairScore pairOfInterest, Collection<PairScore> pairs,MeasurementsForCollectionOfPairs measurements, int currentLevel)
+	public static final int fillin_FILL=0, fillin_MASKED=10, fillin_NORECURSE = 11;
+	/** Reflects values that are to be filled in; values marked with masked are ignored. and those marked norecurse are filled in but {@link WekaDataCollector#fillInEntry(int[], int, int, int, long, PairScore, Collection, MeasurementsForCollectionOfPairs, int)} is not called recursively on them. */
+	protected int [] fillinMask;
+	
+	/** Fills in the values of attributes for the current level and position in the level, recursing across all the positions in the next level. 
+	 * Only attributes set to zero in the mask are filled in, those that are 'masked' are ignored; 'norecurse' attributes 
+	 * are recorded but fillInEntry is not called recursively on those attributes. 
+	 * 
+	 * @param whatToFillIn array where data is to be stored.
+	 * @param section_start the buffer for the current level will start at this offset, in units of int (or whatever the type of buffer is).
+	 * @param idx_in_section we iterate over attributes, then recurse, then again and so on. This reflects an offset from section_start we are at, in units of attrMult.
+	 * The reason to have both section_start and idx_in_section rather than a combined offset is that we need to know where the next section should start and for this we need the 
+	 * start of the current section (or we'll have to compute it based on currentLevel).
+	 * @param prev_section_size the size of the previous level in terms of attrMult. Current level is all that multiplied by prev_section_size*V*(n-currentLevel) 
+	 * because for each entry at the previous level we need to have +1 and -1 entries of (n-currentLevel) attributes at the current level. Hence multiplying by V*(n-currentLevel). 
+	 * @param xyz bitmask of the attributes used in the previous levels.
+	 * @param pairOfInterest pair being evaluated.
+	 * @param pairs other pairs it is to be compared with. This can be a collection of all pairs where we intend to identify dominating pairs or only a collection of 'bad' pairs where we filter pairs dominating (or being dominated) by the wrong-merge pairs for learning of a 'positive' classifier and the other way around for a 'negative' one.
+	 * @param measurements long-to-compute parameters of the pairs, used by assessors to evaluate the pairOfInterest
+	 * @param currentLevel current level in construction of the attributes.
+	 * @return true if any entries were filled in.
+	 */
+	protected void fillInEntry(int [] whatToFillIn,int section_start, int idx_in_section, int prev_section_size, long xyz, 
+			PairScore pairOfInterest, Collection<PairScore> pairs,MeasurementsForCollectionOfPairs measurements, int currentLevel)
 	{
-		final int sectionPlusOffset = section_start + L*idx_in_section;
-		comparePairWithOthers(pairOfInterest,pairs,whatToFillIn,sectionPlusOffset);
-		assessPair(pairOfInterest,measurements, whatToFillIn,sectionPlusOffset+n);
+		final int attrCountAtThisLevel = (n-currentLevel);
+		final int sectionPlusOffset = attrMult*(section_start + idx_in_section);
+		final int currentSectionSize = prev_section_size*attrCountAtThisLevel*(currentLevel == 0?1:V);
+		
+		assert idx_in_section >= 0 && idx_in_section < currentSectionSize;
+		
+		comparePairWithOthers(pairOfInterest,pairs,whatToFillIn,sectionPlusOffset,xyz);
+		if (attrMult>1)
+			assessPair(pairOfInterest,measurements, whatToFillIn,sectionPlusOffset+attrCountAtThisLevel,xyz);
 		if (currentLevel < maxLevel)
 		{
-			final int rowNumber = V*(n-currentLevel);
-			final int nextSectionStart = section_start+L*section_size;
-			int z=0;
+			int i=0;
 			for(int attr=0;attr<n;++attr)
 			{
 				long positionalBit = 1 << attr;
 				if ((xyz & positionalBit) == 0) // this attribute was not already used on a path to the current instance of fillInEntry
 				{
-					int attributeREL = whatToFillIn[sectionPlusOffset+attr];
-					if (attributeREL != 0)
+					if (fillinMask[sectionPlusOffset+i] == fillin_FILL)
 					{
-						assert attributeREL == 1 || attributeREL == -1;
-						Collection<PairScore> others = new ArrayList<PairScore>(pairs.size());
-						for(PairScore other:pairs) 
+						int attributeREL = whatToFillIn[sectionPlusOffset+i];
+						if (attributeREL != 0)
 						{
-							int comparisonOnAttribute_i = comparePairWithOthers(comparators.get(attr),other,pairs);
-							if (comparisonOnAttribute_i == attributeREL) // we only compare our vertex with those that are also distinguished by the specified attribute
-								others.add(other);
+							assert attributeREL == 1 || attributeREL == -1;
+							Collection<PairScore> others = new ArrayList<PairScore>(pairs.size());
+							for(PairScore currentPair:pairs)
+								if (currentPair != null)
+								{// to permit the list of pairs to have holes
+									int comparisonOnAttribute_attr = comparePairWithOthers(comparators.get(attr),currentPair,pairs);
+									if (comparisonOnAttribute_attr == attributeREL) // we only compare our vertex with those that are also distinguished by the specified attribute
+										others.add(currentPair);// here we select pairs that are either both correct and better/worse than wrong pairs or are both wrong and better/worse than correct pairs. 
+								}
+							
+							if (others.size()>1)
+							{
+								MeasurementsForCollectionOfPairs measurementsForFilteredPairs = new MeasurementsForCollectionOfPairs();
+								buildSetsForComparatorsDependingOnFiltering(measurementsForFilteredPairs,others);
+								int newOffset = (idx_in_section+i)*V*(attrCountAtThisLevel-1);
+								// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
+								fillInEntry(whatToFillIn,section_start+currentSectionSize,newOffset+(attributeREL>0?1:0)*(attrCountAtThisLevel-1),currentSectionSize, xyz|positionalBit,pairOfInterest,others,measurementsForFilteredPairs,currentLevel+1);
+							}
 						}
-						if (others.size()>1)
-						{
-							MeasurementsForCollectionOfPairs measurementsForFilteredPairs = new MeasurementsForCollectionOfPairs();
-							buildSetsForComparatorsDependingOnFiltering(measurementsForFilteredPairs,pairs);
-							// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
-							fillInEntry(whatToFillIn,nextSectionStart,idx_in_section*rowNumber+z+(attributeREL>0?1:0),section_size*rowNumber, xyz|positionalBit,pairOfInterest,others,measurementsForFilteredPairs,currentLevel+1);
-						}
-					}				
-					z+=V;
+					}
+					++i;
 				}
 			}
+			assert i == attrCountAtThisLevel;
 		}
 	}
 
+	/** If all lower-level elements are not supposed to be filled in, it does not make sense to make a recursive call, hence we mark an element as 'no recurse'. Returns true if any elements have to be filled in. */
+	protected boolean configureNoRecurse(int section_start, int idx_in_section, int prev_section_size, long xyz, int currentLevel)
+	{
+		final int attrCountAtThisLevel = (n-currentLevel);
+		final int sectionPlusOffset = attrMult*(section_start + idx_in_section);
+		final int currentSectionSize = prev_section_size*attrCountAtThisLevel*(currentLevel == 0?1:V);
+		
+		assert idx_in_section >= 0 && idx_in_section < currentSectionSize;
+		boolean outcome = false;
+		int attrOffset = 0;
+		for(int attr=0;attr<n;++attr)
+		{
+			if (  ((1 << attr) & xyz) == 0 )
+			{
+				if (fillinMask[sectionPlusOffset+attrOffset] == fillin_FILL)
+					outcome = true;
+				
+				++attrOffset;
+			}
+		}
+		if (currentLevel < maxLevel)
+		{
+			int i=0;
+			for(int attr=0;attr<n;++attr)
+			{
+				boolean nested = false;
+				long positionalBit = 1 << attr;
+				if ((xyz & positionalBit) == 0) // this attribute was not already used on a path to the current instance of fillInEntry
+				{
+					if (fillinMask[sectionPlusOffset+i] == fillin_FILL)
+					{
+						int newOffset = (idx_in_section+i)*V*(attrCountAtThisLevel-1);
+						// the value of 2 below is a reflection that we only distinguish between two different relative values. If SD part were considered, there would be a lot more values.
+						nested |= configureNoRecurse(section_start+currentSectionSize,newOffset+(1)*(attrCountAtThisLevel-1),currentSectionSize, xyz|positionalBit,currentLevel+1);
+						nested |= configureNoRecurse(section_start+currentSectionSize,newOffset+(0)*(attrCountAtThisLevel-1),currentSectionSize, xyz|positionalBit,currentLevel+1);
+						
+						if (!nested)
+							fillinMask[sectionPlusOffset+i] = fillin_NORECURSE;// if nothing to fill in below here, mark the entry as such.   
+					}
+					++i;
+				}
+			}
+			assert i == attrCountAtThisLevel;
+		}
+		
+		return outcome;
+	}
+
+	public void configureNoRecurse()
+	{
+		configureNoRecurse(0,0,1,0,0);
+	}
+	
 	/** Fills in the array with comparison results. For correct operation, the supplied pair of interest has to be included in the collection of pairs. */
 	public void fillInPairDetails(int [] whatToFillIn, PairScore pairOfInterest, Collection<PairScore> pairs)
 	{
 		if (whatToFillIn.length < getInstanceLength())
 			throw new IllegalArgumentException("array is too short");
-		fillInEntry(whatToFillIn,0,0,1,0,pairOfInterest,pairs,measurementsForUnfilteredCollectionOfPairs,0);
+		fillInEntry(whatToFillIn,0,0,1,0,pairOfInterest,pairs,measurementsForFilteredCollectionOfPairs,0);
 	}
+	
+	/** If true, only compares the pair with wrong pairs when building a 'positive' instance and with correct pairs for a 'negative' instance. If false, compares a pair with absolutely all pairs, hence utilising a rather narrow selection criteria (any correct pairs that did not happen to be 'top' are set as 'inconclusive' even though they could become 'top' in the absence of the current top-scoring pair). */
+	protected boolean comparePairOnlyWithBadPairs;
 
 	/** Given a collection of pairs from a tentative graph, this method generates Weka data instances and adds them to the Weka dataset.
-	 * We do not compare correct pairs with each other, or wrong pairs with each other. Pairs that have negative scores are ignored.
+	 * Pairs that have negative scores are ignored.
 	 * 
 	 * @param pairs pairs to add
 	 * @param currentGraph the current graph
 	 * @param correctGraph the graph we are trying to learn by merging states in tentativeGraph.
 	 */
-	public void updateDatasetWithPairs(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraph correctGraph)
+	public void updateDatasetWithPairsOrig(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraphND invCurrentGraph, LearnerGraph correctGraph)
 	{
-		buildSetsForComparators(pairs,currentGraph);
+		buildSetsForComparators(pairs,currentGraph, invCurrentGraph);
 		
 		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
 		List<PairScore> pairsToConsider = new LinkedList<PairScore>();
@@ -439,13 +782,120 @@ public class WekaDataCollector
 		for(PairScore p:pairsToConsider)
 		{
 			int []comparisonResults = new int[instanceLength];
-			fillInPairDetails(comparisonResults,p, pairsToConsider);// only compare with other non-negatives
 			boolean correctPair = correctPairs.contains(p);
-			//boolean correctPair = p.equals(PairQualityLearner.LearnerThatCanClassifyPairs.pickPairQSMLike(pairsToConsider));
+			if (comparePairOnlyWithBadPairs)
+			{// If we leave lists of wrong/correct pairs unchanged, not only comparison but also subsequent filtering (if p is best or worst in some attribute) will apply to 'wrong' pairs. 
+			 // This implies that the pair will not be compared with itself and hence where the list of wrong pairs only has one element, it will be ignored unless (other.size() > 0 && comparePairOnlyWithBadPairs) 
+		     // is added to (others.size()>1) condition in fillInEntry. 
+				
+				if (correctPair)
+				{
+					List<PairScore> badPairs = new ArrayList<PairScore>(wrongPairs.size()+1);badPairs.addAll(wrongPairs);badPairs.add(p);
+					fillInPairDetails(comparisonResults,p, badPairs);// this is the correct pair, hence compare it to all the 'wrong' pairs.
+				}
+				else
+				{
+					List<PairScore> badPairs = new ArrayList<PairScore>(wrongPairs.size()+1);badPairs.addAll(correctPairs);badPairs.add(p);
+					fillInPairDetails(comparisonResults,p, badPairs);// this is the wrong pair, hence compare it to all the 'correct' pairs.
+				}
+			}
+			else
+				fillInPairDetails(comparisonResults,p, pairsToConsider);
+			trainingData.add(constructInstance(comparisonResults, correctPair));
+		}
+	}
+
+	public void updateDatasetWithPairsNumericalValues(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraphND inverseCurrentGraph, LearnerGraph correctGraph)
+	{
+		buildSetsForComparators(pairs,currentGraph,inverseCurrentGraph);
+		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
+		List<PairScore> pairsToConsider = new LinkedList<PairScore>();
+		if (!pairs.isEmpty())
+		{
+			for(PairScore p:pairs) if (p.getQ().isAccept() && p.getR().isAccept()) pairsToConsider.add(p);// only consider non-negatives
+		}
+		LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(currentGraph, correctGraph, pairsToConsider, correctPairs, wrongPairs);
+		
+		for(PairScore p:pairsToConsider)
+		{
+			int []comparisonResults = new int[instanceLength];
+			boolean correctPair = correctPairs.contains(p);
+			fillInNumericalEntry(comparisonResults,p);
+			
 			trainingData.add(constructInstance(comparisonResults, correctPair));
 		}
 	}
 	
+	/** Returns next pair that has the most number of attributes set to non-zero. 
+	 * 
+	 * @param currentPairs the collection of current pairs. Upon return, the entry for the returned pair will be set to null.
+	 * @param comparisonResults worker array, to avoid reallocation.
+	 * @param bestComparisonResults contains details for the returned pair and can be directly used to construct an {@link Instance}.
+	 * @return pair that has the most non-zero attributes of all the pairs.
+	 */
+	public PairScore pickNextMostNonZeroPair(List<PairScore> currentPairs, int []comparisonResults, int []bestComparisonResults)
+	{
+		int bestMatch = attributes.size();int bestPair = -1;
+		for(int i=0;i<currentPairs.size();++i)
+		{
+			PairScore p = currentPairs.get(i);
+			if (p != null)
+			{
+				fillInPairDetails(comparisonResults,p, currentPairs);
+				int cnt=0;
+				for(int a=0;a<comparisonResults.length;++a)
+					if (comparisonResults[a] == 0)
+						cnt++;
+				if (cnt<bestMatch)
+				{
+					bestMatch = cnt;bestPair = i;System.arraycopy(comparisonResults, 0, bestComparisonResults, 0, comparisonResults.length);
+				}
+			}
+		}
+		PairScore currentBest = currentPairs.get(bestPair);
+		currentPairs.set(bestPair,null);// 'remove' the current pair from the list.
+		return currentBest;
+	}
+	
+	/** Given a collection of pairs from a tentative graph, this method generates Weka data instances and adds them to the Weka dataset.
+	 * Pairs that have negative scores are ignored.
+	 * 
+	 * @param pairs pairs to add
+	 * @param currentGraph the current graph
+	 * @param correctGraph the graph we are trying to learn by merging states in tentativeGraph.
+	 */
+	public void updateDatasetWithPairs(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraphND inverseGraph, LearnerGraph correctGraph)
+	{
+		if (useNumericalAttributes)
+			updateDatasetWithPairsNumericalValues(pairs,currentGraph,inverseGraph, correctGraph);
+		else
+			updateDatasetWithPairsByPeeling(pairs,currentGraph,inverseGraph, correctGraph);
+	}
+	
+	public void updateDatasetWithPairsByPeeling(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraphND inverseCurrentGraph, LearnerGraph correctGraph)
+	{
+		buildSetsForComparators(pairs,currentGraph,inverseCurrentGraph);
+		
+		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
+		List<PairScore> currentPairs = new ArrayList<PairScore>(pairs.size());
+		for(PairScore p:pairs) 
+			if (p.getQ().isAccept() && p.getR().isAccept()) currentPairs.add(p);// only consider non-negatives
+
+		LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(currentGraph, correctGraph, currentPairs, correctPairs, wrongPairs);
+		
+		int pairsLeft = currentPairs.size();
+		while(pairsLeft > currentPairs.size()*dataCollectorParameters.fraction_of_pairs_to_ignore)
+		{
+			int []comparisonResults = new int[instanceLength], bestComparisonResults = new int[instanceLength];
+			PairScore nextBest = pickNextMostNonZeroPair(currentPairs, comparisonResults, bestComparisonResults);
+
+			boolean correctPair = correctPairs.contains(nextBest);
+			trainingData.add(constructInstance(bestComparisonResults, correctPair));
+
+			--pairsLeft;
+		}
+	}
+
 	/** Provides helper methods in order to train a classifier to recognise good/bad pairs
 	 * <hr/>
 	 * It is a nested class to permit access to instance variables. This seems natural because elements of this class need access to data obtained from the transition matrix. 
@@ -460,23 +910,29 @@ public class WekaDataCollector
 			return att;
 		}
 		
+		/** Constructs a nominal attribute using the provided values.
+		 * @param name attribute name
+		 * @param range possible values for the attribute. 
+		 */
 		protected PairRankingSupport(String name, String [] range)
 		{
-			FastVector vecA = new FastVector(3);
-			for(String v:range) vecA.addElement(v);
-			att = new Attribute(name,vecA);
+			att = new Attribute(name,Arrays.asList(range));
 		}
-		
+
+		/** Constructs a numeric attribute using the provided values.
+		 * @param name attribute name
+		 */
+		protected PairRankingSupport(String name)
+		{
+			att = new Attribute(name);
+		}
+
 		@Override
 		public String toString()
 		{
 			return att.name();
 		}
-		public PairMeasurements measurementsForCurrentStack(PairScore p)
-		{
-			return measurementsForUnfilteredCollectionOfPairs.measurementsForComparators.get(p);
-		}
-	
+			
 		public int treeRootedAt(CmpVertex p)
 		{
 			return treeForComparators.get(p);
@@ -505,7 +961,25 @@ public class WekaDataCollector
 		}
 	}
 	
-	/** {@link PairComparator} permits one to compare pairs with each other. This one aims to give a rank to each pair in a collection of pairs, by either retrieving specific attributes or 
+	/** Computes values of numerical attributes for evaluation of pairs. */
+	public class PairEvaluator extends PairRankingSupport
+	{
+		protected final PairRank assessor;
+		
+		protected PairEvaluator(PairRank argAssessor)
+		{
+			super(argAssessor.getAttribute().name());assessor = argAssessor;
+		}
+		
+		public long getValue(PairScore pair)
+		{
+			return assessor.getValue(pair);
+		}
+	}
+
+	/** {@link PairComparator} permits one to compare pairs with each other. 
+	 * 
+	 * This one aims to give a rank to each pair in a collection of pairs, by either retrieving specific attributes or 
 	 * doing the average/standard deviation thresholding.
 	 */
 	public abstract class PairRank extends PairRankingSupport

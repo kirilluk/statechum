@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Assert;
@@ -36,9 +37,11 @@ import statechum.DeterministicDirectedSparseGraph;
 import statechum.JUConstants;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.TestConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
@@ -61,7 +64,7 @@ public class TestPathTracing {
 	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
-		return Configuration.parametersToString(config);
+		return TestConfiguration.parametersToString(config);
 	}
 	
 	public TestPathTracing(Configuration conf)
@@ -89,14 +92,14 @@ public class TestPathTracing {
 	 * @param fsmString a description of an FSM
 	 * @param path a sequence of labels to follow
 	 * @param ExpectedResult the result to check
-	 * @param The name of the vertex which is expected to be returned by getVertex
-	 * @param config the configuration to pass to LearnerGraph
+	 * @param enteredName The name of the vertex which is expected to be returned by getVertex
+	 * @param conf the configuration to pass to LearnerGraph
 	 * @param conv label intern engine to use
 	 */
 	public void checkPath(String fsmString, String []path, int ExpectedResult, String enteredName, Configuration conf, ConvertALabel conv)
 	{
 		assert (enteredName == null)? (ExpectedResult >= 0):true;
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph(fsmString, "sample FSM",config, conv);
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph(fsmString, "sample FSM",config, conv);
 		final DirectedSparseGraph g = fsm.pathroutines.getGraph();
 		assertEquals(ExpectedResult, fsm.paths.tracePathPrefixClosed(AbstractLearnerGraph.buildList(Arrays.asList(path),conf,conv)));
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(enteredName);
@@ -123,15 +126,15 @@ public class TestPathTracing {
 	 * reject-transitions interpretation in string representation of graphs)
 	 * @param path a sequence of labels to follow
 	 * @param ExpectedResult the result to check
-	 * @param The name of the vertex which is expected to be returned by getVertex
-	 * @param config the configuration to pass to LearnerGraph
+	 * @param enteredName name of the vertex which is expected to be returned by getVertex
+	 * @param conf the configuration to pass to LearnerGraph
 	 * @param conv label intern engine to use.
 	 */
 	public void checkPathFrom(String fsmString, List<String> rejectStates, String startingState,String []path, 
 			int ExpectedResult, String enteredName, Configuration conf, ConvertALabel conv)
 	{
 		assert (enteredName == null) == (ExpectedResult >= 0);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph(fsmString, "sample FSM",config,conv);
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph(fsmString, "sample FSM",config,conv);
 		final DirectedSparseGraph g = fsm.pathroutines.getGraph();
 		if (rejectStates != null) 
 			for(String reject:rejectStates)
@@ -145,9 +148,9 @@ public class TestPathTracing {
 			boolean shouldAccept = (ExpectedResult == AbstractOracle.USER_ACCEPTED);
 			Assert.assertEquals(shouldAccept,MarkovClassifier.tracePath(fsm, AbstractLearnerGraph.buildList(Arrays.asList(path),config,conv), fsm.findVertex(startingState)) );
 		}
-		Vertex starting = DeterministicDirectedSparseGraph.findVertexNamed(VertexID.parseID(startingState),g);
+		DeterministicVertex starting = DeterministicDirectedSparseGraph.findVertexNamed(VertexID.parseID(startingState),g);
 		CmpVertex expected = (enteredName == null)? null:new LearnerGraph(g, conf).findVertex(VertexID.parseID(enteredName));
-		Vertex received = Test_Orig_RPNIBlueFringeLearner.getVertex(g, starting, AbstractLearnerGraph.buildList(Arrays.asList(path),config,conv));
+		DeterministicVertex received = Test_Orig_RPNIBlueFringeLearner.getVertex(g, starting, AbstractLearnerGraph.buildList(Arrays.asList(path),config,conv));
 
 		if (expected != null)
 		{
@@ -159,14 +162,14 @@ public class TestPathTracing {
 	@Test
 	public void testTraceEmptyPath1()
 	{
-		checkPathFrom("A-a->B-b->C-c->D", Arrays.asList(new String[]{}), "A", 
+		checkPathFrom("A-a->B-b->C-c->D", Collections.emptyList(), "A",
 				new String[]{}, AbstractOracle.USER_ACCEPTED,"A",config,converter);
 	}
 
 	@Test
 	public void testTraceEmptyPath2()
 	{
-		checkPathFrom("A-a->B-b->C-c->D", Arrays.asList(new String[]{"A"}), "A", 
+		checkPathFrom("A-a->B-b->C-c->D", Arrays.asList(new String[]{"A"}), "A",
 				new String[]{}, 0,null,config,converter);
 	}
 

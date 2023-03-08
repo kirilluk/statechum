@@ -541,7 +541,7 @@ public class GDLearnerGraph
 		
 		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
-		handlerList.add(new HandleRow<>() {
+		handlerList.add(new HandleRow<List<CmpVertex>>() {
 			@Override
 			public void init(@SuppressWarnings("unused") int threadNo) {
 				// No per-thread initialisation is needed.
@@ -594,7 +594,7 @@ public class GDLearnerGraph
 
 								for (CmpVertex srcA : outLabel.getValue())
 									for (CmpVertex srcB : to) {
-										// It is possible that for the same inpus (srcA,srcB)=(A,B) and (B,A)
+										// It is possible that for the same inputs (srcA,srcB)=(A,B) and (B,A)
 										// in this case, we have to avoid including (B,A) in the list, but 
 										// it is not known in advance if any such case occurs, so we have to store
 										// the pairs we encountered and eliminate them. 
@@ -909,7 +909,7 @@ public class GDLearnerGraph
 		{
 			workerMap[threadCnt] = new TreeMap<>();
 		
-			handlerList.add(new HandleRow<>() {
+			handlerList.add(new HandleRow<List<CmpVertex>>() {
 				Map<CmpVertex, GraphAndWalk> stateToGraph = null;
 
 				@Override
@@ -1149,7 +1149,7 @@ public class GDLearnerGraph
 		// We need next to no locking since state pairs considered are disjoint and work arrays are split between threads.
 		List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
 		for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)
-			handlerList.add(new HandleRow<>() {
+			handlerList.add(new HandleRow<List<CmpVertex>>() {
 			IntArrayList tmpAi = null;
 
 			/**
@@ -1183,6 +1183,7 @@ public class GDLearnerGraph
 
 			final Set<Integer> sourceData = new TreeSet<>();
 
+			@SuppressWarnings("ConstantConditions")
 			@Override
 			public void handleEntry(Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> entryA, int threadNo) {
 				IntArrayList Ai = Ai_array[threadNo];

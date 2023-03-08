@@ -43,10 +43,10 @@ public final class TestCloneWithDifferentConf
 		ConvertALabel converter = new Transform.InternStringLabel();
 		final String fsmA = "S-a->S1-b->"+"A-a->A1-a-#AR\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3;
 		final String fsmB = "S-a->S\nA1-a->A2\nS-a->S1-b->"+"A-a->A1-a-#AR\nA1-d->A2-d->A3\nA1-c->A2-c->A3"+PTA3;
-		LearnerGraph graphD=FsmParser.buildLearnerGraph(fsmA, "testCopyGraph2",config,converter);
-		LearnerGraphND graphND=FsmParser.buildLearnerGraphND(fsmB, "testCopyGraph4",config,converter);
-		LearnerGraph graphDNotIntern=FsmParser.buildLearnerGraph(fsmA, "testCopyGraph2",config,null);
-		LearnerGraphND graphNDNotIntern=FsmParser.buildLearnerGraphND(fsmB, "testCopyGraph4",config,null);
+		LearnerGraph graphD= FsmParserStatechum.buildLearnerGraph(fsmA, "testCopyGraph2",config,converter);
+		LearnerGraphND graphND= FsmParserStatechum.buildLearnerGraphND(fsmB, "testCopyGraph4",config,converter);
+		LearnerGraph graphDNotIntern= FsmParserStatechum.buildLearnerGraph(fsmA, "testCopyGraph2",config,null);
+		LearnerGraphND graphNDNotIntern= FsmParserStatechum.buildLearnerGraphND(fsmB, "testCopyGraph4",config,null);
 		Configuration confJung = config.copy();confJung.setLearnerUseStrings(false);confJung.setLearnerCloneGraph(true);confJung.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
 		Configuration confString = config.copy();confString.setLearnerUseStrings(true);confString.setLearnerCloneGraph(true);confString.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
 		Configuration confSame = config.copy();confSame.setLearnerUseStrings(false);confSame.setLearnerCloneGraph(false);confSame.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);
@@ -148,7 +148,6 @@ public final class TestCloneWithDifferentConf
 	
 	/** Given a test configuration, returns a textual description of its purpose. 
 	 * 
-	 * @param config configuration to consider
 	 * @return description.
 	 */ 
 	@SuppressWarnings("rawtypes")

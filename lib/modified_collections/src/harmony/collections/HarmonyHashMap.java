@@ -521,7 +521,7 @@ public class HarmonyHashMap<K, V> extends HarmonyAbstractMap<K, V> implements Ma
     @Override
     public Set<K> keySet() {
         if (keySet == null) {
-            keySet = new AbstractSet<>() {
+            keySet = new AbstractSet<K>() {
                 @Override
                 public boolean contains(Object object) {
                     return containsKey(object);
@@ -761,7 +761,7 @@ public class HarmonyHashMap<K, V> extends HarmonyAbstractMap<K, V> implements Ma
     @Override
     public Collection<V> values() {
         if (valuesCollection == null) {
-            valuesCollection = new AbstractCollection<>() {
+            valuesCollection = new AbstractCollection<V>() {
                 @Override
                 public boolean contains(Object object) {
                     return containsValue(object);

@@ -238,7 +238,7 @@ public class ArrayMapWithSearchPos<I extends ConvertibleToInt,K extends  I,V> im
 
 	@Override
 	public Set<K> keySet() {
-		return new AbstractSet<>() {
+		return new AbstractSet<K>() {
 
 			@Override
 			public Iterator<K> iterator() {
@@ -313,7 +313,7 @@ public class ArrayMapWithSearchPos<I extends ConvertibleToInt,K extends  I,V> im
 
 	@Override
 	public Collection<V> values() {
-		return new AbstractSet<>() {
+		return new AbstractSet<V>() {
 
 			@Override
 			public Iterator<V> iterator() {
@@ -459,7 +459,7 @@ public class ArrayMapWithSearchPos<I extends ConvertibleToInt,K extends  I,V> im
 	
 	@Override
 	public Set<java.util.Map.Entry<K, V>> entrySet() {
-		return new AbstractSet<>() {
+		return new AbstractSet<java.util.Map.Entry<K, V>>() {
 
 			@Override
 			public Iterator<java.util.Map.Entry<K, V>> iterator() {
@@ -473,7 +473,7 @@ public class ArrayMapWithSearchPos<I extends ConvertibleToInt,K extends  I,V> im
 
 						if (array_or_key instanceof ConvertibleToInt) {
 							nextIndex = -1;// this is the only element, force next to negative
-							outcome = new Entry<>() {
+							outcome = new Entry<K, V>() {
 
 								@SuppressWarnings("unchecked")
 								@Override
@@ -495,7 +495,7 @@ public class ArrayMapWithSearchPos<I extends ConvertibleToInt,K extends  I,V> im
 								}
 							};
 						} else {
-							outcome = new Entry<>() {
+							outcome = new Entry<K, V>() {
 								private final int currentIndex = nextIndex;
 
 								@SuppressWarnings("unchecked")

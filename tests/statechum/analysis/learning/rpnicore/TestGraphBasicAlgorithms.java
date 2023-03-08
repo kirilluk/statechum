@@ -49,6 +49,7 @@ import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
+import statechum.TestConfiguration;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.Test_Orig_RPNIBlueFringeLearnerTestComponent;
 import statechum.analysis.learning.StatePair;
@@ -56,7 +57,7 @@ import statechum.analysis.learning.Visualiser;
 import statechum.collections.ArrayOperations;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 @RunWith(ParameterizedWithName.class)
 public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTestComponent
@@ -86,7 +87,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@ParametersToString
 	public static String parametersToString(Configuration config)
 	{
-		return Configuration.parametersToString(config);
+		return TestConfiguration.parametersToString(config);
 	}
 	
 	public TestGraphBasicAlgorithms(Configuration conf) {
@@ -640,7 +641,7 @@ public class TestGraphBasicAlgorithms extends Test_Orig_RPNIBlueFringeLearnerTes
 	@Test
 	public final void testComputePathsToRed5()
 	{
-		LearnerGraph s = FsmParser.buildLearnerGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsToRed5", testConfig,getLabelConverter());
+		LearnerGraph s = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->A\nA-c->B-d->C\nA-p->D-q->C", "testComputePathsToRed5", testConfig,getLabelConverter());
 		Set<List<Label>> expected = buildSet(new String[][] {
 				new String[] {"a","b"},
 				new String[] {"a","d"},

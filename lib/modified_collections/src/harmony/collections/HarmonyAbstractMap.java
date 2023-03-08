@@ -226,7 +226,7 @@ public abstract class HarmonyAbstractMap<K, V> implements Map<K, V> {
      */
     public Set<K> keySet() {
         if (keySet == null) {
-            keySet = new AbstractSet<>() {
+            keySet = new AbstractSet<K>() {
                 @Override
                 public boolean contains(Object object) {
                     return containsKey(object);
@@ -239,7 +239,7 @@ public abstract class HarmonyAbstractMap<K, V> implements Map<K, V> {
 
                 @Override
                 public Iterator<K> iterator() {
-                    return new Iterator<>() {
+                    return new Iterator<K>() {
                         final Iterator<Map.Entry<K, V>> setIterator = entrySet()
                                 .iterator();
 
@@ -406,7 +406,7 @@ public abstract class HarmonyAbstractMap<K, V> implements Map<K, V> {
      */
     public Collection<V> values() {
         if (valuesCollection == null) {
-            valuesCollection = new AbstractCollection<>() {
+            valuesCollection = new AbstractCollection<V>() {
                 @Override
                 public int size() {
                     return HarmonyAbstractMap.this.size();
@@ -419,7 +419,7 @@ public abstract class HarmonyAbstractMap<K, V> implements Map<K, V> {
 
                 @Override
                 public Iterator<V> iterator() {
-                    return new Iterator<>() {
+                    return new Iterator<V>() {
                         final Iterator<Map.Entry<K, V>> setIterator = entrySet()
                                 .iterator();
 

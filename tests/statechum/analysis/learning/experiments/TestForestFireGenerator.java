@@ -18,7 +18,7 @@
 
 package statechum.analysis.learning.experiments;
 
-import static statechum.Helper.checkForCorrectException;
+import static statechum.TestHelper.checkForCorrectException;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -37,8 +37,8 @@ import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
-import statechum.Helper.whatToRun;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.TestHelper.whatToRun;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
@@ -57,7 +57,7 @@ public class TestForestFireGenerator {
 	public void before()
 	{
 		gen = new ForestFireLabelledStateMachineGenerator(0.3,0.2,0.2,0.1,10,0,config,converter);
-		gen.machine = FsmParser.buildLearnerGraph("A-a->B-a->C\nA-b->B-c->C", "testRandomVertexSelection1",config,converter).pathroutines.getGraph();
+		gen.machine = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C\nA-b->B-c->C", "testRandomVertexSelection1",config,converter).pathroutines.getGraph();
 		gen.vertices = new LinkedList<DeterministicVertex>();gen.vertices.addAll(gen.machine.getVertices());
 	}
 	
@@ -194,7 +194,7 @@ public class TestForestFireGenerator {
 	public void testAddEdgeFail1()
 	{
 		gen = new ForestFireLabelledStateMachineGenerator(0.3,0.2,0.2,0.1,0,0 ,config,converter);
-		gen.machine = FsmParser.buildLearnerGraph("A-L0->B / A-L1->C / A-L2->D", "testAddEdgeFail2" ,config,converter).pathroutines.getGraph();
+		gen.machine = FsmParserStatechum.buildLearnerGraph("A-L0->B / A-L1->C / A-L2->D", "testAddEdgeFail2" ,config,converter).pathroutines.getGraph();
 		gen.vertices = new LinkedList<DeterministicVertex>();gen.vertices.addAll(getGenMachineVertices());
 		final DeterministicVertex vA = (DeterministicVertex) DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,VertexID.parseID("A"),gen.machine), 
 		vB = (DeterministicVertex) DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,VertexID.parseID("B"),gen.machine);
@@ -206,7 +206,7 @@ public class TestForestFireGenerator {
 	public void testAddEdgeFail2()
 	{
 		gen = new ForestFireLabelledStateMachineGenerator(0.3,0.2,0.2,0.1,2,0 ,config,converter);
-		gen.machine = FsmParser.buildLearnerGraph("A-L0->B / A-L1->C / A-L2->D", "testAddEdgeFail2" ,config,converter).pathroutines.getGraph();
+		gen.machine = FsmParserStatechum.buildLearnerGraph("A-L0->B / A-L1->C / A-L2->D", "testAddEdgeFail2" ,config,converter).pathroutines.getGraph();
 		gen.vertices = new LinkedList<DeterministicVertex>();gen.vertices.addAll(getGenMachineVertices());
 		final DeterministicVertex vA = (DeterministicVertex) DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,VertexID.parseID("A"),gen.machine), 
 		vB = (DeterministicVertex) DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,VertexID.parseID("B"),gen.machine);
@@ -217,7 +217,7 @@ public class TestForestFireGenerator {
 	@Test
 	public void testSelectVertices()
 	{
-		gen.machine = FsmParser.buildLearnerGraph("A-a->B-a->C\nA-b->B-c->C-a->D-a->E", "testRandomVertexSelection1" ,config,converter).pathroutines.getGraph();
+		gen.machine = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C\nA-b->B-c->C-a->D-a->E", "testRandomVertexSelection1" ,config,converter).pathroutines.getGraph();
 		gen.vertices = new LinkedList<DeterministicVertex>();gen.vertices.addAll(getGenMachineVertices());
 		final DeterministicVertex 
 			vA = (DeterministicVertex) DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL,VertexID.parseID("A"),gen.machine), 
@@ -263,7 +263,7 @@ public class TestForestFireGenerator {
 	@Test
 	public void testEffectiveDiameter3()
 	{
-		gen.machine = FsmParser.buildLearnerGraph("A-a->B-a->C-a->D-a->A", "testEffectiveDiameter3" ,config,converter).pathroutines.getGraph();
+		gen.machine = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a->A", "testEffectiveDiameter3" ,config,converter).pathroutines.getGraph();
 		gen.vertices = new LinkedList<DeterministicVertex>();gen.vertices.addAll(getGenMachineVertices());
 		Assert.assertEquals(3,ForestFireStateMachineGenerator.getEffectiveDiameter(gen.machine));
 	}
@@ -271,7 +271,7 @@ public class TestForestFireGenerator {
 	@Test
 	public void testEffectiveDiameter4()
 	{
-		gen.machine = FsmParser.buildLearnerGraph("A-a->A", "testEffectiveDiameter4" ,config,converter).pathroutines.getGraph();
+		gen.machine = FsmParserStatechum.buildLearnerGraph("A-a->A", "testEffectiveDiameter4" ,config,converter).pathroutines.getGraph();
 		gen.vertices = new LinkedList<DeterministicVertex>();gen.vertices.addAll(getGenMachineVertices());
 		// AA 1
 		Assert.assertEquals(0,ForestFireStateMachineGenerator.getEffectiveDiameter(gen.machine));
@@ -280,7 +280,7 @@ public class TestForestFireGenerator {
 	@Test
 	public void testEffectiveDiameter5()
 	{
-		gen.machine = FsmParser.buildLearnerGraph("A-a->B", "testEffectiveDiameter4" ,config,converter).pathroutines.getGraph();
+		gen.machine = FsmParserStatechum.buildLearnerGraph("A-a->B", "testEffectiveDiameter4" ,config,converter).pathroutines.getGraph();
 		gen.vertices = new LinkedList<DeterministicVertex>();gen.vertices.addAll(getGenMachineVertices());
 		// AA 1
 		Assert.assertEquals(1,ForestFireStateMachineGenerator.getEffectiveDiameter(gen.machine));

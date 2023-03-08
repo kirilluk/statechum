@@ -142,7 +142,7 @@ public class TestDiffExperimentWithLogs {
 							config.setGdPropagateDet(false);// this is to ensure that if we removed a transition 0 from to a state and then added one from that state to a different one, det-propagation will not force the two very different states into a key-pair relation. 
 		
 							int mutations = mutationsPerStage * (mutationStage+1);
-							LearnerGraphND origGraph = mg.nextMachine(alphabet, experiment,config,converter);
+							LearnerGraphND origGraph = mg.nextMachine(alphabet, -1.0, experiment,config,converter);
 							GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(origGraph,new Random(mutationStage*experimentsPerMutationCategory+experiment));
 							mutator.mutate(mutations);
 							LearnerGraphND origAfterRenaming = new LearnerGraphND(origGraph.config);

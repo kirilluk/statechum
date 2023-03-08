@@ -34,7 +34,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.PrecisionRecall.PosNegPrecisionRecall;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;

@@ -17,8 +17,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import static org.junit.Assert.fail;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -92,7 +91,7 @@ public class WMethod
 	{
 		Set<Label> alphabet =  coregraph.learnerCache.getAlphabet();
 		List<List<Label>> partialSet = coregraph.pathroutines.computeStateCover(coregraph.getInit());
-		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(List.of());
+		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Collections.emptyList());
 		transitionCover = crossWithSet(partialSet,alphabet);transitionCover.addAll(partialSet);
 
 		SlowPrefixFreeCollection testsequenceCollection = new SlowPrefixFreeCollection();
@@ -111,7 +110,7 @@ public class WMethod
 	{
 		Set<Label> alphabet =  coregraph.learnerCache.getAlphabet();
 		List<List<Label>> stateCover = coregraph.pathroutines.computeStateCover(initialState);
-		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(List.of());
+		characterisationSet = computeWSet_reducedmemory(coregraph);if (characterisationSet.isEmpty()) characterisationSet.add(Collections.emptyList());
 		transitionCover = crossWithSet(stateCover,alphabet);transitionCover.addAll(stateCover);
 
 		PTASequenceEngine engine = new PTA_FSMStructure(coregraph,initialState);
@@ -1497,81 +1496,18 @@ public class WMethod
 	{
 		return WMethod.checkM(A, A.getInit(),B,B.getInit(),howToCompare, true);
 	}
-		
-
-	/** Checks if the two graphs have the same set of states. */
-	public static boolean sameStateSet(LearnerGraph expected, LearnerGraph graph)
-	{
-		Set<CmpVertex> A=expected.transitionMatrix.keySet(), B=graph.transitionMatrix.keySet();
-		Set<CmpVertex> AmB,BmA;
-		AmB = new TreeSet<CmpVertex>(A);AmB.removeAll(B);
-		BmA = new TreeSet<CmpVertex>(B);BmA.removeAll(A);
-		if (!A.equals(B))
-		{
-			System.out.println("different sets of states,\nA-B="+AmB+"\nB-A="+BmA);
-		}
-		return A.equals(B);
-	}
 
 	/** Given a W set, checks if it is a valid W set for the current state machine and throws if not.
-	 * 
-	 * @param wset the set to check validity of.
-	 * @param prefixClosed whether we are talking of prefix-closed languages
-	 * @param equivalentVertices the set of equivalent vertices which should be ignored. Can be null if not used.
-	 */
-	public void checkW_is_corrent(Collection<List<Label>> wset, boolean prefixClosed, Set<StatePair> equivalentVertices)
-	{
-		String result = checkW_is_corrent_boolean(wset,prefixClosed,equivalentVertices);
-		if (result != null)
-			fail(result);
-	}
-	
-	/** Given a W set, checks if it is a valid W set for the current state machine and throws if not.
-	 * 
+	 *
 	 * @param wset the set to check validity of.
 	 * @param prefixClosed whether we are talking of prefix-closed languages
 	 * @param equivalentVertices the set of equivalent vertices which should be ignored. Can be null if not used.
 	 */
 	public String checkW_is_corrent_boolean(Collection<List<Label>> wset, boolean prefixClosed, Set<StatePair> equivalentVertices)
 	{
-		for(CmpVertex stateA:coregraph.transitionMatrix.keySet())
+		for(DeterministicDirectedSparseGraph.CmpVertex stateA:coregraph.transitionMatrix.keySet())
 		{
-			for(CmpVertex stateB:coregraph.transitionMatrix.keySet())
-				if (stateA != stateB && (equivalentVertices == null || 
-						(!equivalentVertices.contains(new StatePair(stateA, stateB)) &&
-						 !equivalentVertices.contains(new StatePair(stateB, stateA)))))
-				{
-					boolean foundString = false;
-					Iterator<List<Label>> pathIt = wset.iterator();
-					while(pathIt.hasNext() && !foundString)
-					{
-						List<Label> path = pathIt.next();
-						int aResult = coregraph.paths.tracePath(path, stateA,prefixClosed),
-							bResult = coregraph.paths.tracePath(path, stateB,prefixClosed);
-						
-						if ( (aResult == AbstractOracle.USER_ACCEPTED && bResult >= 0) ||
-								(bResult == AbstractOracle.USER_ACCEPTED && aResult >= 0))
-							foundString = true;
-					}
-					
-					if (!foundString)
-						return "W set "+wset+" does not distinguish between "+stateA+" and "+stateB;
-				}
-		}
-		
-		return null;
-	}
-
-	/** Given a W set, checks if it is a valid W set for the current state machine and throws if not.
-	 *
-	 * @param wset the set to check validity of.
-	 * @param equivalentVertices the set of equivalent vertices which should be ignored. Can be null if not used.
-	 */
-	public String checkW_Mealy_is_correct_boolean(Collection<List<Label>> wset, Set<StatePair> equivalentVertices)
-	{
-		for(CmpVertex stateA:coregraph.transitionMatrix.keySet())
-		{
-			for(CmpVertex stateB:coregraph.transitionMatrix.keySet())
+			for(DeterministicDirectedSparseGraph.CmpVertex stateB:coregraph.transitionMatrix.keySet())
 				if (stateA != stateB && (equivalentVertices == null ||
 						(!equivalentVertices.contains(new StatePair(stateA, stateB)) &&
 								!equivalentVertices.contains(new StatePair(stateB, stateA)))))
@@ -1581,11 +1517,11 @@ public class WMethod
 					while(pathIt.hasNext() && !foundString)
 					{
 						List<Label> path = pathIt.next();
-						List<LabelInputOutput> ioA = coregraph.paths.pathToInputOutputPairs(path,stateA);
-						List<LabelInputOutput> ioB = coregraph.paths.pathToInputOutputPairs(path,stateB);
+						int aResult = coregraph.paths.tracePath(path, stateA,prefixClosed),
+								bResult = coregraph.paths.tracePath(path, stateB,prefixClosed);
 
-						// Equality for LabelInputOutput is based on inputs only hence we need to do 'deep' equals.
-						if (!LabelInputOutput.deepEqualsCollection(ioA,ioB))
+						if ( (aResult == AbstractOracle.USER_ACCEPTED && bResult >= 0) ||
+								(bResult == AbstractOracle.USER_ACCEPTED && aResult >= 0))
 							foundString = true;
 					}
 
@@ -1596,7 +1532,6 @@ public class WMethod
 
 		return null;
 	}
-
 
 	public interface FsmPermutator {
 		/** Returns a collection representing an order in which elements of an FSM should be placed in a string. */

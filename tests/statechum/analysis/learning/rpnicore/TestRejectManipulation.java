@@ -32,9 +32,9 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 import static statechum.analysis.learning.rpnicore.TestEquivalenceChecking.checkM;
 
 public class TestRejectManipulation {

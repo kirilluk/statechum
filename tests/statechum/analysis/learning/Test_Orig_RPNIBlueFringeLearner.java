@@ -39,9 +39,12 @@ import java.util.Vector;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
+import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
+import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.Pair;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine;
@@ -54,7 +57,6 @@ import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 import static statechum.DeterministicDirectedSparseGraph.findEdge;
 
@@ -83,8 +85,8 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		return alphabet;
 	}
 
-	protected Graph removeNegatives(Graph g){
-		@SuppressWarnings("unchecked")
+	protected Graph removeNegatives(Graph g)
+	{
 		Iterator<Vertex> vertexIt = g.getVertices().iterator();
 		HashSet<Vertex> remove = new HashSet<Vertex>();
 		while(vertexIt.hasNext()){
@@ -105,15 +107,14 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 * @param model
 	 * @return the set of blue nodes.
 	 */ 
-	protected Set<Vertex> computeBlue(DirectedSparseGraph model){
-		Set<Vertex> blues = new HashSet<Vertex>();
+	protected Set<DeterministicVertex> computeBlue(DirectedSparseGraph model){
+		Set<DeterministicVertex> blues = new HashSet<DeterministicVertex>();
 		for(Vertex v: DeterministicDirectedSparseGraph.findVertices(JUConstants.COLOUR, JUConstants.RED, model))
 		{
-			@SuppressWarnings("unchecked")
-			Iterator<DirectedSparseEdge>neighbourIt = v.getOutEdges().iterator();
+			Iterator<DeterministicEdge>neighbourIt = v.getOutEdges().iterator();
 			while(neighbourIt.hasNext()){
-				DirectedSparseEdge next = neighbourIt.next();
-				Vertex neighbour = next.getDest();
+				DeterministicEdge next = neighbourIt.next();
+				DeterministicVertex neighbour = (DeterministicVertex) next.getDest();
 				JUConstants neighbourColour = (JUConstants)neighbour.getUserDatum(JUConstants.COLOUR);
 				if(neighbourColour!=null){
 					if(neighbourColour == JUConstants.RED)
@@ -130,14 +131,14 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 
 	public static class OrigStatePair implements Comparable<OrigStatePair> {
 		
-		private Vertex q, r;
+		private DeterministicVertex q, r;
 		
-		public OrigStatePair(Vertex blue, Vertex red){
+		public OrigStatePair(DeterministicVertex blue, DeterministicVertex red){
 			this.q = blue;
 			this.r = red;
 		}
 		
-		private static String strLabel(Vertex v){
+		private static String strLabel(DeterministicVertex v){
 			String vLabel = v.getUserDatum(JUConstants.LABEL).toString();
 			return vLabel;
 		}
@@ -152,11 +153,11 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 			return rLabels;
 		}
 		
-		public Vertex getQ(){
+		public DeterministicVertex getQ(){
 			return q;
 		}
 		
-		public Vertex getR(){
+		public DeterministicVertex getR(){
 			return r;
 		}
 		
@@ -197,8 +198,8 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	/** Makes a copy of the graph given to it and merges states in the pair supplied. */
 	public static DirectedSparseGraph mergeAndDeterminize(Graph model, OrigStatePair pair){
 		Graph original = (Graph)model.copy();
-		Vertex q = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, pair.getQ().getUserDatum(JUConstants.LABEL),original);
-		Vertex qDash = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, pair.getR().getUserDatum(JUConstants.LABEL),original);
+		DeterministicVertex q = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, pair.getQ().getUserDatum(JUConstants.LABEL),original);
+		DeterministicVertex qDash = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, pair.getR().getUserDatum(JUConstants.LABEL),original);
 		
 		DirectedSparseGraph temp = merge((DirectedSparseGraph)original, new OrigStatePair(q,qDash));
 		OrigStatePair mergable = findMergablePair(temp);
@@ -406,7 +407,6 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 */
 	protected static Set<List<Label>> getShortSuffixes(@SuppressWarnings("unused") DirectedSparseGraph g, Vertex v){
 		Set<List<Label>> returnStrings = new LinkedHashSet<List<Label>>();
-		@SuppressWarnings("unchecked")
 		Iterator<Edge> outEdgeIt = v.getOutEdges().iterator();
 		while(outEdgeIt.hasNext()){
 			Edge e = outEdgeIt.next();
@@ -420,7 +420,6 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	}
 	
 	public static boolean hasAcceptedNeighbours(Vertex v){
-		@SuppressWarnings("unchecked")
 		Iterator<DirectedSparseEdge> neighbourIt = v.getOutEdges().iterator();
 		while (neighbourIt.hasNext()){
 			DirectedSparseEdge e = neighbourIt.next();
@@ -439,7 +438,6 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 * @param accepted labelling requested.
 	 * @return the list of paths.
 	 */
-	@SuppressWarnings("unchecked")
 	protected Set<List<Label>> getSuffixes(DirectedSparseGraph graph, Vertex r, boolean accepted){
 		Set<List<Label>> setOfPaths = new HashSet<List<Label>>();
 		Iterator<Vertex> vertexIt = graph.getVertices().iterator();
@@ -520,13 +518,13 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	
 	@SuppressWarnings("unchecked")
 	protected static DirectedSparseGraph merge(DirectedSparseGraph model, OrigStatePair pair){
-		Vertex q = pair.getQ();
-		Vertex qDash = pair.getR();
-		Iterator<DirectedSparseEdge> inEdges = q.getInEdges().iterator();
-		Set<DirectedSparseEdge> removeEdges = new HashSet<DirectedSparseEdge>();
+		DeterministicVertex q = pair.getQ();
+		DeterministicVertex qDash = pair.getR();
+		Iterator<DeterministicEdge> inEdges = q.getInEdges().iterator();
+		Set<DeterministicEdge> removeEdges = new HashSet<DeterministicEdge>();
 		while(inEdges.hasNext()){
-			DirectedSparseEdge e = inEdges.next();
-			DirectedSparseEdge eDash = new DirectedSparseEdge(e.getSource(), qDash);
+			DeterministicEdge e = inEdges.next();
+			DeterministicEdge eDash = AbstractLearnerGraph.generateNewJungEdge((DeterministicVertex)e.getSource(), qDash);
 			eDash.addUserDatum(JUConstants.LABEL, e.getUserDatum(JUConstants.LABEL), UserData.CLONE);
 			if(!e.getSource().getSuccessors().contains(qDash)) 
 				model.addEdge(eDash);
@@ -538,10 +536,10 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 			}
 			removeEdges.add(e);
 		}
-		Iterator<DirectedSparseEdge> outEdges = q.getOutEdges().iterator();
+		Iterator<DeterministicEdge> outEdges = q.getOutEdges().iterator();
 		while(outEdges.hasNext()){
-			DirectedSparseEdge e = outEdges.next();
-			DirectedSparseEdge eDash = new DirectedSparseEdge(qDash, e.getDest());
+			DeterministicEdge e = outEdges.next();
+			DeterministicEdge eDash = AbstractLearnerGraph.generateNewJungEdge(qDash, (DeterministicVertex)e.getDest());
 			eDash.addUserDatum(JUConstants.LABEL, e.getUserDatum(JUConstants.LABEL), UserData.CLONE);
 			if(!qDash.getSuccessors().contains(e.getDest())) 
 				model.addEdge(eDash);
@@ -567,15 +565,15 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	 */
 	@SuppressWarnings("unchecked")
 	protected static OrigStatePair findMergablePair(DirectedSparseGraph model){
-		List<Vertex> queue = DeterministicDirectedSparseGraph.getBFSList(model);
-		Iterator<Vertex> queueIt = queue.iterator();
+		List<DeterministicVertex> queue = DeterministicDirectedSparseGraph.getBFSList(model);
+		Iterator<DeterministicVertex> queueIt = queue.iterator();
 		while(queueIt.hasNext()){
-			Vertex v = queueIt.next();
-			Set<DirectedSparseEdge> edges = v.getOutEdges();
-			Iterator<DirectedSparseEdge> edgeIt = edges.iterator();
-			Map<Label,DirectedSparseEdge> doneLabels = new HashMap<Label,DirectedSparseEdge>();
+			DeterministicVertex v = queueIt.next();
+			Set<DeterministicEdge> edges = v.getOutEdges();
+			Iterator<DeterministicEdge> edgeIt = edges.iterator();
+			Map<Label,DeterministicEdge> doneLabels = new HashMap<Label,DeterministicEdge>();
 			while(edgeIt.hasNext()){
-				DirectedSparseEdge e = edgeIt.next();
+				DeterministicEdge e = edgeIt.next();
 				Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
 				Iterator<Label> labelIt = labels.iterator();
 				while(labelIt.hasNext()){
@@ -586,9 +584,9 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 						DirectedSparseEdge eDash = doneLabels.get(label);
 						OrigStatePair p = null;
 						if(DeterministicDirectedSparseGraph.isInitial(eDash.getDest()))
-							p = new OrigStatePair(e.getDest(), eDash.getDest());
+							p = new OrigStatePair((DeterministicVertex)e.getDest(), (DeterministicVertex)eDash.getDest());
 						else
-							p = new OrigStatePair(eDash.getDest(),e.getDest());
+							p = new OrigStatePair((DeterministicVertex)eDash.getDest(),(DeterministicVertex)e.getDest());
 						if(!different(p)) // KIRR: strange - the two should never be different if the original pair to choose was selected properly
 							return p;
 					}
@@ -599,16 +597,16 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 	}
 
 	protected Stack<OrigStatePair> chooseStatePairs(DirectedSparseGraph g, Collection<List<Label>> sPlusArg, Collection<List<Label>> sMinusArg){
-		Stack<Vertex> blueStack = new Stack<Vertex>();
+		Stack<DeterministicVertex> blueStack = new Stack<DeterministicVertex>();
 		blueStack.addAll(computeBlue(g));
 		TreeMap<Integer,Vector<OrigStatePair> > scoreToPair = new TreeMap<Integer,Vector<OrigStatePair> >();// maps scores to pairs which have those scores
 		while(!blueStack.isEmpty()){
 			TreeMap<Integer,Vector<OrigStatePair> > singleSet = new TreeMap<Integer,Vector<OrigStatePair> >();
-			Vertex blueVertex = blueStack.pop();
-			Stack<Vertex> redStack = new Stack<Vertex>();
+			DeterministicVertex blueVertex = blueStack.pop();
+			Stack<DeterministicVertex> redStack = new Stack<DeterministicVertex>();
 			redStack.addAll(DeterministicDirectedSparseGraph.findVertices(JUConstants.COLOUR, JUConstants.RED, g));
 			while(!redStack.isEmpty()){
-				Vertex redVertex = redStack.pop();
+				DeterministicVertex redVertex = redStack.pop();
 				OrigStatePair pair = new OrigStatePair(blueVertex, redVertex);
 				doneEdges = new HashSet<DirectedSparseEdge>();
 				Integer score = Integer.valueOf(computeScore(g,pair));
@@ -691,9 +689,9 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		if(different(blueRed))
 				return -1;
 
-		Iterator<DirectedSparseEdge> edgesOut = blueRed.getQ().getOutEdges().iterator();
+		Iterator<DeterministicEdge> edgesOut = blueRed.getQ().getOutEdges().iterator();
 		while(edgesOut.hasNext()){
-			DirectedSparseEdge e = edgesOut.next();
+			DeterministicEdge e = edgesOut.next();
 			if(this.doneEdges.contains(e))
 				continue;
 			
@@ -703,8 +701,8 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 			while(labelIt.hasNext()){
 				List<Label> string = new LinkedList<Label>();
 				string.add(labelIt.next());
-				Vertex qi = e.getDest();
-				Vertex qj = getVertex(original,blueRed.getR(), string);
+				DeterministicVertex qi = (DeterministicVertex) e.getDest();
+				DeterministicVertex qj = getVertex(original,blueRed.getR(), string);
 				OrigStatePair newPair = new OrigStatePair(qi, qj);
 				if(qj!=null){
 					int equivalent = computeScore(original, newPair);
@@ -738,9 +736,9 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 			
 			for(int i = 1;i<=string.size();i++){
 				List<Label> current = string.subList(0, i);
-				Vertex existing = getVertex(pta,current);
+				DeterministicVertex existing = getVertex(pta,current);
 
-				Vertex newVertex = new DirectedSparseVertex();
+				DeterministicVertex newVertex = AbstractLearnerGraph.generateNewJungVertex("V"+Integer.toString(pta.numVertices()+1));
 				if (i == string.size())// KIRR: every prefix of a reject sequence is an accept sequence.
 					newVertex.setUserDatum(JUConstants.ACCEPTED, accepted, UserData.SHARED);
 				else
@@ -748,9 +746,9 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 				
 				if(existing == null){
 					pta.addVertex(newVertex);
-					Vertex previous;
+					DeterministicVertex previous;
 					previous = getVertex(pta, string.subList(0, i-1));// for i==1, getVertex will return the initial vertex
-					DirectedSparseEdge e = new DirectedSparseEdge(previous, newVertex);
+					DeterministicEdge e = AbstractLearnerGraph.generateNewJungEdge(previous, newVertex);
 					Set<Label> labels = new TreeSet<Label>();
 					labels.add(string.get(i-1));
 					e.addUserDatum(JUConstants.LABEL, labels, UserData.CLONE);
@@ -771,23 +769,22 @@ public class Test_Orig_RPNIBlueFringeLearner extends RPNILearner {
 		return pta;
 	}
 	
-	protected static Vertex getVertex (@SuppressWarnings("unused") DirectedSparseGraph g,Vertex v, List<Label> string){
-		Vertex current = v;
+	protected static DeterministicVertex getVertex (@SuppressWarnings("unused") DirectedSparseGraph g,DeterministicVertex v, List<Label> string){
+		DeterministicVertex current = v;
 		if (current == null)
 			return null;
 		
 		for(int i = 0;i<string.size();i++){
 			Label label = string.get(i);
-			@SuppressWarnings("unchecked")
 			DirectedSparseEdge edge = getEdgeWithLabel(current.getOutEdges(), label);
 			if(edge == null)
 				return null;
-			current = edge.getDest();
+			current = (DeterministicVertex) edge.getDest();
 		}
 		return current;
 	}
 	
-	public static Vertex getVertex (DirectedSparseGraph g, List<Label> string){
+	public static DeterministicVertex getVertex (DirectedSparseGraph g, List<Label> string){
 		return getVertex(g, DeterministicDirectedSparseGraph.findInitial(g), string);
 	}
 

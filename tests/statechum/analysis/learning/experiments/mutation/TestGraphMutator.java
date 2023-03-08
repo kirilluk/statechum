@@ -25,6 +25,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.Label;
 import statechum.analysis.learning.experiments.mutation.GraphMutator.FailureToMutateException;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
@@ -36,8 +37,7 @@ import java.util.Map;
 import java.util.Random;
 
 import static org.junit.Assert.fail;
-import static statechum.Helper.checkForCorrectException;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraphND;
+import static statechum.TestHelper.checkForCorrectException;
 
 public class TestGraphMutator {
 

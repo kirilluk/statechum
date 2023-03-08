@@ -1,7 +1,7 @@
 %% @doc Currently, events can be any Erlang element.
 -type event() :: atom().
 
-%% @doc Currently, only atoms are supported as sttae names.
+%% @doc Currently, only atoms are supported as state names.
 -type state() :: atom().
 
 %% @doc A trace is simply a list of events.

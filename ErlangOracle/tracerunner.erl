@@ -90,30 +90,26 @@ verifyJavaUp(Node) ->
 init([Arg]) ->
     {ok, #statechum{processNum=Arg}}.
 
-%% Obtains the defines necessary to tailor Statechum to the specific version of Erlang runtime. This is only needed for Typer but in future may be used for other things.
-runtimeSpecificFlags() ->
-  case string:substr(erlang:system_info(otp_release),1,3) of
-  	"R14"->{ok,{i,"lib/modified_typer/14"}};
-  	"R15"->{ok,{i,"lib/modified_typer/16"}};
-  	"R16"->{ok,{i,"lib/modified_typer/16"}};
-  	"17"->{ok,{i,"lib/modified_typer/17"}};  	
-  	"18"->{ok,{i,"lib/modified_typer/17"}};  	
-% Thanks to http://stackoverflow.com/questions/15534663/erlang-tuple-to-string
-    Unknown->{error,list_to_atom(lists:flatten(io_lib:format("Unsupported Erlang version ~p, only R14-R18 are supported", [Unknown])))}
-  end.
-  
 %% Loads the supplied erl directly, can be used to substitute an arbitrary Erlang module with that of our own.
 %% Invented to replace Typer modules, but since I had to replace the main module, this function is not used. 
-compileAndLoad(What,Path) ->
-	{ok,Flags}=runtimeSpecificFlags(),
-	{ok,Bin,_}=compile:file(filename:join(Path,What),[verbose,debug_info,binary,Flags]),
+compileAndLoad(What,Flags,Path) ->
+	{ok,Bin,_}=compile:file(filename:join(Path,What),[verbose,debug_info,binary] ++ Flags),
 	ModuleName = filename:basename(What,".erl"),
 	code:purge(ModuleName),
 	{module, _}=code:load_binary(ModuleName,"in_memory"++atom_to_list(What),Bin).
 
+extraCompileFlags() ->
+  case erlang:system_info(otp_release) of
+    14 -> [];
+    16 -> [];
+    17 -> [];
+    18 -> [];
+    _  -> [return_errors]
+  end.
+
 %% Sometimes, files are known under different names but define the same module,
-%% Dialyzer may lock up inside dialyzer_succ_typings:analyze_callgraph when 
-%% analysing such files. The following function check for this and complains when 
+%% Dialyzer (from Erlang 14-16 or so) may lock up inside dialyzer_succ_typings:analyze_callgraph when
+%% analysing such files. The following function checks for this and complains when
 %% file name does not match module name. Expects beams and throws an error if an
 %% inconsistency is detected.
 fileNameValid([])->ok;
@@ -149,7 +145,7 @@ handle_call({startrunner,RunnerName}, _From, State) ->
 		{ ok, _Pid } = gen_server:start_link({local,RunnerName},tracerunner,[RunnerName],[]),
 		{reply, ok, State}
 	catch
-		ErrClass:Error -> {reply, {failed,[ErrClass,Error,erlang:get_stacktrace()]}, State}
+		ErrClass:Error -> {reply, {failed,[ErrClass,Error,typer_s:stacktrace()]}, State}
 	end;
 	
 
@@ -196,7 +192,7 @@ end;
 %% Runs dialyzer on the supplied files.
 %% Files is a list of files to process, 
 %% Plt is the name of the Plt file.
-handle_call({dialyzer,FilesBeam,Plt,_FilesErl,_Outputmode}, _From, State) ->
+handle_call({dialyzer,FilesBeam,Plt,_FilesErl}, _From, State) ->
 	try	
 		DialOpts = [{files,FilesBeam},{files_rec,[]},{include_dirs,[]},{output_plt,Plt},{defines,[]},{analysis_type,plt_build}],
 		case (fileNameValid(FilesBeam)) of
@@ -212,18 +208,23 @@ handle_call({dialyzer,FilesBeam,Plt,_FilesErl,_Outputmode}, _From, State) ->
 %% assuming that Dialyzer has been run previously.
 %% Files is a list of files to process, 
 %% Plt is the name of the Plt file.
-handle_call({typer,_FilesBeam,Plt,FilesErl,Outputmode}, _From, State) ->
+%% Mode is an atom, either 'text' or 'types'. The former is a request to typer to report types
+%% as it does from the console (only used for testing)
+%% and 'types' is the structured output that is turned by Statechum into module types.
+handle_call({typer,_FilesBeam,Plt,FilesErl,Mode}, _From, State) ->
 	try	
-		Outcome = typer_s:start(FilesErl,Plt,Outputmode),
+		Outcome = typer_s:start(FilesErl,Plt,Mode),
 		{reply,{ok,Outcome}, State}
 	catch
-		throw:Error -> {reply,{'throw',Error},State};
-		Type:Error -> 
-			erlang:display(erlang:get_stacktrace()),
-			{reply, {failed, Type, Error, {FilesErl,Plt,Outputmode,erlang:get_stacktrace()}}, State}
-%%		error:Error -> {reply, {failed,{typer,_FilesBeam,Plt,FilesErl,Outputmode}}, State}
+	% This is caused by using the 'throw' keyword in Erlang
+	% and Java code (ErlangRunner#call) handles such responses
+	% by throwing ErlangThrownException
+		_:Error -> {reply,{'throw',Error},State}
+%		_Type:Error:StackTrace ->
+%			erlang:display(StackTrace),
+%			{reply, {'throw', Error, {FilesErl,Plt,StackTrace}}, State}
+%%		error:Error -> {reply, {failed,{typer,_FilesBeam,Plt,FilesErl}}, State}
 	end;
-%% [Error,erlang:get_stacktrace()]
 
 %% Loads Statechum's configuration variables into this process.
 handle_call({getAttr,Attr}, _From, State) ->
@@ -244,23 +245,20 @@ handle_call({evaluateTerm,String}, _From, State) ->
 		{ value, Value, _NewBindings} = erl_eval:exprs(Tree,[]),
 		{ reply, { ok, Value }, State }
 	catch
-		ErrClass:Error -> {reply, {failed,[ErrClass,Error,erlang:get_stacktrace()]}, State}
+		ErrClass:Error -> {reply, {failed,[ErrClass,Error]}, State}
+%		ErrClass:Error:StackTrace -> {reply, {failed,[ErrClass,Error,StackTrace]}, State}
 	end;
 
 %% Compiles modules into .beam files, Dir is where to put results, should exist.
-handle_call({compile,[],erlc,_Dir}, _From, State) ->
+handle_call({compile,[],Flags,_Dir}, _From, State) ->
 	{reply, ok, State};
-	
-handle_call({compile,[M | OtherModules],erlc,Dir}, From, State) ->
-	case(runtimeSpecificFlags()) of
-		{ok,Flags} ->
-			case(compile:file(M,[verbose,debug_info,{outdir,Dir},Flags])) of
-				{ok,_} -> handle_call({compile,OtherModules,erlc,Dir}, From, State);
-				Msg -> {reply, {failedToCompile, M, Dir, Msg}, State}
-			end;
-		{error,Msg} -> {reply, {failedToCompile, M, Dir, Msg}, State}
+
+handle_call({compile,[M | OtherModules],Flags,Dir}, From, State) ->
+	case(compile:file(M,[verbose,debug_info,{outdir,Dir}] ++ extraCompileFlags() ++ Flags)) of
+        {ok,_} -> handle_call({compile,OtherModules,Flags,Dir}, From, State);
+        Msg -> {reply, {failedToCompile, M, Dir, Msg}, State}
 	end;
-		
+
 %% Extracts dependencies from the supplied module
 handle_call({dependencies,M}, _From, State) ->
 	case(beam_lib:chunks(M,[imports])) of

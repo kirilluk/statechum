@@ -51,7 +51,7 @@ import java.util.Map.Entry;
 
 import static statechum.analysis.learning.linear.GDLearnerGraph.PAIR_INCOMPATIBLE;
 import static statechum.analysis.learning.linear.GDLearnerGraph.PAIR_OK;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 @RunWith(ParameterizedWithName.class)
 public class TestMatrixComputationWithMultipleThreads {
@@ -234,7 +234,7 @@ public class TestMatrixComputationWithMultipleThreads {
 	/** "Identity" sets diagonal to 2 because that's what we do 
 	 * in order to normalise the result of linear solution. 
 	 */
-	private static DoubleMatrix2D createIdentity(int size)
+	private static DoubleMatrix2D createIdentity(@SuppressWarnings("SameParameterValue") int size)
 	{
 		DoubleMatrix2D matrix=DoubleFactory2D.sparse.make(size, size);
 		for(int i=0;i<size;++i) matrix.setQuick(i, i, 2);
@@ -515,7 +515,7 @@ public class TestMatrixComputationWithMultipleThreads {
 		final GDLearnerGraph ndGraph = new GDLearnerGraph(gr, filter, false);
 		List<GDLearnerGraph.HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
 		for (int threadCnt = 0; threadCnt < ThreadNumber; ++threadCnt)
-			handlerList.add(new GDLearnerGraph.HandleRow<>() {
+			handlerList.add(new GDLearnerGraph.HandleRow<List<CmpVertex>>() {
 				@Override
 				public void init(@SuppressWarnings("unused") int threadNo) {
 					// No per-thread initialisation is needed.
@@ -605,7 +605,7 @@ public class TestMatrixComputationWithMultipleThreads {
 	public final void TestFindIncompatibleStates1()
 	{
 		LearnerGraph gr=buildLearnerGraph("A-a->Q\nA-b->C\nA-d->C\nD-a->C\nD-b->C\nD-d->C-a->C\nD-c->A-c-#R","TestFindIncompatibleStates1",config,converter);
-		findIncompatibleTestHelper(gr, List.of(new StringPair("A", "D")));
+		findIncompatibleTestHelper(gr, Collections.singletonList(new StringPair("A", "D")));
 	}
 
 	/** Tests that if A is not compatible to C and D, this is recorded. */
@@ -711,7 +711,7 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr=buildLearnerGraph("E-a->C-a->A-b-#R\nE-c->C-c->E\nB-c->H-c->G-c->F-c->D-c->B-b->Q\n"
 				,"TestFindIncompatibleStates8",config,converter);
 
-		findIncompatibleTestHelper(gr, List.of(new StringPair("A", "B")));
+		findIncompatibleTestHelper(gr, Collections.singletonList(new StringPair("A", "B")));
 	}
 	
 	@Test
@@ -731,7 +731,7 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr=buildLearnerGraph("B-a->C-a-#A\nC-b-#A"
 				,"TestFindIncompatibleStates10",config,converter);
 
-		findIncompatibleTestHelper(gr, List.of(new StringPair("C", "B")));
+		findIncompatibleTestHelper(gr, Collections.singletonList(new StringPair("C", "B")));
 	}
 	
 	public static Set<PairScore> addAllPermutations(Collection<PairScore> scores)
@@ -760,8 +760,8 @@ public class TestMatrixComputationWithMultipleThreads {
 	public final void TestComputeStateCompatibility1b()
 	{
 		LearnerGraph gr = buildLearnerGraph(machineCompatibility1,"TestComputeStateCompatibility1",config,converter);
-		
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<>(gr, threadNumber, null, LearnerGraphND.ignoreRejectStates, new NonRandomRandom());
+		Set<PairScore> pairsSet = addAllPermutations(ndComputation.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10));
 		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2)/2),1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),10/2,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),10/2,1),
@@ -795,8 +795,9 @@ public class TestMatrixComputationWithMultipleThreads {
 
 		LearnerGraph gr = buildLearnerGraph(machineCompatibility1,"TestComputeStateCompatibility1",config,converter);
 		
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,threadNumber,DDRH_BCR.class,
-				LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<>(gr, threadNumber, DDRH_BCR.class,
+				LearnerGraphND.ignoreRejectStates, new NonRandomRandom());
+		Set<PairScore> pairsSet = addAllPermutations(ndComputation.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10));
 		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),325,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),125,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),250,1),
@@ -816,8 +817,9 @@ public class TestMatrixComputationWithMultipleThreads {
 
 		LearnerGraph gr = buildLearnerGraph(machineCompatibility1,"TestComputeStateCompatibility1",config,converter);
 		
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,threadNumber,DDRH_BCR.class,
-				LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<>(gr, threadNumber, DDRH_BCR.class,
+				LearnerGraphND.ignoreRejectStates, new NonRandomRandom());
+		Set<PairScore> pairsSet = addAllPermutations(ndComputation.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10));
 		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),325,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),162,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),250,1),
@@ -837,8 +839,9 @@ public class TestMatrixComputationWithMultipleThreads {
 
 		LearnerGraph gr = buildLearnerGraph(machineCompatibility1,"TestComputeStateCompatibility1",config,converter);
 		
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,threadNumber,DDRH_BCR.class,
-				LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<>(gr, threadNumber, DDRH_BCR.class,
+				LearnerGraphND.ignoreRejectStates, new NonRandomRandom());
+		Set<PairScore> pairsSet = addAllPermutations(ndComputation.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10));
 		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),500,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),250,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),500,1),
@@ -858,8 +861,9 @@ public class TestMatrixComputationWithMultipleThreads {
 
 		LearnerGraph gr = buildLearnerGraph(machineCompatibility1,"TestComputeStateCompatibility1",config,converter);
 		
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,threadNumber,DDRH_BCR.class,
-				LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<>(gr, threadNumber, DDRH_BCR.class,
+				LearnerGraphND.ignoreRejectStates, new NonRandomRandom());
+		Set<PairScore> pairsSet = addAllPermutations(ndComputation.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10));
 		Set<PairScore> expected = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),500,1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),250,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),500,1),
@@ -887,7 +891,9 @@ public class TestMatrixComputationWithMultipleThreads {
 	public final void TestComputeStateCompatibility2b()
 	{
 		LearnerGraph gr=buildLearnerGraph(machineCompatibility2,"TestComputeStateCompatibility1",config,converter);
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE*2,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<>(gr, threadNumber, null,
+				LearnerGraphND.ignoreRejectStates, new NonRandomRandom());
+		Set<PairScore> pairsSet = addAllPermutations(ndComputation.chooseStatePairs_filtered(PAIR_INCOMPATIBLE*2,10));
 		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2*(1+k/2))/2),1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*(1+k/2)/2),1),
@@ -902,7 +908,9 @@ public class TestMatrixComputationWithMultipleThreads {
 	public final void TestComputeStateCompatibility2c()
 	{
 		LearnerGraph gr=buildLearnerGraph(machineCompatibility2,"TestComputeStateCompatibility1",config,converter);
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<>(gr, threadNumber, null,
+				LearnerGraphND.ignoreRejectStates, new NonRandomRandom());
+		Set<PairScore> pairsSet = addAllPermutations(ndComputation.chooseStatePairs_filtered(PAIR_INCOMPATIBLE,10));
 		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2*(1+k/2))/2),1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*(1+k/2)/2),1),
 				new PairScore(gr.findVertex("C"),gr.findVertex("C"),10/2,1)));
@@ -913,7 +921,9 @@ public class TestMatrixComputationWithMultipleThreads {
 	public final void TestComputeStateCompatibility2d()
 	{
 		LearnerGraph gr=buildLearnerGraph(machineCompatibility2,"TestComputeStateCompatibility1",config,converter);
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(0.5,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<>(gr, threadNumber, null,
+				LearnerGraphND.ignoreRejectStates, new NonRandomRandom());
+		Set<PairScore> pairsSet = addAllPermutations(ndComputation.chooseStatePairs_filtered(0.5,10));
 		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2*(1+k/2))/2),1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*(1+k/2)/2),1)));
 		Assert.assertEquals(exp, pairsSet);
@@ -923,7 +933,9 @@ public class TestMatrixComputationWithMultipleThreads {
 	public final void TestComputeStateCompatibility2e()
 	{
 		LearnerGraph gr=buildLearnerGraph(machineCompatibility2,"TestComputeStateCompatibility1",config,converter);
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs_filtered(5,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<>(gr, threadNumber, null,
+				LearnerGraphND.ignoreRejectStates, new NonRandomRandom());
+		Set<PairScore> pairsSet = addAllPermutations(ndComputation.chooseStatePairs_filtered(5,10));
 		Assert.assertTrue(pairsSet.isEmpty());
 	}
 	
@@ -931,7 +943,9 @@ public class TestMatrixComputationWithMultipleThreads {
 	public final void TestComputeStateCompatibility_checking_filtering1()
 	{
 		LearnerGraph gr=buildLearnerGraph(machineCompatibility2,"TestComputeStateCompatibility1",config,converter);
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs(PAIR_INCOMPATIBLE*2,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<>(gr, threadNumber, null,
+				LearnerGraphND.ignoreRejectStates, new NonRandomRandom());
+		Set<PairScore> pairsSet = addAllPermutations(ndComputation.chooseStatePairs(PAIR_INCOMPATIBLE*2,10));
 		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*(1+k/2*(1+k/2))/2),1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*(1+k/2)/2),1),
@@ -958,7 +972,10 @@ public class TestMatrixComputationWithMultipleThreads {
 			DoubleMatrix2D Ax=solver.toDoubleMatrix2D();
 			Assert.assertEquals(6,Ax.columns());
 		}
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs(PAIR_INCOMPATIBLE*2,10,threadNumber,null,filter, new NonRandomRandom()));
+
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<>(gr, threadNumber, null,
+				filter, new NonRandomRandom());
+		Set<PairScore> pairsSet = addAllPermutations(ndComputation.chooseStatePairs(PAIR_INCOMPATIBLE*2,10));
 		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*score_AA),1),
 				new PairScore(gr.findVertex("A"),gr.findVertex("B"),10*PAIR_INCOMPATIBLE,1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*score_BB),1),
@@ -1004,7 +1021,9 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr=buildLearnerGraph(machineCompatibility2+
 				"\nB-c-#G\n","TestComputeStateCompatibility_checking_filtering2",config,converter);
 		double score_CC=1./2,score_BB=(2+score_CC*k)/4, score_AA=(1+k*score_BB)/2;
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs(PAIR_INCOMPATIBLE,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<>(gr, threadNumber, null,
+				LearnerGraphND.ignoreRejectStates, new NonRandomRandom());
+		Set<PairScore> pairsSet = addAllPermutations(ndComputation.chooseStatePairs(PAIR_INCOMPATIBLE,10));
 		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*score_AA),1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*score_BB),1),
 				new PairScore(gr.findVertex("C"),gr.findVertex("C"),(int)(10*score_CC),1),
@@ -1022,7 +1041,9 @@ public class TestMatrixComputationWithMultipleThreads {
 		LearnerGraph gr=buildLearnerGraph(machineCompatibility2+
 				"\nB-b-#G\n","TestComputeStateCompatibility_checking_filtering2",config,converter);
 		double score_CC=1./2,score_BB=(2+score_CC*k)/4, score_AA=(1+k*score_BB)/2;
-		Set<PairScore> pairsSet = addAllPermutations(gr.pairscores.chooseStatePairs(0,10,threadNumber,null,LearnerGraphND.ignoreRejectStates, new NonRandomRandom()));
+		PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData> ndComputation = new PairScoreComputation.LinearScoring<>(gr, threadNumber, null,
+				LearnerGraphND.ignoreRejectStates, new NonRandomRandom());
+		Set<PairScore> pairsSet = addAllPermutations(ndComputation.chooseStatePairs_filtered(0,10));
 		Set<PairScore> exp = addAllPermutations(Arrays.asList(new PairScore(gr.findVertex("A"),gr.findVertex("A"),(int)(10*score_AA),1),
 				new PairScore(gr.findVertex("B"),gr.findVertex("B"),(int)(10*score_BB),1),
 				new PairScore(gr.findVertex("C"),gr.findVertex("C"),(int)(10*score_CC),1)));

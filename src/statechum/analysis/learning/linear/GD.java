@@ -1523,7 +1523,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			// states to be ignored are those where each element of a pair belongs to a different automaton, we fill in the rest.
 			List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
-				handlerList.add(new HandleRow<>() {
+				handlerList.add(new HandleRow<List<CmpVertex>>() {
 					@Override
 					public void init(@SuppressWarnings("unused") int threadNo) {
 						// No per-thread initialisation is needed.
@@ -1605,7 +1605,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones.
 			{
 				wavePerThread[threadCnt] = new ArrayList<>(java.lang.Math.max(statesOfA.size(), statesOfB.size()));
-				handlerList.add(new HandleRow<>() {
+				handlerList.add(new HandleRow<List<CmpVertex>>() {
 					ArrayList<PairScore> wave = null;
 
 					@Override

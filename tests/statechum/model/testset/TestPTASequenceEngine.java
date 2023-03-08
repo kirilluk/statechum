@@ -36,14 +36,11 @@ import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
 
-import statechum.Configuration;
-import statechum.Helper;
-import statechum.Label;
+import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.Helper.whatToRun;
-import statechum.JUConstants;
+import statechum.TestHelper.whatToRun;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
@@ -919,7 +916,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		final LearnerGraph mach = buildLearnerGraph("D-a->A-a->A-b-#B","testPrecisionRecall2b",mainConfiguration,converter);
 		new PTA_FSMStructure(mach,mach.findVertex(VertexID.parseID("A")));
 		
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
 				new PTA_FSMStructure(mach,AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Vert"), mach.config));
 			}},IllegalArgumentException.class,"is not a valid state of the graph");
 	}
@@ -933,7 +930,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		final LearnerGraph sameMach = buildLearnerGraph("D-a->A-a->A-b-#B","testPrecisionRecall2b",mainConfiguration,converter);
 		new PTA_FSMStructure(mach,mach.findVertex(VertexID.parseID("A")));
 		
-		Helper.checkForCorrectException(new whatToRun() {public @Override void run() {
+		TestHelper.checkForCorrectException(new whatToRun() {public @Override void run() {
 				new PTA_FSMStructure(mach,sameMach.findVertex(VertexID.parseID("A")));
 			}},IllegalArgumentException.class,"is not a valid state of the graph");
 	}

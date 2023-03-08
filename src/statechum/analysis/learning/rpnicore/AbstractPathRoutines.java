@@ -24,8 +24,10 @@ import harmony.collections.HashMapWithSearch;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.*;
 import statechum.GlobalConfiguration;
+import statechum.Helper;
 import statechum.JUConstants;
 import statechum.Label;
+import statechum.Configuration.STATETREE;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
@@ -36,7 +38,7 @@ import statechum.model.testset.PTASequenceSetAutomaton;
 import java.util.*;
 import java.util.Map.Entry;
 
-public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
+public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
 {
 	final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph;
 
@@ -195,7 +197,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 * 
 	 * @param vertSource the source state
 	 * @param engine node tree to update
-	 * @param pathsToVertSource PTA of paths to enter vertSource, can be initialised with identity 
+	 * @param pathsToVertSource PTA of paths to enter vertSource, can be initialised with identity
 	 * or obtained using PTATestSequenceEngine-related operations.
 	 * @return the map from states to PTAs of shortest paths to them. States which cannot be reached are not included in the map.
 	 */	
@@ -309,37 +311,34 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		checkValidityOfStates();
 		DirectedSparseGraph result;
 		Configuration cloneConfig = coregraph.config.copy();cloneConfig.setLearnerUseStrings(false);cloneConfig.setLearnerCloneGraph(true);
-		synchronized (AbstractLearnerGraph.syncObj) 
-		{
-			result = new DirectedSparseGraph();
-			if (name != null)
-				result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
+		result = new DirectedSparseGraph();
+		if (name != null)
+			result.setUserDatum(JUConstants.TITLE, name,UserData.SHARED);
 
-			MapWithSearch<VertID,CmpVertex,DeterministicVertex> oldToNew = new HashMapWithSearch<>(coregraph.getStateNumber());
-			// add states
-			for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
+		MapWithSearch<VertID,CmpVertex,DeterministicVertex> oldToNew = new HashMapWithSearch<>(coregraph.getStateNumber());
+		// add states
+		for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
+		{
+			CmpVertex source = entry.getKey();
+			DeterministicVertex vert = (DeterministicVertex)AbstractLearnerGraph.cloneCmpVertex(source,cloneConfig);
+			if (coregraph.getInit() == source)
+				vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
+			result.addVertex(vert);
+			oldToNew.put(source,vert);
+		}
+
+		// now add transitions
+		for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
+		{
+			DeterministicVertex source = oldToNew.get(entry.getKey());
+			for(Entry<CmpVertex,Set<Label>> tgtEntry:entry.getValue().entrySet())
 			{
-				CmpVertex source = entry.getKey();
-				DeterministicVertex vert = (DeterministicVertex)AbstractLearnerGraph.cloneCmpVertex(source,cloneConfig);
-				if (coregraph.getInit() == source)
-					vert.addUserDatum(JUConstants.INITIAL, true, UserData.SHARED);
-				result.addVertex(vert);
-				oldToNew.put(source,vert);
-			}
-			
-			// now add transitions
-			for(Entry<CmpVertex,Map<CmpVertex,Set<Label>>> entry:coregraph.learnerCache.getFlowgraph().entrySet())
-			{
-				DeterministicVertex source = oldToNew.get(entry.getKey());
-				for(Entry<CmpVertex,Set<Label>> tgtEntry:entry.getValue().entrySet())
-				{
-					CmpVertex targetOld = tgtEntry.getKey();
-					assert coregraph.findVertex(targetOld) == targetOld : "was looking for vertex with name "+targetOld+", got "+coregraph.findVertex(targetOld);
-					DeterministicVertex target = oldToNew.get(targetOld);
-					DeterministicEdge e = new DeterministicEdge(source,target);
-					e.addUserDatum(JUConstants.LABEL, tgtEntry.getValue(), UserData.CLONE);
-					result.addEdge(e);
-				}
+				CmpVertex targetOld = tgtEntry.getKey();
+				assert coregraph.findVertex(targetOld) == targetOld : "was looking for vertex with name "+targetOld+", got "+coregraph.findVertex(targetOld);
+				DeterministicVertex target = oldToNew.get(targetOld);
+				DeterministicEdge e = AbstractLearnerGraph.generateNewJungEdge(source,target);
+				e.addUserDatum(JUConstants.LABEL, tgtEntry.getValue(), UserData.CLONE);
+				result.addEdge(e);
 			}
 		}
 		return result;
@@ -416,7 +415,10 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		void removeRejectStates(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> what,
 					AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> result)
 	{
-		if (!what.getInit().isAccept()) throw new IllegalArgumentException("initial state cannot be a reject-state");
+		if (what.getInit() == null)
+			throw new IllegalArgumentException("missing initial state");
+		if (!what.getInit().isAccept())
+			throw new IllegalArgumentException("initial state cannot be a reject-state");
 		AbstractLearnerGraph.copyGraphs(what, result);
 		// Since we'd like to modify a transition matrix, we iterate through states of the original machine and modify the result.
 		for(Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_A_TYPE>> entry:what.transitionMatrix.entrySet())
@@ -649,6 +651,237 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	public LearnerGraph buildDeterministicGraph() throws IncompatibleStatesException
 	{
 		return buildDeterministicGraph(coregraph.getInit());
+	}
+
+	public static class EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
+	{
+		public final EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> first, second;
+
+		public EquivalenceStatePair(EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> a, EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> b)
+		{
+			first = a;second = b;
+		}
+
+		public EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> getNext(Label lbl, CacheOfStateGroups<TARGET_TYPE,CACHE_TYPE> cache) throws IncompatibleStatesException
+		{
+			return new EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>(cache.getNext(first, lbl),cache.getNext(second, lbl));
+		}
+
+		public boolean sameStates()
+		{
+			return first == second;// relies on cache returning the same objects when passed same collections of objects.
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#hashCode()
+		 */
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((first == null) ? 0 : first.hashCode());
+			result = prime * result + ((second == null) ? 0 : second.hashCode());
+			return result;
+		}
+
+		/* (non-Javadoc)
+		 * @see java.lang.Object#equals(java.lang.Object)
+		 */
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (!(obj instanceof EquivalenceStatePair))
+				return false;
+			@SuppressWarnings("unchecked")
+			EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> other = (EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>) obj;
+			if (first == null) {
+				if (other.first != null)
+					return false;
+			} else if (!first.equals(other.first))
+				return false;
+			if (second == null) {
+				if (other.second != null)
+					return false;
+			} else if (!second.equals(other.second))
+				return false;
+			return true;
+		}
+
+		@Override
+		public String toString()
+		{
+			return "[ "+first+", "+second+"]";
+		}
+	}
+
+	/** This derives from AMEquivalenceClass and makes it possible to request target states to be sorted. This is important where we need to look up a collection of states. */
+	public static class EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> extends AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE>
+	{
+
+		public EqClassWithSortedTargets(int number, AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> graph)
+		{
+			super(number, graph);
+		}
+
+		/** Records which outgoing transitions have sorted target states. */
+		protected Set<Label> sortedTargets = new TreeSet<Label>();
+
+		/** Once we started sorting target states, no new additions will be permitted. */
+		protected boolean sortingStarted = false;
+
+		public boolean mergeWithState(CmpVertex v) throws IncompatibleStatesException
+		{
+			assert !sortingStarted;
+			addState(v);
+			boolean singleton = true;
+			for(Entry<Label,TARGET_TYPE> transition:coregraph.transitionMatrix.get(v).entrySet())
+				for(CmpVertex tgt:coregraph.getTargets(transition.getValue()))
+					singleton &= addTransition(outgoingTransitions,transition.getKey(),tgt,coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY);
+			return singleton;
+		}
+
+		/** Ensures that targets of a transition with a supplied label are sorted, hence it is possible to use these targets as a
+		 * key to identify a hyper-state that was visited before (given a total order on vertices, a sorted target is
+		 * the same regardless in which order states have been added).
+		 * Returns the target state/collection of states after it was sorted.
+		 * It is assumed that no more states are added to the current state because this will easily invalidate the sorted collection.
+		 */
+		public Object getSortedTarget(Label l)
+		{
+			sortingStarted = true;
+
+			Object target = getOutgoing().get(l);
+			if (!sortedTargets.contains(l))
+			{// not yet sorted, sort before returning.
+				if (target != null)
+				{
+					if (target instanceof CmpVertex)
+					{// nothing to do
+
+					}
+					else
+						if (target instanceof ArrayList)
+						{
+							@SuppressWarnings("unchecked")
+							ArrayList<CmpVertex> arrayTarget = (ArrayList<CmpVertex>)target;
+							TreeSet<CmpVertex> targets = new TreeSet<CmpVertex>(arrayTarget);
+							arrayTarget.clear();arrayTarget.addAll(targets);
+						}
+						else
+							throw new IllegalArgumentException("only CmpVertex and ArrayList are valid targets of a transition in an equivalence class");
+				}
+				sortedTargets.add(l);
+			}
+
+			return target;
+		}
+
+		@Override
+		public String toString()
+		{
+			return "{"+getStates()+"}";
+		}
+	}
+
+	/** Maps either a CmpVertex or an ArrayList to an instance of EquivalenceClass (the specific object is determined
+	 * by elements of AMEquivalenceClass's getOutgoing map). If an ArrayList is used, it has to be sorted which
+	 * is why we sort those lists at the point when they are constructed.
+	 */
+	public static class CacheOfStateGroups<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
+	{
+		protected int eqClassNumber = 0;
+
+		protected final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> coregraph;
+
+		public CacheOfStateGroups(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> g)
+		{
+			coregraph = g;
+		}
+
+		protected EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> getNextClass(Object target) throws IncompatibleStatesException
+		{
+			EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> outcome = null;
+			outcome = cache.get(target);
+			if (outcome == null)
+			{
+				outcome = new EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE>(eqClassNumber++,coregraph);
+				if (target instanceof CmpVertex)
+				{// nothing to do
+					outcome.mergeWithState((CmpVertex) target);
+				}
+				else
+					if (target instanceof ArrayList)
+					{
+						@SuppressWarnings("unchecked")
+						List<CmpVertex> listTarget = (List<CmpVertex>)target;
+						for(CmpVertex tgt:listTarget)
+							outcome.mergeWithState(tgt);
+					}
+					else
+						throw new IllegalArgumentException("only CmpVertex and ArrayList are valid targets of a transition in an equivalence class");
+
+				cache.put(target, outcome);
+			}
+
+			return outcome;
+		}
+
+		public EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> getNext(EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> current, Label lbl) throws IncompatibleStatesException
+		{
+			return getNextClass(current.getSortedTarget(lbl));
+		}
+
+		public final Map<Object,EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE>> cache = new HashMap<Object,EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE>>();
+	}
+
+	/** Computes a score for a pair of states in a potentially non-deterministic graph.
+	 *
+	 * @param a first of a pair of states
+	 * @param b second of a pair of states
+	 * @param cache cached map of groups of states to the corresponding equivalence classes.
+	 * @return
+	 * @throws IncompatibleStatesException
+	 */
+	public long computeScore(CmpVertex a, CmpVertex b, CacheOfStateGroups<TARGET_TYPE,CACHE_TYPE> cache)
+	{
+		long score = 0;
+		try
+		{
+			EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> initialA = cache.getNextClass(a), initialB = cache.getNextClass(b);
+
+			EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> pair = new EquivalenceStatePair<TARGET_TYPE, CACHE_TYPE>(initialA,initialB);
+			Queue<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
+			currentExplorationBoundary.offer(pair);
+			Set<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>> visited = new HashSet<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>>();visited.add(pair);
+
+			while(!currentExplorationBoundary.isEmpty())
+			{
+				EquivalenceStatePair<TARGET_TYPE, CACHE_TYPE> currentPair = currentExplorationBoundary.remove();
+				//System.out.println("Visiting pair "+currentPair+" hashcode "+currentPair.hashCode()+" with "+currentPair.first.hashCode()+" - "+currentPair.second.hashCode());
+				Map<Label,Object> outgoingFromSecond = currentPair.second.getOutgoing();
+				for(Entry<Label,Object> outgoing:currentPair.first.getOutgoing().entrySet())
+					if (outgoingFromSecond.containsKey(outgoing.getKey()))
+					{// we have a match, add 1 to score and explore the next pair.
+						EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> next = currentPair.getNext(outgoing.getKey(), cache);
+						//if (next.sameStates())
+						//	return Integer.MAX_VALUE;// languages are probably not the same but have a common infinite part, hence return the corresponding value.
+
+						if (!visited.contains(next))
+						{
+							visited.add(next);currentExplorationBoundary.offer(next);++score;
+						}
+					}
+			}
+		}
+		catch(IncompatibleStatesException ex)
+		{
+			score = -1;
+			Helper.throwUnchecked("This exception should not be thrown at this point", ex);
+		}
+		return score;
 	}
 
 	/** Takes the recorded non-deterministic transition matrix and turns it into
@@ -897,6 +1130,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 * @param filter the filter to use when deciding which states to consider and which to throw away.
 	 * @param matrixND matrix to build
 	 */
+	@SuppressWarnings("JavadocReference")
 	public static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE,CACHE_A_TYPE>,TARGET_B_TYPE,CACHE_B_TYPE extends CachedData<TARGET_B_TYPE,CACHE_B_TYPE>>
 		void buildForward(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> coregraph,StatesToConsider filter, AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> matrixND)
 	{
@@ -941,6 +1175,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 * to consider and which to throw away.
 	 * @param matrixND matrix to build
 	 */
+	@SuppressWarnings("JavadocReference")
 	public static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE,CACHE_A_TYPE>>
 		void buildInverse(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> graph,StatesToConsider filter, LearnerGraphND matrixND)
 	{

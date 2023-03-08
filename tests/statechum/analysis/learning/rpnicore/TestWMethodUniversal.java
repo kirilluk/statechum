@@ -17,7 +17,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,16 +36,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.ParameterizedWithName;
 
-import statechum.Configuration;
-import statechum.GlobalConfiguration;
-import statechum.Helper;
-import statechum.Label;
+import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.Helper.whatToRun;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
-import statechum.Pair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.FsmPermutator;
@@ -243,12 +238,12 @@ public class TestWMethodUniversal
 	{
 		final LearnerGraph fsm = buildLearnerGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2","testWset_incompatibles2",config,converter);
 		fsm.addToCompatibility(fsm.findVertex("B2"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
-		Helper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
 			statechum.analysis.learning.rpnicore.TestWMethod.testWsetconstruction(fsm,true,false,prefixClosed);
 		}},IllegalArgumentException.class,"equivalent states cannot be incompatible");
 	}
 	
-	public class EmptyPermutator implements FsmPermutator {
+	public static class EmptyPermutator implements FsmPermutator {
 		@Override 
 		public ArrayList<Pair<CmpVertex,Label>> getPermutation(Collection<Pair<CmpVertex,Label>> from) 
 		{
@@ -297,10 +292,10 @@ public class TestWMethodUniversal
 		Assert.assertNull(WMethod.checkM(fsm,permFsm));
 		
 		Set<List<Label>> newWset = new HashSet<List<Label>>();newWset.addAll(WMethod.computeWSet_reducedmemory(permFsm));
-		fsm.wmethod.checkW_is_corrent(newWset,prefixClosed,null);
-		fsm.wmethod.checkW_is_corrent(origWset,prefixClosed,null);
-		permFsm.wmethod.checkW_is_corrent(newWset,prefixClosed,null);
-		permFsm.wmethod.checkW_is_corrent(origWset,prefixClosed,null);
+		HelperWMethod.checkW_is_corrent(fsm,newWset,prefixClosed,null);
+		HelperWMethod.checkW_is_corrent(fsm,origWset,prefixClosed,null);
+		HelperWMethod.checkW_is_corrent(fsm,newWset,prefixClosed,null);
+		HelperWMethod.checkW_is_corrent(fsm,origWset,prefixClosed,null);
 		
 		Assert.assertTrue(origWset.equals(newWset));
 	}

@@ -1,6 +1,6 @@
 package statechum.analysis.Erlang;
 
-import static statechum.Helper.checkForCorrectException;
+import static statechum.TestHelper.checkForCorrectException;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,7 +22,7 @@ import statechum.Configuration;
 import statechum.Configuration.LABELKIND;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.Helper.whatToRun;
+import statechum.TestHelper.whatToRun;
 import statechum.Label;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -32,7 +32,7 @@ import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 
 public class TestErlangGraphs {
 	

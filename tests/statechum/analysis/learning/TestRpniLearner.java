@@ -37,26 +37,22 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.ParameterizedWithName;
 
-import statechum.Configuration;
+import statechum.*;
 import statechum.Configuration.ScoreMode;
-import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.VertID;
-import statechum.JUConstants;
-import statechum.Label;
-import statechum.Pair;
 import statechum.Configuration.IDMode;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.Helper.whatToRun;
+import statechum.TestHelper.whatToRun;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
 import statechum.analysis.learning.rpnicore.ComputeQuestions;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
-import statechum.analysis.learning.rpnicore.FsmParser;
+import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
@@ -74,7 +70,7 @@ import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
-import static statechum.Helper.checkForCorrectException;
+import static statechum.TestHelper.checkForCorrectException;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList;
 import static statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.constructPairScore;
@@ -96,7 +92,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@org.junit.runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config)
 	{
-		return Configuration.parametersToString(config);
+		return TestConfiguration.parametersToString(config);
 	}
 	
 	public TestRpniLearner(Configuration conf) 
@@ -122,7 +118,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	
 	protected void checkLearner(String fsmString, String name,String [][] plus, String [][] minus)
 	{
-		final LearnerGraph expected = FsmParser.buildLearnerGraph(fsmString, name,testConfig,getLabelConverter());
+		final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph(fsmString, name,testConfig,getLabelConverter());
 		
 		// now sanity checking on the plus and minus sets
 		for(String [] path:plus)
@@ -216,11 +212,11 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		
 	}
 
-	DeterministicVertex p = new DeterministicVertex("P"), q= new DeterministicVertex("Q");
+	DeterministicVertex p = AbstractLearnerGraph.generateNewJungVertex("P"), q= AbstractLearnerGraph.generateNewJungVertex("Q");
 	/** Checks that both the old and the new algorithm reports a pair of states as incompatible. */
 	public final void testNewLearnerIncompatible(String fsm, String name)
 	{
-		LearnerGraph s = FsmParser.buildLearnerGraph(fsm, name,testConfig,getLabelConverter());
+		LearnerGraph s = FsmParserStatechum.buildLearnerGraph(fsm, name,testConfig,getLabelConverter());
 		DirectedSparseGraph g = s.pathroutines.getGraph();
 		OrigStatePair pairOrig = new OrigStatePair(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("B"), g),
 				DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("A"), g));
@@ -233,11 +229,11 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 	
 	/** Checks that both the old and the two new algorithms report the same score for a pair of states and ask the same questions.
-	 * @param states being merged are called "A" and "B". 
+	 * States being merged are called "A" and "B".
 	 */
 	public final void testNewLearnerQuestions(String fsm, int expectedScore, String learnerName)
 	{
-		LearnerGraph s = FsmParser.buildLearnerGraph(fsm, learnerName,testConfig,getLabelConverter());
+		LearnerGraph s = FsmParserStatechum.buildLearnerGraph(fsm, learnerName,testConfig,getLabelConverter());
 		DirectedSparseGraph g = s.pathroutines.getGraph();
 		OrigStatePair pairOrig = 
 			new OrigStatePair(
@@ -299,7 +295,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testQSMvsLoopsQuestionGenerator1()
 	{
-		LearnerGraph s = FsmParser.buildLearnerGraph("A-a->A3-b->R-r->T / A-c->A3 / A -b->A2-c->R / A-d->A4-a->A6-b->R / A-e->A5-a->B-q->C","testQSMvsLoopsQuestionGenerator1",testConfig,getLabelConverter());
+		LearnerGraph s = FsmParserStatechum.buildLearnerGraph("A-a->A3-b->R-r->T / A-c->A3 / A -b->A2-c->R / A-d->A4-a->A6-b->R / A-e->A5-a->B-q->C","testQSMvsLoopsQuestionGenerator1",testConfig,getLabelConverter());
 		for(CmpVertex v:s.transitionMatrix.keySet())
 			if (v.getStringId().equals("A5") || v.getStringId().equals("B") || v.getStringId().equals("C"))
 				v.setColour(JUConstants.BLUE);
@@ -331,7 +327,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testQSMvsLoopsQuestionGenerator2()
 	{
-		LearnerGraph s = FsmParser.buildLearnerGraph("A-a->A3-b->R-r->T / A-c->A3 / A -b->A2-c->R / A-d->A4-a->A6-b->R / A-e->A5-a->B-q->C / R-w->B","testQSMvsLoopsQuestionGenerator2",testConfig,getLabelConverter());
+		LearnerGraph s = FsmParserStatechum.buildLearnerGraph("A-a->A3-b->R-r->T / A-c->A3 / A -b->A2-c->R / A-d->A4-a->A6-b->R / A-e->A5-a->B-q->C / R-w->B","testQSMvsLoopsQuestionGenerator2",testConfig,getLabelConverter());
 		for(CmpVertex v:s.transitionMatrix.keySet())
 			if (v.getStringId().equals("A5") || v.getStringId().equals("B") || v.getStringId().equals("C"))
 				v.setColour(JUConstants.BLUE);
@@ -366,7 +362,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test(expected = IllegalArgumentException.class)
 	public final void testLearnerFailsWhenRedNotFound()
 	{
-		ComputeQuestions.computeQS_orig(new StatePair(null,new DeterministicVertex("non-existing")), new LearnerGraph(testConfig), new LearnerGraph(testConfig));
+		ComputeQuestions.computeQS_orig(new StatePair(null,AbstractLearnerGraph.generateNewJungVertex("non-existing")), new LearnerGraph(testConfig), new LearnerGraph(testConfig));
 	}
 	
 	@Test
@@ -662,8 +658,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testGetTempRed1()
 	{
-		DirectedSparseGraph a=FsmParser.buildLearnerGraph("A-a->B", "testGetTempRed1 model",config,getLabelConverter()).pathroutines.getGraph(),
-			temp=FsmParser.buildLearnerGraph("C-d->Q", "testGetTempRed1 temp",config,getLabelConverter()).pathroutines.getGraph();
+		DirectedSparseGraph a= FsmParserStatechum.buildLearnerGraph("A-a->B", "testGetTempRed1 model",config,getLabelConverter()).pathroutines.getGraph(),
+			temp= FsmParserStatechum.buildLearnerGraph("C-d->Q", "testGetTempRed1 temp",config,getLabelConverter()).pathroutines.getGraph();
 		Vertex foundA = getTempRed_DijkstraShortestPath(a, DeterministicDirectedSparseGraph.findInitial(a), temp);
 		Vertex foundB =Test_Orig_RPNIBlueFringeLearnerTestComponent.getTempRed(a, DeterministicDirectedSparseGraph.findInitial(a), temp);
 		Assert.assertTrue(DeterministicDirectedSparseGraph.findInitial(temp).equals(foundA));
@@ -673,8 +669,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testGetTempRed2()
 	{
-		DirectedSparseGraph a=FsmParser.buildLearnerGraph("A-a->B-a->B-c->C-c->D", "testGetTempRed1 model",config,getLabelConverter()).pathroutines.getGraph(),
-			temp=FsmParser.buildLearnerGraph("C-a->Q-a->Q-c->Q", "testGetTempRed1 temp",config,getLabelConverter()).pathroutines.getGraph();
+		DirectedSparseGraph a= FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->C-c->D", "testGetTempRed1 model",config,getLabelConverter()).pathroutines.getGraph(),
+			temp= FsmParserStatechum.buildLearnerGraph("C-a->Q-a->Q-c->Q", "testGetTempRed1 temp",config,getLabelConverter()).pathroutines.getGraph();
 		Vertex foundA = getTempRed_DijkstraShortestPath(a, DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("D"), a), temp);
 		Vertex foundB = Test_Orig_RPNIBlueFringeLearnerTestComponent.getTempRed(a, DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("D"), a), temp);
 		Assert.assertTrue(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("Q"), temp).equals(foundA));
@@ -684,14 +680,14 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void findMergeablePair1()
 	{
-		DirectedSparseGraph g=FsmParser.buildLearnerGraph("A-a->B\nA-b->B\nA-c->C\nA-d->D", "findMergeablePair1",config,getLabelConverter()).pathroutines.getGraph();
+		DirectedSparseGraph g= FsmParserStatechum.buildLearnerGraph("A-a->B\nA-b->B\nA-c->C\nA-d->D", "findMergeablePair1",config,getLabelConverter()).pathroutines.getGraph();
 		Assert.assertNull(Test_Orig_RPNIBlueFringeLearner.findMergablePair(g));
 	}
 	
 	@Test
 	public final void findMergeablePair2()
 	{
-		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("A-a->B\nA-b->B\nA-c->D\nA-b->D\nA-d->E", "findMergeablePair2",config,getLabelConverter()).pathroutines.getGraph();
+		DirectedSparseGraph g= FsmParserStatechum.buildLearnerGraphND("A-a->B\nA-b->B\nA-c->D\nA-b->D\nA-d->E", "findMergeablePair2",config,getLabelConverter()).pathroutines.getGraph();
 		Vertex 
 			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("B"), g),
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("D"), g);
@@ -704,8 +700,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void findMergeablePair3a()
 	{
-		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E", "findMergeablePair3a",config,getLabelConverter()).pathroutines.getGraph();
-		Vertex 
+		DirectedSparseGraph g= FsmParserStatechum.buildLearnerGraphND("S-p->A-a->S\nA-b->S\nA-c->D\nA-b->D\nA-d->E", "findMergeablePair3a",config,getLabelConverter()).pathroutines.getGraph();
+		DeterministicVertex 
 			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("S"), g),
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("D"), g);
 		OrigStatePair expected = new OrigStatePair(d,s),
@@ -716,8 +712,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void findMergeablePair3b()
 	{
-		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("S-p->A-a->B\nA-b->B\nA-c->S\nA-b->S\nA-d->E", "findMergeablePair3b",config,getLabelConverter()).pathroutines.getGraph();
-		Vertex 
+		DirectedSparseGraph g= FsmParserStatechum.buildLearnerGraphND("S-p->A-a->B\nA-b->B\nA-c->S\nA-b->S\nA-d->E", "findMergeablePair3b",config,getLabelConverter()).pathroutines.getGraph();
+		DeterministicVertex 
 			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("B"), g),
 			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("S"), g);
 		OrigStatePair expected = new OrigStatePair(b,s),
@@ -728,7 +724,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void findMergeablePair4()
 	{
-		DirectedSparseGraph g=FsmParser.buildLearnerGraphND("S-p->A-a->B\nA-b->B\nA-c-#D\nA-b-#D\nA-d->E", "findMergeablePair4",config,getLabelConverter()).pathroutines.getGraph();
+		DirectedSparseGraph g= FsmParserStatechum.buildLearnerGraphND("S-p->A-a->B\nA-b->B\nA-c-#D\nA-b-#D\nA-d->E", "findMergeablePair4",config,getLabelConverter()).pathroutines.getGraph();
 		OrigStatePair actualA = Test_Orig_RPNIBlueFringeLearner.findMergablePair(g);
 		Assert.assertNull(actualA);
 	}
@@ -752,7 +748,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	 */
 	public final void testChooseStatePairs(String fsm, String [] initialReds, String [][] expectedReds, List<PairScore> expectedPairs, String graphName)
 	{
-		final LearnerGraph fsmAsLearnerGraph = FsmParser.buildLearnerGraph(fsm, graphName,config,getLabelConverter());
+		final LearnerGraph fsmAsLearnerGraph = FsmParserStatechum.buildLearnerGraph(fsm, graphName,config,getLabelConverter());
 		final DirectedSparseGraph gB = fsmAsLearnerGraph.pathroutines.getGraph();
 		for(PairScore pair:expectedPairs) 
 		{
@@ -771,7 +767,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			}
 		});
 
-		final DirectedSparseGraph gA = FsmParser.buildLearnerGraph(fsm, graphName,config,getLabelConverter()).pathroutines.getGraph();
+		final DirectedSparseGraph gA = FsmParserStatechum.buildLearnerGraph(fsm, graphName,config,getLabelConverter()).pathroutines.getGraph();
 		// check how the revised pair selection function performs
 		final LearnerGraph s = new LearnerGraph(gA, testConfig);
 		testChooseStatePairsInternal(gA,s, initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {
@@ -959,7 +955,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails1()
 	{
 		testConfig.setKlimit(0);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-a-#N / U-a-#Q", "testKtails1",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-a-#N / U-a-#Q", "testKtails1",testConfig,getLabelConverter());
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("N")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("N")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("N"),fsm.findVertex("M")), true));
@@ -981,7 +977,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails2()
 	{
 		testConfig.setKlimit(1);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-a-#N / U-b-#Q", "testKtails2",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-a-#N / U-b-#Q", "testKtails2",testConfig,getLabelConverter());
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("N")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("N")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("N"),fsm.findVertex("M")), true));
@@ -1028,7 +1024,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails3a()
 	{
 		testConfig.setKlimit(1);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N / M-c->P", "testKtails3a",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N / M-c->P", "testKtails3a",testConfig,getLabelConverter());
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
@@ -1040,7 +1036,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails3b()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N / M-c->P", "testKtails3b",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N / M-c->P", "testKtails3b",testConfig,getLabelConverter());
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
@@ -1052,7 +1048,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails3c()
 	{
 		testConfig.setKlimit(1);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N / M-c-#P", "testKtails3c",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N / M-c-#P", "testKtails3c",testConfig,getLabelConverter());
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
@@ -1064,7 +1060,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails3d()
 	{
 		testConfig.setKlimit(1);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / B-e->H / M-b->N / M-c->P / M-e-#Z", "testKtails3d",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / B-e->H / M-b->N / M-c->P / M-e-#Z", "testKtails3d",testConfig,getLabelConverter());
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
@@ -1075,7 +1071,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails4()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-b->E / B-c->F-a->G-b->H / M-b->N ", "testKtails4",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-b->E / B-c->F-a->G-b->H / M-b->N ", "testKtails4",testConfig,getLabelConverter());
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
@@ -1096,7 +1092,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails5()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-c->P-a->A", "testKtails5",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-c->P-a->A", "testKtails5",testConfig,getLabelConverter());
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
@@ -1108,7 +1104,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails6()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a->Q / M-c->P-a->S", "testKtails6",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a->Q / M-c->P-a->S", "testKtails6",testConfig,getLabelConverter());
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
@@ -1120,7 +1116,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails7()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a->Q / M-c->P-a->S / N-b->R", "testKtails7",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a->Q / M-c->P-a->S / N-b->R", "testKtails7",testConfig,getLabelConverter());
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
@@ -1132,7 +1128,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails8()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a->Q / M-c->P-a->S / P-b->R", "testKtails8",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a->Q / M-c->P-a->S / P-b->R", "testKtails8",testConfig,getLabelConverter());
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
@@ -1144,7 +1140,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails9()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b-#N / M-c->P-a->S", "testKtails9",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b-#N / M-c->P-a->S", "testKtails9",testConfig,getLabelConverter());
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
@@ -1156,7 +1152,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails10()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a-#Q / M-c->P-a->S / P-b->R", "testKtails10",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a-#Q / M-c->P-a->S / P-b->R", "testKtails10",testConfig,getLabelConverter());
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
@@ -1168,7 +1164,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails11()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a->Q / M-c-#P", "testKtails11",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a->Q / M-c-#P", "testKtails11",testConfig,getLabelConverter());
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
@@ -1180,7 +1176,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails12()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a->Q / M-c->P-a-#S", "testKtails12",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a->Q / M-c->P-a-#S", "testKtails12",testConfig,getLabelConverter());
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
@@ -1192,7 +1188,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails13()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->F-a->G-a->H / A-b->C-a->D-a->E", "testKtails13",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->F-a->G-a->H / A-b->C-a->D-a->E", "testKtails13",testConfig,getLabelConverter());
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("H"),fsm.findVertex("E")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("H"),fsm.findVertex("E")), false));
 
@@ -1213,7 +1209,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails14()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->F-a->G-a->H / T-a->C-a->D-a->E", "testKtails14",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->F-a->G-a->H / T-a->C-a->D-a->E", "testKtails14",testConfig,getLabelConverter());
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("T")), true));
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("T")), false));
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("T"),fsm.findVertex("A")), true));
@@ -1225,7 +1221,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails15a()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A1-a->F1 / A1-b->C1-b->D1 / A1-c->B1-a->E1 / A2-a->F2 / A2-b->C2-b->D2 / A2-c->B2-a->E2", "testKtails15a",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A1-a->F1 / A1-b->C1-b->D1 / A1-c->B1-a->E1 / A2-a->F2 / A2-b->C2-b->D2 / A2-c->B2-a->E2", "testKtails15a",testConfig,getLabelConverter());
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), true));
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), false));
 		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), true));
@@ -1249,7 +1245,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails15b()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A1-a->F1 / A1-b->C1-b->D1 / A1-c->B1-a->E1 / A2-a-#F2 / A2-b->C2-b->D2 / A2-c->B2-a->E2", "testKtails15b",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A1-a->F1 / A1-b->C1-b->D1 / A1-c->B1-a->E1 / A2-a-#F2 / A2-b->C2-b->D2 / A2-c->B2-a->E2", "testKtails15b",testConfig,getLabelConverter());
 
 		fsm.findVertex("C1").setAccept(false);fsm.findVertex("C2").setAccept(false);
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), true));
@@ -1264,7 +1260,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails15c()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A1-z->F1 / A1-b->C1-b->D1 / A1-c->B1-a->E1 / A2-z-#F2 / A2-b->C2-b->D2 / A2-c->B2-a->E2", "testKtails15c",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A1-z->F1 / A1-b->C1-b->D1 / A1-c->B1-a->E1 / A2-z-#F2 / A2-b->C2-b->D2 / A2-c->B2-a->E2", "testKtails15c",testConfig,getLabelConverter());
 
 		fsm.findVertex("C1").setAccept(false);fsm.findVertex("C2").setAccept(false);
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), true));
@@ -1278,7 +1274,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails15d()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A1-a->F1 / A1-b->C1-b->D1 / A1-c->B1-a->E1 / A2-a->F2 / A2-b->C2-b->D2 / A2-c->B2-a->E2", "testKtails15a",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A1-a->F1 / A1-b->C1-b->D1 / A1-c->B1-a->E1 / A2-a->F2 / A2-b->C2-b->D2 / A2-c->B2-a->E2", "testKtails15a",testConfig,getLabelConverter());
 
 		fsm.findVertex("C1").setAccept(false);fsm.findVertex("C2").setAccept(false);
 		
@@ -1294,7 +1290,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails15e()
 	{
 		testConfig.setKlimit(2);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A1-a->F1 / A1-b->C1-b->D1 / A1-c->B1-a->E1 / A2-a->F2 / A2-b->C2-b->D2 / A2-c->B2-a->E2", "testKtails15a",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A1-a->F1 / A1-b->C1-b->D1 / A1-c->B1-a->E1 / A2-a->F2 / A2-b->C2-b->D2 / A2-c->B2-a->E2", "testKtails15a",testConfig,getLabelConverter());
 
 		fsm.findVertex("C1").setAccept(false);fsm.findVertex("C2").setAccept(false);
 		
@@ -1310,7 +1306,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testKtails15f()
 	{
 		testConfig.setKlimit(1);
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A1-a->F1 / A1-b->C1-b->D1 / A1-c->B1-a->E1 / A2-a->F2 / A2-b->C2-b->D2 / A2-c->B2-a->E2", "testKtails15a",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A1-a->F1 / A1-b->C1-b->D1 / A1-c->B1-a->E1 / A2-a->F2 / A2-b->C2-b->D2 / A2-c->B2-a->E2", "testKtails15a",testConfig,getLabelConverter());
 
 		fsm.findVertex("C1").setAccept(false);fsm.findVertex("C2").setAccept(false);
 		
@@ -1324,7 +1320,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring0()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c-#F", "testSiccoScoring0",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c-#F", "testSiccoScoring0",testConfig,getLabelConverter());
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
@@ -1342,7 +1338,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring1()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E", "testSiccoScoring1",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E", "testSiccoScoring1",testConfig,getLabelConverter());
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(2,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(2,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
@@ -1360,7 +1356,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring2()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H", "testSiccoScoring2",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H", "testSiccoScoring2",testConfig,getLabelConverter());
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
@@ -1378,7 +1374,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring3a()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / G-b->I", "testSiccoScoring3",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / G-b->I", "testSiccoScoring3",testConfig,getLabelConverter());
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
@@ -1397,7 +1393,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring3b()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / G-b->I", "testSiccoScoring3",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / G-b->I", "testSiccoScoring3",testConfig,getLabelConverter());
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 
@@ -1413,7 +1409,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring4a()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / C-c->I", "testSiccoScoring3",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / C-c->I", "testSiccoScoring3",testConfig,getLabelConverter());
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
@@ -1432,7 +1428,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring4b()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / C-c->I", "testSiccoScoring3",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / C-c->I", "testSiccoScoring3",testConfig,getLabelConverter());
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 
@@ -1449,7 +1445,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring5()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F", "testSiccoScoring5",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F", "testSiccoScoring5",testConfig,getLabelConverter());
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
 		
@@ -1465,7 +1461,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring6()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F-b->G-b->H-d->E", "testSiccoScoring6",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F-b->G-b->H-d->E", "testSiccoScoring6",testConfig,getLabelConverter());
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
 		
@@ -1482,7 +1478,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring7()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F", "testSiccoScoring7",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F", "testSiccoScoring7",testConfig,getLabelConverter());
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("C").setColour(JUConstants.BLUE);fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
 		
@@ -1502,7 +1498,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring8()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / P-c->D / B-a->H-a->H-d->E / H-b->F-b->I / I-f->N / I-d->M-a->S-a->T / I-b->J-e->K-a->L-a->Q-a->R", "testSiccoScoring8",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / P-c->D / B-a->H-a->H-d->E / H-b->F-b->I / I-f->N / I-d->M-a->S-a->T / I-b->J-e->K-a->L-a->Q-a->R", "testSiccoScoring8",testConfig,getLabelConverter());
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("P").setColour(JUConstants.BLUE);fsm.findVertex("H").setColour(JUConstants.BLUE);
 
@@ -1519,7 +1515,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring9()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / P-c->D / B-a->H-a->H-d->E / H-b->F-b->I / I-f->N / I-d->M-a->S-a->T / I-b->J-e->K-a->L-a->Q-a->R", "testSiccoScoring8",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / P-c->D / B-a->H-a->H-d->E / H-b->F-b->I / I-f->N / I-d->M-a->S-a->T / I-b->J-e->K-a->L-a->Q-a->R", "testSiccoScoring8",testConfig,getLabelConverter());
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("P").setColour(JUConstants.BLUE);
 
@@ -1536,7 +1532,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring10()
 	{
-		LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);fsm.findVertex("P").setColour(JUConstants.RED);
 		fsm.findVertex("H").setColour(JUConstants.BLUE);fsm.findVertex("E").setColour(JUConstants.BLUE);
 
@@ -1552,7 +1548,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring11()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
 		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 
@@ -1567,7 +1563,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring12()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
 		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 
@@ -1584,7 +1580,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testSiccoScoring13()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C / D-a->E-b-#F", "testSiccoScoring13",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C / D-a->E-b-#F", "testSiccoScoring13",testConfig,getLabelConverter());
 		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("D"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("D"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
@@ -1605,21 +1601,21 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testcheckMatch2a()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B / C-b->D", "testcheckMatch2a",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B / C-b->D", "testcheckMatch2a",testConfig,getLabelConverter());
 		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 0));
 	}
 	
 	@Test
 	public final void testcheckMatch2b()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B / C-b->D", "testcheckMatch2a",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B / C-b->D", "testcheckMatch2a",testConfig,getLabelConverter());
 		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("D"), 0));
 	}
 	
 	@Test
 	public final void testcheckMatch2c()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a-#T / C-a->D-a->C", "testcheckMatch8",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a-#T / C-a->D-a->C", "testcheckMatch8",testConfig,getLabelConverter());
 		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("T"), fsm.findVertex("C"), 0));
 		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("D"), 1));
 	}		
@@ -1627,7 +1623,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testcheckMatch2d()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a-#T / C-a->D-a->C", "testcheckMatch8",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a-#T / C-a->D-a->C", "testcheckMatch8",testConfig,getLabelConverter());
 		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 1));
 		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 2));
 	}
@@ -1635,7 +1631,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testcheckMatch3()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B-b->C-a->C", "testcheckMatch3",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-b->C-a->C", "testcheckMatch3",testConfig,getLabelConverter());
 		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
 			LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("A"), 1);
 		}},IllegalArgumentException.class,"the graph should have traces in it with no branches");
@@ -1644,7 +1640,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testcheckMatch4()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testcheckMatch4",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C", "testcheckMatch4",testConfig,getLabelConverter());
 		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("B"), 1));
 		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 1));
 		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 2));
@@ -1654,7 +1650,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testcheckMatch5()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->B / T-b->C-a->C", "testcheckMatch5",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B / T-b->C-a->C", "testcheckMatch5",testConfig,getLabelConverter());
 		for(int i=0;i<100;++i)
 		{
 			Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("C"), i));
@@ -1667,7 +1663,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testcheckMatch6()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->T / C-a->D-a->C", "testcheckMatch6",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->T / C-a->D-a->C", "testcheckMatch6",testConfig,getLabelConverter());
 		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 1));
 		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 2));
 		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 3));
@@ -1676,7 +1672,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testcheckMatch7()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->T-b->U / C-a->D-a->C / D-b->E", "testcheckMatch7",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->T-b->U / C-a->D-a->C / D-b->E", "testcheckMatch7",testConfig,getLabelConverter());
 		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 1));
 		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 2));
 		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 3));
@@ -1738,7 +1734,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testTraditionalKTails3()
 	{
 		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildSet(new String[][]{new String[]{"a","b"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1747,7 +1743,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testIncrementalKTails3()
 	{
 		LearnerGraph actual = LearningAlgorithms.incrementalKtails(buildSet(new String[][]{new String[]{"a","b"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1756,7 +1752,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testPTAKTails3()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaKtails(buildSet(new String[][]{new String[]{"a","b"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1765,7 +1761,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testConcurrentKTails3()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{new String[]{"a","b"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig,threadNumber,null);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C", "testTraditionalKTails1",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1774,7 +1770,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testTraditionalKTails4()
 	{
 		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1783,7 +1779,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testPTAKTails4()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1792,7 +1788,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testConcurrentKTails4()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig,threadNumber,null);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1801,7 +1797,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testIncrementalKTails4()
 	{
 		LearnerGraph actual = LearningAlgorithms.incrementalKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->A", "testTraditionalKTails4",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1811,7 +1807,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testTraditionalKTails5()
 	{
 		LearnerGraph actual = LearningAlgorithms.traditionalKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1820,7 +1816,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testPTAKTails5()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1829,7 +1825,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testConcurrentKTails5()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),2,testConfig,threadNumber,null);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1838,7 +1834,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testIncrementalKTails5()
 	{
 		LearnerGraph actual = LearningAlgorithms.incrementalKtails(buildSet(new String[][]{new String[]{"a","a"}},testConfig,getLabelConverter()),buildSet(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C", "testTraditionalKTails4",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1854,7 +1850,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testTraditionalKTails6()
 	{
 		LearnerGraph actual = LearningAlgorithms.traditionalKtails(traces6,buildList(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->C-b->A-a->AB-a->AB / AB-b->AC-b->AC-a->AB", "testTraditionalKTails6",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->C-b->A-a->AB-a->AB / AB-b->AC-b->AC-a->AB", "testTraditionalKTails6",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 		
@@ -1864,7 +1860,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testPTAKTails6()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaKtails(traces6,buildList(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->C-b->A-a->AB-a->AB / AB-b->AC-b->AC-a->AB", "testTraditionalKTails6",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->C-b->A-a->AB-a->AB / AB-b->AC-b->AC-a->AB", "testTraditionalKTails6",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 		
@@ -1874,7 +1870,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testPTAConcurrentKTails6()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces6,buildList(new String[][]{},testConfig,getLabelConverter()),2,testConfig,threadNumber,null);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->C-b->A-a->AB-a->AB / AB-b->AC-b->AC-a->AB", "testTraditionalKTails6",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->C-b->A-a->AB-a->AB / AB-b->AC-b->AC-a->AB", "testTraditionalKTails6",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 		
@@ -1884,7 +1880,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testIncrementalKTails6()
 	{
 		LearnerGraph actual = LearningAlgorithms.incrementalKtails(traces6,buildList(new String[][]{},testConfig,getLabelConverter()),2,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->AP-a->AP-b->QA-a->AP / QA-b->A", "testTraditionalKTails6",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->A-a->AP-a->AP-b->QA-a->AP / QA-b->A", "testTraditionalKTails6",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1900,7 +1896,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testTraditionalKTails7()
 	{
 		LearnerGraph actual = LearningAlgorithms.traditionalKtails(traces7,buildList(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1909,7 +1905,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testPTAKTails7()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaKtails(traces7,buildList(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1918,7 +1914,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testConcurrentKTails7()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces7,buildList(new String[][]{},testConfig,getLabelConverter()),1,testConfig,threadNumber,null);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1927,7 +1923,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testIncrementalKTails7()
 	{
 		LearnerGraph actual = LearningAlgorithms.incrementalKtails(traces7,buildList(new String[][]{},testConfig,getLabelConverter()),1,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1942,7 +1938,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testTraditionalKTails8()
 	{
 		LearnerGraph actual = LearningAlgorithms.traditionalKtails(traces8,buildList(new String[][]{},testConfig,getLabelConverter()),0,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1951,7 +1947,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testPTAKTails8()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaKtails(traces8,buildList(new String[][]{},testConfig,getLabelConverter()),0,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1960,7 +1956,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testConcurrentKTails8()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces8,buildList(new String[][]{},testConfig,getLabelConverter()),0,testConfig,threadNumber,null);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1969,7 +1965,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testIncrementalKTails8()
 	{
 		LearnerGraph actual = LearningAlgorithms.incrementalKtails(traces8,buildList(new String[][]{},testConfig,getLabelConverter()),0,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->A-a->A", "testTraditionalKTails7",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1985,7 +1981,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testTraditionalKTails9()
 	{
 		LearnerGraph actual = LearningAlgorithms.traditionalKtails(traces9,buildList(new String[][]{},testConfig,getLabelConverter()),3,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -1994,7 +1990,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testPTAKTails9()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaKtails(traces9,buildList(new String[][]{},testConfig,getLabelConverter()),3,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -2003,7 +1999,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testConcurrentKTails9()
 	{
 		LearnerGraph actual = LearningAlgorithms.ptaConcurrentKtails(traces9,buildList(new String[][]{},testConfig,getLabelConverter()),3,testConfig,threadNumber,null);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -2012,7 +2008,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testIncrementalKTails9()
 	{
 		LearnerGraph actual = LearningAlgorithms.incrementalKtails(traces9,buildList(new String[][]{},testConfig,getLabelConverter()),3,testConfig);
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->BC-b->E / BC-a->D / A-b->D-b->F-a->G-b->H", "testTraditionalKTails9",testConfig,getLabelConverter());
 		DifferentFSMException ex = WMethod.checkM(fsm,actual);
 		Assert.assertNull(ex);
 	}
@@ -2037,7 +2033,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testComputeInfeasiblePairs2()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->A", "testComputeInfeasiblePairs2",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->A", "testComputeInfeasiblePairs2",testConfig,getLabelConverter());
 		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
 		String outcomeAsText = outcome.toString();
 		Assert.assertEquals("{a=[]}",outcomeAsText);
@@ -2046,7 +2042,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testComputeInfeasiblePairs3()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a-#B", "testComputeInfeasiblePairs3",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a-#B", "testComputeInfeasiblePairs3",testConfig,getLabelConverter());
 		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
 		String outcomeAsText = outcome.toString();
 		Assert.assertEquals("{a=[a]}",outcomeAsText);
@@ -2055,7 +2051,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testComputeInfeasiblePairs4()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a-#C", "testComputeInfeasiblePairs4",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a-#C", "testComputeInfeasiblePairs4",testConfig,getLabelConverter());
 		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
 		String outcomeAsText = outcome.toString();
 		Assert.assertEquals("{a=[]}",outcomeAsText);
@@ -2064,7 +2060,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testComputeInfeasiblePairs5()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-a->C", "testComputeInfeasiblePairs4",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C", "testComputeInfeasiblePairs4",testConfig,getLabelConverter());
 		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
 		String outcomeAsText = outcome.toString();
 		Assert.assertEquals("{a=[]}",outcomeAsText);
@@ -2073,7 +2069,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testComputeInfeasiblePairs6()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b-#C", "testComputeInfeasiblePairs5",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b-#C", "testComputeInfeasiblePairs5",testConfig,getLabelConverter());
 		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
 		String outcomeAsText = outcome.toString();
 		Assert.assertEquals("{a=[a], b=[a, b]}",outcomeAsText);// this outcome means that both "a" and "b" cannot follow themselves and b cannot follow a. 
@@ -2082,7 +2078,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testComputeInfeasiblePairs7()
 	{
-		final LearnerGraph fsm = FsmParser.buildLearnerGraph("A-a->B-b-#C / A-b->A", "testComputeInfeasiblePairs5",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b-#C / A-b->A", "testComputeInfeasiblePairs5",testConfig,getLabelConverter());
 		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
 		String outcomeAsText = outcome.toString();
 		Assert.assertEquals("{a=[a], b=[]}",outcomeAsText);// this outcome means that both "a" and "b" cannot follow themselves and b cannot follow a. 

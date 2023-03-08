@@ -18,35 +18,18 @@
  */
 package statechum.analysis.Erlang;
 
+import com.ericsson.otp.erlang.*;
 import statechum.Configuration;
 import statechum.Configuration.LABELKIND;
-import statechum.Helper;
 import statechum.ProgressIndicator;
 import statechum.analysis.Erlang.ErlangRunner.ERL;
 import statechum.analysis.Erlang.ErlangRunner.ErlangThrownException;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
-
-import org.junit.Assert;
-
-import com.ericsson.otp.erlang.OtpErlangAtom;
-import com.ericsson.otp.erlang.OtpErlangList;
-import com.ericsson.otp.erlang.OtpErlangLong;
-import com.ericsson.otp.erlang.OtpErlangObject;
-import com.ericsson.otp.erlang.OtpErlangString;
-import com.ericsson.otp.erlang.OtpErlangTuple;
 
 /**
  * Represents an Erlang module
@@ -84,50 +67,50 @@ public class ErlangModule {
 
 		// Almost the same arguments for dialyzer and typer, the first argument
 		// determines which of the two to run.
-		OtpErlangObject otpArgs[] = new OtpErlangObject[] {
-				null, // either Dialyzer or typer
-
+		OtpErlangObject[] dialyzerArgs = new OtpErlangObject[] {
+				new OtpErlangAtom("dialyzer"),
 				new OtpErlangList(new OtpErlangObject[] { new OtpErlangString(
 						ErlangRunner.getName(f, ERL.BEAM,config.getErlangCompileIntoBeamDirectory())) }),
 				new OtpErlangString(ErlangRunner.getName(f, ERL.PLT,config.getErlangCompileIntoBeamDirectory())),
 				new OtpErlangList(new OtpErlangObject[] { new OtpErlangString(
-						ErlangRunner.getName(f, ERL.ERL,false))}),
-				new OtpErlangAtom("types") };
+						ErlangRunner.getName(f, ERL.ERL,false))}) };
 
 		if (!pltFile.canRead() || f.lastModified() > pltFile.lastModified()) {// rebuild the PLT file since the source was modified or the plt file does not exist
+			//noinspection ResultOfMethodCallIgnored
 			pltFile.delete();
-			otpArgs[0] = new OtpErlangAtom("dialyzer");
-			erlangRunner.call(otpArgs, "Could not run dialyzer");
+			erlangRunner.call(dialyzerArgs, "Could not run dialyzer");
 		}
 		progress.next();// 3
 
 		// Typer always has to be run
-		otpArgs[0] = new OtpErlangAtom("typer");
+		OtpErlangObject[] typerArgs = new OtpErlangObject[dialyzerArgs.length+1];System.arraycopy(dialyzerArgs,0,typerArgs,0,dialyzerArgs.length);
+		typerArgs[0] = new OtpErlangAtom("typer");typerArgs[dialyzerArgs.length]=new OtpErlangAtom("types");
 		OtpErlangTuple response = null;
 		try
 		{
-			response = erlangRunner.call(otpArgs,"Could not run typer");
+			response = erlangRunner.call(typerArgs,"Could not run typer");
 			
 			progress.next();// 4
 			progress.next();// 5
 		}
 		catch(ErlangThrownException ex)
 		{
+			//noinspection ResultOfMethodCallIgnored
 			pltFile.delete();
-			otpArgs[0] = new OtpErlangAtom("dialyzer");
 			progress.next();// 4
-			erlangRunner.call(otpArgs, "Could not run dialyzer");
-			otpArgs[0] = new OtpErlangAtom("typer");
+			erlangRunner.call(dialyzerArgs, "Could not run dialyzer");
 			progress.next();// 5
-			response = erlangRunner.call(otpArgs,"Could not run typer for the second time");			
+			response = erlangRunner.call(typerArgs,"Could not run typer for the second time");
 		}
 		progress.next();// 6
 
 		sigTypes = new TreeMap<String,OtpErlangTuple>();
 		OtpErlangList analysisResults = (OtpErlangList) response.elementAt(1);
-		Assert.assertEquals(1, analysisResults.arity());
+		if (1 != analysisResults.arity())
+			throw new IllegalArgumentException("Invalid format of response from typer, expected arity 1, got arity "+analysisResults.arity()+" in "+analysisResults);
+
 		OtpErlangTuple fileDetails = (OtpErlangTuple) analysisResults.elementAt(0);
-		OtpErlangList typeInformation = (OtpErlangList) fileDetails.elementAt(3);
+		OtpErlangList typeInformation = (OtpErlangList) fileDetails.elementAt(2);
 		for (int i = 0; i < typeInformation.arity(); ++i) {
 			OtpErlangTuple functionDescr = (OtpErlangTuple) typeInformation.elementAt(i); 
 			if (functionDescr.arity() > 3)
@@ -145,7 +128,7 @@ public class ErlangModule {
 				System.out.println("Ignoring: "+fullName+", "+functionDescr.elementAt(2));
 			}
 		}
-		rebuildSigs(config, Collections.<String,OtpErlangTuple>emptyMap());
+		rebuildSigs(config, Collections.emptyMap());
 		progress.next();// 7
 	}
 
@@ -169,54 +152,6 @@ public class ErlangModule {
 				throw new IllegalArgumentException("invalid type of an Erlang function");
 		}	
 		behaviour = OTPBehaviour.obtainDeclaredBehaviour(config.getErlangSourceFile(), config, this,ignoredBehaviours);
-	}
-	
-	private static Collection<String> seekUsages(String funcName, File f) {
-		Collection<String> result = new ArrayList<String>();
-
-		// Open the Erlang source files...
-		try {
-			BufferedReader input = new BufferedReader(new FileReader(f));
-			String line = null;
-			while ((line = input.readLine()) != null) {
-				// Look for calls to this func
-				int ptr = line.indexOf(funcName + "(");
-				while (ptr >= 0) {
-					System.out.println("Got call to " + funcName
-							+ " on line \"" + line + "\"");
-					int depth = 1;
-					ptr += (funcName + "(").length();
-					int start = ptr;
-					while ((depth > 0) && (ptr <= line.length())) {
-						if ((ptr == line.length()) && (depth > 0)) {
-							String newLine = input.readLine();
-							if (newLine != null) {
-								line += newLine;
-							}
-						}
-						// Allow for () in the argstring itself...
-						if (line.charAt(ptr) == '(') {
-							depth++;
-						} else if (line.charAt(ptr) == ')') {
-							depth--;
-						}
-						ptr++;
-					}
-					ptr--;
-					// Add to argument string to the result list
-					result.add(line.substring(start, ptr));
-					System.out.println("\t" + line.substring(start, ptr));
-					line = line.substring(ptr);
-					ptr = line.indexOf(funcName + "(");
-					// Loop for more occurences on this line
-				}
-			}
-			input.close();input=null;
-		} catch (IOException e) {
-			Helper.throwUnchecked("read error", e);
-		}
-
-		return result;
 	}
 
 	public String getName() {

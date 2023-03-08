@@ -35,14 +35,14 @@ import org.w3c.dom.Element;
 import statechum.Configuration;
 import statechum.StatechumXML;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.linear.TestGD_Multithreaded;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
-import static statechum.Helper.checkForCorrectException;
-import static statechum.Helper.whatToRun;
+import static statechum.TestHelper.checkForCorrectException;
+import static statechum.TestHelper.whatToRun;
 
 /**
  * @author kirill

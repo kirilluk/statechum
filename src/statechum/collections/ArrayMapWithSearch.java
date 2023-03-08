@@ -220,7 +220,7 @@ public class ArrayMapWithSearch<I extends ConvertibleToInt, K extends I,V> exten
 
 	@Override
 	public Set<K> keySet() {
-		return new AbstractSet<>() {
+		return new AbstractSet<K>() {
 
 			@Override
 			public Iterator<K> iterator() {

@@ -33,12 +33,12 @@ import statechum.Configuration;
 import statechum.Label;
 import statechum.StatechumXML;
 import statechum.analysis.learning.observers.ProgressDecorator.InitialData;
-import static statechum.analysis.learning.rpnicore.FsmParser.buildLearnerGraph;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import static statechum.Helper.checkForCorrectException;
-import static statechum.Helper.whatToRun;
+import static statechum.TestHelper.checkForCorrectException;
+import static statechum.TestHelper.whatToRun;
 import static statechum.analysis.learning.observers.TestRecordProgressDecorator.breakNumericalValue;
 import static statechum.analysis.learning.observers.TestRecordProgressDecorator.removeTagFromString;
 

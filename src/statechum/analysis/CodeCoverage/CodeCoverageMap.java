@@ -5,6 +5,7 @@
 package statechum.analysis.CodeCoverage;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -45,7 +46,7 @@ public class CodeCoverageMap {
     }
 
     public void remove(String line) {
-        ArrayList<CodeCoverageMaplet> removes = new ArrayList<>();
+        List<CodeCoverageMaplet> removes = new ArrayList<>();
         for (CodeCoverageMaplet m : map) {
             if (m.line.equals(line)) {
                 removes.add(m);

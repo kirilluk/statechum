@@ -27,6 +27,7 @@ lack of tracking dependencies between Java files.
   <property name="LTL2BA" value="lib/ltl2ba-1.1/ltl2ba"/>
     <path id="classpath.lib">
       <fileset dir="lib">
+      <include name="OtpErlang/24/OtpErlang.jar"/>
 		  <include name="colt.jar"/>
 		  <include name="commons-collections-3.1.jar"/>
 		  <include name="javaGD.jar"/>

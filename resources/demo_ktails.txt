@@ -1,0 +1,28 @@
+passive
+
+# Initial step: just the trace with no merging:
+k 3
+
+# First step: just a single trace
+
++ [[open, edit, save, edit, save]]
+
+config learnerScoreMode KTAILS
+#k 2
+
+# Second step: let's see what happens if I add another trace open,open
+#+ [[open,open]]
+
+# nothing gets merged because we expect all paths to match, how about we allow k=1
+#k 1
+
+# Third step: permit mergers if any branch matches
+#config learnerScoreMode KTAILS_ANY
+
+# Fourth step: try k = 0
+# k 0
+
+# Surely we should not be able to save right after open, add a negative trace
+#- [[open,save]]
+
+config visualiseOutput true

@@ -160,7 +160,7 @@ public class QSMTool {
         if (!active) {
             config.setKlimit(k);
             config.setAskQuestions(false);
-            if (k >= 0) {
+            if (k >= 0 && config.getLearnerScoreMode() != Configuration.ScoreMode.KTAILS && config.getLearnerScoreMode() != Configuration.ScoreMode.KTAILS_ANY) {
                 config.setLearnerScoreMode(Configuration.ScoreMode.KTAILS);
             }
         } else {

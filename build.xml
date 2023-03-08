@@ -90,6 +90,32 @@ lack of tracking dependencies between Java files.
     </javac>
    </target>
 
+
+	<target name="demo_ktails" depends="compileStatechum" description="run k-tails demo" >
+	<java  fork="on" maxmemory="1024m"  classname="statechum.apps.QSMTool">
+		<assertions>
+	        	<enable/>
+	      	</assertions>
+	      	<arg value="resources/demo_ktails.txt"/>
+           	<jvmarg value="-ea"/>
+        	<jvmarg value="-XX:+UseCompressedOops"/>
+           	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
+	       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
+	       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
+	       	<sysproperty key="threadnum" value="4"/>
+           	<sysproperty key="ASSERT_ENABLED" value="true"/>
+           	<sysproperty key="SMTWARNINGS" value="true"/>
+           	<sysproperty key="LINEARWARNINGS" value="true"/>
+           	<sysproperty key="FORCEFORK" value="true"/>
+
+	       	<classpath>
+	         	<path refid="classpath.statechum" />
+	         	<pathelement location="${statechum_bin}"/>
+	         </classpath>
+	       </java>
+	       
+	  </target>
+	  
   <target name="compileTests" depends="compileStatechum" description="compile Statechum tests " >
     <!-- Compile the java code from ${src} into ${bin} -->
     <javac fork="on" srcdir="${test_src}:${erlang24_test}:${statechum_collections_test}" includeantruntime="false" destdir="${statechum_bin}">

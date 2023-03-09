@@ -1,14 +1,14 @@
 passive
 
 # Initial step: just the trace with no merging:
-k 3
+#k 3
 
 # First step: just a single trace
 
 + [[open, edit, save, edit, save]]
 
 config learnerScoreMode KTAILS
-#k 2
+k 2
 
 # Second step: let's see what happens if I add another trace open,open
 #+ [[open,open]]

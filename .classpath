@@ -1,19 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="src" path="lib/modified_collections"/>
+	<classpathentry kind="src" path="lib/modified_collections/test"/>
+	<classpathentry kind="src" path="lib/modified_collections/src"/>
 	<classpathentry kind="src" path="tests"/>
 	<classpathentry kind="src" path="lib/junit-statechum"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="lib" path="lib/colt.jar"/>
 	<classpathentry kind="lib" path="lib/commons-collections-3.1.jar"/>
-	<classpathentry kind="lib" path="lib/jung-1.7.6.jar" sourcepath="/home/kirill/experiment/shower/experiment/StatechumLib/jung-1.7.6/java-src-kirr"/>
+	<classpathentry kind="lib" path="lib/jung-1.7.6/src"/>
 	<classpathentry kind="lib" path="lib/sootclasses.jar"/>
 	<classpathentry kind="lib" path="lib/jltl2ba.jar"/>
-	<classpathentry kind="lib" path="lib/OtpErlang.jar"/>
 	<classpathentry kind="lib" path="lib/javaGD.jar"/>
-	<classpathentry kind="lib" path="lib/JRI.jar" sourcepath="C:/Users/Kirill/Documents/R/win-library/3.4/rJava/java"/>
+	<classpathentry kind="lib" path="lib/JRI.jar"/>
 	<classpathentry kind="lib" path="lib/weka.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="lib" path="lib/OtpErlang/24/OtpErlang.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

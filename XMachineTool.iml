@@ -31,6 +31,7 @@
       <sourceFolder url="file://$MODULE_DIR$/lib/modified_collections/resources" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/lib/Erlang24/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/lib/Erlang24/test" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/lib/jung-1.7.6/src" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="inheritedJdk" />
@@ -50,17 +51,6 @@
         </CLASSES>
         <JAVADOC />
         <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library name="jung-1.7.6.jar">
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/jung-1.7.6.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="file:///home/kirill/experiment/shower/experiment/StatechumLib/jung-1.7.6/java-src-kirr" />
-        </SOURCES>
       </library>
     </orderEntry>
     <orderEntry type="module-library">

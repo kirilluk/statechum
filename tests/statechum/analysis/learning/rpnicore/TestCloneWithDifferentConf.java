@@ -8,8 +8,8 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized.Parameters;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
@@ -31,8 +31,8 @@ public final class TestCloneWithDifferentConf
 		graph = argGraph;sameA=argSameA;sameB=argSameB;different=argDifferent;
 	}
 	
-	protected static final String PTA_4 = "\nB1-d->Z1-d->Z2-c->Z3-c->Z4\nZ1-c->Y1-c->Y2-c->Y3\nY4-d->B4-c->Y5-c->Y6\nB1-c->Y4-c->Y7-c->Y8-c->Y9\n";
-	protected static final String PTA3 = "\nA-p->I-q->B"+"\nB-a->B1-a-#B2"+PTA_4;
+	private static final String PTA_4 = "\nB1-d->Z1-d->Z2-c->Z3-c->Z4\nZ1-c->Y1-c->Y2-c->Y3\nY4-d->B4-c->Y5-c->Y6\nB1-c->Y4-c->Y7-c->Y8-c->Y9\n";
+	private static final String PTA3 = "\nA-p->I-q->B"+"\nB-a->B1-a-#B2"+PTA_4;
 		
 	// AbstractLearnerGraph is polymorphic in this context: I can use both deterministic and non-deterministic graphs.
 	@Parameters
@@ -53,7 +53,7 @@ public final class TestCloneWithDifferentConf
 		Configuration confStringCompat = config.copy();confStringCompat.setLearnerUseStrings(true);confStringCompat.setLearnerCloneGraph(true);confStringCompat.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		Configuration confStringIntern = config.copy();confStringIntern.setLearnerUseStrings(true);confStringIntern.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
 		
-		List<Object[]> outcome = new LinkedList<Object[]>();
+		List<Object[]> outcome = new LinkedList<>();
 		outcome.addAll(dataFromConfigurations(0,graphDNotIntern,graphNDNotIntern,new Configuration[]{confJung,confSame,confString}));
 		outcome.addAll(dataFromConfigurations(1,graphDNotIntern,graphNDNotIntern,new Configuration[]{confJung,confString,confStringCompat}));
 		outcome.addAll(dataFromConfigurations(2,graphD,graphND,new Configuration[]{confJung,confStringCompat,confStringIntern}));
@@ -61,9 +61,9 @@ public final class TestCloneWithDifferentConf
 	}
 	
 	@SuppressWarnings("rawtypes")
-	private static Collection<Object[]> dataFromConfigurations(int listNumber,LearnerGraph graphD,LearnerGraphND graphND, Configuration configsOfInterest[])
+	private static Collection<Object[]> dataFromConfigurations(int listNumber, LearnerGraph graphD, LearnerGraphND graphND, Configuration[] configsOfInterest)
 	{
-		List<AbstractLearnerGraph> sameGraphsA = new LinkedList<AbstractLearnerGraph>(),sameGraphsB = new LinkedList<AbstractLearnerGraph>();
+		List<AbstractLearnerGraph> sameGraphsA = new LinkedList<>(),sameGraphsB = new LinkedList<>();
 		for(int configAidx=0;configAidx < configsOfInterest.length;++configAidx)
 		{
 			Configuration configA = configsOfInterest[configAidx];
@@ -105,12 +105,10 @@ public final class TestCloneWithDifferentConf
 			.get(AbstractLearnerGraph.generateNewLabel("c",differentGraphB.config,converter))
 			.add(differentGraphB.findVertex("S"));
 		differentGraphB.setName("differentB");
-		
-		List<AbstractLearnerGraph> different = new LinkedList<AbstractLearnerGraph>();different.addAll(Arrays.asList(new AbstractLearnerGraph[]{
-				differentGraphA,differentGraphB
-		}));
 
-		Collection<Object[]> result = new LinkedList<Object []>();
+		List<AbstractLearnerGraph> different = new LinkedList<>(Arrays.asList(differentGraphA, differentGraphB));
+
+		Collection<Object[]> result = new LinkedList<>();
 		
 		for(AbstractLearnerGraph A:sameGraphsA)
 			result.add(new Object[]{listNumber,A,sameGraphsA,sameGraphsB,different});
@@ -160,7 +158,7 @@ public final class TestCloneWithDifferentConf
 	
 	@SuppressWarnings("rawtypes")
 	@Test
-	public final void testCopyGraph() // this one tests that clone works
+	public void testCopyGraph() // this one tests that clone works
 	{
 			for(AbstractLearnerGraph B:sameA)
 				for(AbstractLearnerGraph diffA:sameB)

@@ -23,8 +23,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -670,6 +670,7 @@ public class TestLearnerGraphND extends TestWithMultipleConfigurations
 	 * @param filterClass which states to filter out
 	 * @param expectedToRemain which states are expected to remain after filtering.
 	 */
+	@SuppressWarnings("SameParameterValue")
 	private void checkConsideringIgnoredStates(String graph, String graphName, Class<? extends StatesToConsider> filterClass, String [] expectedToRemain)
 	{
 		Configuration conf = Configuration.getDefaultConfiguration().copy();conf.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);

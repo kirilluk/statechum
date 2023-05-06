@@ -26,7 +26,7 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName;
 import org.junit.runners.Parameterized.Parameters;
 
 import statechum.Configuration;
@@ -116,7 +116,7 @@ Total time: 20492 sec
 	@Parameters
 	public static Collection<Object[]> data() 
 	{
-		Collection<Object []> result = new LinkedList<Object []>();
+		Collection<Object []> result = new LinkedList<>();
 		for(Configuration.STATETREE matrixType:new Configuration.STATETREE []{Configuration.STATETREE.STATETREE_LINKEDHASH, Configuration.STATETREE.STATETREE_ARRAY})
 			for(boolean merger:new boolean[]{true,false})
 				for(boolean pairsFromMerger:new boolean[]{true,false})
@@ -125,7 +125,7 @@ Total time: 20492 sec
 		return result;
 	}
 
-	@org.junit.runners.ParameterizedWithName.ParametersToString
+	@junit_runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Boolean merger, String pairsFile,Configuration.STATETREE matrixType)
 	{
 		return "merger:"+(merger?"fast":"general")+", "+matrixType+" , "+pairsFile;

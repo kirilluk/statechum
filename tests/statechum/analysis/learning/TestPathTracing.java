@@ -28,9 +28,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 import org.junit.runners.Parameterized.Parameters;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
@@ -169,14 +169,14 @@ public class TestPathTracing {
 	@Test
 	public void testTraceEmptyPath2()
 	{
-		checkPathFrom("A-a->B-b->C-c->D", Arrays.asList(new String[]{"A"}), "A",
+		checkPathFrom("A-a->B-b->C-c->D", Collections.singletonList("A"), "A",
 				new String[]{}, 0,null,config,converter);
 	}
 
 	@Test
 	public void testTraceEmptyPath3()
 	{
-		checkPathFrom("A-a->B-b->C-c->D", Arrays.asList(new String[]{"B","C","D"}), "A", 
+		checkPathFrom("A-a->B-b->C-c->D", Arrays.asList("B","C","D"), "A",
 				new String[]{}, AbstractOracle.USER_ACCEPTED,"A",config,converter);
 	}
 
@@ -261,7 +261,7 @@ public class TestPathTracing {
 	@Test
 	public void testTracePath10()
 	{
-		checkPathFrom("A-a->B-b->C-c->D", Arrays.asList(new String[]{"B","C","D"}),"A",
+		checkPathFrom("A-a->B-b->C-c->D", Arrays.asList("B","C","D"),"A",
 				new String[]{"a","b","c","d","e"}, 0,null,config,converter);
 	}
 	
@@ -269,7 +269,7 @@ public class TestPathTracing {
 	public void testTracePath11a()
 	{
 		config.setPrefixClosed(true);
-		checkPathFrom("A-a->B-b->C-c->D-a->D", Arrays.asList(new String[]{"B","C"}),"A",
+		checkPathFrom("A-a->B-b->C-c->D-a->D", Arrays.asList("B","C"),"A",
 				new String[]{"a","b","c","a","a"}, 0,null,config,converter);
 	}
 	
@@ -277,7 +277,7 @@ public class TestPathTracing {
 	public void testTracePath11b()
 	{
 		config.setPrefixClosed(false);
-		checkPathFrom("A-a->B-b->C-c->D-a->D", Arrays.asList(new String[]{"B","C"}),"A",
+		checkPathFrom("A-a->B-b->C-c->D-a->D", Arrays.asList("B","C"),"A",
 				new String[]{"a","b","c","a","a"}, AbstractOracle.USER_ACCEPTED,"D",config,converter);
 	}
 	
@@ -285,7 +285,7 @@ public class TestPathTracing {
 	public void testTracePath12a()
 	{
 		config.setPrefixClosed(true);
-		checkPathFrom("A-a->B-b->C-c->D-a->D", Arrays.asList(new String[]{"B","C","D"}),"A",
+		checkPathFrom("A-a->B-b->C-c->D-a->D", Arrays.asList("B","C","D"),"A",
 				new String[]{"a","b","c","a","a"}, 0,null,config,converter);
 	}
 	
@@ -293,7 +293,7 @@ public class TestPathTracing {
 	public void testTracePath12b()
 	{
 		config.setPrefixClosed(false);
-		checkPathFrom("A-a->B-b->C-c->D-a->D", Arrays.asList(new String[]{"B","C","D"}),"A",
+		checkPathFrom("A-a->B-b->C-c->D-a->D", Arrays.asList("B","C","D"),"A",
 				new String[]{"a","b","c","a","a"}, 4,null,config,converter);
 	}
 	
@@ -301,7 +301,7 @@ public class TestPathTracing {
 	public void testTracePath13a()
 	{
 		config.setPrefixClosed(true);
-		checkPathFrom("A-a->B-b->C-c->D-a->D-b-#E", Arrays.asList(new String[]{"B","C"}),"A",
+		checkPathFrom("A-a->B-b->C-c->D-a->D-b-#E", Arrays.asList("B","C"),"A",
 				new String[]{"a","b","c","a","a","b"}, 0,null,config,converter);
 	}
 	
@@ -309,7 +309,7 @@ public class TestPathTracing {
 	public void testTracePath13b()
 	{
 		config.setPrefixClosed(false);
-		checkPathFrom("A-a->B-b->C-c->D-a->D-b-#E", Arrays.asList(new String[]{"B","C"}),"A",
+		checkPathFrom("A-a->B-b->C-c->D-a->D-b-#E", Arrays.asList("B","C"),"A",
 				new String[]{"a","b","c","a","a","b"},5,null,config,converter);
 	}
 	
@@ -317,7 +317,7 @@ public class TestPathTracing {
 	public void testTracePath14a()
 	{
 		config.setPrefixClosed(true);
-		checkPathFrom("A-a->B-b->C-c->D-a->D-b-#E", Arrays.asList(new String[]{"C"}),"A",
+		checkPathFrom("A-a->B-b->C-c->D-a->D-b-#E", Collections.singletonList("C"),"A",
 				new String[]{"a","b","c","a","a","c"}, 1,null,config,converter);
 	}
 	
@@ -325,7 +325,7 @@ public class TestPathTracing {
 	public void testTracePath14b()
 	{
 		config.setPrefixClosed(false);
-		checkPathFrom("A-a->B-b->C-c->D-a->D-b-#E", Arrays.asList(new String[]{"C"}),"A",
+		checkPathFrom("A-a->B-b->C-c->D-a->D-b-#E", Collections.singletonList("C"),"A",
 				new String[]{"a","b","c","a","a","c"}, 5,null,config,converter);
 	}
 	

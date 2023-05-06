@@ -1,4 +1,4 @@
-package org.junit.runners;
+package junit_runners;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -13,6 +13,9 @@ import java.util.List;
 
 import org.junit.runner.Runner;
 import org.junit.runner.notification.RunNotifier;
+import org.junit.runners.BlockJUnit4ClassRunner;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Suite;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.Statement;
@@ -31,10 +34,10 @@ public class ParameterizedWithName extends Suite {
 	 */
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
-	public static @interface ParametersToString {
+	public @interface ParametersToString {
 	}
 	
-	public static class TestClassRunnerForParameters extends	BlockJUnit4ClassRunner {
+	public static class TestClassRunnerForParameters extends BlockJUnit4ClassRunner {
 			private final int fParameterSetNumber;
 
 			private final List<Object[]> fParameterList;
@@ -57,7 +60,7 @@ public class ParameterizedWithName extends Suite {
 			
 			private static String parametersToStringDirectly(Object [] parameters)
 			{
-				StringBuffer buffer = new StringBuffer();
+				StringBuilder buffer = new StringBuilder();
 				boolean first = true;
 				for(Object obj:parameters)
 				{
@@ -136,7 +139,7 @@ public class ParameterizedWithName extends Suite {
 			}
 		}
 
-		private final ArrayList<Runner> runners= new ArrayList<Runner>();
+		private final ArrayList<Runner> runners= new ArrayList<>();
 
 		/**
 		 * Only called reflectively. Do not use programmatically.

@@ -36,7 +36,7 @@ import statechum.analysis.learning.rpnicore.PathRoutines.EdgeAnnotation;
 import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
 import statechum.analysis.learning.rpnicore.LearnerGraphNDCachedData;
-import statechum.analysis.learning.linear.TestGD_Multithreaded;
+import statechum.analysis.learning.linear.TestGDMultithreaded;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
@@ -93,7 +93,7 @@ public class TestVisualDemo {
 	@Test
 	public final void testVisual4()
 	{
-		Pair<String,String> pair = differenceLabelling(TestGD_Multithreaded.A6,TestGD_Multithreaded.B6);
+		Pair<String,String> pair = differenceLabelling(TestGDMultithreaded.A6, TestGDMultithreaded.B6);
 		Assert.assertEquals("{A=(P=B@,1.4285714285714286)[B@] , B=DEL, C=(P=C@,1.4285714285714286)[C@] , D=(K 14,14=A@)[A@] , E=(P=F@,1.3127413127413128)[F@] , F=DEL, G=(P=G@,1.3127413127413128)[G@] , H=(P=E@,1.3127413127413128)[E@] , I=(P=J@,1.30334968172806)[J@] , J=DEL, K=(P=K@,1.30334968172806)[K@] , L=(P=I@,1.30334968172806)[I@] }",pair.firstElem);
 		Assert.assertEquals("{A={ADD_a={C=java.awt.Color[r=0,g=255,b=0]}, REM_a={B=java.awt.Color[r=255,g=0,b=0]}, b={E=java.awt.Color[r=0,g=0,b=0]}}, B={REM_a={C=java.awt.Color[r=255,g=0,b=0]}, REM_b={F=java.awt.Color[r=255,g=0,b=0]}}, C={a={D=java.awt.Color[r=0,g=0,b=0]}, b={G=java.awt.Color[r=0,g=0,b=0]}}, D={a={A=java.awt.Color[r=0,g=0,b=0]}, b={H=java.awt.Color[r=0,g=0,b=0]}}, "+
 				"E={ADD_b={G=java.awt.Color[r=0,g=255,b=0]}, REM_b={F=java.awt.Color[r=255,g=0,b=0]}, a={I=java.awt.Color[r=0,g=0,b=0]}}, "+

@@ -27,8 +27,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
@@ -63,7 +63,6 @@ import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import static statechum.TestHelper.whatToRun;
 import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 import static statechum.analysis.learning.smt.SmtLabelRepresentation.INITMEM;
@@ -114,8 +113,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		}
 	
 		lbls = new SmtLabelRepresentation(config,converter);
-		lbls.parseCollection(Arrays.asList(new String[]{
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " varDeclP_N",
+		lbls.parseCollection(Arrays.asList(QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " varDeclP_N",
 				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " varDeclQ_N",
 				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " initCond_N",
 				QSMTool.cmdOperation+" "+"a"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " somePrecondA_N",
@@ -123,7 +121,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 				QSMTool.cmdOperation+" "+"b"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " somePrecondB_N",
 				QSMTool.cmdOperation+" "+"b"+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondB_N",
 				QSMTool.cmdOperation+" "+"c"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " somePrecondC_N",
-				QSMTool.cmdOperation+" "+"c"+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondC_N"}));
+				QSMTool.cmdOperation+" "+"c"+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondC_N"));
 	}
 
 	/** The configuration to use when running tests. */
@@ -140,8 +138,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test
 	public final void testComputeFSMAlphabet1()
 	{
-		Set<Label> expected = new TreeSet<Label>();
-		expected.addAll(labelList(new String[] {"p"}));
+		Set<Label> expected = new TreeSet<>(labelList(new String[]{"p"}));
 		LearnerGraphND g = buildLearnerGraphND("A-p->A","testComputeFSMAlphabet1",config,converter);
 		Assert.assertEquals(expected, g.pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g.pathroutines.getGraph()));
@@ -151,7 +148,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	public final void testComputeFSMAlphabet2()
 	{
 		LearnerGraphND g = buildLearnerGraphND("A-a->A<-b-A", "completeComputeAlphabet3",config,converter);
-		Collection<Label> expected = new HashSet<Label>();expected.addAll(labelList(new String[] {"a","b"}));
+		Collection<Label> expected = new HashSet<>(labelList(new String[]{"a", "b"}));
 		Assert.assertEquals(expected, g.pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g.pathroutines.getGraph()));				
 	}
@@ -160,7 +157,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test
 	public final void testComputeFSMAlphabet3()
 	{
-		Collection<Label> expected = new TreeSet<Label>();expected.addAll(labelList(new String[]{"p","d","b","c","a"}));
+		Collection<Label> expected = new TreeSet<>(labelList(new String[]{"p", "d", "b", "c", "a"}));
 		LearnerGraphND g = buildLearnerGraphND("A-p->A-b->B-c->B-a-#C\nQ-d->S-c->S","testComputeFSMAlphabet3",config,converter);
 		Assert.assertEquals(expected, g.pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g.pathroutines.getGraph()));				
@@ -170,7 +167,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test
 	public final void testComputeFSMAlphabet4() {
 		LearnerGraphND g = buildLearnerGraphND("A-p->A-b->B-c->B-a->C\nQ-d->S-a-#T","testComputeFSMAlphabet4",config,converter);
-		Collection<Label> expected = new HashSet<Label>();expected.addAll(labelList(new String[]{"p","d","b","c","a"}));
+		Collection<Label> expected = new HashSet<>(labelList(new String[]{"p", "d", "b", "c", "a"}));
 		Assert.assertEquals(expected, g.pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g.pathroutines.getGraph()));				
 	}
@@ -179,7 +176,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	public final void completeComputeAlphabet5()
 	{
 		LearnerGraphND g = buildLearnerGraphND("A-a->A-b->B-c->B-a->C\nQ-a->S\nA-c->A\nB-b->B\nC-a->C-b->C-c->C\nQ-b->Q-c->Q\nS-a->S-b->S-c->S", "completeComputeAlphabet5",config,converter);
-		Collection<Label> expected = new HashSet<Label>();expected.addAll(labelList(new String[] {"a","b","c"}));
+		Collection<Label> expected = new HashSet<>(labelList(new String[]{"a", "b", "c"}));
 		Assert.assertEquals(expected, new LearnerGraphND(g,config).pathroutines.computeAlphabet());
 		Assert.assertEquals(expected, DeterministicDirectedSparseGraph.computeAlphabet(g.pathroutines.getGraph()));				
 
@@ -277,7 +274,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	}
 
 
-	private final boolean checkIncompatible(LearnerGraph gr,StatePair pair)
+	private boolean checkIncompatible(LearnerGraph gr, StatePair pair)
 	{
 		return !AbstractLearnerGraph.checkCompatible(pair.getQ(), pair.getR(), gr.pairCompatibility);
 	}
@@ -463,7 +460,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	}
 	
 	/** Tests that construction of incompatibles from information in equivalence classes works. 
-	 * @throws IncompatibleStatesException */
+	 */
 	@Test
 	public final void testConstuctionOfIncompatibles1() throws IncompatibleStatesException
 	{
@@ -475,7 +472,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	}
 	
 	/** Tests that construction of incompatibles from information in equivalence classes works. 
-	 * @throws IncompatibleStatesException */
+	 */
 	@Test
 	public final void testConstuctionOfIncompatibles2() throws IncompatibleStatesException
 	{
@@ -493,10 +490,10 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	 */
 	public static Set<List<Label>> buildSet(String [][] data,Configuration config, ConvertALabel converter)
 	{
-		Set<List<Label>> result = new HashSet<List<Label>>();
+		Set<List<Label>> result = new HashSet<>();
 		for(String []seq:data)
 		{
-			List<Label> labelSeq = new LinkedList<Label>();
+			List<Label> labelSeq = new LinkedList<>();
 			for(String s:seq) 
 				labelSeq.add(AbstractLearnerGraph.generateNewLabel(s,config,converter));
 			result.add(labelSeq);
@@ -513,7 +510,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	 */
 	public static List<List<Label>> buildList(String [][] data, Configuration config, ConvertALabel converter)
 	{
-		List<List<Label>> result = new LinkedList<List<Label>>();
+		List<List<Label>> result = new LinkedList<>();
 		for(String []seq:data)
 		{
 			result.add(AbstractLearnerGraph.buildList(Arrays.asList(seq),config,converter));
@@ -528,7 +525,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	 */
 	public static List<List<String>> buildList(String [][] data)
 	{
-		List<List<String>> result = new LinkedList<List<String>>();
+		List<List<String>> result = new LinkedList<>();
 		for(String []seq:data)
 		{
 			result.add(Arrays.asList(seq));
@@ -544,7 +541,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	 */
 	public static Map<String,String> buildStringMap(Object [][] data)
 	{
-		Map<String,String> result = new HashMap<String,String>();
+		Map<String,String> result = new HashMap<>();
 		for(Object[] str:data)
 		{
 			if (str.length != 2)
@@ -565,24 +562,24 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test
 	public final void testBuildSet2()
 	{
-		Set<List<String>> expectedResult = new HashSet<List<String>>();
-		expectedResult.add(new LinkedList<String>());
+		Set<List<String>> expectedResult = new HashSet<>();
+		expectedResult.add(new LinkedList<>());
 		assertEquals(expectedResult, buildSet(new String[][]{new String[]{}}, config, converter));
 	}
 
 	@Test
 	public final void testBuildSet3A()
 	{
-		Set<List<Label>> expectedResult = new HashSet<List<Label>>();
+		Set<List<Label>> expectedResult = new HashSet<>();
 		expectedResult.add(labelList(new String[]{"a","b","c"}));
-		expectedResult.add(new LinkedList<Label>());
+		expectedResult.add(new LinkedList<>());
 		assertEquals(expectedResult, buildSet(new String[][]{new String[]{}, new String[]{"a", "b", "c"}}, config, converter));
 	}
 
 	@Test
 	public final void testBuildSet3B()
 	{
-		Set<List<Label>> expectedResult = new HashSet<List<Label>>();
+		Set<List<Label>> expectedResult = new HashSet<>();
 		expectedResult.add(labelList(new String[]{"a","b","c"}));
 		assertEquals(expectedResult, buildSet(new String[][]{new String[]{"a", "b", "c"}}, config, converter));
 	}
@@ -590,9 +587,9 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test
 	public final void testBuildSet4()
 	{
-		Set<List<Label>> expectedResult = new HashSet<List<Label>>();
+		Set<List<Label>> expectedResult = new HashSet<>();
 		expectedResult.add(labelList(new String[]{"a","b","c"}));
-		expectedResult.add(new LinkedList<Label>());
+		expectedResult.add(new LinkedList<>());
 		expectedResult.add(labelList(new String[]{"g","t"}));
 		expectedResult.add(labelList(new String[]{"h","q","i"}));
 		assertEquals(expectedResult, buildSet(new String[][]{
@@ -602,16 +599,16 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test
 	public final void testBuildStringMap1()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
-		
-		assertTrue(expectedResult.equals(buildStringMap(new Object[][]{
-		})));
+		Map<String,String> expectedResult = new HashMap<>();
+
+		assertEquals(expectedResult, buildStringMap(new Object[][]{
+		}));
 	}
 	
 	@Test
 	public final void testBuildStringMap2()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value2");expectedResult.put("b","value3");
 
 		assertEquals(expectedResult, buildStringMap(new Object[][]{
@@ -623,7 +620,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test
 	public final void testBuildStringMap3()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
 
 		assertEquals(expectedResult, buildStringMap(new Object[][]{
@@ -636,7 +633,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test(expected = IllegalArgumentException.class)
 	public final void testBuildStringMap4()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
 
 		assertEquals(expectedResult, buildStringMap(new Object[][]{
@@ -649,7 +646,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test(expected = IllegalArgumentException.class)
 	public final void testBuildStringMap5()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
 
 		assertEquals(expectedResult, buildStringMap(new Object[][]{
@@ -662,7 +659,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test(expected = IllegalArgumentException.class)
 	public final void testBuildStringMap6()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
 
 		assertEquals(expectedResult, buildStringMap(new Object[][]{
@@ -675,7 +672,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test(expected = IllegalArgumentException.class)
 	public final void testBuildStringMap7()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
 
 		assertEquals(expectedResult, buildStringMap(new Object[][]{
@@ -688,7 +685,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test(expected = IllegalArgumentException.class)
 	public final void testBuildStringMap8()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
 
 		assertEquals(expectedResult, buildStringMap(new Object[][]{
@@ -701,7 +698,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test(expected = IllegalArgumentException.class)
 	public final void testBuildStringMap9()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
 
 		assertEquals(expectedResult, buildStringMap(new Object[][]{
@@ -714,7 +711,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test(expected = IllegalArgumentException.class)
 	public final void testBuildStringMap10()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
 
 		assertEquals(expectedResult, buildStringMap(new Object[][]{
@@ -727,7 +724,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	@Test(expected = IllegalArgumentException.class)
 	public final void testBuildStringMap11()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
 
 		assertEquals(expectedResult, buildStringMap(new Object[][]{
@@ -739,9 +736,8 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	
 	public final void checkForCorrectException(final int [][]tTable, final int []vFrom, String exceptionString)
 	{
-		statechum.TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			LearnerGraph.convertTableToFSMStructure(tTable, vFrom, -1	,config,converter);
-		}}, IllegalArgumentException.class,exceptionString);
+		statechum.TestHelper.checkForCorrectException(
+				() -> LearnerGraph.convertTableToFSMStructure(tTable, vFrom, -1	,config,converter), IllegalArgumentException.class,exceptionString);
 	}
 	
 	/** Zero-sized array. */
@@ -937,7 +933,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	public final void computeShortPathsToAllStates1()
 	{
 		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C","computeShortPathsToAllStates1",config,converter);
-		Map<CmpVertex,List<Label>> expected = new TreeMap<CmpVertex,List<Label>>();
+		Map<CmpVertex,List<Label>> expected = new TreeMap<>();
 		expected.put(graph.findVertex("A"), labelList(new String[]{}));
 		expected.put(graph.findVertex("B"), labelList(new String[]{"a"}));
 		expected.put(graph.findVertex("C"), labelList(new String[]{"a"}));
@@ -948,7 +944,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	public final void computeShortPathsToAllStates2()
 	{
 		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1",config,converter);
-		Map<CmpVertex,List<Label>> expected = new TreeMap<CmpVertex,List<Label>>();
+		Map<CmpVertex,List<Label>> expected = new TreeMap<>();
 		expected.put(graph.findVertex("A"), labelList(new String[]{}));
 		expected.put(graph.findVertex("B"), labelList(new String[]{"a"}));
 		expected.put(graph.findVertex("C"), labelList(new String[]{"a"}));
@@ -960,7 +956,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	public final void computeShortPathsToAllStates3()
 	{
 		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1",config,converter);
-		Map<CmpVertex,List<Label>> expected = new TreeMap<CmpVertex,List<Label>>();
+		Map<CmpVertex,List<Label>> expected = new TreeMap<>();
 		expected.put(graph.findVertex("B"), labelList(new String[]{}));
 		Assert.assertEquals(expected,graph.pathroutines.computeShortPathsToAllStates(graph.findVertex("B")));
 	}
@@ -969,7 +965,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	public final void computeShortPathsToAllStates4()
 	{
 		LearnerGraphND graph = buildLearnerGraphND("A-a->B\nA-a->C-b-#D","computeShortPathsToAllStates1",config,converter);
-		Map<CmpVertex,List<Label>> expected = new TreeMap<CmpVertex,List<Label>>();
+		Map<CmpVertex,List<Label>> expected = new TreeMap<>();
 		expected.put(graph.findVertex("C"), labelList(new String[]{}));
 		expected.put(graph.findVertex("D"), labelList(new String[]{"b"}));
 		Assert.assertEquals(expected,graph.pathroutines.computeShortPathsToAllStates(graph.findVertex("C")));
@@ -978,7 +974,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 	/** Extracts PTA states from a collection of abstract states. */
 	private static Set<CmpVertex> extractStates(Collection<AbstractState> abstractStates)
 	{
-		Set<CmpVertex> result = new TreeSet<CmpVertex>();
+		Set<CmpVertex> result = new TreeSet<>();
 		for(AbstractState state:abstractStates) result.add(state.vertex);
 		return result;
 	}
@@ -995,7 +991,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 
 		for(String vertex:new String[]{"A","B","C","D"})
 		{
-			Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
+			Set<CmpVertex> expectedSet = new TreeSet<>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
 			Assert.assertEquals(expectedSet,extractStates(graph.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID(vertex)))));
 		}
 		
@@ -1005,7 +1001,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 
 		for(String vertex:new String[]{"A","B","C","D"})
 		{
-			Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
+			Set<CmpVertex> expectedSet = new TreeSet<>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
 			Assert.assertEquals(expectedSet,extractStates(graph.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID(vertex)))));
 		}
 	}
@@ -1022,7 +1018,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 
 		for(String vertex:new String[]{"A","B","C"})
 		{
-			Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
+			Set<CmpVertex> expectedSet = new TreeSet<>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
 			Assert.assertEquals(expectedSet,extractStates(graph.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID(vertex)))));
 		}
 		
@@ -1032,7 +1028,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 
 		for(String vertex:new String[]{"A","B","C"})
 		{
-			Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
+			Set<CmpVertex> expectedSet = new TreeSet<>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
 			Assert.assertEquals(expectedSet,extractStates(graph.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID(vertex)))));
 		}
 	}
@@ -1051,7 +1047,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		Assert.assertEquals(7,graph.getVertexToAbstractState().size());
 		for(String vertex:new String[]{"A","B","C","D","C1","D1","D2"})
 		{
-			Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
+			Set<CmpVertex> expectedSet = new TreeSet<>();expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
 			Assert.assertEquals(expectedSet,extractStates(graph.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID(vertex)))));
 		}
 	}
@@ -1068,7 +1064,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		lbls.buildVertexToAbstractStateMap(mergedAB,graph,true);
 		Assert.assertNotNull(mergedAB.getVertexToAbstractState());
 		
-		Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();
+		Set<CmpVertex> expectedSet = new TreeSet<>();
 
 		for(String vertex:new String[]{"A","B","C","D"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
 		Assert.assertEquals(expectedSet,extractStates(mergedAB.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("A")))));
@@ -1111,7 +1107,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		Assert.assertNotNull(mergedAB.getVertexToAbstractState());
 		Assert.assertNotNull(mergedAll.getVertexToAbstractState());
 
-		Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();
+		Set<CmpVertex> expectedSet = new TreeSet<>();
 
 		for(String vertex:new String[]{"A","B","C","D","C1","D1","D2"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
 		Assert.assertEquals(expectedSet,extractStates(mergedAll.getVertexToAbstractState().get(graph.findVertex(VertexID.parseID("A")))));
@@ -1142,7 +1138,7 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		Assert.assertNotNull(mergedAB.getVertexToAbstractState());
 		Assert.assertNotNull(mergedAll.getVertexToAbstractState());
 		
-		Set<CmpVertex> expectedSet = new TreeSet<CmpVertex>();
+		Set<CmpVertex> expectedSet = new TreeSet<>();
 
 		for(String vertex:new String[]{"A","B","C","D","C1","D1","D2"}) expectedSet.add(graph.findVertex(VertexID.parseID(vertex)));
 		for(String vertex:new String[]{"D3"}) expectedSet.add(mergedAB.findVertex(VertexID.parseID(vertex)));

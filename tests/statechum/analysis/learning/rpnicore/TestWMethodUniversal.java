@@ -34,7 +34,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName;
 
 import statechum.*;
 import statechum.Configuration.STATETREE;
@@ -60,7 +60,7 @@ public class TestWMethodUniversal
 	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
-		List<Object[]> outcome = new LinkedList<Object[]>();
+		List<Object[]> outcome = new LinkedList<>();
 		for(Object[] cnf:TestWithMultipleConfigurations.data())
 		{
 			assert cnf.length == 1;
@@ -75,7 +75,7 @@ public class TestWMethodUniversal
 	 * @param closed boolean to consider
 	 * @return description.
 	 */ 
-	@org.junit.runners.ParameterizedWithName.ParametersToString
+	@junit_runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config,Boolean closed)
 	{
 		return TestWithMultipleConfigurations.parametersToString(config)+" "+(closed?"prefix-closed":"not prefix-closed");
@@ -164,7 +164,7 @@ public class TestWMethodUniversal
 	public final void testWset10()
 	{
 		String machineOrig = "0--a4->0--a2->0--a5->2\n0--a7->4\n0--a9->3\n0--a0->1\n1--a5->0\n1--a3->0\n4--a1->0\n4--a8->3\n3--a4->1\n3--a6->2\n2--a8->4\n2--a4->0\n3--a9->0",
-			machine = null;
+			machine;
 		int a = 4, b = 2;
 		machine = machineOrig.replaceAll(a+"--", "Q"+"--").replaceAll(">"+a, ">"+"Q")
 			.replaceAll(b+"--", a+"--").replaceAll(">"+b, ">"+a)
@@ -238,23 +238,21 @@ public class TestWMethodUniversal
 	{
 		final LearnerGraph fsm = buildLearnerGraph("A-a->B-a->B2-a->B-b->C-b->C-c->D / B2-b->C2-b->C3-b->C4-b->C2-c->D2 / C3-c->D2 / C4-c->D2","testWset_incompatibles2",config,converter);
 		fsm.addToCompatibility(fsm.findVertex("B2"), fsm.findVertex("B"), PAIRCOMPATIBILITY.INCOMPATIBLE);
-		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
-			statechum.analysis.learning.rpnicore.TestWMethod.testWsetconstruction(fsm,true,false,prefixClosed);
-		}},IllegalArgumentException.class,"equivalent states cannot be incompatible");
+		TestHelper.checkForCorrectException(() -> TestWMethod.testWsetconstruction(fsm,true,false,prefixClosed),IllegalArgumentException.class,"equivalent states cannot be incompatible");
 	}
 	
 	public static class EmptyPermutator implements FsmPermutator {
 		@Override 
 		public ArrayList<Pair<CmpVertex,Label>> getPermutation(Collection<Pair<CmpVertex,Label>> from) 
 		{
-			ArrayList<Pair<CmpVertex,Label>> result = new ArrayList<Pair<CmpVertex,Label>>(from.size());
+			ArrayList<Pair<CmpVertex,Label>> result = new ArrayList<>(from.size());
 			result.addAll(from);
 			return result;
 		}
 	}
 
-	public class RandomPermutator implements FsmPermutator {
-		private Random rnd = null;
+	public static class RandomPermutator implements FsmPermutator {
+		private final Random rnd;
 		
 		public RandomPermutator(int randomArg)
 		{
@@ -264,7 +262,7 @@ public class TestWMethodUniversal
 		@Override 
 		public ArrayList<Pair<CmpVertex,Label>> getPermutation(Collection<Pair<CmpVertex,Label>> from) 
 		{
-			ArrayList<Pair<CmpVertex,Label>> result = new ArrayList<Pair<CmpVertex,Label>>(from.size());
+			ArrayList<Pair<CmpVertex,Label>> result = new ArrayList<>(from.size());
 			result.addAll(from);
 			
 			for(int i=0;i< from.size();++i)
@@ -287,17 +285,17 @@ public class TestWMethodUniversal
 	public void testWsetDeterministic(String machine, FsmPermutator perm, String testName)
 	{
 		LearnerGraph fsm = buildLearnerGraph(machine,"testDeterminism_"+testName,config,converter);
-		Set<List<Label>> origWset = new HashSet<List<Label>>();origWset.addAll(WMethod.computeWSet_reducedmemory(fsm));
+		Set<List<Label>> origWset = new HashSet<>(WMethod.computeWSet_reducedmemory(fsm));
 		LearnerGraph permFsm = fsm.wmethod.Permute(perm,converter);
 		Assert.assertNull(WMethod.checkM(fsm,permFsm));
-		
-		Set<List<Label>> newWset = new HashSet<List<Label>>();newWset.addAll(WMethod.computeWSet_reducedmemory(permFsm));
+
+		Set<List<Label>> newWset = new HashSet<>(WMethod.computeWSet_reducedmemory(permFsm));
 		HelperWMethod.checkW_is_corrent(fsm,newWset,prefixClosed,null);
 		HelperWMethod.checkW_is_corrent(fsm,origWset,prefixClosed,null);
 		HelperWMethod.checkW_is_corrent(fsm,newWset,prefixClosed,null);
 		HelperWMethod.checkW_is_corrent(fsm,origWset,prefixClosed,null);
-		
-		Assert.assertTrue(origWset.equals(newWset));
+
+		Assert.assertEquals(origWset, newWset);
 	}
 
 	@Test
@@ -321,7 +319,7 @@ public class TestWMethodUniversal
 		Visualiser.disposeFrame();
 	}
 	
-	/** In order to be able to use old junit runner.
+	/* In order to be able to use old junit runner.
 	public static junit.framework.Test suite()
 	{
 		return new JUnit4TestAdapter(TestWMethod.class);

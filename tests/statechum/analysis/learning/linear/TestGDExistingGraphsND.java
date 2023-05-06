@@ -34,8 +34,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized.Parameters;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
@@ -58,7 +58,7 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
  *
  */
 @RunWith(ParameterizedWithName.class)
-public class TestGD_ExistingGraphsND {
+public class TestGDExistingGraphsND {
 	protected java.util.Map<CmpVertex,CmpVertex> newToOrig = null;
 
 	/** Number of threads to use. */
@@ -114,7 +114,7 @@ public class TestGD_ExistingGraphsND {
 	 */
 	static void addFilesToCollection(File fileA1, File fileA2, File fileB1, File fileB2, Collection<Object []> result,int [] threads, ProgressIndicator progress)
 	{
-		boolean fallback = TestGD_ExistingGraphs.detectFallbackToInitialPair(fileA1, fileA2, fileB1, fileB2);
+		boolean fallback = TestGDExistingGraphs.detectFallbackToInitialPair(fileA1, fileA2, fileB1, fileB2);
 		Assert.assertFalse(fallback);// our test files are very small hence must fit in memory
 
 		for(int threadNo:threads)
@@ -139,7 +139,7 @@ public class TestGD_ExistingGraphsND {
 	double low_to_high_ratio = -1;
 	
 	/** Creates the test class with the number of threads to create as an argument. */
-	public TestGD_ExistingGraphsND(int th, int pairs, double ratio, File fileA, File fileB, File fileC, File fileD)
+	public TestGDExistingGraphsND(int th, int pairs, double ratio, File fileA, File fileB, File fileC, File fileD)
 	{
 		threadNumber = th;graphA=fileA;graphB=fileB;graphC=fileC;graphD=fileD;low_to_high_ratio=ratio;pairsToAdd=pairs;
 	}
@@ -153,7 +153,7 @@ public class TestGD_ExistingGraphsND {
 	@Before
 	public final void beforeTest()
 	{
-		newToOrig = new java.util.TreeMap<CmpVertex,CmpVertex>();config=TestGD_ExistingGraphs.computeConfig(low_to_high_ratio);
+		newToOrig = new java.util.TreeMap<CmpVertex,CmpVertex>();config= TestGDExistingGraphs.computeConfig(low_to_high_ratio);
 	}
 	
 	protected String testDetails()
@@ -189,26 +189,29 @@ public class TestGD_ExistingGraphsND {
 			{
 				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1, converter);
 				LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2, converter);
-				grA = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(grA, new Random(0));
+				grA = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);
+                TestGDExistingGraphs.addColourAndTransitionsRandomly(grA, new Random(0));
 			}
 			
 			{
 				LearnerGraphND loadedB1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileB1, loadedB1, converter);
 				LearnerGraph loadedB2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB2, loadedB2, converter);
-				grB = LearnerGraphND.UniteTransitionMatrices(loadedB1,loadedB2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(grB, new Random(1));
+				grB = LearnerGraphND.UniteTransitionMatrices(loadedB1,loadedB2);
+                TestGDExistingGraphs.addColourAndTransitionsRandomly(grB, new Random(1));
 			}
 			
 			GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
 			{
 				LearnerGraphND loadedA1 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA1, loadedA1, converter);
 				LearnerGraph loadedA2 = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA2, loadedA2, converter);
-				graph = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(graph, new Random(0));
+				graph = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);
+                TestGDExistingGraphs.addColourAndTransitionsRandomly(graph, new Random(0));
 			}
 			ChangesRecorder patcher = new ChangesRecorder(null);
 			gd.init(grA, grB, threadNumber,config);
 			if (checkScores) scoresLogger.checkOrRecord(parametersToString(threadNumber,pairsToAdd,low_to_high_ratio,fileA1,fileA2,fileB1,fileB2), gd.serialiseScores());
 			gd.identifyKeyPairs();
-			if (!gd.fallbackToInitialPair) TestGD_ExistingGraphs.addPairsRandomly(gd,pairsToAdd);
+			if (!gd.fallbackToInitialPair) TestGDExistingGraphs.addPairsRandomly(gd,pairsToAdd);
 			else Assert.assertEquals(-1.,low_to_high_ratio,Configuration.fpAccuracy);
 			gd.makeSteps();
 			gd.computeDifference(patcher);

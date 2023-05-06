@@ -2,18 +2,13 @@ package statechum.analysis.learning.observers;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -24,7 +19,6 @@ import statechum.Configuration;
 import statechum.StatechumXML;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
-import static statechum.TestHelper.whatToRun;
 import static statechum.TestHelper.checkForCorrectException;
 import statechum.Configuration.LABELKIND;
 import statechum.StatechumXML.LEGACY_StringSequenceWriter;
@@ -36,49 +30,49 @@ public class TestRecordProgressDecorator
 	
 	@Test
 	public final void testWriteInputSequence1a() {
-		List<String> inputSequence = Arrays.asList(new String[] {});
+		List<String> inputSequence = Collections.emptyList();
 		StringBuffer wr = new StringBuffer();new LEGACY_StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
 		Assert.assertEquals(LEGACY_StringSequenceWriter.seqStart+""+LEGACY_StringSequenceWriter.seqEnd,wr.toString());
 	}
 	
 	@Test
 	public final void testWriteInputSequence1b() {
-		List<String> inputSequence = Arrays.asList(new String[] {});
+		List<String> inputSequence = Collections.emptyList();
 		StringBuffer wr = new StringBuffer();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
 		Assert.assertEquals("[]",wr.toString());
 	}
 
 	@Test
 	public final void testWriteInputSequence2a() {
-		List<String> inputSequence = Arrays.asList(new String[] {"this is a test"});
+		List<String> inputSequence = Collections.singletonList("this is a test");
 		StringBuffer wr = new StringBuffer();new LEGACY_StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
 		Assert.assertEquals(LEGACY_StringSequenceWriter.seqStart+"this is a test"+LEGACY_StringSequenceWriter.seqEnd,wr.toString());
 	}
 
 	@Test
 	public final void testWriteInputSequence2b() {
-		List<String> inputSequence = Arrays.asList(new String[] {"this is a test"});
+		List<String> inputSequence = Collections.singletonList("this is a test");
 		StringBuffer wr = new StringBuffer();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
 		Assert.assertEquals("[\"this is a test\"]",wr.toString());
 	}
 
 	@Test
 	public final void testWriteInputSequence3a() {
-		List<String> inputSequence = Arrays.asList(new String[] {"this is a test","some more"});
+		List<String> inputSequence = Arrays.asList("this is a test","some more");
 		StringBuffer wr = new StringBuffer();new LEGACY_StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
 		Assert.assertEquals(LEGACY_StringSequenceWriter.seqStart+"this is a test"+LEGACY_StringSequenceWriter.seqSep+"some more"+LEGACY_StringSequenceWriter.seqEnd,wr.toString());
 	}
 
 	@Test
 	public final void testWriteInputSequence3b() {
-		List<String> inputSequence = Arrays.asList(new String[] {"this is a test","some more"});
+		List<String> inputSequence = Arrays.asList("this is a test","some more");
 		StringBuffer wr = new StringBuffer();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
 		Assert.assertEquals("[\"this is a test\",\"some more\"]",wr.toString());
 	}
 
 	@Test
 	public final void testWriteInputSequence4a() {
-		List<String> inputSequence = Arrays.asList(new String[] {"this is a test","some more","a"});
+		List<String> inputSequence = Arrays.asList("this is a test","some more","a");
 		StringBuffer wr = new StringBuffer();new LEGACY_StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
 		Assert.assertEquals(LEGACY_StringSequenceWriter.seqStart+
 				"this is a test"+LEGACY_StringSequenceWriter.seqSep+
@@ -88,324 +82,286 @@ public class TestRecordProgressDecorator
 
 	@Test
 	public final void testWriteInputSequence4b() {
-		List<String> inputSequence = Arrays.asList(new String[] {"this is a test","some more","a"});
+		List<String> inputSequence = Arrays.asList("this is a test","some more","a");
 		StringBuffer wr = new StringBuffer();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
 		Assert.assertEquals("[\"this is a test\",\"some more\",\"a\"]",wr.toString());
 	}
 
 	@Test
 	public final void testWriteInputSequence_fail1()  {
-		final List<String> inputSequence = Arrays.asList(new String[] {""+LEGACY_StringSequenceWriter.seqStart});
+		final List<String> inputSequence = Collections.singletonList("" + LEGACY_StringSequenceWriter.seqStart);
 		final StringBuffer wr = new StringBuffer();
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new LEGACY_StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
-		}},IllegalArgumentException.class,"invalid characters");
+		checkForCorrectException(
+				() -> new LEGACY_StringSequenceWriter(null).writeInputSequence(wr, inputSequence),IllegalArgumentException.class,"invalid characters");
 	}
 
 	@Test
 	public final void testWriteInputSequence_F1()  {
-		List<String> inputSequence = Arrays.asList(new String[] {""+LEGACY_StringSequenceWriter.seqStart});
+		List<String> inputSequence = Collections.singletonList("" + LEGACY_StringSequenceWriter.seqStart);
 		StringBuffer wr = new StringBuffer();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
 		Assert.assertEquals("[\""+LEGACY_StringSequenceWriter.seqStart+"\"]",wr.toString());
 	}
 
 	@Test
 	public final void testWriteInputSequence_fail2() {
-		final List<String> inputSequence = Arrays.asList(new String[] {""+LEGACY_StringSequenceWriter.seqNewLine});
+		final List<String> inputSequence = Collections.singletonList("" + LEGACY_StringSequenceWriter.seqNewLine);
 		final StringBuffer wr = new StringBuffer();
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new LEGACY_StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
-		}},IllegalArgumentException.class,"invalid characters");
+		checkForCorrectException(
+				() -> new LEGACY_StringSequenceWriter(null).writeInputSequence(wr, inputSequence),IllegalArgumentException.class,"invalid characters");
 	}
 
 	@Test
 	public final void testWriteInputSequence_F2() {
-		List<String> inputSequence = Arrays.asList(new String[] {""+LEGACY_StringSequenceWriter.seqNewLine});
+		List<String> inputSequence = Collections.singletonList("" + LEGACY_StringSequenceWriter.seqNewLine);
 		StringBuffer wr = new StringBuffer();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
 		Assert.assertEquals("[\"\\"+LEGACY_StringSequenceWriter.seqNewLine+"\"]",wr.toString());
 	}
 
 	@Test
 	public final void testWriteInputSequence_fail3() {
-		final List<String> inputSequence = Arrays.asList(new String[] {"this is a test",""});
+		final List<String> inputSequence = Arrays.asList("this is a test","");
 		final StringBuffer wr = new StringBuffer();
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new LEGACY_StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
-		}},IllegalArgumentException.class,"empty input in sequence");
+		checkForCorrectException(
+				() -> new LEGACY_StringSequenceWriter(null).writeInputSequence(wr, inputSequence),IllegalArgumentException.class,"empty input in sequence");
 	}
 	
 	@Test
 	public final void testWriteInputSequence_F3() {
-		List<String> inputSequence = Arrays.asList(new String[] {"this is a test",""});
+		List<String> inputSequence = Arrays.asList("this is a test","");
 		StringBuffer wr = new StringBuffer();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
 		Assert.assertEquals("[\"this is a test\",\"\"]",wr.toString());
 	}
 	
 	@Test
 	public final void testWriteInputSequence_fail4() {
-		final List<String> inputSequence = Arrays.asList(new String[] {""});
+		final List<String> inputSequence = Collections.singletonList("");
 		final StringBuffer wr = new StringBuffer();
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new LEGACY_StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
-		}},IllegalArgumentException.class,"empty input in sequence");
+		checkForCorrectException(
+				() -> new LEGACY_StringSequenceWriter(null).writeInputSequence(wr, inputSequence),IllegalArgumentException.class,"empty input in sequence");
 	}
 	
 	@Test
 	public final void testWriteInputSequence_F4() {
-		List<String> inputSequence = Arrays.asList(new String[] {""});
+		List<String> inputSequence = Collections.singletonList("");
 		StringBuffer wr = new StringBuffer();new StringSequenceWriter(null).writeInputSequence(wr, inputSequence);
 		Assert.assertEquals("[\"\"]",wr.toString());
 	}
 	
 	@Test
 	public final void testReadInputSequence1() {
-		List<String> expected = Arrays.asList(new String[] {});
+		List<String> expected = Collections.emptyList();
 		List<String> actual = new LEGACY_StringSequenceWriter(null).readInputSequence(
 				""+LEGACY_StringSequenceWriter.seqStart+LEGACY_StringSequenceWriter.seqEnd);
-		Assert.assertTrue("wrong result: "+actual,expected.equals(actual));
+		Assert.assertEquals("wrong result: " + actual, expected, actual);
 		
 		actual = new StringSequenceWriter(null).readInputSequence(
 				"[]");
-		Assert.assertTrue("wrong result: "+actual,expected.equals(actual));
+		Assert.assertEquals("wrong result: " + actual, expected, actual);
 	}
 
 	@Test
 	public final void testReadInputSequence2() {
-		List<String> expected = Arrays.asList(new String[] {"some more"});
+		List<String> expected = Collections.singletonList("some more");
 		List<String> actual = new LEGACY_StringSequenceWriter(null).readInputSequence(
 				LEGACY_StringSequenceWriter.seqStart+"some more"+LEGACY_StringSequenceWriter.seqEnd);
-		Assert.assertTrue("wrong result: "+actual+", expected "+expected,expected.equals(actual));
+		Assert.assertEquals("wrong result: " + actual + ", expected " + expected, expected, actual);
 		
 		actual = new StringSequenceWriter(null).readInputSequence(
 				"[\"some more\"]");
-		Assert.assertTrue("wrong result: "+actual+", expected "+expected,expected.equals(actual));
+		Assert.assertEquals("wrong result: " + actual + ", expected " + expected, expected, actual);
 	}
 
 	@Test
 	public final void testReadInputSequence3() {
-		List<String> expected = Arrays.asList(new String[] {"this is a test","some more"});
+		List<String> expected = Arrays.asList("this is a test","some more");
 		List<String> actual = new LEGACY_StringSequenceWriter(null).readInputSequence(
 				LEGACY_StringSequenceWriter.seqStart+"this is a test"+LEGACY_StringSequenceWriter.seqSep+"some more"+LEGACY_StringSequenceWriter.seqEnd);
-		Assert.assertTrue("wrong result: "+actual,expected.equals(actual));
+		Assert.assertEquals("wrong result: " + actual, expected, actual);
 		
 		actual = new StringSequenceWriter(null).readInputSequence(
 				"[\"this is a test\",\"some more\"]");
-		Assert.assertTrue("wrong result: "+actual,expected.equals(actual));
+		Assert.assertEquals("wrong result: " + actual, expected, actual);
 	}
 
 	@Test
 	public final void testReadInputSequence4() {
-		List<String> expected = Arrays.asList(new String[] {"this is a test","some more","data"});
+		List<String> expected = Arrays.asList("this is a test","some more","data");
 		List<String> actual = new LEGACY_StringSequenceWriter(null).readInputSequence(
 				LEGACY_StringSequenceWriter.seqStart+"this is a test"+
 				LEGACY_StringSequenceWriter.seqSep+"some more"+
 				LEGACY_StringSequenceWriter.seqSep+"data"+
 				LEGACY_StringSequenceWriter.seqEnd);
-		Assert.assertTrue("wrong result: "+actual,expected.equals(actual));
+		Assert.assertEquals("wrong result: " + actual, expected, actual);
 		
 		actual = new StringSequenceWriter(null).readInputSequence(
 				"[\"this is a test\","+
 				"\"some more\","+
 				"\"data\""+
 				"]");
-		Assert.assertTrue("wrong result: "+actual,expected.equals(actual));
+		Assert.assertEquals("wrong result: " + actual, expected, actual);
 	}
 	
 	@Test
 	public final void testReadInputSequence5() {
-		List<String> expected = Arrays.asList(new String[] {"this is a test","some more","data"});
+		List<String> expected = Arrays.asList("this is a test","some more","data");
 		List<String> actual = new StringSequenceWriter(null).readInputSequence(
 				"[\"this is a test\",\n"+
 				"\"some more\","+
 				"\"data\""+
 				"]");
-		Assert.assertTrue("wrong result: "+actual,expected.equals(actual));
+		Assert.assertEquals("wrong result: " + actual, expected, actual);
 	}
 
 	@Test
 	public final void testReadInputSequence_fail2a1() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-		new LEGACY_StringSequenceWriter(null).readInputSequence(
+		checkForCorrectException(() -> new LEGACY_StringSequenceWriter(null).readInputSequence(
 				LEGACY_StringSequenceWriter.seqEnd+"this is a test"+
 				LEGACY_StringSequenceWriter.seqSep+"some more"+
 				LEGACY_StringSequenceWriter.seqSep+"data"+
-				LEGACY_StringSequenceWriter.seqEnd);
-		}},IllegalArgumentException.class,"invalid char");
+				LEGACY_StringSequenceWriter.seqEnd),IllegalArgumentException.class,"invalid char");
 	}
 	
 	@Test
 	public final void testReadInputSequence_fail2a2() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new StringSequenceWriter(null).readInputSequence(
-					"[this is a test,"+
-					"some more,"+
-					"data"+
-					"]");
-		}},IllegalArgumentException.class,"invalid token");
+		checkForCorrectException(() -> new StringSequenceWriter(null).readInputSequence(
+				"[this is a test,"+
+				"some more,"+
+				"data"+
+				"]"),IllegalArgumentException.class,"invalid token");
 	}
 
 	@Test
 	public final void testReadInputSequence_fail2b1() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new LEGACY_StringSequenceWriter(null).readInputSequence(LEGACY_StringSequenceWriter.seqEnd+
-					LEGACY_StringSequenceWriter.seqStart+"this is a test"+
-					LEGACY_StringSequenceWriter.seqSep+"some more"+
-					LEGACY_StringSequenceWriter.seqSep+"data"+
-					LEGACY_StringSequenceWriter.seqEnd);
-		}},IllegalArgumentException.class,"invalid char");
+		checkForCorrectException(() -> new LEGACY_StringSequenceWriter(null).readInputSequence(LEGACY_StringSequenceWriter.seqEnd+
+				LEGACY_StringSequenceWriter.seqStart+"this is a test"+
+				LEGACY_StringSequenceWriter.seqSep+"some more"+
+				LEGACY_StringSequenceWriter.seqSep+"data"+
+				LEGACY_StringSequenceWriter.seqEnd),IllegalArgumentException.class,"invalid char");
 	}
 
 	@Test
 	public final void testReadInputSequence_fail2b2() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new StringSequenceWriter(null).readInputSequence("]"+
-					"[\"this is a test\","+
-					"\"some more\","+
-					"\"data\""+
-					"]");
-		}},IllegalArgumentException.class,"invalid token");
+		checkForCorrectException(() -> new StringSequenceWriter(null).readInputSequence("]"+
+				"[\"this is a test\","+
+				"\"some more\","+
+				"\"data\""+
+				"]"),IllegalArgumentException.class,"invalid token");
 	}
 
 	@Test
 	public final void testReadInputSequence_fail3a() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new LEGACY_StringSequenceWriter(null).readInputSequence(
-					LEGACY_StringSequenceWriter.seqStart+"this is a test"+
-					LEGACY_StringSequenceWriter.seqSep+"some more"+
-					LEGACY_StringSequenceWriter.seqSep+"data");
-		}},IllegalArgumentException.class,"premature end");
+		checkForCorrectException(() -> new LEGACY_StringSequenceWriter(null).readInputSequence(
+				LEGACY_StringSequenceWriter.seqStart+"this is a test"+
+				LEGACY_StringSequenceWriter.seqSep+"some more"+
+				LEGACY_StringSequenceWriter.seqSep+"data"),IllegalArgumentException.class,"premature end");
 	}
 
 	@Test
 	public final void testReadInputSequence_fail3b() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new StringSequenceWriter(null).readInputSequence(
-					"[\"this is a test\","+
-					"\"some more\","+
-					"\"data\"");
-		}},IllegalArgumentException.class,"unexpected end of list");
+		checkForCorrectException(() -> new StringSequenceWriter(null).readInputSequence(
+				"[\"this is a test\","+
+				"\"some more\","+
+				"\"data\""),IllegalArgumentException.class,"unexpected end of list");
 	}
 
 	@Test
 	public final void testReadInputSequence_fail4a() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new LEGACY_StringSequenceWriter(null).readInputSequence(
-					LEGACY_StringSequenceWriter.seqStart+"this is a test"+
-					LEGACY_StringSequenceWriter.seqSep+
-					LEGACY_StringSequenceWriter.seqSep+"data"+
-					LEGACY_StringSequenceWriter.seqEnd);
-		}},IllegalArgumentException.class,"empty input");
+		checkForCorrectException(() -> new LEGACY_StringSequenceWriter(null).readInputSequence(
+				LEGACY_StringSequenceWriter.seqStart+"this is a test"+
+				LEGACY_StringSequenceWriter.seqSep+
+				LEGACY_StringSequenceWriter.seqSep+"data"+
+				LEGACY_StringSequenceWriter.seqEnd),IllegalArgumentException.class,"empty input");
 	}
 
 	@Test
 	public final void testReadInputSequence_fail4b() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new StringSequenceWriter(null).readInputSequence(
-					"[\"this is a test\","+
-					"\"some more\",,"+
-					"\"data\""+
-					"]");
-		}},IllegalArgumentException.class,"unexpected comma");
+		checkForCorrectException(() -> new StringSequenceWriter(null).readInputSequence(
+				"[\"this is a test\","+
+				"\"some more\",,"+
+				"\"data\""+
+				"]"),IllegalArgumentException.class,"unexpected comma");
 	}
 
 	@Test
 	public final void testReadInputSequence_fail5a() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new LEGACY_StringSequenceWriter(null).readInputSequence(
-					LEGACY_StringSequenceWriter.seqStart+
-					LEGACY_StringSequenceWriter.seqSep+"some more"+
-					LEGACY_StringSequenceWriter.seqSep+"data"+
-					LEGACY_StringSequenceWriter.seqEnd);
-		}},IllegalArgumentException.class,"invalid char");
+		checkForCorrectException(() -> new LEGACY_StringSequenceWriter(null).readInputSequence(
+				LEGACY_StringSequenceWriter.seqStart+
+				LEGACY_StringSequenceWriter.seqSep+"some more"+
+				LEGACY_StringSequenceWriter.seqSep+"data"+
+				LEGACY_StringSequenceWriter.seqEnd),IllegalArgumentException.class,"invalid char");
 	}
 
 	@Test
 	public final void testReadInputSequence_fail5b() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new StringSequenceWriter(null).readInputSequence(
-					"[,\"this is a test\","+
-					"\"some more\","+
-					"\"data\""+
-					"]");
-		}},IllegalArgumentException.class,"unexpected comma");
+		checkForCorrectException(() -> new StringSequenceWriter(null).readInputSequence(
+				"[,\"this is a test\","+
+				"\"some more\","+
+				"\"data\""+
+				"]"),IllegalArgumentException.class,"unexpected comma");
 	}
 
 	/** Embedded list.*/
 	@Test
 	public final void testReadInputSequence_fail6() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new StringSequenceWriter(null).readInputSequence(
-					"[\"this is a test\",[],"+
-					"\"some more\","+
-					"\"data\""+
-					"]");
-		}},IllegalArgumentException.class,"expected a string, got []");
+		checkForCorrectException(() -> new StringSequenceWriter(null).readInputSequence(
+				"[\"this is a test\",[],"+
+				"\"some more\","+
+				"\"data\""+
+				"]"),IllegalArgumentException.class,"expected a string, got []");
 	}
 
 	/** Embedded tuple.*/
 	@Test
 	public final void testReadInputSequence_fail7() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new StringSequenceWriter(null).readInputSequence(
-					"[\"this is a test\",{},"+
-					"\"some more\","+
-					"\"data\""+
-					"]");
-		}},IllegalArgumentException.class,"expected a string, got {}");
+		checkForCorrectException(() -> new StringSequenceWriter(null).readInputSequence(
+				"[\"this is a test\",{},"+
+				"\"some more\","+
+				"\"data\""+
+				"]"),IllegalArgumentException.class,"expected a string, got {}");
 	}
 
 	/** Embedded atom.*/
 	@Test
 	public final void testReadInputSequence_fail8() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new StringSequenceWriter(null).readInputSequence(
-					"[\"this is a test\",yy,"+
-					"\"some more\","+
-					"\"data\""+
-					"]");
-		}},IllegalArgumentException.class,"expected a string, got yy");
+		checkForCorrectException(() -> new StringSequenceWriter(null).readInputSequence(
+				"[\"this is a test\",yy,"+
+				"\"some more\","+
+				"\"data\""+
+				"]"),IllegalArgumentException.class,"expected a string, got yy");
 	}
 
 	/** Embedded number.*/
 	@Test
 	public final void testReadInputSequence_fail9() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new StringSequenceWriter(null).readInputSequence(
-					"[\"this is a test\",67,"+
-					"\"some more\","+
-					"\"data\""+
-					"]");
-		}},IllegalArgumentException.class,"expected a string, got 67");
+		checkForCorrectException(() -> new StringSequenceWriter(null).readInputSequence(
+				"[\"this is a test\",67,"+
+				"\"some more\","+
+				"\"data\""+
+				"]"),IllegalArgumentException.class,"expected a string, got 67");
 	}
 
 	/** Embedded number.*/
 	@Test
 	public final void testReadInputSequence_fail10() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new StringSequenceWriter(null).readInputSequence(
-					"{\"this is a test\","+
-					"\"some more\","+
-					"\"data\""+
-					"}");
-		}},IllegalArgumentException.class,"expected a sequence, got {");
+		checkForCorrectException(() -> new StringSequenceWriter(null).readInputSequence(
+				"{\"this is a test\","+
+				"\"some more\","+
+				"\"data\""+
+				"}"),IllegalArgumentException.class,"expected a sequence, got {");
 	}
 
 	/** Embedded number.*/
 	@Test
 	public final void testReadInputSequence_fail11() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new StringSequenceWriter(null).readInputSequence(
-					"56");
-		}},IllegalArgumentException.class,"expected a sequence, got 56");
+		checkForCorrectException(() -> new StringSequenceWriter(null).readInputSequence(
+				"56"),IllegalArgumentException.class,"expected a sequence, got 56");
 	}
 
 	/** More than one sequence.*/
 	@Test
 	public final void testReadInputSequence_fail12() {
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new StringSequenceWriter(null).readInputSequence(
-					"[],[]");
-		}},IllegalArgumentException.class,"unexpected characters");
+		checkForCorrectException(() -> new StringSequenceWriter(null).readInputSequence(
+				"[],[]"),IllegalArgumentException.class,"unexpected characters");
 	}
 
 	/** Used to remove tags from XML during testing. */
@@ -458,13 +414,14 @@ public class TestRecordProgressDecorator
 		return str.replace(tag.name()+"=\"", tag.name()+"=\""+junkTag);
 	}
 	
+	@SuppressWarnings("ConstantConditions")
 	@RunWith(ParameterizedWithName.class)
 	public static class TestSequenceDumping
 	{
 		@org.junit.runners.Parameterized.Parameters
 		public static Collection<Object[]> data() 
 		{
-			List<Object[]> outcome = new LinkedList<Object[]>();
+			List<Object[]> outcome = new LinkedList<>();
 			for(boolean legacy:new boolean[]{true,false})
 				for(LABELKIND lblKind:LABELKIND.values())
 					outcome.add(new Object[]{legacy,lblKind});
@@ -478,13 +435,13 @@ public class TestRecordProgressDecorator
 		/** Creates the test class with the number of threads to create as an argument. */
 		public TestSequenceDumping(Boolean legacyArg, LABELKIND labelKind)
 		{
-			config.setLabelKind(labelKind);config.setLegacyXML(legacyArg.booleanValue());
+			config.setLabelKind(labelKind);config.setLegacyXML(legacyArg);
 		}
 		
 		@ParametersToString
 		public static String parametersToString(Boolean legacyArg, LABELKIND labelKind)
 		{
-			return (legacyArg.booleanValue()?"Legacy":"Current")+" "+labelKind;
+			return (legacyArg ?"Legacy":"Current")+" "+labelKind;
 		}
 		
 		@Test
@@ -505,8 +462,8 @@ public class TestRecordProgressDecorator
 					new String[]{},
 					new String[]{"more data"}
 			}), actual = dumper.stringio.readSequenceList(dataElem,"someData");
-			
-			Assert.assertTrue("Expected "+expected+" got: "+actual,actual.equals(expected));
+
+			Assert.assertEquals("Expected " + expected + " got: " + actual, actual, expected);
 		}
 		
 		@Test
@@ -519,7 +476,7 @@ public class TestRecordProgressDecorator
 					new String[]{},
 					new String[]{"more data"}
 			}), actual = loader.stringio.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"someData");
-			Assert.assertTrue(actual.equals(expected));
+			Assert.assertEquals(actual, expected);
 		}
 	
 		@Test
@@ -554,8 +511,8 @@ public class TestRecordProgressDecorator
 					new String[]{"the second set of data"}
 			}),actual = loader.stringio.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"someData"),
 			actual2 = loader.stringio.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"moreData");
-			Assert.assertTrue(actual.equals(expected));
-			Assert.assertTrue(actual2.equals(expected2));
+			Assert.assertEquals(actual, expected);
+			Assert.assertEquals(actual2, expected2);
 		}
 	
 		/** Tests that during processing of an XML file I can step back. */
@@ -592,7 +549,7 @@ public class TestRecordProgressDecorator
 			});
 			Element someDataElement = loader.expectNextElement(StatechumXML.ELEM_SEQ.name());
 			List<List<String>> actual = loader.stringio.readSequenceList(someDataElement,"someData");
-			Assert.assertTrue(actual.equals(expected));
+			Assert.assertEquals(actual, expected);
 	
 			loader.setNextElement(someDataElement);Assert.assertSame(someDataElement,loader.expectNextElement(StatechumXML.ELEM_SEQ.name()));
 			loader.setNextElement(someDataElement);Assert.assertSame(someDataElement,loader.expectNextElement(StatechumXML.ELEM_SEQ.name()));
@@ -600,12 +557,12 @@ public class TestRecordProgressDecorator
 			
 			Element moreDataElement = loader.expectNextElement(StatechumXML.ELEM_SEQ.name());
 			List<List<String>> actual2 = loader.stringio.readSequenceList(moreDataElement,"moreData");
-			Assert.assertTrue(actual2.equals(expected2));
+			Assert.assertEquals(actual2, expected2);
 			
 			// now we force the old element to be re-discovered
 			loader.setNextElement(someDataElement);Assert.assertSame(someDataElement,loader.expectNextElement(StatechumXML.ELEM_SEQ.name()));
 			actual = loader.stringio.readSequenceList(someDataElement,"someData");
-			Assert.assertTrue(actual.equals(expected));
+			Assert.assertEquals(actual, expected);
 		}
 	
 		/** Invalid XML file. */
@@ -618,16 +575,14 @@ public class TestRecordProgressDecorator
 					new String[]{},
 					new String[]{"more data"}
 			}), actual = loader.stringio.readSequenceList(loader.expectNextElement("whatever"),"someData");
-			Assert.assertTrue(actual.equals(expected));
+			Assert.assertEquals(actual, expected);
 		}
 		
 		/** Expected tag not found */
 		@Test
 		public final void testWriteSequences_fail2() {
 			final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceAll(StatechumXML.ELEM_SEQ.name(), "TT").getBytes()),false,converter);
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				loader.expectNextElement("U");
-			}},IllegalArgumentException.class,"encountered");
+			checkForCorrectException(() -> loader.expectNextElement("U"),IllegalArgumentException.class,"encountered");
 		}
 		
 		protected String dumpSequencesHelper()
@@ -650,9 +605,8 @@ public class TestRecordProgressDecorator
 		public final void testWriteSequences_fail3() {
 			final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(dumpSequencesHelper().replaceAll(StatechumXML.ELEM_SEQ.name(), "TT").getBytes()),false,converter);
 			loader.initIO(loader.doc, config);
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				loader.stringio.readSequenceList(loader.expectNextElement("TT"),"someData");
-			}},IllegalArgumentException.class,"expecting to load a list of sequences");
+			checkForCorrectException(
+					() -> loader.stringio.readSequenceList(loader.expectNextElement("TT"),"someData"),IllegalArgumentException.class,"expecting to load a list of sequences");
 		}
 	
 		/** The name given to the collection of sequences does not match. */
@@ -672,9 +626,8 @@ public class TestRecordProgressDecorator
 			
 			final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(output.toByteArray()),false,converter);
 			loader.initIO(loader.doc, config);
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				loader.stringio.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"AsomeData");
-			}},IllegalArgumentException.class,"expecting to load a list with name ");
+			checkForCorrectException(
+					() -> loader.stringio.readSequenceList(loader.expectNextElement(StatechumXML.ELEM_SEQ.name()),"AsomeData"),IllegalArgumentException.class,"expecting to load a list with name ");
 		}
 	
 		@Test
@@ -682,11 +635,11 @@ public class TestRecordProgressDecorator
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
-			Element A=null;
+			Element A;
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
-			
-			Set<String> singlesCollection = new TreeSet<String>();singlesCollection.addAll(Arrays.asList(new String[]{"A","B"}));
+
+			Set<String> singlesCollection = new TreeSet<>(Arrays.asList("A", "B"));
 			ProgressDecorator.checkSingles(dumper.topElement, singlesCollection);
 		}
 		
@@ -695,7 +648,7 @@ public class TestRecordProgressDecorator
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
-			Element A=null;
+			Element A;
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 			
@@ -707,15 +660,14 @@ public class TestRecordProgressDecorator
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
-			Element A=null;
+			Element A;
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
-			
-			final Set<String> singlesCollection = new TreeSet<String>();singlesCollection.addAll(Arrays.asList(new String[]{"A","B"}));
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ProgressDecorator.checkSingles(dumper.topElement, singlesCollection);
-			}},IllegalArgumentException.class,"duplicate");
+
+			final Set<String> singlesCollection = new TreeSet<>(Arrays.asList("A", "B"));
+			checkForCorrectException(
+					() -> ProgressDecorator.checkSingles(dumper.topElement, singlesCollection),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -723,15 +675,14 @@ public class TestRecordProgressDecorator
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
-			Element A=null;
+			Element A;
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
-			
-			final Set<String> singlesCollection = new TreeSet<String>();singlesCollection.addAll(Arrays.asList(new String[]{"A","B"}));
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ProgressDecorator.checkSingles(dumper.topElement, singlesCollection);
-			}},IllegalArgumentException.class,"duplicate");
+
+			final Set<String> singlesCollection = new TreeSet<>(Arrays.asList("A", "B"));
+			checkForCorrectException(
+					() -> ProgressDecorator.checkSingles(dumper.topElement, singlesCollection),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -739,14 +690,13 @@ public class TestRecordProgressDecorator
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
-			Element A=null;
+			Element A;
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
-			
-			final Set<String> singlesCollection = new TreeSet<String>();singlesCollection.addAll(Arrays.asList(new String[]{"A","B"}));
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ProgressDecorator.checkSingles(dumper.topElement, singlesCollection);
-			}},IllegalArgumentException.class,"duplicate");
+
+			final Set<String> singlesCollection = new TreeSet<>(Arrays.asList("A", "B"));
+			checkForCorrectException(
+					() -> ProgressDecorator.checkSingles(dumper.topElement, singlesCollection),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -754,14 +704,13 @@ public class TestRecordProgressDecorator
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
-			Element A=null;
+			Element A;
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 		
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ProgressDecorator.checkSingles(dumper.topElement, null);
-			}},IllegalArgumentException.class,"duplicate");
+			checkForCorrectException(
+					() -> ProgressDecorator.checkSingles(dumper.topElement, null),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -769,14 +718,13 @@ public class TestRecordProgressDecorator
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
-			Element A=null;
+			Element A;
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 		
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ProgressDecorator.checkSingles(dumper.topElement, null);
-			}},IllegalArgumentException.class,"duplicate");
+			checkForCorrectException(
+					() -> ProgressDecorator.checkSingles(dumper.topElement, null),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -784,14 +732,13 @@ public class TestRecordProgressDecorator
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
-			Element A=null;
+			Element A;
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 		
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ProgressDecorator.checkSingles(dumper.topElement, null);
-			}},IllegalArgumentException.class,"duplicate");
+			checkForCorrectException(
+					() -> ProgressDecorator.checkSingles(dumper.topElement, null),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -799,14 +746,13 @@ public class TestRecordProgressDecorator
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
-			Element A=null;
+			Element A;
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
-			
-			final Set<String> singlesCollection = new TreeSet<String>();singlesCollection.addAll(Arrays.asList(new String[]{"B"}));
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ProgressDecorator.checkSingles(dumper.topElement, singlesCollection);
-			}},IllegalArgumentException.class,"duplicate");
+
+			final Set<String> singlesCollection = new TreeSet<>(Collections.singletonList("B"));
+			checkForCorrectException(
+					() -> ProgressDecorator.checkSingles(dumper.topElement, singlesCollection),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -814,15 +760,14 @@ public class TestRecordProgressDecorator
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			final RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
-			Element A=null;
+			Element A;
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("C");dumper.topElement.appendChild(A);
-			
-			final Set<String> singlesCollection = new TreeSet<String>();singlesCollection.addAll(Arrays.asList(new String[]{"A","B"}));
-			checkForCorrectException(new whatToRun() { public @Override void run() {
-				ProgressDecorator.checkSingles(dumper.topElement, singlesCollection);
-			}},IllegalArgumentException.class,"found unexpected elements");
+
+			final Set<String> singlesCollection = new TreeSet<>(Arrays.asList("A", "B"));
+			checkForCorrectException(
+					() -> ProgressDecorator.checkSingles(dumper.topElement, singlesCollection),IllegalArgumentException.class,"found unexpected elements");
 		}
 		
 		@Test

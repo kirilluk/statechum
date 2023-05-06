@@ -18,16 +18,7 @@
 
 package statechum.analysis.learning;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
+import java.util.*;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -35,7 +26,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName;
 
 import statechum.*;
 import statechum.Configuration.ScoreMode;
@@ -45,7 +36,6 @@ import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.TestHelper.whatToRun;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
@@ -67,7 +57,6 @@ import edu.uci.ics.jung.algorithms.shortestpath.DijkstraShortestPath;
 import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
-import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import static statechum.TestHelper.checkForCorrectException;
@@ -89,7 +78,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	 * @param config configuration to consider
 	 * @return description.
 	 */ 
-	@org.junit.runners.ParameterizedWithName.ParametersToString
+	@junit_runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return TestConfiguration.parametersToString(config);
@@ -148,8 +137,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
-				Pair<Integer,String> oracleAnswer = new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
-				return oracleAnswer;				
+				return new Pair<>(expected.paths.tracePathPrefixClosed(question), null);
 			}
 			
 		};
@@ -221,7 +209,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		OrigStatePair pairOrig = new OrigStatePair(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("B"), g),
 				DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("A"), g));
 		StatePair pairNew = new StatePair(s.findVertex(VertexID.parseID("B")),s.findVertex(VertexID.parseID("A")));
-		doneEdges = new HashSet<DirectedSparseEdge>();
+		doneEdges = new HashSet<>();
 		long origScore = computeScore(g, pairOrig),
 			newScoreA = s.pairscores.computeStateScore(pairNew);
 		Assert.assertEquals(-1, origScore);
@@ -247,17 +235,18 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		// Now check that ComputeStateScores properly does  mergeAndDeterminize 
 		// (on the test data we are dealing with in these tests, there are separate tests for mergeAndDeterminize)
 		LearnerGraph tempG = new LearnerGraph(temp,testConfig), tempBG = new LearnerGraph(tempB,testConfig);
-		Assert.assertEquals(false, tempG.pathroutines.checkUnreachableStates());Assert.assertEquals(false, tempBG.pathroutines.checkUnreachableStates());
+		Assert.assertFalse(tempG.pathroutines.checkUnreachableStates());
+		Assert.assertFalse(tempBG.pathroutines.checkUnreachableStates());
 		Assert.assertNull(WMethod.checkM(tempG, tempBG));
 		
 		
-		doneEdges = new HashSet<DirectedSparseEdge>();
+		doneEdges = new HashSet<>();
 		long origScore = computeScore(g, pairOrig),
 			newScoreA = s.pairscores.computeStateScore(pairNew1),
 			newScoreB = s.pairscores.computePairCompatibilityScore(pairNew1),
-			newScoreC = s.pairscores.computePairCompatibilityScore_general(pairNew1,null, new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(), true),
-			newScoreS = s.pairscores.computePairCompatibilityScore_general(pairNew1,null, new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(), false),
-			newScoreT = new OldPairScoreComputation(s).computePairCompatibilityScore_general(pairNew1,null, new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>());
+			newScoreC = s.pairscores.computePairCompatibilityScore_general(pairNew1,null, new LinkedList<>(), true),
+			newScoreS = s.pairscores.computePairCompatibilityScore_general(pairNew1,null, new LinkedList<>(), false),
+			newScoreT = new OldPairScoreComputation(s).computePairCompatibilityScore_general(pairNew1,null, new LinkedList<>());
 
 		LearnerGraph learner2 = new LearnerGraph(g, testConfig);
 		StatePair pairNew2 = new StatePair(learner2.findVertex(VertexID.parseID("B")),learner2.findVertex(VertexID.parseID("A")));
@@ -279,16 +268,16 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(newScoreC, newScoreT);
 		if (expectedScore != -1)
 		{
-			Set<List<Label>> oldQuestions = new HashSet<List<Label>>();oldQuestions.addAll(generateQuestions(g,temp, pairOrig));
+			Set<List<Label>> oldQuestions = new HashSet<>(generateQuestions(g, temp, pairOrig));
 			//Assert.assertTrue(oldQuestions.size() > 0);
-			Set<List<Label>> newQuestionsB = new HashSet<List<Label>>();newQuestionsB.addAll(questionsB);
-			Set<List<Label>> newQuestionsC = new HashSet<List<Label>>();newQuestionsC.addAll(questionsC);
-			Set<List<Label>> newQuestionsD = new HashSet<List<Label>>();newQuestionsD.addAll(questionsD);
-			Set<List<Label>> newQuestionsT = new HashSet<List<Label>>();newQuestionsT.addAll(questionsT);
-			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsB,oldQuestions.equals(newQuestionsB));
-			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsC,oldQuestions.equals(newQuestionsC));
-			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsD,oldQuestions.equals(newQuestionsD));
-			Assert.assertTrue("different questions: old "+oldQuestions+", new "+questionsT,oldQuestions.equals(newQuestionsT));
+			Set<List<Label>> newQuestionsB = new HashSet<>(questionsB);
+			Set<List<Label>> newQuestionsC = new HashSet<>(questionsC);
+			Set<List<Label>> newQuestionsD = new HashSet<>(questionsD);
+			Set<List<Label>> newQuestionsT = new HashSet<>(questionsT);
+			Assert.assertEquals("different questions: old " + oldQuestions + ", new " + questionsB, oldQuestions, newQuestionsB);
+			Assert.assertEquals("different questions: old " + oldQuestions + ", new " + questionsC, oldQuestions, newQuestionsC);
+			Assert.assertEquals("different questions: old " + oldQuestions + ", new " + questionsD, oldQuestions, newQuestionsD);
+			Assert.assertEquals("different questions: old " + oldQuestions + ", new " + questionsT, oldQuestions, newQuestionsT);
 		}
 	}
 	
@@ -643,9 +632,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		DijkstraShortestPath p = new DijkstraShortestPath(model);
 		List<Edge> pathToRed = p.getPath(DeterministicDirectedSparseGraph.findInitial(model), r);
-		Vertex tempRed = null;
+		Vertex tempRed;
 		if(!pathToRed.isEmpty()){
-			List<Label> pathToRedString = new LinkedList<Label>();
+			List<Label> pathToRedString = new LinkedList<>();
 			for(Edge e:pathToRed)
 				pathToRedString.add( ((Collection<Label>)e.getUserDatum(JUConstants.LABEL)).iterator().next() );
 			tempRed = Test_Orig_RPNIBlueFringeLearner.getVertex(temp, pathToRedString);
@@ -662,8 +651,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			temp= FsmParserStatechum.buildLearnerGraph("C-d->Q", "testGetTempRed1 temp",config,getLabelConverter()).pathroutines.getGraph();
 		Vertex foundA = getTempRed_DijkstraShortestPath(a, DeterministicDirectedSparseGraph.findInitial(a), temp);
 		Vertex foundB =Test_Orig_RPNIBlueFringeLearnerTestComponent.getTempRed(a, DeterministicDirectedSparseGraph.findInitial(a), temp);
-		Assert.assertTrue(DeterministicDirectedSparseGraph.findInitial(temp).equals(foundA));
-		Assert.assertTrue(DeterministicDirectedSparseGraph.findInitial(temp).equals(foundB));
+		Assert.assertEquals(DeterministicDirectedSparseGraph.findInitial(temp), foundA);
+		Assert.assertEquals(DeterministicDirectedSparseGraph.findInitial(temp), foundB);
 	}
 	
 	@Test
@@ -673,8 +662,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			temp= FsmParserStatechum.buildLearnerGraph("C-a->Q-a->Q-c->Q", "testGetTempRed1 temp",config,getLabelConverter()).pathroutines.getGraph();
 		Vertex foundA = getTempRed_DijkstraShortestPath(a, DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("D"), a), temp);
 		Vertex foundB = Test_Orig_RPNIBlueFringeLearnerTestComponent.getTempRed(a, DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("D"), a), temp);
-		Assert.assertTrue(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("Q"), temp).equals(foundA));
-		Assert.assertTrue(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("Q"), temp).equals(foundB));
+		Assert.assertEquals(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("Q"), temp), foundA);
+		Assert.assertEquals(DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("Q"), temp), foundB);
 	}
 	
 	@Test
@@ -691,10 +680,10 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Vertex 
 			b = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("B"), g),
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("D"), g);
-		Set<Vertex> expected = new HashSet<Vertex>();expected.add(d);expected.add(b);
-		Set<Vertex> actualA = new HashSet<Vertex>();
+		Set<Vertex> expected = new HashSet<>();expected.add(d);expected.add(b);
+		Set<Vertex> actualA = new HashSet<>();
 		OrigStatePair value = Test_Orig_RPNIBlueFringeLearner.findMergablePair(g);actualA.add(value.getQ());actualA.add(value.getR());
-		Assert.assertTrue("expected: B, D in either order got: "+actualA,expected.equals(actualA));
+		Assert.assertEquals("expected: B, D in either order got: " + actualA, expected, actualA);
 	}
 	
 	@Test
@@ -706,7 +695,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			d = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("D"), g);
 		OrigStatePair expected = new OrigStatePair(d,s),
 		actualA = Test_Orig_RPNIBlueFringeLearner.findMergablePair(g);
-		Assert.assertTrue("expected: "+expected+" got: "+actualA,expected.equals(actualA));
+		Assert.assertEquals("expected: " + expected + " got: " + actualA, expected, actualA);
 	}
 
 	@Test
@@ -718,7 +707,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			s = DeterministicDirectedSparseGraph.findVertex(JUConstants.LABEL, VertexID.parseID("S"), g);
 		OrigStatePair expected = new OrigStatePair(b,s),
 		actualA = Test_Orig_RPNIBlueFringeLearner.findMergablePair(g);
-		Assert.assertTrue("expected: "+expected+" got: "+actualA,expected.equals(actualA));
+		Assert.assertEquals("expected: " + expected + " got: " + actualA, expected, actualA);
 	}
 
 	@Test
@@ -758,27 +747,22 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 
 		// check how the reference pair selection function performs
 		Configuration conf = testConfig.copy();conf.setLearnerUseStrings(false);conf.setLearnerCloneGraph(false);
-		testChooseStatePairsInternal(gB,new LearnerGraph(gB, conf), initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {
-			public @Override Stack<StatePair> choosePairs() {// Here I need to convert the old type of pairs to the new one.
-				Stack<OrigStatePair> pairs = chooseStatePairs(gB, new HashSet<List<Label>>(), new HashSet<List<Label>>());
-				Stack<StatePair> result = new Stack<StatePair>();
-				for(OrigStatePair pair:pairs) result.add(new StatePair((CmpVertex)pair.getQ(),(CmpVertex)pair.getR()));
-				return result;
-			}
+		testChooseStatePairsInternal(gB,new LearnerGraph(gB, conf), initialReds, expectedReds, expectedPairs,
+				() -> {// Here I need to convert the old type of pairs to the new one.
+					Stack<OrigStatePair> pairs = chooseStatePairs(gB, new HashSet<>(), new HashSet<>());
+					Stack<StatePair> result = new Stack<>();
+					for(OrigStatePair pair:pairs) result.add(new StatePair(pair.getQ(), pair.getR()));
+					return result;
 		});
 
 		final DirectedSparseGraph gA = FsmParserStatechum.buildLearnerGraph(fsm, graphName,config,getLabelConverter()).pathroutines.getGraph();
 		// check how the revised pair selection function performs
 		final LearnerGraph s = new LearnerGraph(gA, testConfig);
-		testChooseStatePairsInternal(gA,s, initialReds, expectedReds, expectedPairs, new InterfaceChooserToTest() {
-			public @Override Stack<? extends StatePair> choosePairs() {
-				return s.pairscores.chooseStatePairs(null);
-			}
-		});
+		testChooseStatePairsInternal(gA,s, initialReds, expectedReds, expectedPairs, () -> s.pairscores.chooseStatePairs(null));
 	}
 	
-	private final void testChooseStatePairsInternal(DirectedSparseGraph g,LearnerGraph l, String [] initialReds, String [][] expectedReds, 
-			List<PairScore> expectedPairs,InterfaceChooserToTest chooser)
+	private void testChooseStatePairsInternal(DirectedSparseGraph g, LearnerGraph l, String [] initialReds, String [][] expectedReds,
+											  List<PairScore> expectedPairs, InterfaceChooserToTest chooser)
 	{
 		for(String red:initialReds)
 		{
@@ -786,39 +770,34 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		}
 		Stack<? extends StatePair> pairs = chooser.choosePairs();
 
-		Map<Long,Set<PairScore>> distribution = new HashMap<Long,Set<PairScore>>();// maps scores to sets of states which should correspond to them. The aim is to verify the contents of the stack regardless of the order in which elements with the same score are arranged.
+		Map<Long,Set<PairScore>> distribution = new HashMap<>();// maps scores to sets of states which should correspond to them. The aim is to verify the contents of the stack regardless of the order in which elements with the same score are arranged.
 
-		Set<Set<String>> expectedRedsAsSet = new HashSet<Set<String>>();
-		for(int i=0;i<expectedReds.length;++i) 
-		{
-			Set<String> possibleReds = new HashSet<String>();possibleReds.addAll(Arrays.asList(expectedReds[i]));
+		Set<Set<String>> expectedRedsAsSet = new HashSet<>();
+		for (String[] expectedRed : expectedReds) {
+			Set<String> possibleReds = new HashSet<>(Arrays.asList(expectedRed));
 			expectedRedsAsSet.add(possibleReds);
 		}
-		Set<String> finalReds = new HashSet<String>();
+		Set<String> finalReds = new HashSet<>();
 		DirectedSparseGraph grf = l.pathroutines.getGraph();
 		for(Vertex red:DeterministicDirectedSparseGraph.findVertices(JUConstants.COLOUR, JUConstants.RED, grf))
 				finalReds.add(((VertID)red.getUserDatum(JUConstants.LABEL)).getStringId());
 		Assert.assertTrue("expected red states, any of: "+expectedRedsAsSet+" actual : "+finalReds,expectedRedsAsSet.contains(finalReds));
 		for(PairScore ps:expectedPairs)
 		{
-			Set<PairScore> currScore = distribution.get(ps.getScore()); 
-			if (currScore == null)
-			{
-				currScore = new HashSet<PairScore>();distribution.put(ps.getScore(),currScore);
-			}
+			Set<PairScore> currScore = distribution.computeIfAbsent(ps.getScore(), k -> new HashSet<>());
 			currScore.add(ps);
 		}
 		long lastScore = -1;
 		for(StatePair elem:pairs)
 		{
-			doneEdges = new HashSet<DirectedSparseEdge>();
+			doneEdges = new HashSet<>();
 			DeterministicVertex origBlue = DeterministicDirectedSparseGraph.findVertexNamed(elem.getQ(), g);
 			DeterministicVertex origRed = DeterministicDirectedSparseGraph.findVertexNamed(elem.getR(), g);
 			long currentScore = computeScore(g, new OrigStatePair(origBlue,origRed));// This one returns vertices from g, but elem may easily contain StringVertices and such, hence convert elem to Vertex-pair.
 			PairScore elA = constructPairScore(elem.getQ().getStringId(),elem.getR().getStringId(),currentScore, testConfig);
 			PairScore elB = constructPairScore(elem.getR().getStringId(),elem.getQ().getStringId(),currentScore, testConfig);
-			Assert.assertTrue(elem.getR().getColour() == JUConstants.RED);
-			Assert.assertTrue(elem.getQ().getColour() == JUConstants.BLUE);
+			Assert.assertSame(elem.getR().getColour(), JUConstants.RED);
+			Assert.assertSame(elem.getQ().getColour(), JUConstants.BLUE);
 			Assert.assertTrue(currentScore >= 0);
 			Assert.assertTrue("unexpected pair returned: "+elem+", score "+currentScore,distribution.containsKey(currentScore));
 			Set<PairScore> ps = distribution.get(currentScore);
@@ -842,15 +821,15 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		LearnerGraph gr = new LearnerGraph(config);
 		Label a=AbstractLearnerGraph.generateNewLabel("a", config,getLabelConverter()),b=AbstractLearnerGraph.generateNewLabel("b", config,getLabelConverter());
-		gr.paths.augmentPTA(Arrays.asList(new Label[]{a,a}),true,false,null);
-		gr.paths.augmentPTA(Arrays.asList(new Label[]{a,b}),true,false,null);
-		gr.paths.augmentPTA(Arrays.asList(new Label[]{b}),true,false,null);
+		gr.paths.augmentPTA(Arrays.asList(a,a),true,false,null);
+		gr.paths.augmentPTA(Arrays.asList(a,b),true,false,null);
+		gr.paths.augmentPTA(Collections.singletonList(b),true,false,null);
 		
-		CmpVertex A=gr.paths.getVertex(Arrays.asList(new Label[]{})),
-				B=gr.paths.getVertex(Arrays.asList(new Label[]{a})),
-				C=gr.paths.getVertex(Arrays.asList(new Label[]{a,a})),
-				D=gr.paths.getVertex(Arrays.asList(new Label[]{a,b})),
-				E=gr.paths.getVertex(Arrays.asList(new Label[]{b}));
+		CmpVertex A=gr.paths.getVertex(Collections.emptyList()),
+				B=gr.paths.getVertex(Collections.singletonList(a)),
+				C=gr.paths.getVertex(Arrays.asList(a,a)),
+				D=gr.paths.getVertex(Arrays.asList(a,b)),
+				E=gr.paths.getVertex(Collections.singletonList(b));
 						
 		// The following names are in the order of Red,Blue, but constructor of PairScore expects them in the opposite order 
 		PairScore AE=new PairScore(E,A,0,0),AB=new PairScore(B,A,0,0),
@@ -858,12 +837,12 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 				BC=new PairScore(C,B,0,0),EC=new PairScore(C,E,0,0),
 				DC=new PairScore(C,D,0,0),CC=new PairScore(C,C,0,0);
 		
-		PairScore orderedArray[]=new PairScore[]{AE,AB,AD,AC,EC,BC,DC,CC};
+		PairScore[] orderedArray =new PairScore[]{AE,AB,AD,AC,EC,BC,DC,CC};
 		for(int i=0;i<orderedArray.length;++i)
 			for(int j=0;j<orderedArray.length;++j)
 			{
 				int actual = orderedArray[i].compareInTermsOfDepth(orderedArray[j]);if (actual > 0) actual=1;else if (actual < 0) actual=-1;
-				int expected = Integer.valueOf(j).compareTo(i);// the first one is the highest
+				int expected = Integer.compare(j, i);// the first one is the highest
 				Assert.assertEquals(orderedArray[i]+".compareto "+orderedArray[j]+" (="+actual+") != "+expected,expected,actual);
 			}
 	}
@@ -871,7 +850,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testNewchooseStatePairs1()
 	{
-		List<PairScore> pairsAndScores = new LinkedList<PairScore>();
+		List<PairScore> pairsAndScores = new LinkedList<>();
 		pairsAndScores.add(constructPairScore("A2", "A", 0,testConfig));
 		pairsAndScores.add(constructPairScore("U1", "A", 2,testConfig));
 		pairsAndScores.add(constructPairScore("S1", "A", 3,testConfig));
@@ -896,7 +875,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testNewchooseStatePairs2()
 	{
-		List<PairScore> pairsAndScores = new LinkedList<PairScore>();
+		List<PairScore> pairsAndScores = new LinkedList<>();
 		pairsAndScores.add(constructPairScore("A2", "A", 0,testConfig));
 		pairsAndScores.add(constructPairScore("U1", "A", 2,testConfig));
 		pairsAndScores.add(constructPairScore("S1", "A", 3,testConfig));
@@ -922,7 +901,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testNewchooseStatePairs3()
 	{
-		List<PairScore> pairsAndScores = new LinkedList<PairScore>();
+		List<PairScore> pairsAndScores = new LinkedList<>();
 		pairsAndScores.add(constructPairScore("R1", "R2", 0,testConfig));
 		pairsAndScores.add(constructPairScore("A1", "A", 3,testConfig));
 
@@ -1326,7 +1305,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 		
 		// does not report a negative because all states are red.
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
@@ -1344,7 +1323,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(2,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 
 		// does not report a negative because all states are red.
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
@@ -1362,7 +1341,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 
 		// does not report a negative because all states are red.
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
@@ -1380,7 +1359,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 
 		// does not report a negative because all states are red.
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
@@ -1397,7 +1376,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
@@ -1415,7 +1394,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 
 		// does not report a negative because all states are red.
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
@@ -1432,7 +1411,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreSicco(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
@@ -1449,7 +1428,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
 		
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
@@ -1465,7 +1444,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
 		
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 		Assert.assertEquals(-1,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("P"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		// c from A and d from B.
@@ -1482,7 +1461,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("C").setColour(JUConstants.BLUE);fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
 		
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
@@ -1502,7 +1481,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("P").setColour(JUConstants.BLUE);fsm.findVertex("H").setColour(JUConstants.BLUE);
 
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
@@ -1519,7 +1498,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("P").setColour(JUConstants.BLUE);
 
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
@@ -1536,7 +1515,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);fsm.findVertex("P").setColour(JUConstants.RED);
 		fsm.findVertex("H").setColour(JUConstants.BLUE);fsm.findVertex("E").setColour(JUConstants.BLUE);
 
-		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(-2,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
@@ -1549,31 +1528,23 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testSiccoScoring11()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
-		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 
-		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
-			fsm.pairscores.computeSiccoRejectScoreGeneral(null, collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR);
-		}},IllegalArgumentException.class,"when looking for a score from a single pair");
+		checkForCorrectException(() -> fsm.pairscores.computeSiccoRejectScoreGeneral(null, collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR),IllegalArgumentException.class,"when looking for a score from a single pair");
 
-		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
-			fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(null, collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR);
-		}},IllegalArgumentException.class,"when looking for a score from a single pair");
+		checkForCorrectException(() -> fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(null, collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR),IllegalArgumentException.class,"when looking for a score from a single pair");
 	}
 	@Test
 	public final void testSiccoScoring12()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
-		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 
-		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
-			fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("J"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR);
-		}},IllegalArgumentException.class,"invalid merge: pair");
+		checkForCorrectException(() -> fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("J"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR),IllegalArgumentException.class,"invalid merge: pair");
 
-		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
-			fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("J"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR);
-		}},IllegalArgumentException.class,"invalid merge: pair");
+		checkForCorrectException(() -> fsm.pairscores.computeSiccoRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("J"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR),IllegalArgumentException.class,"invalid merge: pair");
 	}
 	
 	// testing reject-vertex handling
@@ -1581,7 +1552,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	public final void testSiccoScoring13()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C / D-a->E-b-#F", "testSiccoScoring13",testConfig,getLabelConverter());
-		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("D"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(0,fsm.pairscores.computeSiccoRejectScoreGeneral(new StatePair(fsm.findVertex("D"),fsm.findVertex("A")), collectionOfVerticesToMerge, SiccoGeneralScoring.S_RED));
 
@@ -1593,58 +1564,54 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	@Test
 	public final void testcheckMatch1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
-			LearningAlgorithms.checkMatch(null, null, null, -1);
-		}},IllegalArgumentException.class,"k has to be 0 or above");
+		checkForCorrectException(() -> LearningAlgorithms.checkMatch(null, null, null, -1),IllegalArgumentException.class,"k has to be 0 or above");
 	}
 	
 	@Test
 	public final void testcheckMatch2a()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B / C-b->D", "testcheckMatch2a",testConfig,getLabelConverter());
-		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 0));
+		Assert.assertTrue(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 0));
 	}
 	
 	@Test
 	public final void testcheckMatch2b()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B / C-b->D", "testcheckMatch2a",testConfig,getLabelConverter());
-		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("D"), 0));
+		Assert.assertTrue(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("D"), 0));
 	}
 	
 	@Test
 	public final void testcheckMatch2c()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a-#T / C-a->D-a->C", "testcheckMatch8",testConfig,getLabelConverter());
-		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("T"), fsm.findVertex("C"), 0));
-		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("D"), 1));
+		Assert.assertFalse(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("T"), fsm.findVertex("C"), 0));
+		Assert.assertFalse(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("D"), 1));
 	}		
 	
 	@Test
 	public final void testcheckMatch2d()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a-#T / C-a->D-a->C", "testcheckMatch8",testConfig,getLabelConverter());
-		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 1));
-		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 2));
+		Assert.assertTrue(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 1));
+		Assert.assertFalse(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 2));
 	}
 	
 	@Test
 	public final void testcheckMatch3()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-b->C-a->C", "testcheckMatch3",testConfig,getLabelConverter());
-		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
-			LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("A"), 1);
-		}},IllegalArgumentException.class,"the graph should have traces in it with no branches");
+		checkForCorrectException(() -> LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("A"), 1),IllegalArgumentException.class,"the graph should have traces in it with no branches");
 	}
 	
 	@Test
 	public final void testcheckMatch4()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C", "testcheckMatch4",testConfig,getLabelConverter());
-		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("B"), 1));
-		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 1));
-		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 2));
-		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 3));
+		Assert.assertFalse(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("B"), 1));
+		Assert.assertTrue(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 1));
+		Assert.assertTrue(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 2));
+		Assert.assertFalse(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("A"), 3));
 	}
 	
 	@Test
@@ -1653,47 +1620,43 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B / T-b->C-a->C", "testcheckMatch5",testConfig,getLabelConverter());
 		for(int i=0;i<100;++i)
 		{
-			Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("C"), i));
-			Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), i));
-			Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("B"), i));
+			Assert.assertTrue(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("C"), i));
+			Assert.assertTrue(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), i));
+			Assert.assertTrue(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("B"), i));
 		}
-		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("T"), 1));
-		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("T"), 1));
+		Assert.assertFalse(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("T"), 1));
+		Assert.assertFalse(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("B"), fsm.findVertex("T"), 1));
 	}
 	@Test
 	public final void testcheckMatch6()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->T / C-a->D-a->C", "testcheckMatch6",testConfig,getLabelConverter());
-		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 1));
-		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 2));
-		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 3));
+		Assert.assertTrue(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 1));
+		Assert.assertTrue(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 2));
+		Assert.assertFalse(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 3));
 	}		
 	
 	@Test
 	public final void testcheckMatch7()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->T-b->U / C-a->D-a->C / D-b->E", "testcheckMatch7",testConfig,getLabelConverter());
-		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 1));
-		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 2));
-		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 3));
-		Assert.assertEquals(true, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("D"), 3));
-		Assert.assertEquals(false, LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("D"), 4));
+		Assert.assertTrue(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 1));
+		Assert.assertTrue(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 2));
+		Assert.assertFalse(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("C"), 3));
+		Assert.assertTrue(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("D"), 3));
+		Assert.assertFalse(LearningAlgorithms.checkMatch(fsm, fsm.findVertex("A"), fsm.findVertex("D"), 4));
 	}		
 
 	@Test
 	public final void testTraditionalKTails1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
-			LearningAlgorithms.traditionalKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{new String[]{}},testConfig,getLabelConverter()),1, testConfig);
-		}},IllegalArgumentException.class,"graphs with initial state reject-stat");
+		checkForCorrectException(() -> LearningAlgorithms.traditionalKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{new String[]{}},testConfig,getLabelConverter()),1, testConfig),IllegalArgumentException.class,"graphs with initial state reject-stat");
 	}
 
 	@Test
 	public final void testIncrementalKTails1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
-			LearningAlgorithms.incrementalKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{new String[]{}},testConfig,getLabelConverter()),1, testConfig);
-		}},IllegalArgumentException.class,"graphs with initial state reject-stat");
+		checkForCorrectException(() -> LearningAlgorithms.incrementalKtails(buildSet(new String[][]{},testConfig,getLabelConverter()),buildSet(new String[][]{new String[]{}},testConfig,getLabelConverter()),1, testConfig),IllegalArgumentException.class,"graphs with initial state reject-stat");
 	}
 
 	@Test

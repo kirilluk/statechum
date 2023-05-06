@@ -18,9 +18,9 @@
 package statechum.analysis.Erlang;
 
 import org.junit.runner.RunWith;
-import org.junit.runners.SuiteWithOptionalClasses.SuiteOptionalClasses;
-import org.junit.runners.SuiteWithOptionalClasses.SuiteClasses;
-import org.junit.runners.SuiteWithOptionalClasses;
+import junit_runners.SuiteWithOptionalClasses.SuiteOptionalClasses;
+import junit_runners.SuiteWithOptionalClasses.SuiteClasses;
+import junit_runners.SuiteWithOptionalClasses;
 
 @RunWith(SuiteWithOptionalClasses.class)
 @SuiteClasses({

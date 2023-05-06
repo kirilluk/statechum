@@ -19,15 +19,12 @@
 package statechum.apps;
 
 import java.io.StringReader;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.Pair;
@@ -37,7 +34,6 @@ import statechum.analysis.learning.smt.SmtLabelRepresentation;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
 
 import static statechum.TestHelper.checkForCorrectException;
-import static statechum.TestHelper.whatToRun;
 import static statechum.analysis.learning.smt.SmtLabelRepresentation.ENDL;
 
 /**
@@ -57,7 +53,7 @@ public class TestQSMTool {
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sMinus);
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
-		Assert.assertEquals(true,tool.active);
+		Assert.assertTrue(tool.active);
 		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
@@ -70,7 +66,7 @@ public class TestQSMTool {
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sMinus);
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
-		Assert.assertEquals(true,tool.active);
+		Assert.assertTrue(tool.active);
 		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
@@ -83,7 +79,7 @@ public class TestQSMTool {
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}, new String[]{"a","b"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}, new String[]{"q","er","t","y"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sMinus);
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
-		Assert.assertEquals(true,tool.active);
+		Assert.assertTrue(tool.active);
 		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
@@ -97,7 +93,7 @@ public class TestQSMTool {
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}, new String[]{"a","b"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}, new String[]{"q","er","t","y"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sMinus);
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
-		Assert.assertEquals(true,tool.active);
+		Assert.assertTrue(tool.active);
 		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
@@ -110,7 +106,7 @@ public class TestQSMTool {
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sMinus);
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
-		Assert.assertEquals(true,tool.active);
+		Assert.assertTrue(tool.active);
 		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
@@ -124,7 +120,7 @@ public class TestQSMTool {
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sMinus);
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
-		Assert.assertEquals(false,tool.active);
+		Assert.assertFalse(tool.active);
 		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
@@ -146,7 +142,7 @@ public class TestQSMTool {
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sMinus);
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
-		Assert.assertEquals(true,tool.active);
+		Assert.assertTrue(tool.active);
 		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
@@ -172,11 +168,10 @@ public class TestQSMTool {
 		Assert.assertEquals(expectedConfig,tool.learnerInitConfiguration.config);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sMinus);
-		Set<String> expectedltl = new TreeSet<String>();expectedltl.addAll(Arrays.asList(new String[]{
-				QSMTool.cmdLTL+" this is a test",QSMTool.cmdIFTHENAUTOMATON+" A-b->B == THEN = C-a->C",
-				QSMTool.cmdIFTHENAUTOMATON+" A-a->B == THEN = C-b->C",QSMTool.cmdLTL+" more test"}));
+		Set<String> expectedltl = new TreeSet<>(Arrays.asList(QSMTool.cmdLTL + " this is a test", QSMTool.cmdIFTHENAUTOMATON + " A-b->B == THEN = C-a->C",
+				QSMTool.cmdIFTHENAUTOMATON + " A-a->B == THEN = C-b->C", QSMTool.cmdLTL + " more test"));
 		Assert.assertEquals(expectedltl,tool.learnerInitConfiguration.ifthenSequences);
-		Assert.assertEquals(true,tool.active);
+		Assert.assertTrue(tool.active);
 		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
@@ -201,16 +196,16 @@ public class TestQSMTool {
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sMinus);
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
-		Assert.assertEquals(true,tool.active);
+		Assert.assertTrue(tool.active);
 		Assert.assertNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
 	@Test
 	public final void testEmpty1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectException(() -> {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("+"));
-		}},IllegalArgumentException.class,"Argument required");
+		},IllegalArgumentException.class,"Argument required");
 	}
 	
 	@RunWith(ParameterizedWithName.class)
@@ -220,28 +215,26 @@ public class TestQSMTool {
 		public static Collection<Object[]> data() 
 		{
 			String errArgumentRequired ="Argument required";
-			return java.util.Arrays.asList(new Object[][]{
-					new Object[]{"A# sample file","invalid command"},
-					new Object[]{"+",errArgumentRequired}, 
-					new Object[]{"-",errArgumentRequired}, 
-					new Object[]{QSMTool.cmdLTL,errArgumentRequired}, 
-					new Object[]{"- +","invalid token type"}, 
-					new Object[]{"- [a] +","expected a sequence"}, 
-					new Object[]{"- [] +[] []","a collection of traces should start"}, 
-					new Object[]{"- [a, aa","unexpected end of list"}, 
-					new Object[]{"- [+ ]","invalid token"}, 
-					new Object[]{"- aa","expected a sequence"}, 
-					new Object[]{"- [aa, []]","expected a sequence"}, 
-					new Object[]{"- [] P","a collection of traces should start"}, 
-			});
+			return java.util.Arrays.asList(new Object[]{"A# sample file","invalid command"},
+					new Object[]{"+",errArgumentRequired},
+					new Object[]{"-",errArgumentRequired},
+					new Object[]{QSMTool.cmdLTL,errArgumentRequired},
+					new Object[]{"- +","invalid token type"},
+					new Object[]{"- [a] +","expected a sequence"},
+					new Object[]{"- [] +[] []","a collection of traces should start"},
+					new Object[]{"- [a, aa","unexpected end of list"},
+					new Object[]{"- [+ ]","invalid token"},
+					new Object[]{"- aa","expected a sequence"},
+					new Object[]{"- [aa, []]","expected a sequence"},
+					new Object[]{"- [] P","a collection of traces should start"});
 		}
 		
 		@Test
 		public final void testParseBadTrace()
 		{
-			checkForCorrectException(new whatToRun() { public @Override void run() {
+			checkForCorrectException(() -> {
 				QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(text));
-			}},IllegalArgumentException.class,exception);
+			},IllegalArgumentException.class,exception);
 		}
 	
 		final String text,exception; 
@@ -251,7 +244,7 @@ public class TestQSMTool {
 			text = textArg;exception = exceptionArg;
 		}
 		
-		@org.junit.runners.ParameterizedWithName.ParametersToString
+		@junit_runners.ParameterizedWithName.ParametersToString
 		public static String parametersToString(String textArg,String exceptionArg)
 		{
 			return textArg+" - "+exceptionArg;
@@ -264,70 +257,70 @@ public class TestQSMTool {
 	@Test
 	public final void testInsufficientArgsForProperty1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectException(() -> {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig));
-		}},IllegalArgumentException.class,"Argument required");
+		},IllegalArgumentException.class,"Argument required");
 	}
 
 	@Test
 	public final void testInsufficientArgsForProperty2()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectException(() -> {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" a"));
-		}},IllegalArgumentException.class,"missing value");
+		},IllegalArgumentException.class,"missing value");
 	}
 	
 	@Test
 	public final void testWrongProperty()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectException(() -> {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" junk test"));
-		}},IllegalArgumentException.class,"cannot deserialise");
+		},IllegalArgumentException.class,"cannot deserialise");
 	}
 	
 	/** Wrong enum value. */
 	@Test
 	public final void testWrongValueForProperty1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectException(() -> {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" learnerIdMode JUNK"));
-		}},IllegalArgumentException.class,"failed to load");
+		},IllegalArgumentException.class,"failed to load");
 	}
 	
 	/** Cannot parse text as an integer. */
 	@Test
 	public final void testWrongValueForProperty2()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectException(() -> {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" klimit 2.0"));
-		}},IllegalArgumentException.class,"failed to load");
+		},IllegalArgumentException.class,"failed to load");
 	}
 	
 	/** Cannot parse text as a double. */
 	@Test
 	public final void testWrongValueForProperty3()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectException(() -> {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" gdLowToHighRatio AAA34"));
-		}},IllegalArgumentException.class,"failed to load");
+		},IllegalArgumentException.class,"failed to load");
 	}
 	
 	/** Invalid value for a number. */
 	@Test
 	public final void testWrongValueForProperty4()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectException(() -> {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(QSMTool.cmdConfig+" gdLowToHighRatio 34"));
-		}},IllegalArgumentException.class,"failed to load");
+		},IllegalArgumentException.class,"failed to load");
 	}
 	
 	/** Invalid value for a number. */
 	@Test
 	public final void testWrongValueForK()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectException(() -> {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader("k 2.0"));
-		}},NumberFormatException.class,"");
+		},NumberFormatException.class,"");
 	}
 	
 	/** Loading of labels. No data provided in label descriptions*/
@@ -341,7 +334,7 @@ public class TestQSMTool {
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"part_a","part_b","part_c"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sPlus);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"smth_a"}},tool.learnerInitConfiguration.config,tool.learnerInitConfiguration.getLabelConverter()),tool.sMinus);
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
-		Assert.assertEquals(false,tool.active);
+		Assert.assertFalse(tool.active);
 		Assert.assertNotNull(tool.learnerInitConfiguration.labelDetails);
 	}
 	
@@ -357,7 +350,7 @@ public class TestQSMTool {
 		Assert.assertNull(tool.learnerInitConfiguration.ifthenSequences);
 		Assert.assertNotNull(tool.learnerInitConfiguration.labelDetails);
 		tool.learnerInitConfiguration.labelDetails.buildVertexToAbstractStateMap(FsmParserStatechum.buildLearnerGraph("A-a->B", "testLoadXMLabels2",Configuration.getDefaultConfiguration(),null), null,true);
-		Pair<String,String> state = tool.learnerInitConfiguration.labelDetails.getConjunctionForPath(Arrays.asList(new SmtLabelRepresentation.SMTLabel[]{}),null);
+		Pair<String,String> state = tool.learnerInitConfiguration.labelDetails.getConjunctionForPath(Collections.emptyList(),null);
 		Assert.assertEquals("decl"+SmtLabelRepresentation.delimiterString+"2"+ENDL,state.firstElem);
 		Assert.assertEquals(SmtLabelRepresentation.commentForNewSeq+"[]"+ENDL+
 				"(and"+ENDL+
@@ -371,12 +364,12 @@ public class TestQSMTool {
 	@Test
 	public final void testLoadXMLabels_Error()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
+		checkForCorrectException(() -> {
 			QSMTool tool = new QSMTool();tool.loadConfig(new StringReader(
 				QSMTool.cmdOperation+" "+SmtLabelRepresentation.INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+" decl_N"+"\n"+
 				QSMTool.cmdOperation+" "+SmtLabelRepresentation.INITMEM+" JUNK constraint_N"+"\n"+
 				QSMTool.cmdOperation));
-		}},IllegalArgumentException.class,"expected [PRE");
+		},IllegalArgumentException.class,"expected [PRE");
 	}
 	
 	

@@ -30,7 +30,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
@@ -38,8 +38,9 @@ import edu.uci.ics.jung.utils.UserData;
 
 import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.TestHelper.whatToRun;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+
+import static org.junit.Assert.*;
 import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestFSMAlgo;
@@ -47,9 +48,7 @@ import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.model.testset.PTASequenceEngine.Node;
 import statechum.model.testset.PTASequenceEngine.SequenceSet;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+
 import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper;
 
 @RunWith(ParameterizedWithName.class)
@@ -64,7 +63,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		return TestWithMultipleConfigurations.data();
 	}
 	
-	@org.junit.runners.ParameterizedWithName.ParametersToString
+	@junit_runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return TestWithMultipleConfigurations.parametersToString(config);
@@ -104,15 +103,15 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 	 */
 	static void vertifyPTA(PTASequenceEngine ptaToVerify, int engineSize, String [][] expected, Configuration config, ConvertALabel converter)
 	{
-		Set<List<Label>> actualA = new HashSet<List<Label>>();actualA.addAll(ptaToVerify.getData());
-		Set<List<Label>> actualB = new HashSet<List<Label>>();actualB.addAll(ptaToVerify.filter(ptaToVerify.getFSM_filterPredicate()).getData());
-		Set<List<Label>> actualC = new HashSet<List<Label>>();actualC.addAll(ptaToVerify.getDataORIG());
-		Set<List<Label>> actualD = new HashSet<List<Label>>();actualD.addAll(ptaToVerify.filter(ptaToVerify.getFSM_filterPredicate()).getDataORIG());
+		Set<List<Label>> actualA = new HashSet<>(ptaToVerify.getData());
+		Set<List<Label>> actualB = new HashSet<>(ptaToVerify.filter(ptaToVerify.getFSM_filterPredicate()).getData());
+		Set<List<Label>> actualC = new HashSet<>(ptaToVerify.getDataORIG());
+		Set<List<Label>> actualD = new HashSet<>(ptaToVerify.filter(ptaToVerify.getFSM_filterPredicate()).getDataORIG());
 		Set<List<Label>> expectedSet = TestFSMAlgo.buildSet(expected,config,converter);
-		assertTrue("expected: "+expectedSet+" received : "+actualA,expectedSet.equals(actualA));
-		assertTrue("expected: "+expectedSet+" received : "+actualB,expectedSet.equals(actualB));
-		assertTrue("expected: "+expectedSet+" received : "+actualC,expectedSet.equals(actualC));
-		assertTrue("expected: "+expectedSet+" received : "+actualD,expectedSet.equals(actualD));
+		assertEquals("expected: " + expectedSet + " received : " + actualA, expectedSet, actualA);
+		assertEquals("expected: " + expectedSet + " received : " + actualB, expectedSet, actualB);
+		assertEquals("expected: " + expectedSet + " received : " + actualC, expectedSet, actualC);
+		assertEquals("expected: " + expectedSet + " received : " + actualD, expectedSet, actualD);
 		assertEquals(engineSize, ptaToVerify.numberOfLeafNodes());
 	}
 	
@@ -164,17 +163,17 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 	{
 		PTASequenceEngine engine = new PTASequenceEngine();
 		Node a = engine.new Node("A"), b = engine.new Node("A"), c = engine.new Node("B");
-		assertTrue(a.equals(a));
-		assertTrue(b.equals(b));
-		assertTrue(engine.rejectNode.equals(engine.rejectNode));
-		assertFalse(a.equals(b));
-		assertFalse(b.equals(a));
-		assertFalse(a.equals(c));
-		assertFalse(a.equals(engine.rejectNode));
-		
-		
-		assertFalse(a.equals("test"));
-		assertFalse(a.equals(null));
+		assertEquals(a, a);
+		assertEquals(b, b);
+		assertEquals(engine.rejectNode, engine.rejectNode);
+		assertNotEquals(a, b);
+		assertNotEquals(b, a);
+		assertNotEquals(a, c);
+		assertNotEquals(a, engine.rejectNode);
+
+
+		assertNotEquals("test", a);
+		assertNotEquals(null, a);
 	}
 
 	@SuppressWarnings("unused")
@@ -235,7 +234,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 	}
 	
 	/** Checks that the two ways of obtaining debug data return the same results. */
-	public static final Map<String,String> getDebugDataMap(PTASequenceEngine engine, SequenceSet set)
+	public static Map<String,String> getDebugDataMap(PTASequenceEngine engine, SequenceSet set)
 	{
 		Map<String,String> actualA = engine.getDebugDataMapDepth(set),
 			actualB = engine.getDebugDataMapBreadth(set);
@@ -253,7 +252,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		});
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 	
 	@Test
@@ -267,7 +266,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 	
 	@Test
@@ -280,7 +279,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		});
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 	
 	@Test
@@ -293,7 +292,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		});
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 	
 	@Test
@@ -308,7 +307,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 	
 	@Test
@@ -322,7 +321,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		});
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 	
 	@Test
@@ -336,7 +335,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		});
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 	
 	@Test
@@ -354,7 +353,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","a","a","b","c"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 	@Test
@@ -372,7 +371,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		});
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 	@Test
@@ -391,7 +390,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		});
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 	@Test
@@ -409,7 +408,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		});
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 	@Test
@@ -432,12 +431,12 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","a","a","b","c"}, PTASequenceEngine.DebugDataValues.booleanToString(false, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual1, expected.equals(actual1));
+		assertEquals("expected: " + expected + ", actual: " + actual1, expected, actual1);
 
 		expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual2, expected.equals(actual2));
-		Assert.assertTrue("expected: "+expected+", actual: "+actual3, expected.equals(actual3));
+		assertEquals("expected: " + expected + ", actual: " + actual2, expected, actual2);
+		assertEquals("expected: " + expected + ", actual: " + actual3, expected, actual3);
 	}
 
 	@Test
@@ -466,12 +465,12 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","a","a","b","c"}, PTASequenceEngine.DebugDataValues.booleanToString(false, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual2, expected.equals(actual2));
+		assertEquals("expected: " + expected + ", actual: " + actual2, expected, actual2);
 		expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual1, expected.equals(actual1));
-		Assert.assertTrue("expected: "+expected+", actual: "+actual3, expected.equals(actual3));
-		Assert.assertTrue("expected: "+expected+", actual: "+actual4, expected.equals(actual4));
+		assertEquals("expected: " + expected + ", actual: " + actual1, expected, actual1);
+		assertEquals("expected: " + expected + ", actual: " + actual3, expected, actual3);
+		assertEquals("expected: " + expected + ", actual: " + actual4, expected, actual4);
 	}
 
 	@Test
@@ -487,7 +486,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 	@Test
@@ -507,7 +506,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 				new Object[]{new String[] {"a","a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 	@Test
@@ -533,16 +532,16 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a"}, PTASequenceEngine.DebugDataValues.booleanToString(false, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual1, expected.equals(actual1));
+		assertEquals("expected: " + expected + ", actual: " + actual1, expected, actual1);
 		expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","a"}, PTASequenceEngine.DebugDataValues.booleanToString(false, true)},
 				new Object[]{new String[] {"a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(false, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual2, expected.equals(actual2));
+		assertEquals("expected: " + expected + ", actual: " + actual2, expected, actual2);
 		expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","a","a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual3, expected.equals(actual3));
+		assertEquals("expected: " + expected + ", actual: " + actual3, expected, actual3);
 	}
 
 	@Test
@@ -578,22 +577,22 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		Map<String,String>  expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","a","a"}, PTASequenceEngine.DebugDataValues.booleanToString(false, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual1, expected.equals(actual1));
+		assertEquals("expected: " + expected + ", actual: " + actual1, expected, actual1);
 		expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","a"}, PTASequenceEngine.DebugDataValues.booleanToString(false, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual2, expected.equals(actual2));
+		assertEquals("expected: " + expected + ", actual: " + actual2, expected, actual2);
 		expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","a","a","b","c"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual3_1, expected.equals(actual3_1));
+		assertEquals("expected: " + expected + ", actual: " + actual3_1, expected, actual3_1);
 		expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","a","a","b","c"}, PTASequenceEngine.DebugDataValues.booleanToString(false, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual3_2, expected.equals(actual3_2));
+		assertEquals("expected: " + expected + ", actual: " + actual3_2, expected, actual3_2);
 		expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual4, expected.equals(actual4));
+		assertEquals("expected: " + expected + ", actual: " + actual4, expected, actual4);
 	}
 
 	@Test
@@ -620,11 +619,11 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 				new Object[]{new String[] {"d","a"}, PTASequenceEngine.DebugDataValues.booleanToString(false, true)},
 				new Object[]{new String[] {"a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(false, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual1, expected.equals(actual1));
+		assertEquals("expected: " + expected + ", actual: " + actual1, expected, actual1);
 		expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","a","a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual2, expected.equals(actual2));
+		assertEquals("expected: " + expected + ", actual: " + actual2, expected, actual2);
 	}
 
 	@Test
@@ -648,7 +647,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 				new Object[]{new String[] {"a","a","a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"a","a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 	/** Test that it is possible to selectively filter out paths which terminate at specific states. */ 
@@ -677,7 +676,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 				new Object[]{new String[] {"a","a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, false)},
 				new Object[]{new String[] {"a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 	
 	/** Test that the outcome of filter is not affected by subsequent changes in the original graph. */ 
@@ -762,7 +761,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 				new Object[]{new String[] {"d","d","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"d","d","a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, false)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 	/** Test that it is possible to selectively filter out paths which terminate at specific states. */ 
@@ -794,7 +793,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","a","b","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 	/** Test that it is possible to selectively filter out paths which terminate at specific states. 
@@ -829,7 +828,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","a","b","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 	/** Test that if I wish to return all paths in a PTA, they will be returned. */ 
@@ -861,7 +860,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 				new Object[]{new String[] {"a","a","b","c","a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"a","a","b","c","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 
@@ -889,7 +888,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 				new Object[]{new String[] {"a","a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, false)},
 				new Object[]{new String[] {"a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, false)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 	
 	/** Test for shouldBeReturned from a non-initial state. */
@@ -905,7 +904,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 				new Object[]{new String[] {"a","a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 	
 	/** Checks that the non-existing initial state or an invalid one is rejected. */
@@ -916,9 +915,9 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		final LearnerGraph mach = buildLearnerGraph("D-a->A-a->A-b-#B","testPrecisionRecall2b",mainConfiguration,converter);
 		new PTA_FSMStructure(mach,mach.findVertex(VertexID.parseID("A")));
 		
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-				new PTA_FSMStructure(mach,AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Vert"), mach.config));
-			}},IllegalArgumentException.class,"is not a valid state of the graph");
+		TestHelper.checkForCorrectException(
+				() -> new PTA_FSMStructure(mach,AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("Vert"), mach.config)),
+				IllegalArgumentException.class,"is not a valid state of the graph");
 	}
 	
 	/** Checks that the non-existing initial state or an invalid one is rejected. */
@@ -930,9 +929,9 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		final LearnerGraph sameMach = buildLearnerGraph("D-a->A-a->A-b-#B","testPrecisionRecall2b",mainConfiguration,converter);
 		new PTA_FSMStructure(mach,mach.findVertex(VertexID.parseID("A")));
 		
-		TestHelper.checkForCorrectException(new whatToRun() {public @Override void run() {
-				new PTA_FSMStructure(mach,sameMach.findVertex(VertexID.parseID("A")));
-			}},IllegalArgumentException.class,"is not a valid state of the graph");
+		TestHelper.checkForCorrectException(
+				() -> new PTA_FSMStructure(mach,sameMach.findVertex(VertexID.parseID("A"))),
+				IllegalArgumentException.class,"is not a valid state of the graph");
 	}
 
 	@Test
@@ -961,7 +960,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 				new Object[]{new String[] {"a","a"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)},
 				new Object[]{new String[] {"a","b"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 	/** Test that where we do not return negative states and there is 
@@ -1005,7 +1004,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
 				new Object[]{new String[] {"a","b","c"}, PTASequenceEngine.DebugDataValues.booleanToString(true, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 	@Test
@@ -1026,7 +1025,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 				new Object[]{new String[] {"a"}, PTASequenceEngine.DebugDataValues.booleanToString(false, true)},
 				new Object[]{new String[] {"a","b","c"}, PTASequenceEngine.DebugDataValues.booleanToString(false, true)}
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 		Assert.assertFalse(result.isEmpty());
 	}
 	
@@ -1048,7 +1047,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		});
 		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 		Assert.assertTrue(result.isEmpty());
 	}
 	
@@ -1058,7 +1057,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
 		seq.cross(TestFSMAlgo.buildList(new String[][] {
 				new String[] {"a","b","c"}
-		},mainConfiguration,converter)).crossWithSet(new LinkedList<Label>());
+		},mainConfiguration,converter)).crossWithSet(new LinkedList<>());
 		Map<String,String> actual = getDebugDataMap(en,en.new SequenceSet().cross(TestFSMAlgo.buildList(new String[][] {// here the new sequenceSet is empty, hence whatever I do, there should be no changes
 				new String[] {"a","b","c","d"},
 				new String[] {"c"}
@@ -1068,14 +1067,14 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		});
 		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 
 	@Test
 	public final void test_sequenceSet5_2() // a more complex composition
 	{
 		SequenceSet seq = en.new SequenceSet();seq.setIdentity();
-		seq.crossWithSequence(labelList(new String[] {"a","b","c"})).crossWithSet(new LinkedList<Label>());
+		seq.crossWithSequence(labelList(new String[] {"a","b","c"})).crossWithSet(new LinkedList<>());
 		Map<String,String> actual = getDebugDataMap(en,en.new SequenceSet().cross(TestFSMAlgo.buildList(new String[][] {// here the new sequenceSet is empty, hence whatever I do, there should be no changes
 				new String[] {"a","b","c","d"},
 				new String[] {"c"}
@@ -1085,7 +1084,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		});
 		Map<String,String> expected=TestFSMAlgo.buildStringMap(new Object[][] {
 		});
-		Assert.assertTrue("expected: "+expected+", actual: "+actual, expected.equals(actual));
+		assertEquals("expected: " + expected + ", actual: " + actual, expected, actual);
 	}
 	
 	/** Test for equality of different sequenceSets. */
@@ -1217,7 +1216,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 		init.addUserDatum(JUConstants.LABEL, "A", UserData.SHARED);
 		g.addVertex(init);
 		PTASequenceEngine engine = new PTA_FSMStructure(new LearnerGraph(g,mainConfiguration),null);
-		engine.containsSequence(new ArrayList<Label>());
+		engine.containsSequence(new ArrayList<>());
 	}
 	
 	/** Tests containsSequence. */
@@ -1334,7 +1333,7 @@ public class TestPTASequenceEngine extends TestWithMultipleConfigurations
 				new String[] {"c"}
 		},mainConfiguration,converter));
 		SequenceSet seqTwo = en.new SequenceSet();seqTwo.unite(seqA);seqTwo.unite(seqTwo);
-		List<List<Label>> arg = new LinkedList<List<Label>>();
+		List<List<Label>> arg = new LinkedList<>();
 		Set<List<Label>> setOfStrings = TestFSMAlgo.buildSet(new String[][] {
 				new String[] {"a","a"},
 				new String[] {"c"}},mainConfiguration,converter);

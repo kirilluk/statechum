@@ -19,7 +19,6 @@
 package statechum.analysis.learning.linear;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,10 +36,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
-
-
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.Configuration.GDScoreComputationAlgorithmEnum;
@@ -71,7 +68,7 @@ import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
  *
  */
 @RunWith(ParameterizedWithName.class)
-public class TestGD_ExistingGraphs 
+public class TestGDExistingGraphs
 {
 	protected java.util.Map<CmpVertex,CmpVertex> newToOrig = null;
 
@@ -84,19 +81,13 @@ public class TestGD_ExistingGraphs
 	public static Collection<Object[]> data() 
 	{						
 		GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ASSERT_ENABLED);// this dummy forces the load of configuration if not already loaded, hence progress indicator does not interleave with "configuration loaded" messages.
-		Collection<Object []> result = new LinkedList<Object []>();
+		Collection<Object []> result = new LinkedList<>();
 		final String testFilePath = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.RESOURCES)+File.separator+"TestGraphs/75-6/";
 		File path = new File(testFilePath);assert path.isDirectory();
-		File files [] = path.listFiles(new FilenameFilter()
-		{
-			@Override 
-			public boolean accept(@SuppressWarnings("unused") File dir, String name) 
-			{
-				return name.startsWith("N_");
-			}
-		});
+		File[] files = path.listFiles(
+				(dir, name) -> name.startsWith("N_"));
 		Arrays.sort(files);
-		int threads[]=new int[]{1,8};
+		int[] threads =new int[]{1,8};
 		ProgressIndicator progress = new ProgressIndicator("e:", files.length*threads.length);
 		
 		for(int fileNum = 0;fileNum < files.length;++fileNum)
@@ -111,10 +102,10 @@ public class TestGD_ExistingGraphs
 			{
 				for(double ratio:new double[]{0.6,0.9})
 					for(int pairs:new int[]{0,40})
-						result.add(new Object[]{Integer.valueOf(threadNo), Integer.valueOf(pairs),ratio,fileA,fileB});
+						result.add(new Object[]{threadNo, pairs,ratio,fileA,fileB});
 
 				// -1. should be floating-point number otherwise it is turned into Integer and our parametersToString fails to match the resulting list of values.
-				result.add(new Object[]{Integer.valueOf(threadNo), Integer.valueOf(0),-1.,fileA,fileB});
+				result.add(new Object[]{threadNo, 0,-1.,fileA,fileB});
 				
 				progress.next();
 			}
@@ -131,7 +122,7 @@ public class TestGD_ExistingGraphs
 	double low_to_high_ratio = -1;
 	
 	/** Creates the test class with the number of threads to create as an argument. */
-	public TestGD_ExistingGraphs(int th, int pairs,double ratio, File fileA, File fileB)
+	public TestGDExistingGraphs(int th, int pairs, double ratio, File fileA, File fileB)
 	{
 		threadNumber = th;graphA=fileA;graphB=fileB;low_to_high_ratio=ratio;pairsToAdd=pairs;
 	}
@@ -163,7 +154,7 @@ public class TestGD_ExistingGraphs
 	@Before
 	public final void beforeTest()
 	{
-		newToOrig = new java.util.TreeMap<CmpVertex,CmpVertex>();config=computeConfig(low_to_high_ratio);
+		newToOrig = new java.util.TreeMap<>();config=computeConfig(low_to_high_ratio);
 	}
 	
 	protected String testDetails()
@@ -171,22 +162,23 @@ public class TestGD_ExistingGraphs
 		return graphA+"-"+graphB+" ["+threadNumber+" threads] ";
 	}
 	
-	protected static final <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void addColourAndTransitionsRandomly(AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> gr,Random rnd)
+	static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void addColourAndTransitionsRandomly(AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> gr, Random rnd)
 	{
 		gr.pathroutines.addColourRandomly(rnd, 3);
 		gr.pathroutines.addTransitionsRandomly(rnd, 3);
 	}
 
-	static public final <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void addPairsRandomly(final GD<TARGET_TYPE,TARGET_TYPE,CACHE_TYPE,CACHE_TYPE> gd, int pairsToAdd)
+	static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void addPairsRandomly(final GD<TARGET_TYPE,TARGET_TYPE,CACHE_TYPE,CACHE_TYPE> gd, int pairsToAdd)
 	{
-		Set<CmpVertex> usedA = new TreeSet<CmpVertex>(), usedB = new TreeSet<CmpVertex>();
-		usedA.addAll(gd.statesOfA);usedB.addAll(gd.statesOfB);
+		Set<CmpVertex> usedA, usedB;
+		usedA = new TreeSet<>(gd.statesOfA);
+		usedB = new TreeSet<>(gd.statesOfB);
 		for(PairScore ps:gd.frontWave) // first, we remove all states already used as key pairs from the set of states we can choose from. 
 		{
 			usedA.remove(ps.firstElem);usedB.remove(ps.secondElem);
 		}
 		if (usedA.isEmpty() || usedB.isEmpty()) return;
-		ArrayList<CmpVertex> usedA_array=new ArrayList<CmpVertex>(usedA),usedB_array=new ArrayList<CmpVertex>(usedB);
+		ArrayList<CmpVertex> usedA_array= new ArrayList<>(usedA),usedB_array= new ArrayList<>(usedB);
 		int pairsPossible = Math.min(Math.min(usedA_array.size(),usedB_array.size()),pairsToAdd);
 		Random rnd=new Random(0);
 		Iterator<Integer> 
@@ -211,9 +203,9 @@ public class TestGD_ExistingGraphs
 	 * @param fileB2 the second half of the second one, null if not used.
 	 * @return whether a product of pairs will be considered
 	 */
-	static final boolean detectFallbackToInitialPair(File fileA1, File fileA2, File fileB1, File fileB2)
+	static boolean detectFallbackToInitialPair(File fileA1, File fileA2, File fileB1, File fileB2)
 	{
-		final GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
+		final GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<>();
 		try
 		{
 			Configuration config=computeConfig(0.75);
@@ -224,7 +216,8 @@ public class TestGD_ExistingGraphs
 				if (fileA2 != null)
 				{
 					LearnerGraphND loadedA2 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileA2, loadedA2, null);
-					grA = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(grA, new Random(0));
+					grA = LearnerGraphND.UniteTransitionMatrices(loadedA1,loadedA2);
+					TestGDExistingGraphs.addColourAndTransitionsRandomly(grA, new Random(0));
 				}
 				else
 					grA = loadedA1;
@@ -235,7 +228,8 @@ public class TestGD_ExistingGraphs
 				if (fileB2 != null)
 				{
 					LearnerGraphND loadedB2 = new LearnerGraphND(config);AbstractPersistence.loadGraph(fileB2, loadedB2, null);
-					grB = LearnerGraphND.UniteTransitionMatrices(loadedB1,loadedB2);TestGD_ExistingGraphs.addColourAndTransitionsRandomly(grB, new Random(1));
+					grB = LearnerGraphND.UniteTransitionMatrices(loadedB1,loadedB2);
+					TestGDExistingGraphs.addColourAndTransitionsRandomly(grB, new Random(1));
 				}
 				else
 					grB = loadedB1;
@@ -260,7 +254,7 @@ public class TestGD_ExistingGraphs
 	static ScoresLogger scoresLogger = new ScoresLoggerChecker();
 
 	/** Label converter to use. */
-	private ConvertALabel converter = null;
+	private final ConvertALabel converter = null;
 
 	@BeforeClass
 	public static void loadLog()
@@ -280,7 +274,7 @@ public class TestGD_ExistingGraphs
 		{
 			LearnerGraph grA = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, grA, converter);addColourAndIncompatiblesRandomly(grA, new Random(0));
 			LearnerGraph grB = new LearnerGraph(config);AbstractPersistence.loadGraph(fileB, grB, converter);addColourAndIncompatiblesRandomly(grB, new Random(1));
-			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<>();
 			LearnerGraph graph = new LearnerGraph(config);AbstractPersistence.loadGraph(fileA, graph, converter);addColourAndIncompatiblesRandomly(graph, new Random(0));
 			LearnerGraph outcome = new LearnerGraph(config);
 			ChangesRecorder patcher = new ChangesRecorder(null);
@@ -385,7 +379,7 @@ public class TestGD_ExistingGraphs
 			LearnerGraph grA = new LearnerGraph(config);AbstractPersistence.loadGraph(graphA,grA, converter);
 			LearnerGraph grB = new LearnerGraph(config);AbstractPersistence.loadGraph(graphA,grB, converter);
 			LearnerGraph graph = new LearnerGraph(config);AbstractPersistence.loadGraph(graphA,graph, converter);
-			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
+			GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new GD<>();
 			LearnerGraph outcome = new LearnerGraph(config);
 			ChangesRecorder.applyGD_WithRelabelling(graph, gd.computeGDToXML(grA, grB, threadNumber, TestGD.createDoc(),null,config), converter,outcome);
 			Assert.assertNull(testDetails(),WMethod.checkM(grB,graph));Assert.assertEquals(grB.getStateNumber(),graph.getStateNumber());

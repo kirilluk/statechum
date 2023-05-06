@@ -16,10 +16,7 @@
  */ 
 package statechum.collections;
 
-/** This interface is artificially different to {@link VertexConvertibleToInt} in order to make sure
- * I do not pass a vertex as a label.
- */
-public interface ConvertibleToInt 
+public interface ConvertibleToInt
 {
 	/** Java collections consume much more memory than needed (through the use of Entry objects) 
 	 * because each object holds 16 bytes more data than the fields it contains. 
@@ -28,5 +25,5 @@ public interface ConvertibleToInt
 	 *   
 	 * @return an integer representation of this object.
 	 */
-	public int toInt();
+	int toInt();
 }

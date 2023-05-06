@@ -4,8 +4,8 @@ import com.ericsson.otp.erlang.*;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized.Parameters;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 import statechum.Configuration;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
 
@@ -692,6 +692,7 @@ public class TestErlangParser {
 		checkForCorrectException(() -> runner.evaluateString(text),IllegalArgumentException.class,"badmatch");
 	}
 	
+	@SuppressWarnings("StatementWithEmptyBody")
 	@Test
 	public void testCheckMaxExponent()
 	{
@@ -701,6 +702,7 @@ public class TestErlangParser {
 		Assert.assertEquals(ErlangLabel.ErlangLong.maxExponent+1, i);
 	}
 
+	@SuppressWarnings("StatementWithEmptyBody")
 	@Test
 	public void testCheckMinExponent()
 	{

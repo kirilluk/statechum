@@ -21,28 +21,26 @@ package statechum.analysis.learning.observers;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Collection;
-import java.util.List;
 import java.util.Random;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 import org.w3c.dom.Element;
 
 import statechum.Configuration;
 import statechum.StatechumXML;
+import statechum.analysis.learning.linear.TestGDMultithreaded;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;
 import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.linear.TestGD_Multithreaded;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
 import static statechum.TestHelper.checkForCorrectException;
-import static statechum.TestHelper.whatToRun;
 
 /**
  * @author kirill
@@ -53,8 +51,7 @@ public class TestGraphSeries extends TestWithMultipleConfigurations
 {
 	LearnerGraph graphA = null, graphB = null, graphC = null, graphD = null;
 	String xmlData = null;
-	Collection<List<String>> plus, minus = null, justSomething = null;
-	
+
 	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
@@ -112,7 +109,7 @@ public class TestGraphSeries extends TestWithMultipleConfigurations
 		LearnerGraph graph = null;
 		Element elem = null;
 		
-		/** We read the entire series. */
+		/* We read the entire series. */
 		elem = loader.getNextElement();Assert.assertNotNull(elem);if (checkTags) Assert.assertEquals(StatechumXML.graphmlNodeNameNS.toString(),elem.getNodeName());
 		graph = series.readGraph(elem);
 		Assert.assertNull(WMethod.checkM_and_colours(graph, graphA,VERTEX_COMPARISON_KIND.DEEP));Assert.assertEquals(graphA.getStateNumber(),graph.getStateNumber());
@@ -221,10 +218,10 @@ public class TestGraphSeries extends TestWithMultipleConfigurations
 	@Test
 	public final void testWriteMultipleSeries_long1()
 	{
-		tryLongSeries(TestGD_Multithreaded.convertToNumerical(graphA), 
-				TestGD_Multithreaded.convertToNumerical(graphB), 
-				TestGD_Multithreaded.convertToNumerical(graphC),
-				TestGD_Multithreaded.convertToNumerical(graphD));
+		tryLongSeries(TestGDMultithreaded.convertToNumerical(graphA),
+				TestGDMultithreaded.convertToNumerical(graphB),
+				TestGDMultithreaded.convertToNumerical(graphC),
+				TestGDMultithreaded.convertToNumerical(graphD));
 	}
 	
 	@Test
@@ -237,7 +234,7 @@ public class TestGraphSeries extends TestWithMultipleConfigurations
 	public void tryLongSeries(LearnerGraph A,LearnerGraph B, LearnerGraph C, LearnerGraph D)
 	{
 		mainConfiguration.setGdFailOnDuplicateNames(false);
-		LearnerGraph graphs[]=new LearnerGraph[]{
+		LearnerGraph[] graphs =new LearnerGraph[]{
 				A,B,C,D, null};// null means "do reset".
 		final int length = 202;
 		{// Writing part
@@ -295,9 +292,8 @@ public class TestGraphSeries extends TestWithMultipleConfigurations
 		final Element grElement2 = series.writeGraph(graphB);Assert.assertEquals(StatechumXML.gdGD.toString(), grElement2.getNodeName());
 		dumper.topElement.appendChild(grElement2);dumper.topElement.appendChild(AbstractPersistence.endl(dumper.doc));
 
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			series.readGraph(grElement2);
-		}},IllegalArgumentException.class,"write-only");
+		checkForCorrectException(
+				() -> series.readGraph(grElement2),IllegalArgumentException.class,"write-only");
 	}
 	
 	/** Attempt to write read-only series, reset does not change anything. */
@@ -314,9 +310,8 @@ public class TestGraphSeries extends TestWithMultipleConfigurations
 		
 		series.reset();
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			series.readGraph(grElement2);
-		}},IllegalArgumentException.class,"write-only");
+		checkForCorrectException(
+				() -> series.readGraph(grElement2),IllegalArgumentException.class,"write-only");
 	}
 	
 	/** Attempt to read write-only series. */
@@ -329,14 +324,13 @@ public class TestGraphSeries extends TestWithMultipleConfigurations
 		LearnerGraph graph = null;
 		Element elem = null;
 		
-		/** We read the entire series. */
+		/* We read the entire series. */
 		elem = loader.getNextElement();Assert.assertNotNull(elem);
 		graph = series.readGraph(elem);
 		Assert.assertNull(WMethod.checkM_and_colours(graph, graphA,VERTEX_COMPARISON_KIND.DEEP));Assert.assertEquals(graphA.getStateNumber(),graph.getStateNumber());
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			series.writeGraph(graphA);
-		}},IllegalArgumentException.class,"read-only");
+		checkForCorrectException(
+				() -> series.writeGraph(graphA),IllegalArgumentException.class,"read-only");
 		
 	}
 	
@@ -350,16 +344,15 @@ public class TestGraphSeries extends TestWithMultipleConfigurations
 		LearnerGraph graph = null;
 		Element elem = null;
 		
-		/** We read the entire series. */
+		/* We read the entire series. */
 		elem = loader.getNextElement();Assert.assertNotNull(elem);
 		graph = series.readGraph(elem);
 		Assert.assertNull(WMethod.checkM_and_colours(graph, graphA,VERTEX_COMPARISON_KIND.DEEP));Assert.assertEquals(graphA.getStateNumber(),graph.getStateNumber());
 		
 		series.reset();
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			series.writeGraph(graphA);
-		}},IllegalArgumentException.class,"read-only");
+		checkForCorrectException(
+				() -> series.writeGraph(graphA),IllegalArgumentException.class,"read-only");
 		
 	}
 	
@@ -371,9 +364,8 @@ public class TestGraphSeries extends TestWithMultipleConfigurations
 		final RecordProgressDecorator dumper = new RecordProgressDecorator(output,1,mainConfiguration,false,converter);
 		final GraphSeries series = new GraphSeries(mainConfiguration,converter);
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			series.readGraph(AbstractPersistence.endl(dumper.doc));
-		}},IllegalArgumentException.class,"loadGraph was passed a non-element");
+		checkForCorrectException(
+				() -> series.readGraph(AbstractPersistence.endl(dumper.doc)),IllegalArgumentException.class,"loadGraph was passed a non-element");
 	}
 
 	/** Attempt to read from an invalid element tag. */
@@ -384,8 +376,7 @@ public class TestGraphSeries extends TestWithMultipleConfigurations
 		final RecordProgressDecorator dumper = new RecordProgressDecorator(output,1,mainConfiguration,false,converter);
 		final GraphSeries series = new GraphSeries(mainConfiguration,converter);
 
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			series.readGraph(dumper.doc.createElement(TestRecordProgressDecorator.junkTag));
-		}},IllegalArgumentException.class,"expected either graph or GD");
+		checkForCorrectException(
+				() -> series.readGraph(dumper.doc.createElement(TestRecordProgressDecorator.junkTag)),IllegalArgumentException.class,"expected either graph or GD");
 	}
 }

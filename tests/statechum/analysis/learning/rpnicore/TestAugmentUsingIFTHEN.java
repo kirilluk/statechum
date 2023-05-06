@@ -20,22 +20,15 @@ package statechum.analysis.learning.rpnicore;
 
 import static statechum.TestHelper.checkForCorrectException;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized.Parameters;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.*;
@@ -43,7 +36,6 @@ import statechum.Configuration.QuestionGeneratorKind;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
-import statechum.TestHelper.whatToRun;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
@@ -81,7 +73,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Tests merging of the two automata depicted on page 18 of "why_nondet_does_not_matter.xoj" */
 	@Test
-	public final void testAugmentFromMax1_AB()
+	public void testAugmentFromMax1_AB()
 	{
 		LearnerGraph gr = buildLearnerGraph("H-a->A-a->B-b->C\nH-c->B\nH-d->B", "testAugmentFromMax1_gr",mainConfiguration,converter);
 		LearnerGraph max = buildLearnerGraph("I-a->D-a-#E\nI-d-#E\nI-c->F-b->G", "testAugmentFromMax1_max",mainConfiguration,converter);
@@ -92,19 +84,18 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Tests merging of the two automata on page 18 of "why_nondet_does_not_matter.xoj" */
 	@Test
-	public final void testAugmentFromMax1_nonoverride()
+	public void testAugmentFromMax1_nonoverride()
 	{
 		final LearnerGraph gr = buildLearnerGraph("H-a->A-a->B-b->C\nH-c->B\nH-d->B", "testAugmentFromMax1_gr",mainConfiguration,converter);
 		final LearnerGraph max = buildLearnerGraph("I-a->D-a-#E\nI-d-#E\nI-c->F-b->G", "testAugmentFromMax1_max",mainConfiguration,converter);
-		checkForCorrectException(new whatToRun() {	public @Override void run() throws NumberFormatException 
-		{
-			Transform.augmentFromMAX(gr, max, false, true,mainConfiguration, true);
-		}}, IllegalArgumentException.class, "incompatible");
+		checkForCorrectException(
+				() -> Transform.augmentFromMAX(gr, max, false, true,mainConfiguration, true),
+				IllegalArgumentException.class, "incompatible");
 	}
 	
 	/** Tests merging of the two automata on page 18 of "why_nondet_does_not_matter.xoj" */
 	@Test
-	public final void testAugmentFromMax1_BA()
+	public void testAugmentFromMax1_BA()
 	{
 		String automatonWithReject = "I-a->D-a-#E\nI-d-#E\nI-c->F-b->G";
 		LearnerGraph gr = buildLearnerGraph(automatonWithReject, "testAugmentFromMax1_max",mainConfiguration,converter);
@@ -115,7 +106,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 
 	/** Tests merging of the two automata on page 17 of "why_nondet_does_not_matter.xoj" */
 	@Test
-	public final void testAugmentFromMax2_AB()
+	public void testAugmentFromMax2_AB()
 	{
 		LearnerGraph gr = buildLearnerGraph("A-b->A-a->C-b->C-a->E-b-#G", "testAugmentFromMax2_gr",mainConfiguration,converter);
 		LearnerGraph max = buildLearnerGraph("B-b->D-b->F-a->F-b->B", "testAugmentFromMax2_max",mainConfiguration,converter);
@@ -125,7 +116,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 
 	/** Tests merging of the two automata on page 17 of "why_nondet_does_not_matter.xoj" */
 	@Test
-	public final void testAugmentFromMax3_AB()
+	public void testAugmentFromMax3_AB()
 	{
 		LearnerGraph gr = buildLearnerGraph("A-b->A-a->C-b->C-a->E-b-#G\n"+
 				"A-c->A\nC-c->C", "testAugmentFromMax3_gr",mainConfiguration,converter);
@@ -136,7 +127,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 	
 	@Test
-	public final void testAugmentFromMax4_AB()
+	public void testAugmentFromMax4_AB()
 	{
 		String origGraph = "A-b->A-a->A-c->B-c->C\n";
 		LearnerGraph gr = buildLearnerGraph(origGraph, "testAugmentFromMax4_gr",mainConfiguration,converter);
@@ -146,7 +137,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 
 	@Test
-	public final void testAugmentFromMax5_AB()
+	public void testAugmentFromMax5_AB()
 	{
 		LearnerGraph gr = buildLearnerGraph("A-b->A-a->A-c->B-c->C\n", "testAugmentFromMax4_gr",mainConfiguration,converter);
 		LearnerGraph max = buildLearnerGraph("E-a->F-a->G-a->H-a-#I", "testAugmentFromMax5_max",mainConfiguration,converter);
@@ -156,7 +147,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 	
 	@Test
-	public final void testAugmentFromMax6_AB()
+	public void testAugmentFromMax6_AB()
 	{
 		LearnerGraph gr = buildLearnerGraph("A-b->A-a->A-c->B-c->C\n", "testAugmentFromMax4_gr",mainConfiguration,converter);
 		LearnerGraph max = new LearnerGraph(mainConfiguration);max.getInit().setAccept(false);
@@ -165,18 +156,17 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 	
 	@Test
-	public final void testAugmentFromMax6_AB_nooverride()
+	public void testAugmentFromMax6_AB_nooverride()
 	{
 		final LearnerGraph gr = buildLearnerGraph("A-b->A-a->A-c->B-c->C\n", "testAugmentFromMax4_gr",mainConfiguration,converter);
 		final LearnerGraph max = new LearnerGraph(mainConfiguration);max.getInit().setAccept(false);
-		checkForCorrectException(new whatToRun() {	public @Override void run() throws NumberFormatException 
-			{
-				Transform.augmentFromMAX(gr, max, false, true,mainConfiguration, true);
-			}}, IllegalArgumentException.class, "incompatible");
+		checkForCorrectException(
+				() -> Transform.augmentFromMAX(gr, max, false, true,mainConfiguration, true),
+				IllegalArgumentException.class, "incompatible");
 	}
 
 	@Test
-	public final void testAugmentFromMax6_BA()
+	public void testAugmentFromMax6_BA()
 	{
 		LearnerGraph gr = new LearnerGraph(mainConfiguration);gr.getInit().setAccept(false);
 		LearnerGraph max = buildLearnerGraph("A-b->A-a->A-c->B-c->C\n", "testAugmentFromMax4_gr",mainConfiguration,converter);
@@ -185,7 +175,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 
 	@Test
-	public final void testAugmentFromMax7_AB()
+	public void testAugmentFromMax7_AB()
 	{
 		LearnerGraph gr = buildLearnerGraph("A-b->A-a->C-b->C-a->E-b-#G", "testAugmentFromMax2_gr",mainConfiguration,converter);
 		LearnerGraph max = buildLearnerGraph("B-b->D-b->F-a->F-b->B\nD-a-#E", "testAugmentFromMax7_max",mainConfiguration,converter);
@@ -195,18 +185,17 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 
 	@Test
-	public final void testAugmentFromMax7_AB_nooverride()
+	public void testAugmentFromMax7_AB_nooverride()
 	{
 		final LearnerGraph gr = buildLearnerGraph("A-b->A-a->C-b->C-a->E-b-#G", "testAugmentFromMax2_gr",mainConfiguration,converter);
 		final LearnerGraph max = buildLearnerGraph("B-b->D-b->F-a->F-b->B\nD-a-#E", "testAugmentFromMax7_max",mainConfiguration,converter);
-		checkForCorrectException(new whatToRun() {	public @Override void run() throws NumberFormatException 
-			{
-				Transform.augmentFromMAX(gr, max, false, true,mainConfiguration, true);
-			}}, IllegalArgumentException.class, "incompatible");
+		checkForCorrectException(
+				() -> Transform.augmentFromMAX(gr, max, false, true,mainConfiguration, true),
+				IllegalArgumentException.class, "incompatible");
 	}
 	
 	@Test
-	public final void testAugmentFromMax8_a()
+	public void testAugmentFromMax8_a()
 	{
 		LearnerGraph gr = buildLearnerGraph("A-b->A-a->C-b->C-a->E-b-#G", "testAugmentFromMax2_gr",mainConfiguration,converter);
 		LearnerGraph max = new LearnerGraph(mainConfiguration);
@@ -215,7 +204,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 	
 	@Test
-	public final void testAugmentFromMax8_b()
+	public void testAugmentFromMax8_b()
 	{
 		LearnerGraph gr = buildLearnerGraph("A-b->A-a->C-b->C-a->E-b-#G", "testAugmentFromMax2_gr",mainConfiguration,converter);
 		LearnerGraph max = buildLearnerGraph("A-a->A-b->A-c->A-d->A", "testAugmentFromMax7_max",mainConfiguration,converter);
@@ -237,72 +226,72 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	private static final String ifthenB = "A-a->B-a->C-b->B / P-b->Q-a->R / S-c->S / T-d->N / S=THEN=C=THEN=P / B=THEN=T=THEN=A";
 	
 	@Test
-	public final void testCheckIFTHEN1()
+	public void testCheckIFTHEN1()
 	{
 		Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph(ifthenA,"ifthen",mainConfiguration,converter));
 	}
 	
 	@Test
-	public final void testCheckIFTHEN2()
+	public void testCheckIFTHEN2()
 	{
 		Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph(ifthenB,"ifthen",mainConfiguration,converter));
 	}
 	
 	@Test
-	public final void testCheckIFTHEN_fail0a()
+	public void testCheckIFTHEN_fail0a()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			Transform.checkTHEN_disjoint_from_IF(new LearnerGraph(mainConfiguration));
-		}}, IllegalArgumentException.class,"no THEN states");
+		TestHelper.checkForCorrectException(
+				() -> Transform.checkTHEN_disjoint_from_IF(new LearnerGraph(mainConfiguration)),
+				IllegalArgumentException.class,"no THEN states");
 	}
 	
 	@Test
-	public final void testCheckIFTHEN_fail0b()
+	public void testCheckIFTHEN_fail0b()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
+		TestHelper.checkForCorrectException(() -> {
 			LearnerGraph graph = new LearnerGraph(mainConfiguration);graph.getInit().setAccept(false);
 			Transform.checkTHEN_disjoint_from_IF(graph);
-		}}, IllegalArgumentException.class,"no THEN states");
+		}, IllegalArgumentException.class,"no THEN states");
 	}
 	
 	@Test
-	public final void testCheckIFTHEN_fail1()
+	public void testCheckIFTHEN_fail1()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph("A-a->B-a->C-b->B / P-b->Q-a->R / S-c->S / T-d->N","testCheckIFTHEN_fail1",mainConfiguration,converter));
-		}}, IllegalArgumentException.class,"no THEN states");
+		TestHelper.checkForCorrectException(
+				() -> Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph("A-a->B-a->C-b->B / P-b->Q-a->R / S-c->S / T-d->N","testCheckIFTHEN_fail1",mainConfiguration,converter)),
+				IllegalArgumentException.class,"no THEN states");
 	}
 	
 	@Test
-	public final void testCheckIFTHEN_fail2()
+	public void testCheckIFTHEN_fail2()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph("A-a->B-a->C-b->B / P-b->Q-a->R / S-c->S / T-d->N / S=THEN=C=THEN=P","testCheckIFTHEN_fail2",mainConfiguration,converter));
-		}}, IllegalArgumentException.class,"unreachable");
+		TestHelper.checkForCorrectException(
+				() -> Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph("A-a->B-a->C-b->B / P-b->Q-a->R / S-c->S / T-d->N / S=THEN=C=THEN=P","testCheckIFTHEN_fail2",mainConfiguration,converter)),
+				IllegalArgumentException.class,"unreachable");
 	}
 	
 	@Test
-	public final void testCheckIFTHEN_fail3()
+	public void testCheckIFTHEN_fail3()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph("A-a->B-a->C-b->B / P-b->Q-a->B / S-c->S / T-d->N / S=THEN=C=THEN=P / B=THEN=T","testCheckIFTHEN_fail2",mainConfiguration,converter));
-		}}, IllegalArgumentException.class,"are shared between");
+		TestHelper.checkForCorrectException(
+				() -> Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph("A-a->B-a->C-b->B / P-b->Q-a->B / S-c->S / T-d->N / S=THEN=C=THEN=P / B=THEN=T","testCheckIFTHEN_fail2",mainConfiguration,converter)),
+				IllegalArgumentException.class,"are shared between");
 	}
 	
 	@Test
-	public final void testCheckIFTHEN_fail4()
+	public void testCheckIFTHEN_fail4()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph("A-a->B-a->C-b->B / P-b->Q-a->Q / S-c->S / T-d->N / S=THEN=C=THEN=P / S=THEN=T","testCheckIFTHEN_fail2",mainConfiguration,converter));
-		}}, IllegalArgumentException.class,"do not belong");
+		TestHelper.checkForCorrectException(
+				() -> Transform.checkTHEN_disjoint_from_IF(buildLearnerGraph("A-a->B-a->C-b->B / P-b->Q-a->Q / S-c->S / T-d->N / S=THEN=C=THEN=P / S=THEN=T","testCheckIFTHEN_fail2",mainConfiguration,converter)),
+				IllegalArgumentException.class,"do not belong");
 	}
 	
 	@Test
-	public final void testbuildIfThenAutomata1()
+	public void testbuildIfThenAutomata1()
 	{
 		String ltlFormula = "!([](a->X[]b))";
-		Collection<LearnerGraph> automata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{
-				QSMTool.cmdLTL+" "+ltlFormula}), buildLearnerGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
+		Collection<LearnerGraph> automata = Transform.buildIfThenAutomata(
+				Collections.singletonList(QSMTool.cmdLTL + " " + ltlFormula), buildLearnerGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
 		Iterator<LearnerGraph> graphIter = automata.iterator();
 
 		LearnerGraph topGraph = graphIter.next(), expectedTop = buildLearnerGraph("I-a->A-b->A / I-b->IA-a->A / I-c->IA-b->IA-c->IA / P-c-#P1 / P-a-#P2 / A = THEN = P / " +
@@ -315,22 +304,20 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Same as above, but more automata. */
 	@Test
-	public final void testbuildIfThenAutomata2()
+	public void testbuildIfThenAutomata2()
 	{
 		String ltlFormulaA = "a", ltlFormulaB = "b";
 
-		Collection<LearnerGraph> automata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{
-				QSMTool.cmdLTL+" "+ltlFormulaA,
+		Collection<LearnerGraph> automata = Transform.buildIfThenAutomata(Arrays.asList(QSMTool.cmdLTL+" "+ltlFormulaA,
 				QSMTool.cmdIFTHENAUTOMATON+" graphA A-a->B / P-a->P == THEN == A",
 				QSMTool.cmdLTL+" "+ltlFormulaB,
-				QSMTool.cmdIFTHENAUTOMATON+" graphB "+ifthenA
-			}), buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
+				QSMTool.cmdIFTHENAUTOMATON+" graphB "+ifthenA), buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
 		Iterator<LearnerGraph> graphIter = automata.iterator();
 
 		LearnerGraph topGraph = graphIter.next(), expectedTop = buildLearnerGraph("I-c->A / I-d->A / A-a->A-b->A-c->A-d->A / P2#-b-P-a-#P1 / I = THEN = P / " +
 				"I - transition_to_THEN ->P","!("+ltlFormulaA+"||"+ltlFormulaB+")",mainConfiguration,converter);
 		topGraph.addTransition(topGraph.transitionMatrix.get(topGraph.getInit()), AbstractLearnerGraph.generateNewLabel("transition_to_THEN",mainConfiguration,converter), topGraph.findVertex(VertexID.parseID("P"+(topGraph.vertPositiveID-1))));
-		LearnerGraph next = null;
+		LearnerGraph next;
 		compareGraphs(expectedTop, topGraph);Assert.assertEquals("LTL",topGraph.getName());
 		
 		next=graphIter.next();Assert.assertEquals("graphA", next.getName());
@@ -347,15 +334,13 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** No LTL but some automata. */
 	@Test
-	public final void testbuildIfThenAutomata3()
+	public void testbuildIfThenAutomata3()
 	{
-		Collection<LearnerGraph> automata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{
-				QSMTool.cmdIFTHENAUTOMATON+" graphA A-a->B / P-a->P == THEN == A",
-				QSMTool.cmdIFTHENAUTOMATON+" graphB "+ifthenA
-			}), buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
+		Collection<LearnerGraph> automata = Transform.buildIfThenAutomata(Arrays.asList(QSMTool.cmdIFTHENAUTOMATON+" graphA A-a->B / P-a->P == THEN == A",
+				QSMTool.cmdIFTHENAUTOMATON+" graphB "+ifthenA), buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
 		Iterator<LearnerGraph> graphIter = automata.iterator();
 
-		LearnerGraph next = null;
+		LearnerGraph next;
 		
 		next=graphIter.next();Assert.assertEquals("graphA", next.getName());
 		next.addTransition(next.transitionMatrix.get(next.getInit()), AbstractLearnerGraph.generateNewLabel("transition_to_THEN",mainConfiguration,converter), next.findVertex("P"));
@@ -371,29 +356,21 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 
 	/** An automaton without a name. */
 	@Test
-	public final void testbuildIfThenAutomata_fail1()
+	public void testbuildIfThenAutomata_fail1()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-		Transform.buildIfThenAutomata(Arrays.asList(new String[]{
-				QSMTool.cmdLTL+" !a",
-				QSMTool.cmdIFTHENAUTOMATON+" graphA"}), buildLearnerGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
-		}}, IllegalArgumentException.class,"missing automata name");
+		TestHelper.checkForCorrectException(() -> Transform.buildIfThenAutomata(Arrays.asList(QSMTool.cmdLTL+" !a",
+				QSMTool.cmdIFTHENAUTOMATON+" graphA"), buildLearnerGraph("A-a->B-b->C-c->D", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter), IllegalArgumentException.class,"missing automata name");
 	}
 	
 	@Test
-	public final void testbuildIfThenAutomata_fail2()
+	public void testbuildIfThenAutomata_fail2()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			Transform.buildIfThenAutomata(Arrays.asList(new String[]{
-				QSMTool.cmdIFTHENAUTOMATON+" graphA A-t->B / P-a->P == THEN == A"
-			}), buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter);
-		
-		}}, UnrecognisedLabelException.class,"unrecognised label t");
+		TestHelper.checkForCorrectException(() -> Transform.buildIfThenAutomata(Collections.singletonList(QSMTool.cmdIFTHENAUTOMATON + " graphA A-t->B / P-a->P == THEN == A"), buildLearnerGraph("A-a->B-b->C-c->D-d->E", "testbuildIfThenAutomata1", mainConfiguration,converter).pathroutines.computeAlphabet(),mainConfiguration,converter), UnrecognisedLabelException.class,"unrecognised label t");
 	}
 	
 	/** Tests the construction of a PTA from questions. */
 	@Test
-	public final void testBuildPTAofQuestions1()
+	public void testBuildPTAofQuestions1()
 	{
 		Configuration config = mainConfiguration.copy();config.setLearnerCloneGraph(false);config.setQuestionGenerator(QuestionGeneratorKind.CONVENTIONAL_IMPROVED);
 		LearnerGraph graph = buildLearnerGraph(
@@ -417,7 +394,8 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 				new String[]{"c", "d"},
 				new String[]{"c", "c", "e"},
 				new String[]{"c", "c", "f"}
-		},config,converter), actualQuestions = new LinkedHashSet<List<Label>>();actualQuestions.addAll(questions.getData());
+		},config,converter), actualQuestions;
+		actualQuestions = new LinkedHashSet<>(questions.getData());
 		Assert.assertEquals(expectedQuestions,actualQuestions);
 		//updatedGraphExpected.paths.augmentPTA(asList("c", "d"),false,false,null);
 		//updatedGraphExpected.paths.augmentPTA(asList("c", "c", "e"),true,false,null);
@@ -449,7 +427,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Using a machine from TestRpniLearner. */
 	@Test
-	public final void testBuildPTAofQuestions2()
+	public void testBuildPTAofQuestions2()
 	{
 		checkQuestionAugmentation("A-a->B-a->C-b->D\n"+
 				"A-b->E",
@@ -457,7 +435,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 
 	@Test
-	public final void testBuildPTAofQuestions3()
+	public void testBuildPTAofQuestions3()
 	{
 		checkQuestionAugmentation("A-p->B\n"+
 				"A-a->P1-c->B1-b->C1-e->D1\n"+
@@ -468,7 +446,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 
 	@Test
-	public final void testBuildPTAofQuestions4()
+	public void testBuildPTAofQuestions4()
 	{
 		checkQuestionAugmentation("A-p->B\n"+
 				"A-a->B\nA-b->B\nA-e->B\n"+
@@ -482,7 +460,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 
 	@Test
-	public final void testBuildPTAofQuestions5()
+	public void testBuildPTAofQuestions5()
 	{
 		checkQuestionAugmentation("A-p->B\n"+
 				"A-a->B\nA-b->B\nA-e->B\n"+
@@ -497,7 +475,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 
 	/** Using a machine from TestRpniLearner. */
 	@Test
-	public final void testBuildPTAofQuestions6()
+	public void testBuildPTAofQuestions6()
 	{
 		checkQuestionAugmentation(TestStateMerging.testGeneralD_fsm,
 				"testPairCompatible5");
@@ -507,7 +485,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 
 	/** Nothing to augment. */
 	@Test
-	public final void testPerformAugment1() throws IncompatibleStatesException
+	public void testPerformAugment1() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-c->B", "testPerformAugment1",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthenC, "ifthenC", mainConfiguration,converter)};
@@ -517,7 +495,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** One state is augmented. */
 	@Test
-	public final void testPerformAugment2a() throws IncompatibleStatesException
+	public void testPerformAugment2a() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B", "testPerformAugment2a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthenC, "ifthenC", mainConfiguration,converter)};
@@ -527,7 +505,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Nothing is augmented because the collection of properties is empty. */
 	@Test
-	public final void testPerformAugment2b() throws IncompatibleStatesException
+	public void testPerformAugment2b() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B", "testPerformAugment2a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{};
@@ -537,7 +515,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Cannot augment: depth is zero. */
 	@Test
-	public final void testPerformAugment3() throws IncompatibleStatesException
+	public void testPerformAugment3() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B", "testPerformAugment2a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthenC, "ifthenC", mainConfiguration,converter)}; 
@@ -547,7 +525,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Two states are augmented. */
 	@Test
-	public final void testPerformAugment4() throws IncompatibleStatesException
+	public void testPerformAugment4() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b->C", "testPerformAugment4a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthenC, "ifthenC", mainConfiguration,converter)};
@@ -575,13 +553,11 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	 * of the created states is set correctly. 
 	 */
 	@Test
-	public final void testPerformAugment5_CheckDepth() throws IncompatibleStatesException
+	public void testPerformAugment5_CheckDepth() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		graph.paths.augmentPTA(Arrays.asList(new Label[]{
-				AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter),
-				AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)
-				}), true, false, null);
+		graph.paths.augmentPTA(Arrays.asList(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter),
+				AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)), true, false, null);
 		
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthenC, "ifthenC", mainConfiguration,converter)}; 
 		Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 2);
@@ -603,7 +579,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	 * of the created states is set correctly. 
 	 */
 	@Test
-	public final void testPerformAugment5a() throws IncompatibleStatesException
+	public void testPerformAugment5a() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b->C", "testPerformAugment4a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthenC, "ifthenC", mainConfiguration,converter)}; 
@@ -613,7 +589,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 
 	/** Two states are augmented a bit further - three steps. */
 	@Test
-	public final void testPerformAugment5b() throws IncompatibleStatesException
+	public void testPerformAugment5b() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b->C", "testPerformAugment4a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthenC, "ifthenC", mainConfiguration,converter)}; 
@@ -623,7 +599,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Two states are augmented a bit further - four steps. */
 	@Test
-	public final void testPerformAugment5c() throws IncompatibleStatesException
+	public void testPerformAugment5c() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b->C", "testPerformAugment4a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthenC, "ifthenC", mainConfiguration,converter)}; 
@@ -633,7 +609,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Two states are augmented a bit further - five steps. */
 	@Test
-	public final void testPerformAugment5d() throws IncompatibleStatesException
+	public void testPerformAugment5d() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b->C", "testPerformAugment4a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthenC, "ifthenC", mainConfiguration,converter)}; 
@@ -645,19 +621,19 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Non-existing vertices in a tentative automaton. */
 	@Test
-	public final void testPerformAugment_fail0()
+	public void testPerformAugment_fail0()
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-b->C", "testPerformAugment_fail0a",mainConfiguration,converter);
 		graph.transitionMatrix.put(AbstractLearnerGraph.generateNewCmpVertex(new VertexID(VertKind.NONEXISTING,90),mainConfiguration),graph.createNewRow());
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
-			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b->N / B=THEN=T", "testPerformAugment_fail0b", mainConfiguration,converter)}; 
+		TestHelper.checkForCorrectException(() -> {
+			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b->N / B=THEN=T", "testPerformAugment_fail0b", mainConfiguration,converter)};
 			Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 2);
-		}},IllegalArgumentException.class,"non-existing vertices");
+		},IllegalArgumentException.class,"non-existing vertices");
 	}
 	
 	/** Contradiction between a new state and a graph, first when everything is ok. */
 	@Test
-	public final void testPerformAugment6a() throws IncompatibleStatesException
+	public void testPerformAugment6a() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B", "testPerformAugment6a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b-#N / B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)}; 
@@ -667,7 +643,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Contradiction between a new state and a graph, first when everything is ok. */
 	@Test
-	public final void testPerformAugment6b() throws IncompatibleStatesException
+	public void testPerformAugment6b() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b-#C", "testPerformAugment6b",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b-#N / B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)}; 
@@ -677,7 +653,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 
 	/** Contradiction between a new state and a graph, first when everything is ok. */
 	@Test
-	public final void testPerformAugment6c() throws IncompatibleStatesException
+	public void testPerformAugment6c() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b-#C / B-a->D", "testPerformAugment6c",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b-#N / B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)}; 
@@ -687,7 +663,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Contradiction between a new state and a graph, first when everything is ok. */
 	@Test
-	public final void testPerformAugment6d() throws IncompatibleStatesException
+	public void testPerformAugment6d() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b-#C / B-a->D-b-#N2", "testPerformAugment6d",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b-#N / B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)}; 
@@ -698,30 +674,29 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Contradiction between a new state and a graph. */
 	@Test
-	public final void testPerformAugment_fail1()
+	public void testPerformAugment_fail1()
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-b->C", "testPerformAugment_fail1a",mainConfiguration,converter);
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
-			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b-#N / B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)}; 
+		TestHelper.checkForCorrectException(() -> {
+			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b-#N / B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)};
 			Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 2);
-		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
+		},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
 	}
 	
 	/** Contradiction between a new state and a graph after unrolling the property a few times. */
 	@Test
-	public final void testPerformAugment_fail2()
+	public void testPerformAugment_fail2()
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-b->E", "testPerformAugment_fail1a",mainConfiguration,converter);
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
-			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b-#N / B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)}; 
+		TestHelper.checkForCorrectException(() -> {
+			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b-#N / B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)};
 			Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 2);
-		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
+		},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
 	}
 	
-	/** Contradiction between states added by THEN graphs, first when everything is ok. 
-	 * @throws IncompatibleStatesException */
+	/** Contradiction between states added by THEN graphs, first when everything is ok.   */
 	@Test
-	public final void testPerformAugment7() throws IncompatibleStatesException
+	public void testPerformAugment7() throws IncompatibleStatesException
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B", "testPerformAugment_fail1a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-c->T1-c->T2-c-#T3 / R-c->R1-c->R2-b->R3 / R=THEN=B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)}; 
@@ -729,10 +704,9 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		compareGraphs(buildLearnerGraph("A-a->B-c->T1-c->T2", "testPerformAugment6b",mainConfiguration,converter), graph);
 	}
 	
-	/** Contradiction between states added by THEN graphs, first when everything is ok. 
-	 * @throws IncompatibleStatesException */
+	/** Contradiction between states added by THEN graphs, first when everything is ok.   */
 	@Test
-	public final void testPerformAugment8() throws IncompatibleStatesException
+	public void testPerformAugment8() throws IncompatibleStatesException
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B", "testPerformAugment_fail1a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-c->T1-c->T2-c-#T3 / R-c->R1-c->R2-b->R3 / R=THEN=B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)}; 
@@ -740,10 +714,9 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		compareGraphs(buildLearnerGraph("A-a->B-c->T1-c->T2-c-#T3 / T2-b->T4", "testPerformAugment6b",mainConfiguration,converter), graph);
 	}
 	
-	/** Contradiction between states added by THEN graphs, first when everything is ok. 
-	 * @throws IncompatibleStatesException */
+	/** Contradiction between states added by THEN graphs, first when everything is ok.   */
 	@Test
-	public final void testPerformAugment9() throws IncompatibleStatesException
+	public void testPerformAugment9() throws IncompatibleStatesException
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B", "testPerformAugment_fail1a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-c->T1-c->T2-c-#T3 / R-c->R1-c->R2-b->R3 / R=THEN=B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)}; 
@@ -752,10 +725,9 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 	
 	/** Not yet a contradiction between states added by THEN graphs - the depth of exploration is 
-	 * too low to hit it. 
-	 * @throws IncompatibleStatesException */
+	 * too low to hit it.   */
 	@Test
-	public final void testPerformAugment10() throws IncompatibleStatesException
+	public void testPerformAugment10() throws IncompatibleStatesException
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B", "testPerformAugment_fail1a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-c->T1-c->T2-b-#T3 / R-c->R1-c->R2-b->R3 / R=THEN=B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)}; 
@@ -765,30 +737,29 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Contradiction between states added by THEN graphs. */
 	@Test
-	public final void testPerformAugment_fail3()
+	public void testPerformAugment_fail3()
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B", "testPerformAugment_fail1a",mainConfiguration,converter);
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
+		TestHelper.checkForCorrectException(() -> {
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-c->T1-c->T2-b-#T3 / R-c->R1-c->R2-b->R3 / R=THEN=B=THEN=T", "testPerformAugment_fail1", mainConfiguration,converter)};
 			Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 3);
-		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
+		},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
 	}
 	
 	/** Incompatibility between an existing state and a new one. */
 	@Test
-	public final void testPerformAugment_fail4()
+	public void testPerformAugment_fail4()
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-b-#C", "testPerformAugment_fail4a",mainConfiguration,converter);
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
-			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b->N / B=THEN=T", "testPerformAugment_fail4", mainConfiguration,converter)}; 
+		TestHelper.checkForCorrectException(() -> {
+			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-a->B /  T-b->N / B=THEN=T", "testPerformAugment_fail4", mainConfiguration,converter)};
 			Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 2);
-		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
+		},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative state");
 	}
 	
-	/** Reject-states cannot be extended even if they match a property. 
-	 * @throws AugmentFromIfThenAutomatonException */
+	/** Reject-states cannot be extended even if they match a property.   */
 	@Test
-	public final void testPerformAugment_reject1() throws AugmentFromIfThenAutomatonException
+	public void testPerformAugment_reject1() throws AugmentFromIfThenAutomatonException
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a-#B", "testPerformAugment_reject1a",mainConfiguration,converter);
 		LearnerGraph ifthen = buildLearnerGraph("A-a->B-a->B /  T-b->N / B=THEN=T", "testPerformAugment_fail4", mainConfiguration,converter);
@@ -800,19 +771,19 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Another example of a contradiction between a tentative graph and the property. */
 	@Test
-	public final void testPerformAugment_fail5()
+	public void testPerformAugment_fail5()
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-b-#C", "testPerformAugment_fail5a",mainConfiguration,converter);
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() throws IncompatibleStatesException {
+		TestHelper.checkForCorrectException(() -> {
 			LearnerGraph ifthen = buildLearnerGraph("A-a->B-a->B /  T-b->N-s->R / B=THEN=T", "testPerformAugment_fail5", mainConfiguration,converter);
-			LearnerGraph[] ifthenCollection = new LearnerGraph[]{ifthen}; 
+			LearnerGraph[] ifthenCollection = new LearnerGraph[]{ifthen};
 			Transform.augmentFromIfThenAutomaton(graph, null, ifthenCollection, 2);
-		}},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative");
+		},AugmentFromIfThenAutomatonException.class,"cannot merge a tentative");
 	}
 	
 	/** Dummy property - dummy means satisfied as long as the initial state of a tentative automaton is accept. */
 	@Test
-	public final void testPerformAugment11() throws IncompatibleStatesException
+	public void testPerformAugment11() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B", "testPerformAugment11a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B / P-b->P / A==THEN==P", "testPerformAugment11", mainConfiguration,converter)}; 
@@ -822,7 +793,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Dummy limited property. */
 	@Test
-	public final void testPerformAugment12() throws IncompatibleStatesException
+	public void testPerformAugment12() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B", "testPerformAugment11a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B / P-b->Q-c->R / A==THEN==P", "testPerformAugment11", mainConfiguration,converter)}; 
@@ -832,7 +803,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Dummy limited property and the first automaton does not match at all - which does not matter since property is dummy. */
 	@Test
-	public final void testPerformAugment13() throws IncompatibleStatesException
+	public void testPerformAugment13() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-s->B", "testPerformAugment11a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B / P-b->Q-c->R / A==THEN==P", "testPerformAugment11", mainConfiguration,converter)}; 
@@ -842,7 +813,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Infinitely matching property - this test is similar to a testPerformAugment5 series. */
 	@Test
-	public final void testPerformAugment14() throws IncompatibleStatesException
+	public void testPerformAugment14() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b->C-a->B", "testPerformAugment14a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph("A-a->B-b->C / P-a->Q-b->P-c->S / C==THEN==P", "testPerformAugment14", mainConfiguration,converter)}; 
@@ -852,7 +823,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 
 	/** Two properties where there is one which matches after a while and another short one which depends on the result of the match of the first one. */ 
 	@Test
-	public final void testPerformAugment15() throws IncompatibleStatesException
+	public void testPerformAugment15() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b->A", "testPerformAugment15a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{
@@ -865,7 +836,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Two properties where there is one which matches after a while and another short one which depends on the result of the match of the first one. */ 
 	@Test
-	public final void testPerformAugment16a() throws IncompatibleStatesException
+	public void testPerformAugment16a() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b->A", "testPerformAugment15a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{
@@ -878,7 +849,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Two properties where there is one which matches after a while and another short one which depends on the result of the match of the first one. */ 
 	@Test
-	public final void testPerformAugment16b() throws IncompatibleStatesException
+	public void testPerformAugment16b() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b->A", "testPerformAugment15a",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{
@@ -898,7 +869,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Three if-then automata, two of which recursively expand each other. */
 	@Test
-	public final void testPerformAugment17() throws IncompatibleStatesException
+	public void testPerformAugment17() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-b->B-c->A-c->B", "testPerformAugment17",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{
@@ -918,7 +889,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Three if-then automata, two of which recursively expand each other. */
 	@Test
-	public final void testPerformAugment18() throws IncompatibleStatesException
+	public void testPerformAugment18() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-b->B-c->A-c->B", "testPerformAugment17",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{
@@ -937,7 +908,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	
 	/** Three if-then automata, two of which recursively expand each other - very similar to the above but operates on a tree. */
 	@Test
-	public final void testPerformAugment19() throws IncompatibleStatesException
+	public void testPerformAugment19() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-b->C-a->D-b->E-a->F-b->G", "testPerformAugment19",mainConfiguration,converter);
 		LearnerGraph[] ifthenCollection = new LearnerGraph[]{
@@ -955,10 +926,9 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 	
 	
-	/** Tests how properties can answer questions. 
-	 * @throws IncompatibleStatesException */
+	/** Tests how properties can answer questions.   */
 	@Test
-	public final void testQuestionAnswering1() throws IncompatibleStatesException
+	public void testQuestionAnswering1() throws IncompatibleStatesException
 	{
 		LearnerGraph graph = buildLearnerGraph(
 				"A1-a->B1-b->A2-a->B2-b->A3-a->B3-b->A4-a->B4-b->A5 /"+
@@ -980,7 +950,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 
 	@Test
-	public final void testConversionOfAssociationsToTransitions1()
+	public void testConversionOfAssociationsToTransitions1()
 	{
 		Configuration config = mainConfiguration.copy();config.setLearnerCloneGraph(false);
 		LearnerGraph graph = buildLearnerGraph("A-a->B / P-b->Q-c->R / ", "testConversionOfAssociationsToTransitions1a", config,converter);
@@ -988,15 +958,15 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
                 PathRoutines.convertPairAssociationsToTransitions(graphAfterConversion,graph, config,converter);
 		graph.pairCompatibility.compatibility.clear();
 		LearnerGraph obtainedGraph = new LearnerGraph(graphAfterConversion,config);
-		WMethod.checkM_and_colours(buildLearnerGraph("A-a->B / P-b->Q-c->R / ",
-				"testConversionOfAssociationsToTransitions1b",config,converter),obtainedGraph ,VERTEX_COMPARISON_KIND.DEEP);
+		Assert.assertNull(WMethod.checkM_and_colours(buildLearnerGraph("A-a->B / P-b->Q-c->R / ",
+				"testConversionOfAssociationsToTransitions1b",config,converter),obtainedGraph ,VERTEX_COMPARISON_KIND.DEEP));
 		Assert.assertNull(graphAfterConversion.getUserDatum(JUConstants.VERTEX));
 		Assert.assertTrue(
 				((EdgeAnnotation)graphAfterConversion.getUserDatum(JUConstants.EDGE)).isEmpty());
 	}
 	
 	@Test
-	public final void testConversionOfAssociationsToTransitions2()
+	public void testConversionOfAssociationsToTransitions2()
 	{
 		Configuration config = mainConfiguration.copy();config.setLearnerCloneGraph(false);
 		LearnerGraph graph = buildLearnerGraph("A-a->B / P-b->Q-c->R / A==THEN==P / B=INCOMPATIBLE=Q=MERGED=R", "testConversionOfAssociationsToTransitions2a", config,converter);
@@ -1004,7 +974,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		PathRoutines.convertPairAssociationsToTransitions(graphAfterConversion,graph, config,converter);
 		graph.pairCompatibility.compatibility.clear();
 		LearnerGraph obtainedGraph = new LearnerGraph(graphAfterConversion,config);
-		WMethod.checkM_and_colours(buildLearnerGraph("A-a->B / P-b->Q-c->R / "+
+		Assert.assertNull(WMethod.checkM_and_colours(buildLearnerGraph("A-a->B / P-b->Q-c->R / "+
 				"A-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"->P / "+
 				"P-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"->A / "+
 				
@@ -1013,7 +983,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 				
 				"Q-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"->R / "+
 				"R-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"->Q / ", 
-				"testConversionOfAssociationsToTransitions2b",config,converter), obtainedGraph,VERTEX_COMPARISON_KIND.DEEP);
+				"testConversionOfAssociationsToTransitions2b",config,converter), obtainedGraph,VERTEX_COMPARISON_KIND.DEEP));
 
 		Assert.assertNull(graphAfterConversion.getUserDatum(JUConstants.VERTEX));
 		Assert.assertEquals("{A={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"={P=java.awt.Color[r=255,g=255,b=0]}}, " +
@@ -1021,7 +991,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 				"P={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"={A=java.awt.Color[r=255,g=255,b=0]}}, " +
 				"Q={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.INCOMPATIBLE.name()+"={B=java.awt.Color[r=255,g=255,b=0]}, "+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"={R=java.awt.Color[r=255,g=255,b=0]}}, " +
 				"R={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"={Q=java.awt.Color[r=255,g=255,b=0]}}}",
-				((EdgeAnnotation)graphAfterConversion.getUserDatum(JUConstants.EDGE)).toString());
+				graphAfterConversion.getUserDatum(JUConstants.EDGE).toString());
 
 	}
 
@@ -1062,7 +1032,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		private LearnerGraph origGraph = null;
 		
 		@Before
-		public final void beforeTest()
+		public void beforeTest()
 		{
 			mainConfiguration.setLearnerCloneGraph(false);
 			origGraph = FsmParserStatechum.buildLearnerGraph(graphWithAppendixAfterMerging, "graphWithAppendixAfterMerging",mainConfiguration,converter);
@@ -1078,30 +1048,30 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		}
 		
 		/** Tests that the question part is matched to the IF part only if it matches the THEN part.
-		 * @throws IncompatibleStatesException */
+		 */
 		@Test
-		public final void testQuestionAnswering2() throws IncompatibleStatesException
+		public void testQuestionAnswering2() throws IncompatibleStatesException
 		{
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthen_sc, "ifthen_sc", mainConfiguration,converter)}; 
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
 			List<List<Label>> questionList = questions.getData();
 			Assert.assertEquals(3,questionList.size());
 			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","d"},new String[]{"s","c","c","f"},new String[]{"s","c","c","e"}},mainConfiguration,converter);
-			Set<List<Label>> actual = new LinkedHashSet<List<Label>>();actual.addAll(questionList);
+			Set<List<Label>> actual = new LinkedHashSet<>(questionList);
 			Assert.assertEquals(expected,actual);
 		}
 		
 		/** Tests that the question part is matched to the IF part only if it matches the THEN part.
-		 * @throws IncompatibleStatesException */
+		 */
 		@Test
-		public final void testQuestionAnswering3a() throws IncompatibleStatesException
+		public void testQuestionAnswering3a() throws IncompatibleStatesException
 		{
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthen_s, "ifthen_s", mainConfiguration,converter)}; 
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
 			List<List<Label>> questionList = questions.getData();
 			Assert.assertEquals(2,questionList.size());
 			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","c","f"},new String[]{"s","c","c","e"}},mainConfiguration,converter);
-			Set<List<Label>> actual = new LinkedHashSet<List<Label>>();actual.addAll(questionList);
+			Set<List<Label>> actual = new LinkedHashSet<>(questionList);
 			Assert.assertEquals(expected,actual);
 		
 			// now do the same again - should not change anything. 
@@ -1110,13 +1080,13 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			compareGraphs(new LearnerGraph(origGraph,mainConfiguration),graph);// check that augment did not modify the automaton
 			questionList = questions.getData();
 			Assert.assertEquals(2,questionList.size());
-			actual = new LinkedHashSet<List<Label>>();actual.addAll(questionList);
+			actual = new LinkedHashSet<>(questionList);
 			Assert.assertEquals(expected,actual);
 		}
 		
 		/** Same as above but do the two (identical) things at the same time. */
 		@Test
-		public final void testQuestionAnswering3b() throws IncompatibleStatesException
+		public void testQuestionAnswering3b() throws IncompatibleStatesException
 		{
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{
 					buildLearnerGraph(ifthen_s, "ifthen_s", mainConfiguration,converter), 
@@ -1125,7 +1095,7 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			List<List<Label>> questionList = questions.getData();
 			Assert.assertEquals(2,questionList.size());
 			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","c","f"},new String[]{"s","c","c","e"}},mainConfiguration,converter);
-			Set<List<Label>> actual = new LinkedHashSet<List<Label>>();actual.addAll(questionList);
+			Set<List<Label>> actual = new LinkedHashSet<>(questionList);
 			Assert.assertEquals(expected,actual);
 		
 			// now do the same again - should not change anything. 
@@ -1136,16 +1106,15 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			compareGraphs(new LearnerGraph(origGraph,mainConfiguration),graph);// check that augment did not modify the automaton
 			questionList = questions.getData();
 			Assert.assertEquals(2,questionList.size());
-			actual = new LinkedHashSet<List<Label>>();actual.addAll(questionList);
+			actual = new LinkedHashSet<>(questionList);
 			Assert.assertEquals(expected,actual);
 		}
 		
 		/** Tests that the question part is matched to the IF part only if it matches the THEN part. 
 		 * Note that "if_then_sc" depends on the outcome of "if_then_s".
-		 * 
-		 * @throws IncompatibleStatesException */
+		 */
 		@Test
-		public final void testQuestionAnswering4a() throws IncompatibleStatesException
+		public void testQuestionAnswering4a() throws IncompatibleStatesException
 		{
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthen_s, "ifthen_s", mainConfiguration,converter)}; 
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
@@ -1156,16 +1125,15 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			List<List<Label>> questionList = questions.getData();
 			Assert.assertEquals(1,questionList.size());
 			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","c","f"}},mainConfiguration,converter);
-			Set<List<Label>> actual = new LinkedHashSet<List<Label>>();actual.addAll(questionList);
+			Set<List<Label>> actual = new LinkedHashSet<>(questionList);
 			Assert.assertEquals(expected,actual);
 		}
 		
 		/** Same as above but do the two (identical) things at the same time.
 		 * Note that "if_then_sc" depends on the outcome of "if_then_s".
-		 * 
-		 * @throws IncompatibleStatesException */
+		 */
 		@Test
-		public final void testQuestionAnswering4b() throws IncompatibleStatesException
+		public void testQuestionAnswering4b() throws IncompatibleStatesException
 		{
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{
 					buildLearnerGraph(ifthen_s, "ifthen_s", mainConfiguration,converter), 
@@ -1177,16 +1145,15 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			List<List<Label>> questionList = questions.getData();
 			Assert.assertEquals(1,questionList.size());
 			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","c","f"}},mainConfiguration,converter);
-			Set<List<Label>> actual = new LinkedHashSet<List<Label>>();actual.addAll(questionList);
+			Set<List<Label>> actual = new LinkedHashSet<>(questionList);
 			Assert.assertEquals(expected,actual);
 		}
 		
 		/** Tests that the question part is matched to the IF part only if it has been answered by a user.
 		 * First, with IF part which cannot be satisfied.
-		 * 
-		 * @throws IncompatibleStatesException */
+		 */
 		@Test
-		public final void testQuestionAnswering5a() throws IncompatibleStatesException
+		public void testQuestionAnswering5a() throws IncompatibleStatesException
 		{
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthen_sc, "ifthen_sc", mainConfiguration,converter)}; 
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
@@ -1199,16 +1166,15 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			List<List<Label>> questionList = questions.getData();
 			Assert.assertEquals(3,questionList.size());
 			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","d"},new String[]{"s","c","c","f"},new String[]{"s","c","c","e"}},mainConfiguration,converter);
-			Set<List<Label>> actual = new LinkedHashSet<List<Label>>();actual.addAll(questionList);
+			Set<List<Label>> actual = new LinkedHashSet<>(questionList);
 			Assert.assertEquals(expected,actual);
 		}
 		
 		/** Tests that the question part is matched to the IF part only if it has been answered by a user.
 		 * First, with IF part which cannot be satisfied.
-		 * 
-		 * @throws IncompatibleStatesException */
+		 */
 		@Test
-		public final void testQuestionAnswering5b() throws IncompatibleStatesException
+		public void testQuestionAnswering5b() throws IncompatibleStatesException
 		{
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthen_sc_unsat, "ifthen_sc", mainConfiguration,converter)}; 
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
@@ -1221,14 +1187,13 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			List<List<Label>> questionList = questions.getData();
 			Assert.assertEquals(3,questionList.size());
 			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","d"},new String[]{"s","c","c","f"},new String[]{"s","c","c","e"}}, mainConfiguration,converter);
-			Set<List<Label>> actual = new LinkedHashSet<List<Label>>();actual.addAll(questionList);
+			Set<List<Label>> actual = new LinkedHashSet<>(questionList);
 			Assert.assertEquals(expected,actual);
 		}
 		
-		/** Tests that the question part is matched to the IF part only if it has been answered by a user.
-		 * @throws IncompatibleStatesException */
+		/** Tests that the question part is matched to the IF part only if it has been answered by a user.   */
 		@Test
-		public final void testQuestionAnswering6() throws IncompatibleStatesException
+		public void testQuestionAnswering6() throws IncompatibleStatesException
 		{
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthen_sc, "ifthen_sc", mainConfiguration,converter)}; 
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
@@ -1242,14 +1207,13 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			List<List<Label>> questionList = questions.getData();
 			Assert.assertEquals(1,questionList.size());
 			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","c","f"}},mainConfiguration,converter);
-			Set<List<Label>> actual = new LinkedHashSet<List<Label>>();actual.addAll(questionList);
+			Set<List<Label>> actual = new LinkedHashSet<>(questionList);
 			Assert.assertEquals(expected,actual);
 		}
 		
-		/** Tests that the question part is matched to the IF part only if it has been answered by a user.
-		 * @throws IncompatibleStatesException */
+		/** Tests that the question part is matched to the IF part only if it has been answered by a user.   */
 		@Test
-		public final void testQuestionAnswering7() throws IncompatibleStatesException
+		public void testQuestionAnswering7() throws IncompatibleStatesException
 		{
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthen_sc, "ifthen_sc", mainConfiguration,converter)}; 
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
@@ -1263,13 +1227,13 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			List<List<Label>> questionList = questions.getData();
 			Assert.assertEquals(1,questionList.size());
 			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","c","f"}},mainConfiguration,converter);
-			Set<List<Label>> actual = new LinkedHashSet<List<Label>>();actual.addAll(questionList);
+			Set<List<Label>> actual = new LinkedHashSet<>(questionList);
 			Assert.assertEquals(expected,actual);
 		}
 		
 		/** Tests that recursive properties are correctly handled. */
 		@Test
-		public final void testQuestionAnswering8() throws IncompatibleStatesException
+		public void testQuestionAnswering8() throws IncompatibleStatesException
 		{
 			LearnerGraph[] ifthenCollection = new LearnerGraph[]{buildLearnerGraph(ifthen_sc, "ifthen_sc", mainConfiguration,converter)}; 
 			Transform.augmentFromIfThenAutomaton(graph, (NonExistingPaths)questions.getFSM(), ifthenCollection, 0);
@@ -1283,13 +1247,13 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			List<List<Label>> questionList = questions.getData();
 			Assert.assertEquals(1,questionList.size());
 			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","c","f"}},mainConfiguration,converter);
-			Set<List<Label>> actual = new LinkedHashSet<List<Label>>();actual.addAll(questionList);
+			Set<List<Label>> actual = new LinkedHashSet<>(questionList);
 			Assert.assertEquals(expected,actual);
 		}
 		
 		/** Three if-then automata, two of which recursively expand each other - very similar to the above but operates on a tree. */
 		@Test
-		public final void testQuestionAnswering9() throws IncompatibleStatesException
+		public void testQuestionAnswering9() throws IncompatibleStatesException
 		{
 			origGraph = FsmParserStatechum.buildLearnerGraph("I-c->I-s->A-c->A-a->B-b->C-a->D-b->E-a->F-b->G / "+
 					"C-c->C11-c->C12-c->C13-c->C14-c->C15-c->C16-c->C17 / C13-a->13A-b->13B / C15-a->15A-b->15B /"+
@@ -1325,49 +1289,47 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		
 		/** Tests <em>mapPathToConfirmedElements</em> with an empty sequence. */
 		@Test
-		public final void testMapPathToConfirmedElements1Ea()
+		public void testMapPathToConfirmedElements1Ea()
 		{
 			LearnerGraph hardFacts = new LearnerGraph(Configuration.getDefaultConfiguration());hardFacts.initPTA();
-			Assert.assertTrue(PathRoutines.mapPathToConfirmedElements(hardFacts,new LinkedList<Label>(),new LearnerGraph[]{})
+			Assert.assertTrue(PathRoutines.mapPathToConfirmedElements(hardFacts, new LinkedList<>(),new LearnerGraph[]{})
 					.isEmpty());
 		}
 		
 		/** Tests <em>mapPathToConfirmedElements</em> with a sequence containing a non-existing element. */
 		@Test
-		public final void testMapPathToConfirmedElements1Eb()
+		public void testMapPathToConfirmedElements1Eb()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,
-					AbstractLearnerGraph.buildList(Arrays.asList(new String[]{
-					"u"}),mainConfiguration,converter),new LearnerGraph[]{});
+					AbstractLearnerGraph.buildList(Collections.singletonList("u"),mainConfiguration,converter),new LearnerGraph[]{});
 			Assert.assertEquals(Arrays.asList(new Boolean[]{null}),result);
 		}
 		
 
 		/** Tests <em>mapPathToConfirmedElements</em> when there are no ifthen automata (empty set of automata). */
 		@Test
-		public final void testMapPathToConfirmedElements1Ec()
+		public void testMapPathToConfirmedElements1Ec()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"s","t"}), true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,
-					AbstractLearnerGraph.buildList(Arrays.asList(new String[]{
-					"s","v","j"}),mainConfiguration,converter),new LearnerGraph[]{});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,null}),result);
+					AbstractLearnerGraph.buildList(Arrays.asList("s","v","j"),mainConfiguration,converter),new LearnerGraph[]{});
+			Assert.assertEquals(Arrays.asList(true,null,null),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em> with an empty sequence. */
 		@Test
-		public final void testMapPathToConfirmedElements1Na()
+		public void testMapPathToConfirmedElements1Na()
 		{
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
-			Assert.assertTrue(PathRoutines.mapPathToConfirmedElements(hardFacts,new LinkedList<Label>(),null)
+			Assert.assertTrue(PathRoutines.mapPathToConfirmedElements(hardFacts, new LinkedList<>(),null)
 					.isEmpty());
 		}
 		
 		/** Tests <em>mapPathToConfirmedElements</em> with a sequence containing a non-existing element. */
 		@Test
-		public final void testMapPathToConfirmedElements1Nb()
+		public void testMapPathToConfirmedElements1Nb()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,
@@ -1378,357 +1340,353 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 
 		/** Tests <em>mapPathToConfirmedElements</em> when there are no ifthen automata (null argument). */
 		@Test
-		public final void testMapPathToConfirmedElements1Nc()
+		public void testMapPathToConfirmedElements1Nc()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"s","t"}), 
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,
 					labelList(new String[]{"s","v","j"}),null);
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,null}),result);
+			Assert.assertEquals(Arrays.asList(true,null,null),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements2a()
+		public void testMapPathToConfirmedElements2a()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"s","t"}), true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"s"}), new LearnerGraph[]{});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true}),result);
+			Assert.assertEquals(Collections.singletonList(true),result);
 		}
 		
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements2b()
+		public void testMapPathToConfirmedElements2b()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"s","t"}),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"s"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true}),result);
+			Assert.assertEquals(Collections.singletonList(true),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements3a()
+		public void testMapPathToConfirmedElements3a()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"s","t"}), 
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"s","t"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true}),result);
+			Assert.assertEquals(Arrays.asList(true,true),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements3b()
+		public void testMapPathToConfirmedElements3b()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"s","t"}),
 					false, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"s","t"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false}),result);
+			Assert.assertEquals(Arrays.asList(true,false),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements4a()
+		public void testMapPathToConfirmedElements4a()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"s","t"}),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"s","t","q"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,null}),result);
+			Assert.assertEquals(Arrays.asList(true,true,null),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements4b()
+		public void testMapPathToConfirmedElements4b()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"s","t"}),
 					false, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"s","t","q"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,false,null}),result);
+			Assert.assertEquals(Arrays.asList(true,false,null),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. 
 		 * Path matches if-then but "then" element does not confirm anything. 
 		 */
 		@Test
-		public final void testMapPathToConfirmedElements5a()
+		public void testMapPathToConfirmedElements5a()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
-			hardFacts.paths.augmentPTA(AbstractLearnerGraph.buildList(Arrays.asList(new String[]{"s","t"}),mainConfiguration,converter),
+			hardFacts.paths.augmentPTA(AbstractLearnerGraph.buildList(Arrays.asList("s","t"),mainConfiguration,converter),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","q"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{null,null,null}),result);
+			Assert.assertEquals(Arrays.asList(null,null,null),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. 
 		 * Path matches if-then and "then" element confirms a path
 		 */
 		@Test
-		public final void testMapPathToConfirmedElements5b()
+		public void testMapPathToConfirmedElements5b()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"s","t"}),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","c"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{null,null,true}),result);
+			Assert.assertEquals(Arrays.asList(null,null,true),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. 
 		 * Path matches if-then and "then" element confirms a path
 		 */
 		@Test
-		public final void testMapPathToConfirmedElements5c()
+		public void testMapPathToConfirmedElements5c()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","b"}),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","s"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,null}),result);
+			Assert.assertEquals(Arrays.asList(true,true,null),result);
 		}
 		
 		/** Tests <em>mapPathToConfirmedElements</em>. 
 		 * Path matches if-then and "then" element confirms a path
 		 */
 		@Test
-		public final void testMapPathToConfirmedElements5d()
+		public void testMapPathToConfirmedElements5d()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","t"}),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","c"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true}),result);
+			Assert.assertEquals(Arrays.asList(true,null,true),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. 
 		 * Path matches if-then and "then" element confirms a path
 		 */
 		@Test
-		public final void testMapPathToConfirmedElements5e()
+		public void testMapPathToConfirmedElements5e()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","b"}),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","c"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,true}),result);
+			Assert.assertEquals(Arrays.asList(true,true,true),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. 
 		 * Path matches if-then and "then" element confirms a path
 		 */
 		@Test
-		public final void testMapPathToConfirmedElements5f()
+		public void testMapPathToConfirmedElements5f()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","b"}),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","f"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,null}),result);
+			Assert.assertEquals(Arrays.asList(true,true,null),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. 
 		 */
 		@Test
-		public final void testMapPathToConfirmedElements6a()
+		public void testMapPathToConfirmedElements6a()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","s"}),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","c","c"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true,null}),result);
+			Assert.assertEquals(Arrays.asList(true,null,true,null),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements6b()
+		public void testMapPathToConfirmedElements6b()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","s"}),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","c","b"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true,null}),result);
+			Assert.assertEquals(Arrays.asList(true,null,true,null),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements6c()
+		public void testMapPathToConfirmedElements6c()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","s"}), 
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","c","b","a"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true,null,true}),result);
+			Assert.assertEquals(Arrays.asList(true,null,true,null,true),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements6d()
+		public void testMapPathToConfirmedElements6d()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","s"}),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","c","b","s"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true,null,null}),result);
+			Assert.assertEquals(Arrays.asList(true,null,true,null,null),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements6e()
+		public void testMapPathToConfirmedElements6e()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","s"}),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","c","c","b","s"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true,null,null,null}),result);
+			Assert.assertEquals(Arrays.asList(true,null,true,null,null,null),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements6f()
+		public void testMapPathToConfirmedElements6f()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","s"}), 
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","c","c","b","a"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,null,true,null,null,true}),result);
+			Assert.assertEquals(Arrays.asList(true,null,true,null,null,true),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements7a()
+		public void testMapPathToConfirmedElements7a()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","b"}),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","c","c","b","a"}), new LearnerGraph[]{ifthen1,ifthen3});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,true,null,null,false}),result);
+			Assert.assertEquals(Arrays.asList(true,true,true,null,null,false),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements7b()
+		public void testMapPathToConfirmedElements7b()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","b"}),
 					true, false, JUConstants.BLUE);
 			List<Boolean> result = PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
 					"a","b","c","c","b","a","u"}), new LearnerGraph[]{ifthen1,ifthen2});
-			Assert.assertEquals(Arrays.asList(new Boolean[]{true,true,true,null,null,true,null}),result);
+			Assert.assertEquals(Arrays.asList(true,true,true,null,null,true,null),result);
 		}
 
 		/** Tests <em>mapPathToConfirmedElements</em>. */
 		@Test
-		public final void testMapPathToConfirmedElements7c()
+		public void testMapPathToConfirmedElements7c()
 		{// questions are [[s, c, d], [s, c, c, f], [s, c, c, e]] where only s exists in the original graph
 			final LearnerGraph hardFacts = new LearnerGraph(mainConfiguration);hardFacts.initPTA();
 			hardFacts.paths.augmentPTA(labelList(new String[]{"a","b"}),
 					true, false, JUConstants.BLUE);
-			TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-				PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
-					"a","b","c","c","b","a","u"}), new LearnerGraph[]{ifthen1,ifthen3});
-			}},IllegalArgumentException.class,"is invalid: either of true/false");
+			TestHelper.checkForCorrectException(() -> PathRoutines.mapPathToConfirmedElements(hardFacts,labelList(new String[]{
+				"a","b","c","c","b","a","u"}), new LearnerGraph[]{ifthen1,ifthen3}),IllegalArgumentException.class,"is invalid: either of true/false");
 		}
 
 		/** Tests <em>identifyTheOnlyChoice</em>. */
 		@Test
-		public final void testIdentifyTheOnlyChoice1()
+		public void testIdentifyTheOnlyChoice1()
 		{
-			TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-				PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{}));
-			}},IllegalArgumentException.class,"an empty path");
+			TestHelper.checkForCorrectException(() -> PathRoutines.identifyTheOnlyChoice(Collections.emptyList()),IllegalArgumentException.class,"an empty path");
 		}
 		
 
 		/** Tests <em>identifyTheOnlyChoice</em>. */
 		@Test
-		public final void testIdentifyTheOnlyChoice2()
+		public void testIdentifyTheOnlyChoice2()
 		{
-			Assert.assertEquals(Integer.valueOf(2),PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,true,false})));
+			Assert.assertEquals(Integer.valueOf(2),PathRoutines.identifyTheOnlyChoice(Arrays.asList(true,true,false)));
 		}
 		
 		/** Tests <em>identifyTheOnlyChoice</em>. */
 		@Test
-		public final void testIdentifyTheOnlyChoice3()
+		public void testIdentifyTheOnlyChoice3()
 		{
-			Assert.assertEquals(Integer.valueOf(AbstractOracle.USER_ACCEPTED),PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,true,true})));
+			Assert.assertEquals(Integer.valueOf(AbstractOracle.USER_ACCEPTED),PathRoutines.identifyTheOnlyChoice(Arrays.asList(true,true,true)));
 		}
 		
 		/** Tests <em>identifyTheOnlyChoice</em>. */
 		@Test
-		public final void testIdentifyTheOnlyChoice4()
+		public void testIdentifyTheOnlyChoice4()
 		{
-			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,true,null})));
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(true,true,null)));
 		}
 		
 		/** Tests <em>identifyTheOnlyChoice</em>. */
 		@Test
-		public final void testIdentifyTheOnlyChoice5()
+		public void testIdentifyTheOnlyChoice5()
 		{
-			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,false,true})));
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(true,false,true)));
 		}
 		
 		/** Tests <em>identifyTheOnlyChoice</em>. */
 		@Test
-		public final void testIdentifyTheOnlyChoice6()
+		public void testIdentifyTheOnlyChoice6()
 		{
-			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{true,null,true})));
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(true,null,true)));
 		}
 		
 		/** Tests <em>identifyTheOnlyChoice</em>. */
 		@Test
-		public final void testIdentifyTheOnlyChoice7()
+		public void testIdentifyTheOnlyChoice7()
 		{
-			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{false,true,true})));
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(false,true,true)));
 		}
 		
 		/** Tests <em>identifyTheOnlyChoice</em>. */
 		@Test
-		public final void testIdentifyTheOnlyChoice8()
+		public void testIdentifyTheOnlyChoice8()
 		{
-			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{null,true,true})));
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(null,true,true)));
 		}
 		
 		/** Tests <em>identifyTheOnlyChoice</em>. */
 		@Test
-		public final void testIdentifyTheOnlyChoice9()
+		public void testIdentifyTheOnlyChoice9()
 		{
-			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{null,null,true})));
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(null,null,true)));
 		}
 		
 		/** Tests <em>identifyTheOnlyChoice</em>. */
 		@Test
-		public final void testIdentifyTheOnlyChoice10()
+		public void testIdentifyTheOnlyChoice10()
 		{
-			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(new Boolean[]{null,false,true})));
+			Assert.assertNull(PathRoutines.identifyTheOnlyChoice(Arrays.asList(null,false,true)));
 		}
 		
 		/** Tests marking of questions as answered. */
 		@Test
-		public final void testQuestionMarking1()
+		public void testQuestionMarking1()
 		{
 			graph.learnerCache.questionsPTA = questions;
 			Assert.assertNotNull(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), true));
@@ -1739,18 +1697,18 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 		
 		/** Tests marking of questions as answered. */
 		@Test
-		public final void testQuestionMarking_unmatched()
+		public void testQuestionMarking_unmatched()
 		{
 			graph.learnerCache.questionsPTA = questions;
-			Assert.assertFalse(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c"}), false).booleanValue());
-			Assert.assertFalse(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c","c"}), false).booleanValue());
-			Assert.assertFalse(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s","c","d"}), true).booleanValue());
+			Assert.assertFalse(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s", "c"}), false));
+			Assert.assertFalse(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s", "c", "c"}), false));
+			Assert.assertFalse(graph.transform.AugmentNonExistingMatrixWith(labelList(new String[]{"s", "c", "d"}), true));
 		}
 		
 		/** The integration of test of questions, similar to <em>testQuestionAnswering4</em> but 
 		 * using different methods. */
 		@Test
-		public final void testQuestions_and_marking1a()
+		public void testQuestions_and_marking1a()
 		{
 			//Visualiser.updateFrame(graph, null);
 			//Visualiser.updateFrame(ComputeQuestions.constructGraphWithQuestions(pair,graph,merged), buildLearnerGraph(ifthen_s, "ifthen_s",config));
@@ -1762,13 +1720,13 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			compareGraphs(new LearnerGraph(origGraph,mainConfiguration),graph);// check that augment did not modify the automaton
 			Assert.assertEquals(1,qs.size());
 			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","c","f"}},mainConfiguration,converter);
-			Set<List<Label>> actual = new LinkedHashSet<List<Label>>();actual.addAll(qs);
+			Set<List<Label>> actual = new LinkedHashSet<>(qs);
 			Assert.assertEquals(expected,actual);
 		}
 		
 		/** Almost the same as the above, but the order of elements in the array of properties is different. */
 		@Test
-		public final void testQuestions_and_marking1b()
+		public void testQuestions_and_marking1b()
 		{
 			List<List<Label>> qs = ComputeQuestions.computeQS(pair, graph, merged, new LearnerGraph[] {
 					buildLearnerGraph(ifthen_sc, "ifthen_sc",mainConfiguration,converter),
@@ -1777,14 +1735,14 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			compareGraphs(new LearnerGraph(origGraph,mainConfiguration),graph);// check that augment did not modify the automaton
 			Assert.assertEquals(1,qs.size());
 			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","c","f"}},mainConfiguration,converter);
-			Set<List<Label>> actual = new LinkedHashSet<List<Label>>();actual.addAll(qs);
+			Set<List<Label>> actual = new LinkedHashSet<>(qs);
 			Assert.assertEquals(expected,actual);
 		}
 		
 		/** The integration of test of questions, similar to <em>testQuestionAnswering6</em> but 
 		 * using different methods. */
 		@Test
-		public final void testQuestions_and_marking2()
+		public void testQuestions_and_marking2()
 		{
 			LearnerGraph[] properties = new LearnerGraph[]{
 					buildLearnerGraph(ifthen_sc, "ifthen_sc",mainConfiguration,converter)};
@@ -1798,13 +1756,13 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 			Assert.assertEquals(1,qs.size());
 
 			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"s","c","c","f"}},mainConfiguration,converter);
-			Set<List<Label>> actual = new LinkedHashSet<List<Label>>();actual.addAll(qs);
+			Set<List<Label>> actual = new LinkedHashSet<>(qs);
 			Assert.assertEquals(expected,actual);
 		}
 
 		/** Interaction between <em>computeQS</em> and <em>recomputeQS</em>. */
 		@Test
-		public final void testQuestions_and_marking3()
+		public void testQuestions_and_marking3()
 		{
 			LearnerGraph [] properties = new LearnerGraph[] {
 					buildLearnerGraph(ifthen_sc, "ifthen_sc",mainConfiguration,converter)};

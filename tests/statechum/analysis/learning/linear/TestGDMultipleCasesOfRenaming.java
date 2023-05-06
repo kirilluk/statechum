@@ -28,7 +28,7 @@ import java.util.TreeSet;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName;
 
 import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 import statechum.Configuration;
@@ -50,22 +50,23 @@ import statechum.analysis.learning.rpnicore.WMethod.VERTEX_COMPARISON_KIND;
  * @author kirill
  *
  */
+@SuppressWarnings("ConstantConditions")
 @RunWith(ParameterizedWithName.class)
-public class TestGD_MultipleCasesOfRenaming {
+public class TestGDMultipleCasesOfRenaming {
 
 	/** Number of threads to use. */
 	protected final int threadNumber;
 
 	/** Label converter to use. */
-	private ConvertALabel converter = null;
+	private final ConvertALabel converter = null;
 
 	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
-		Collection<Object []> result = new LinkedList<Object []>();
+		Collection<Object []> result = new LinkedList<>();
 		for(int i=1;i<8;++i)
 			for(String stateC:new String[]{"C","A","F","S"})
-				result.add(new Object[]{Integer.valueOf(i), stateC});
+				result.add(new Object[]{i, stateC});
 		
 		return result;
 	}
@@ -74,14 +75,14 @@ public class TestGD_MultipleCasesOfRenaming {
 	/** The vertex which is different between different tests. */
 	private final String stateC;
 	
-	@org.junit.runners.ParameterizedWithName.ParametersToString
+	@junit_runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Integer threads,String stateC)
 	{
 		return stateC+" and "+threads+" threads";
 	}
 	
 	/** Creates the test class with the number of threads to create as an argument. */
-	public TestGD_MultipleCasesOfRenaming(int th,String C)
+	public TestGDMultipleCasesOfRenaming(int th, String C)
 	{
 		threadNumber = th;stateC=C;
 	}
@@ -150,18 +151,19 @@ public class TestGD_MultipleCasesOfRenaming {
 	private LearnerGraphND runTest(LearnerGraphND grA, LearnerGraphND grB, String secondStateInKeyPair, String [] duplicatesExpectedString)
 	{
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setGdFailOnDuplicateNames(false);config.setGdKeyPairThreshold(.1);
-		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
+		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<>();
 		gd.init(grA, grB, threadNumber,config);gd.identifyKeyPairs();
 		ChangesRecorder recorder = new ChangesRecorder(null);
 		gd.makeSteps();gd.computeDifference(recorder);
 		//Visualiser.updateFrame(grA,grB);Visualiser.updateFrame(gd.showGD(grA, grB, 1), null);
 		Assert.assertEquals(2,gd.aTOb.size());
-		Set<CmpVertex> keyPairsLeft = new TreeSet<CmpVertex>(),keyPairsRight = new TreeSet<CmpVertex>();
-		keyPairsLeft.addAll(Arrays.asList(new CmpVertex[]{grA.findVertex(VertexID.parseID("A")),grA.findVertex(VertexID.parseID("C"))}));
-		keyPairsRight.addAll(Arrays.asList(new CmpVertex[]{gd.origToNewB.get(grB.findVertex(VertexID.parseID("B"))),gd.origToNewB.get(grB.findVertex(VertexID.parseID(secondStateInKeyPair)))}));
+		Set<CmpVertex> keyPairsLeft,keyPairsRight;
+		keyPairsLeft = new TreeSet<>(Arrays.asList(grA.findVertex(VertexID.parseID("A")), grA.findVertex(VertexID.parseID("C"))));
+		keyPairsRight = new TreeSet<>(Arrays.asList(gd.origToNewB.get(grB.findVertex(VertexID.parseID("B"))), gd.origToNewB.get(grB.findVertex(VertexID.parseID(secondStateInKeyPair)))));
 		Assert.assertEquals(keyPairsLeft, gd.aTOb.keySet());
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>();actual.addAll(gd.aTOb.values());Assert.assertEquals(keyPairsRight, actual);
-		Set<CmpVertex> duplicatesExpected = new TreeSet<CmpVertex>();
+		Set<CmpVertex> actual = new TreeSet<>(gd.aTOb.values());
+		Assert.assertEquals(keyPairsRight, actual);
+		Set<CmpVertex> duplicatesExpected = new TreeSet<>();
 		for(String dup:duplicatesExpectedString) duplicatesExpected.add(gd.origToNewB.get(grB.findVertex(VertexID.parseID(dup))));
 		
 		Assert.assertEquals(duplicatesExpected,gd.duplicates); 
@@ -174,7 +176,7 @@ public class TestGD_MultipleCasesOfRenaming {
 		// Now do the same as above, but renumber states to match grB
 		AbstractLearnerGraph.copyGraphs(grA, graph);
 		Configuration configMut = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
-		LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> graphPatcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(graph,configMut,null);
+		LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> graphPatcher = new LearnerGraphMutator<>(graph, configMut, null);
 		ChangesRecorder.loadDiff(graphPatcher, recorder.writeGD(TestGD.createDoc()), converter);
 		graphPatcher.removeDanglingStates();
 		LearnerGraphND result = new LearnerGraphND(configMut);

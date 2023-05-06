@@ -28,8 +28,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 
 import com.ericsson.otp.erlang.OtpErlangAtom;
 import com.ericsson.otp.erlang.OtpErlangPid;
@@ -38,7 +38,6 @@ import com.ericsson.otp.erlang.OtpErlangTuple;
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.TestHelper.whatToRun;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 
 @RunWith(ParameterizedWithName.class)
@@ -110,7 +109,7 @@ public class TestSynapse {
 	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
-		Collection<Object []> result = new LinkedList<Object []>();
+		Collection<Object []> result = new LinkedList<>();
 		result.add(new Object[]{Boolean.FALSE});
 		result.add(new Object[]{Boolean.TRUE});
 		
@@ -388,10 +387,8 @@ public class TestSynapse {
 				+ "Value end"));
 		Assert.assertTrue(pingNode(synapseNode));// check that Synapse is up
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			runner.evaluateString("synapselauncher:find_statechum()!terminate,"
-				+ "receive Arg -> Arg end");
-		}},IllegalArgumentException.class,"timeout waiting for a response");// when we do not collect output, no response is sent.
+		checkForCorrectException(() -> runner.evaluateString("synapselauncher:find_statechum()!terminate,"
+			+ "receive Arg -> Arg end"),IllegalArgumentException.class,"timeout waiting for a response");// when we do not collect output, no response is sent.
 		
 		int i=0;
 		while(pingNode(synapseNode) && i < 100) // wait for Synapse to terminate

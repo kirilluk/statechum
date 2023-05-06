@@ -32,8 +32,7 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 public class TestWithMultipleConfigurations 
 {
 	public static final Configuration 
-	configStd = Configuration.getDefaultConfiguration().copy(), 
-	configTree = Configuration.getDefaultConfiguration().copy(), 
+	configTree = Configuration.getDefaultConfiguration().copy(),
 	configArray = Configuration.getDefaultConfiguration().copy(),
 	configHash = Configuration.getDefaultConfiguration().copy();
 
@@ -53,14 +52,14 @@ public class TestWithMultipleConfigurations
 	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
-		Collection<Object []> result = new LinkedList<Object []>();
+		Collection<Object []> result = new LinkedList<>();
 		result.add(new Object[]{configTree});
 		result.add(new Object[]{configArray});
 		result.add(new Object[]{configHash});
 		return result;
 	}
 	
-	@org.junit.runners.ParameterizedWithName.ParametersToString
+	@junit_runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return "matrix: "+(config.getTransitionMatrixImplType());

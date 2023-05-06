@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
@@ -58,7 +58,6 @@ import statechum.model.testset.PTASequenceEngine.SequenceSet;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import static statechum.TestHelper.checkForCorrectException;
-import static statechum.TestHelper.whatToRun;
 import static statechum.analysis.learning.rpnicore.TestEquivalenceChecking.checkM;
 
 @RunWith(ParameterizedWithName.class)
@@ -70,7 +69,7 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 		return TestWithMultipleConfigurations.data();
 	}
 	
-	@org.junit.runners.ParameterizedWithName.ParametersToString
+	@junit_runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return TestWithMultipleConfigurations.parametersToString(config);
@@ -99,14 +98,14 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 	
 	public static PTASequenceEngine buildPTA(Set<List<Label>> plusStrings,Set<List<Label>> minusStrings)
 	{
-		final Boolean accept = Boolean.valueOf(true), reject = Boolean.valueOf(false);
+		final Boolean accept = Boolean.TRUE, reject = Boolean.FALSE;
 		boolean theOnlyStateReject = false;
 		for(List<Label> seq:minusStrings)
 			if (seq.isEmpty())
 			{
 				theOnlyStateReject = true;break;
 			}
-		final Boolean rejectAllStates = Boolean.valueOf(theOnlyStateReject);
+		final Boolean rejectAllStates = theOnlyStateReject;
 		final AtomicBoolean statesAccept = new AtomicBoolean(true);
 		PTASequenceEngine allSequences = new PTASequenceEngine();
 		
@@ -122,12 +121,12 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 			}
 			@Override
 			public boolean shouldBeReturned(Object elem) {
-				return elem != null && ((Boolean)elem).booleanValue();
+				return elem != null && (Boolean) elem;
 			}
 			@Override
 			public boolean isAccept(@SuppressWarnings("unused")	Object elem)
 			{
-				return !rejectAllStates.booleanValue();
+				return !rejectAllStates;
 			}
 		});
 		SequenceSet initSeq = allSequences.new SequenceSet();initSeq.setIdentity();
@@ -218,7 +217,7 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 			l.init(buildPTA(plusStrings, buildSet(new String[][] {},config,converter)),0,0);
 			for(List<Label> seq:minusStrings)
 			{
-				Set<List<Label>> negativeSeq = new HashSet<List<Label>>();negativeSeq.add(seq);
+				Set<List<Label>> negativeSeq = new HashSet<>();negativeSeq.add(seq);
 				l.getTentativeAutomaton().paths.augmentPTA(buildPTA(buildSet(new String[][] {},config,converter),negativeSeq));
 			}
 			actualE = l.getTentativeAutomaton().pathroutines.getGraph();
@@ -260,24 +259,29 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 		Assert.assertNull(eE);
 		if (expectMaxAutomataToBeTheSameAsPTA) Assert.assertNull(eF);
 		
-		Assert.assertEquals(1, actualA.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualA.getVertices().iterator().next()) ));
+		Assert.assertEquals(1, actualA.getVertices().size());
+		Assert.assertTrue(DeterministicDirectedSparseGraph.isAccept(((Vertex) actualA.getVertices().iterator().next())));
 		Assert.assertEquals(0, actualA.getEdges().size());
 
-		Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
+		Assert.assertEquals(1, actualC.getVertices().size());
+		Assert.assertTrue(DeterministicDirectedSparseGraph.isAccept(((Vertex) actualC.getVertices().iterator().next())));
 		Assert.assertEquals(0,((CmpVertex)(actualC.getVertices().iterator().next())).getDepth());
 		Assert.assertEquals(0, actualC.getEdges().size());
 
-		Assert.assertEquals(1, actualD.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualD.getVertices().iterator().next()) )); 
+		Assert.assertEquals(1, actualD.getVertices().size());
+		Assert.assertTrue(DeterministicDirectedSparseGraph.isAccept(((Vertex) actualD.getVertices().iterator().next())));
 		Assert.assertEquals(0,((CmpVertex)(actualD.getVertices().iterator().next())).getDepth());
 		Assert.assertEquals(0, actualD.getEdges().size());
 
-		Assert.assertEquals(1, actualE.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualE.getVertices().iterator().next()) )); 
+		Assert.assertEquals(1, actualE.getVertices().size());
+		Assert.assertTrue(DeterministicDirectedSparseGraph.isAccept(((Vertex) actualE.getVertices().iterator().next())));
 		Assert.assertEquals(0,((CmpVertex)(actualE.getVertices().iterator().next())).getDepth());
 		Assert.assertEquals(0, actualE.getEdges().size());
 
 		if (expectMaxAutomataToBeTheSameAsPTA)
 		{
-			Assert.assertEquals(1, actualF.getVertices().size());Assert.assertEquals(true, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualF.getVertices().iterator().next()) )); 
+			Assert.assertEquals(1, actualF.getVertices().size());
+			Assert.assertTrue(DeterministicDirectedSparseGraph.isAccept(((Vertex) actualF.getVertices().iterator().next())));
 			Assert.assertEquals(0,((CmpVertex)(actualF.getVertices().iterator().next())).getDepth());
 			Assert.assertEquals(0, actualF.getEdges().size());
 		}
@@ -311,7 +315,7 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 		RPNIUniversalLearner l = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,config,null,null));
 		config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 		// set the initial state to be reject
-		l.getTentativeAutomaton().initPTA();l.getTentativeAutomaton().getVertex(new LinkedList<Label>()).setAccept(false);
+		l.getTentativeAutomaton().initPTA();l.getTentativeAutomaton().getVertex(new LinkedList<>()).setAccept(false);
 		// and check how augmentPTA works with such a PTA
 		for(boolean maxAutomaton:new boolean[]{true,false})
 		{
@@ -320,7 +324,8 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 			for(List<Label> sequence:buildSet(new String[][] { },config,converter))
 				l.getTentativeAutomaton().paths.augmentPTA(sequence, true,maxAutomaton,null);
 			DirectedSparseGraph actualC = l.getTentativeAutomaton().pathroutines.getGraph();
-			Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(false, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
+			Assert.assertEquals(1, actualC.getVertices().size());
+			Assert.assertFalse(DeterministicDirectedSparseGraph.isAccept(((Vertex) actualC.getVertices().iterator().next())));
 			Assert.assertEquals(0,((CmpVertex)(actualC.getVertices().iterator().next())).getDepth());
 			Assert.assertEquals(0, actualC.getEdges().size());
 		}
@@ -339,7 +344,8 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 		for(List<Label> sequence:buildSet(new String[][] { },config,converter))
 			l.getTentativeAutomaton().paths.augmentPTA(sequence, true,true,null);
 		DirectedSparseGraph actualC = l.getTentativeAutomaton().pathroutines.getGraph();
-		Assert.assertEquals(1, actualC.getVertices().size());Assert.assertEquals(false, DeterministicDirectedSparseGraph.isAccept( ((Vertex)actualC.getVertices().iterator().next()) )); 
+		Assert.assertEquals(1, actualC.getVertices().size());
+		Assert.assertFalse(DeterministicDirectedSparseGraph.isAccept(((Vertex) actualC.getVertices().iterator().next())));
 		Assert.assertEquals(0,((CmpVertex)(actualC.getVertices().iterator().next())).getDepth());
 		Assert.assertEquals(0, actualC.getEdges().size());
 	}
@@ -414,7 +420,7 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 			config.setLearnerIdMode(Configuration.IDMode.POSITIVE_NEGATIVE);
 			l.init(buildPTA(plusStrings, buildSet(new String[][] {},config,converter)),0,0);
 			for(List<Label> seq:minusStrings)
-			{	Set<List<Label>> negativeSeq = new HashSet<List<Label>>();negativeSeq.add(seq);
+			{	Set<List<Label>> negativeSeq = new HashSet<>();negativeSeq.add(seq);
 				l.getTentativeAutomaton().paths.augmentPTA(buildPTA(buildSet(new String[][] {},config,converter),negativeSeq));
 			}
 			actualE = l.getTentativeAutomaton();
@@ -473,7 +479,7 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 		Map<CmpVertex,Integer> stateToDepth = AbstractLearnerGraph.constructMap(coregraph.config,coregraph);
 		CmpVertex from = coregraph.getInit();
 		stateToDepth.put(from, 0);
-		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
+		Queue<CmpVertex> fringe = new LinkedList<>();
 		Map<CmpVertex,CmpVertex> statesInFringe = AbstractLearnerGraph.constructMap(coregraph.config,coregraph);// in order not to iterate through the list all the time.
 				
 		fringe.add(from);statesInFringe.put(from,from);
@@ -610,9 +616,9 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 			l.getTentativeAutomaton().paths.augmentPTA(minusStrings, false,maxAutomaton);
 			l.getTentativeAutomaton().paths.augmentPTA(plusStrings, true,maxAutomaton);
 			
-			checkForCorrectException(new whatToRun() { public @Override void run() throws NumberFormatException {
-				l.getTentativeAutomaton().paths.augmentPTA(buildSet(new String[][] { new String[]{"a","b","c","d"}},conf,converter),true,maxAutomaton);
-			}},IllegalArgumentException.class,"incompatible ");
+			checkForCorrectException(
+					() -> l.getTentativeAutomaton().paths.augmentPTA(buildSet(new String[][] { new String[]{"a","b","c","d"}},conf,converter),true,maxAutomaton),
+					IllegalArgumentException.class,"incompatible ");
 		}
 	}
 	
@@ -659,7 +665,7 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 		graph.paths.augmentPTA(minusStrings, false,true);
 
 		final LearnerGraph expected = new LearnerGraph(mainConfiguration.copy());
-		expected.getVertex(new LinkedList<Label>()).setAccept(false);
+		expected.getVertex(new LinkedList<>()).setAccept(false);
 		DifferentFSMException result = WMethod.checkM(expected,graph);
 		Assert.assertNull(result);
 		checkDepthLabelling(graph);

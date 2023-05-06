@@ -26,7 +26,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized.Parameters;
-import org.junit.runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.Configuration.IDMode;
@@ -35,21 +34,19 @@ import statechum.JUConstants.VERTEXLABEL;
 import statechum.analysis.learning.TestRpniLearner;
 import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 
-@RunWith(ParameterizedWithName.class)
+@RunWith(junit_runners.ParameterizedWithName.class)
 public class TestNextID {
 	
-	private static Configuration confJung, confString, confSame;
+	private static final Configuration confJung;
+	private static final Configuration confString;
+	private static final Configuration confSame;
 
-	private final Configuration config;
-	@SuppressWarnings("unused")
-	private final String description;
 	private final LearnerGraphND graph;
 	
-	public TestNextID(Configuration conf, String desc)
+	public TestNextID(Configuration conf)
 	{
-		config = conf;description = desc;
 		graph = buildLearnerGraphND("S-a->S\nA1-a->A2\nS-a->S1-b->"+"A-a->A1-a-#ARej\nA1-d->A2-d->A3\nA1-c->A2-c->A3"
-				+TestRpniLearner.PTA3, "testCopyGraph4",config,null);
+				+TestRpniLearner.PTA3, "testCopyGraph4", conf,null);
 	}
 	
 	static 
@@ -65,7 +62,7 @@ public class TestNextID {
 	public static Collection<Object[]> data() 
 	{
 		
-		List<Object[]> result = new LinkedList<Object[]>();
+		List<Object[]> result = new LinkedList<>();
 		
 		for(IDMode mode:IDMode.values())
 		{
@@ -87,7 +84,7 @@ public class TestNextID {
 	 * 
 	 * @return extended description.
 	 */ 
-	@org.junit.runners.ParameterizedWithName.ParametersToString
+	@junit_runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config, String kind)
 	{
 		return kind+","+config.getLearnerIdMode();
@@ -99,9 +96,9 @@ public class TestNextID {
 		VertexID id1 = graph.nextID(VERTEXLABEL.ACCEPT,true), 
 			id2 = graph.nextID(VERTEXLABEL.ACCEPT, true),
 			id3 = graph.nextID(VERTEXLABEL.ACCEPT, true);
-		Assert.assertFalse(id1.equals(id2));
-		Assert.assertFalse(id1.equals(id3));
-		Assert.assertFalse(id2.equals(id3));
+		Assert.assertNotEquals(id1, id2);
+		Assert.assertNotEquals(id1, id3);
+		Assert.assertNotEquals(id2, id3);
 	}
 	
 	@Test
@@ -110,9 +107,9 @@ public class TestNextID {
 		VertexID id1 = graph.nextID(VERTEXLABEL.ACCEPT,true), 
 			id2 = graph.nextID(VERTEXLABEL.REJECT, true),
 			id3 = graph.nextID(VERTEXLABEL.ACCEPT, true);
-		Assert.assertFalse(id1.equals(id2));
-		Assert.assertFalse(id1.equals(id3));
-		Assert.assertFalse(id2.equals(id3));
+		Assert.assertNotEquals(id1, id2);
+		Assert.assertNotEquals(id1, id3);
+		Assert.assertNotEquals(id2, id3);
 	}
 	
 	@Test
@@ -121,9 +118,9 @@ public class TestNextID {
 		VertexID id1 = graph.nextID(VERTEXLABEL.NOLABEL,true), 
 			id2 = graph.nextID(VERTEXLABEL.ACCEPT, true),
 			id3 = graph.nextID(VERTEXLABEL.REJECT, true);
-		Assert.assertFalse(id1.equals(id2));
-		Assert.assertFalse(id1.equals(id3));
-		Assert.assertFalse(id2.equals(id3));
+		Assert.assertNotEquals(id1, id2);
+		Assert.assertNotEquals(id1, id3);
+		Assert.assertNotEquals(id2, id3);
 	}
 	
 	public void checkWithCondition(VERTEXLABEL label)
@@ -134,21 +131,21 @@ public class TestNextID {
 		id2 = graph.nextID(label,true),
 		idTmp3 = graph.nextID(label,false),
 		idTmp4 = graph.nextID(label,false);
-		
-		Assert.assertTrue(idTmp1.equals(idTmp2));
-		Assert.assertTrue(idTmp3.equals(idTmp4));
-		Assert.assertFalse(idTmp1.equals(idTmp3));
-		
-		Assert.assertFalse(id1.equals(id2));
-		Assert.assertFalse(id1.equals(idTmp1));
-		Assert.assertFalse(id1.equals(idTmp2));
-		Assert.assertFalse(id1.equals(idTmp3));
-		Assert.assertFalse(id1.equals(idTmp4));
 
-		Assert.assertTrue(id2.equals(idTmp1)); // id2 is the same as idTmp1 and 2
-		Assert.assertTrue(id2.equals(idTmp2));
-		Assert.assertFalse(id2.equals(idTmp3));
-		Assert.assertFalse(id2.equals(idTmp4));
+		Assert.assertEquals(idTmp1, idTmp2);
+		Assert.assertEquals(idTmp3, idTmp4);
+		Assert.assertNotEquals(idTmp1, idTmp3);
+
+		Assert.assertNotEquals(id1, id2);
+		Assert.assertNotEquals(id1, idTmp1);
+		Assert.assertNotEquals(id1, idTmp2);
+		Assert.assertNotEquals(id1, idTmp3);
+		Assert.assertNotEquals(id1, idTmp4);
+
+		Assert.assertEquals(id2, idTmp1); // id2 is the same as idTmp1 and 2
+		Assert.assertEquals(id2, idTmp2);
+		Assert.assertNotEquals(id2, idTmp3);
+		Assert.assertNotEquals(id2, idTmp4);
 	}
 	
 	@Test

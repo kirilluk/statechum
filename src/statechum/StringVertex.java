@@ -27,8 +27,8 @@ final public class StringVertex extends VertexID implements CmpVertex
 	 */
 	private static final long serialVersionUID = -3577238342791987067L;
 	
-	protected JUConstants colour = null;
-	protected boolean accept = true,highlight = false;
+	private JUConstants colour = null;
+	private boolean accept = true,highlight = false;
 	private VertID origState = null;
 	private int depth=JUConstants.intUNKNOWN;
 	
@@ -109,6 +109,11 @@ final public class StringVertex extends VertexID implements CmpVertex
 	@Override 
 	public VertID getOrigState() {
 		return origState;
+	}
+
+	@Override
+	public VertID getID() {
+		return this;
 	}
 
 	@Override 

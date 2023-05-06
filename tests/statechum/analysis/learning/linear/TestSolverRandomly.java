@@ -24,8 +24,8 @@ import java.util.Random;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.analysis.learning.rpnicore.LSolver;
@@ -58,11 +58,11 @@ public class TestSolverRandomly {
 	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
-		Collection<Object []> result = new LinkedList<Object []>();
+		Collection<Object []> result = new LinkedList<>();
 		final int stepCount=20;
 			for(int i=1;i<30;++i)
 				for(int count=0;count<stepCount;++count)
-					result.add(new Object[]{i*stepCount+count,new Random(i+count),Integer.valueOf(i*20)});
+					result.add(new Object[]{i*stepCount+count,new Random(i+count), i * 20});
 		
 		return result;
 	}

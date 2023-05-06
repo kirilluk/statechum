@@ -30,9 +30,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.junit.runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName;
 import statechum.Configuration.EXPANSIONOFANY;
-import statechum.TestHelper.whatToRun;
 import statechum.AttributeMutator.MethodAndArgs;
 import static statechum.analysis.learning.rpnicore.TestEqualityComparisonAndHashCode.equalityTestingHelper;
 
@@ -168,9 +167,9 @@ public class TestConfiguration {
 		final Writer result = new StringWriter();result.append(value);
 		conf.setAllowedToCloneNonCmpVertex(false);
 		conf.setErlangAlphabetAnyElements(null);
-		statechum.TestHelper.checkForCorrectException(new statechum.TestHelper.whatToRun() { public @Override void run() {
-			conf.writeModifiedIntoWriter(result);
-		}},IllegalArgumentException.class,"cannot record resetting");
+		statechum.TestHelper.checkForCorrectException(
+				() -> conf.writeModifiedIntoWriter(result),
+				IllegalArgumentException.class,"cannot record resetting");
 	}
 	
 	/** An obvious problem with Configuration is forgetting to include all 
@@ -209,16 +208,16 @@ public class TestConfiguration {
 
 			currentMethod.assignB(configB);
 			String errMsg = "configurations differ: field "+currentMethod.getField()+" is not in use for ";
-			Assert.assertFalse(errMsg+"equals",configB.equals(configA));
-			Assert.assertFalse(errMsg+"equals",configA.equals(configB));
+			Assert.assertNotEquals(errMsg + "equals", configB, configA);
+			Assert.assertNotEquals(errMsg + "equals", configA, configB);
 			
 			{
 				org.w3c.dom.Element xmlB = configB.writeXML(doc),xmlA=configA.writeXML(doc);
 				Configuration loadedB=new Configuration();loadedB.readXML(xmlB);Configuration loadedA=new Configuration();loadedA.readXML(xmlA);
 				Assert.assertEquals(loadedA, configA);
-				Assert.assertFalse(errMsg+"equals",loadedB.equals(loadedA));
-				Assert.assertFalse(errMsg+"equals",loadedB.equals(configA));
-				Assert.assertFalse(errMsg+"equals",loadedA.equals(loadedB));
+				Assert.assertNotEquals(errMsg + "equals", loadedB, loadedA);
+				Assert.assertNotEquals(errMsg + "equals", loadedB, configA);
+				Assert.assertNotEquals(errMsg + "equals", loadedA, loadedB);
 			}
 			
 			Assert.assertTrue(errMsg+"hashCode",configA.hashCode() != configB.hashCode());
@@ -262,9 +261,7 @@ public class TestConfiguration {
 		oldData.setAttribute(Configuration.configVarAttrValue, "junk");
 		
 		elem.appendChild(oldData);
-		statechum.TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			new Configuration().readXML(elem,true);
-		}}, IllegalArgumentException.class,"cannot deserialise unknown field");
+		statechum.TestHelper.checkForCorrectException(() -> new Configuration().readXML(elem,true), IllegalArgumentException.class,"cannot deserialise unknown field");
 	}
 	
 
@@ -274,9 +271,7 @@ public class TestConfiguration {
 	{
 		final org.w3c.dom.Element cnf = new Configuration().writeXML(doc);
 		cnf.appendChild(doc.createElement("junk"));
-		statechum.TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			new Configuration().readXML(cnf);
-		}},IllegalArgumentException.class,"unexpected element");
+		statechum.TestHelper.checkForCorrectException(() -> new Configuration().readXML(cnf),IllegalArgumentException.class,"unexpected element");
 	}
 		
 	/** Text elements are ignored. */
@@ -295,26 +290,20 @@ public class TestConfiguration {
 	{
 		final org.w3c.dom.Element cnf = new Configuration().writeXML(doc);
 		cnf.appendChild(doc.createComment(Configuration.configVarTag));
-		statechum.TestHelper.checkForCorrectException(new statechum.TestHelper.whatToRun() { public @Override void run() {
-			new Configuration().readXML(cnf);
-		}},IllegalArgumentException.class,"unexpected element");
+		statechum.TestHelper.checkForCorrectException(() -> new Configuration().readXML(cnf),IllegalArgumentException.class,"unexpected element");
 	}
 	
 	/** Unexpected element. */
 	@Test
 	public void testSerialisationFailure4()
 	{
-		statechum.TestHelper.checkForCorrectException(new statechum.TestHelper.whatToRun() { public @Override void run() {
-			new Configuration().readXML(doc.createTextNode(Configuration.configXMLTag));
-		}},IllegalArgumentException.class,"invalid node type passed to readXML");
+		statechum.TestHelper.checkForCorrectException(() -> new Configuration().readXML(doc.createTextNode(Configuration.configXMLTag)),IllegalArgumentException.class,"invalid node type passed to readXML");
 	}
 		
 	/** Unexpected type of an element. */
 	@Test
 	public void testSerialisationFailure5()
 	{
-		statechum.TestHelper.checkForCorrectException(new statechum.TestHelper.whatToRun() { public @Override void run() {
-			new Configuration().readXML(doc.createElement("junk"));
-		}},IllegalArgumentException.class,"configuration cannot be loaded from element");
+		statechum.TestHelper.checkForCorrectException(() -> new Configuration().readXML(doc.createElement("junk")),IllegalArgumentException.class,"configuration cannot be loaded from element");
 	}
 }

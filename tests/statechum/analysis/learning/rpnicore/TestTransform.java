@@ -22,7 +22,7 @@ import edu.uci.ics.jung.exceptions.FatalException;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import statechum.*;
@@ -78,7 +78,7 @@ public class TestTransform
 	 * @param config configuration to consider
 	 * @return description.
 	 */ 
-	@org.junit.runners.ParameterizedWithName.ParametersToString
+	@junit_runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Configuration config)
 	{
 		return TestConfiguration.parametersToString(config);

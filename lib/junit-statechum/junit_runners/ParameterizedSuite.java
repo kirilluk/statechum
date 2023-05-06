@@ -1,4 +1,4 @@
-package org.junit.runners;
+package junit_runners;
 
 import java.lang.annotation.Annotation;
 import java.lang.annotation.ElementType;
@@ -15,6 +15,8 @@ import org.junit.internal.builders.AllDefaultPossibilitiesBuilder;
 import org.junit.runner.Description;
 import org.junit.runner.Runner;
 import org.junit.runner.notification.RunNotifier;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Suite;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.RunnerBuilder;
 
@@ -33,11 +35,11 @@ public class ParameterizedSuite extends Suite {
 	 */
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
-	public static @interface ParametersToString {
+	public @interface ParametersToString {
 	}
 	
 
-		private final ArrayList<Runner> runners= new ArrayList<Runner>();
+		private final ArrayList<Runner> runners= new ArrayList<>();
 
 		
 		protected static class SuiteWithStringInName extends Suite
@@ -51,7 +53,7 @@ public class ParameterizedSuite extends Suite {
 
 			protected static List<Runner> renameRunners(List<Runner> runners, final String description)
 			{
-				ArrayList<Runner> outcome = new ArrayList<Runner>(runners.size());
+				ArrayList<Runner> outcome = new ArrayList<>(runners.size());
 				for(final Runner r:runners)
 					outcome.add(new Runner(){
 						
@@ -96,7 +98,7 @@ public class ParameterizedSuite extends Suite {
 				super(klass,builder,descr);seriesInitialiser = seriesInit;
 				Method method = null;
 				try {
-					method  = seriesInitialiser.getClass().getMethod("initSeries", new Class[0]);
+					method  = seriesInitialiser.getClass().getMethod("initSeries");
 				} catch (Exception e) {
 					// cannot do this, explain why
 					System.out.println("Was looking for a method initSeries()");
@@ -117,12 +119,8 @@ public class ParameterizedSuite extends Suite {
 					System.out.println("STARTED "+description);
 					initCompleted = true;
 					try {
-						methodToCall.invoke(seriesInitialiser, new Object[0]);
-					} catch (IllegalAccessException e) {
-						e.printStackTrace();
-					} catch (IllegalArgumentException e) {
-						e.printStackTrace();
-					} catch (InvocationTargetException e) {
+						methodToCall.invoke(seriesInitialiser);
+					} catch (IllegalAccessException | InvocationTargetException | IllegalArgumentException e) {
 						e.printStackTrace();
 					}
 				}
@@ -135,25 +133,23 @@ public class ParameterizedSuite extends Suite {
 		 */
 		public ParameterizedSuite(Class<?> klass) throws Throwable 
 		{
-			super(klass, Collections.<Runner>emptyList());
+			super(klass, Collections.emptyList());
 
 			RunnerBuilder builder = new AllDefaultPossibilitiesBuilder(true);
 			List<Object[]> parametersList= ParameterizedWithName.getParametersList(getTestClass());
-			
-			
-			
-			for (int i= 0; i < parametersList.size(); i++)
-			{
-				Object [] parameters = null;
+
+
+			for (Object[] objects : parametersList) {
+				Object[] parameters;
 				try {
-					parameters = parametersList.get(i);
+					parameters = objects;
 				} catch (ClassCastException e) {
-					throw new Exception(String.format("%s.%s() must return a Collection of arrays.",getTestClass().getName(), ParameterizedWithName.getParametersMethod(getTestClass()).getName()));
+					throw new Exception(String.format("%s.%s() must return a Collection of arrays.", getTestClass().getName(), ParameterizedWithName.getParametersMethod(getTestClass()).getName()));
 				}
-				
-				
-				String parameterDescr = ParameterizedWithName.TestClassRunnerForParameters.obtainStringDescription(getTestClass().getJavaClass(),parameters);
-				Suite testSuite = new SuiteRunnerWithParameters(getTestClass().getJavaClass(), builder, parameterDescr,getTestClass().getOnlyConstructor().newInstance(parameters));
+
+
+				String parameterDescr = ParameterizedWithName.TestClassRunnerForParameters.obtainStringDescription(getTestClass().getJavaClass(), parameters);
+				Suite testSuite = new SuiteRunnerWithParameters(getTestClass().getJavaClass(), builder, parameterDescr, getTestClass().getOnlyConstructor().newInstance(parameters));
 				runners.add(testSuite);
 				//List<Runner> runnersToAdd = new org.junit.runners.Suite(klass,builder).getChildren();
 				//runnerForParameters.addTestRunner(runnersToAdd);

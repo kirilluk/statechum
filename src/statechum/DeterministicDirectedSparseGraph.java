@@ -130,7 +130,8 @@ final public class DeterministicDirectedSparseGraph {
 		
 		public VertexID(VertID id)
 		{
-			if (id == null) throw new IllegalArgumentException("invalid id");
+			if (id == null)
+				throw new IllegalArgumentException("invalid id");
 			kind = id.getKind();
 			if (kind == VertKind.NONE)
 				idInteger = 0;
@@ -242,10 +243,8 @@ final public class DeterministicDirectedSparseGraph {
 				
 			throw new IllegalArgumentException("ID "+kind+" in vertex ID "+ this +" is neither a positive nor a negative");
 		}
-		
-		protected static final String initID = "Init"; 
-		
-		/** In order to enable comparison between vertex ID which are 
+
+		/** In order to enable comparison between vertex ID which are
 		 * represented by Strings and/or integer, 
 		 * the two need need to be converted to a common form.
 		 */
@@ -381,7 +380,6 @@ final public class DeterministicDirectedSparseGraph {
 			
 			return idString.equals(other.getStringId());
 		}
-		
 	}
 	
 	/** These are expected to be compared for equality using acceptance and IDs only,
@@ -405,7 +403,12 @@ final public class DeterministicDirectedSparseGraph {
 		 * Unknown if set to null. 
 		 */
 		VertID getOrigState();
-		
+
+		/** Returns an identity of this vertex.
+		 *
+		 */
+		VertID getID();
+
 		/** Sets the name of a vertex in hard facts corresponding to this vertex. Can be null.
 		 * 
 		 * @param newState new name.
@@ -454,10 +457,17 @@ final public class DeterministicDirectedSparseGraph {
 	{
 		private VertID vertexID = null;
 
+		public VertID getID() {
+			return vertexID;
+		}
+
 		private int hashCode = super.hashCode();
 
 		public DeterministicVertex(VertID thisVertexID) {
 			super();
+			if (thisVertexID == null || thisVertexID instanceof CmpVertex)
+				throw new IllegalArgumentException("invalid id");
+
 			addUserDatum(JUConstants.LABEL, thisVertexID, UserData.SHARED);
 		}
 

@@ -498,7 +498,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 				result = vert;
 			else
 			{
-				result = generateNewCmpVertex(vert,conf);
+				result = generateNewCmpVertex(vert.getID(),conf);
 				DeterministicDirectedSparseGraph.copyVertexData(vert, result);
 			}
 		}

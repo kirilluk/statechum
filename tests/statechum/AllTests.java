@@ -20,6 +20,11 @@ package statechum;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
+import statechum.analysis.learning.TestCheckLearnerAgainstLog;
+import statechum.analysis.learning.experiments.TestPaperUASLarge;
+import statechum.analysis.learning.linear.TestGDExistingGraphs;
+import statechum.analysis.learning.linear.TestGDExistingGraphsND;
+import statechum.analysis.learning.linear.TestGDExistingGraphsUsingTestSet;
 
 /*
 Important: when running via IntelliJ Idea, the console will not show the progress of initialisation until
@@ -114,7 +119,7 @@ public class AllTests {
 
     @RunWith(Suite.class)
     @SuiteClasses({
-    	statechum.analysis.learning.experiments.TestPaperUAS_Large.class,
+    	TestPaperUASLarge.class,
     	statechum.analysis.learning.TestStateMerging.TestRandomFSMMergers.class,
         statechum.analysis.learning.experiments.PairSelection.TestLearnFromTracesUsingMarkov.class,
         statechum.analysis.learning.experiments.PairSelection.TestMarkov_i2c.class,
@@ -122,11 +127,11 @@ public class AllTests {
         statechum.analysis.learning.TestLearnerFromLargePTA.class,
         statechum.analysis.learning.experiments.TestExperimentRunner.class,
         statechum.analysis.learning.rpnicore.TestCloneWithDifferentConf.class,
-        statechum.analysis.learning.Test_CheckLearnerAgainstLog.class,
-    	statechum.analysis.learning.linear.TestGD_ExistingGraphs.class,
-        statechum.analysis.learning.linear.TestGD_ExistingGraphsUsingTestSet.class,
-        statechum.analysis.learning.linear.TestGD_ExistingGraphsND.class,
-        statechum.analysis.learning.linear.TestGD_ExistingGraphsNDUsingTestSet.class
+        TestCheckLearnerAgainstLog.class,
+    	TestGDExistingGraphs.class,
+        TestGDExistingGraphsUsingTestSet.class,
+        TestGDExistingGraphsND.class,
+        statechum.analysis.learning.linear.TestGDExistingGraphsNDUsingTestSet.class
     })
     public static class LengthyTests {// all tests are included in the annotation.
     }

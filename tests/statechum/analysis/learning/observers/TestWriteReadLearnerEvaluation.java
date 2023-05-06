@@ -28,8 +28,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 import org.w3c.dom.Element;
 
 import statechum.Configuration;
@@ -48,7 +48,6 @@ import statechum.apps.QSMTool;
 import static statechum.analysis.learning.observers.TestRecordProgressDecorator.removeTagFromString;
 import static statechum.analysis.learning.smt.SmtLabelRepresentation.INITMEM;
 import static statechum.TestHelper.checkForCorrectException;
-import static statechum.TestHelper.whatToRun;
 
 /**
  * @author kirill
@@ -68,7 +67,7 @@ public class TestWriteReadLearnerEvaluation {
 	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
-		List<Object[]> outcome = new LinkedList<Object[]>();
+		List<Object[]> outcome = new LinkedList<>();
 		outcome.add(new Object[]{false,LABELKIND.LABEL_ERLANG});
 		outcome.add(new Object[]{false,LABELKIND.LABEL_STRING});
 		outcome.add(new Object[]{true,LABELKIND.LABEL_STRING});
@@ -87,7 +86,7 @@ public class TestWriteReadLearnerEvaluation {
 	@ParametersToString
 	public static String parametersToString(Boolean legacyArg, LABELKIND labelKind)
 	{
-		return (legacyArg.booleanValue()?"Legacy":"Current")+" "+labelKind;
+		return (legacyArg ?"Legacy":"Current")+" "+labelKind;
 	}
 
 	public String lbl(String l)
@@ -103,9 +102,9 @@ public class TestWriteReadLearnerEvaluation {
 		
 		double defaultK = config.getAttenuationK();
 		config.setAttenuationK(0.333);// make sure this configuration is different from the default one.
-		Assert.assertFalse(config.getAttenuationK() == defaultK);// and make sure that the two are indeed not the same.
+		Assert.assertNotEquals(config.getAttenuationK(), defaultK, 0.0);// and make sure that the two are indeed not the same.
 		anotherconfig = Configuration.getDefaultConfiguration().copy();anotherconfig.setLabelKind(labelKind);anotherconfig.setLegacyXML(legacy);
-		Assert.assertFalse(config.equals(anotherconfig));
+		Assert.assertNotEquals(config, anotherconfig);
 		
 		graph = FsmParserStatechum.buildLearnerGraph("A-"+lbl("a")+"->A-"+lbl("b")+"->B-"+lbl("a")+"->C", "TestWriteReadLearnerEvaluation",config,converter);
 		testData = TestFSMAlgo.buildList(new String[][]{
@@ -113,18 +112,16 @@ public class TestWriteReadLearnerEvaluation {
 				new String[]{},
 				new String[]{lbl("more data")}
 		},config,converter);
-		ltl = Arrays.asList(new String[] { 
-				"![](setfiletype -> X((storefile) || (rename)))",
+		ltl = Arrays.asList("![](setfiletype -> X((storefile) || (rename)))",
 				"ltl ![]((initialise) -> X(connect))",
-				"ltl !(XX(initialise))" });
+				"ltl !(XX(initialise))");
 		labels = new SmtLabelRepresentation(config,converter);
-		labels.parseCollection(Arrays.asList(new String[]{
-			QSMTool.cmdOperation+" "+lbl(INITMEM)+" "+SmtLabelRepresentation.OP_DATA.PRE+ " varDecl_N",
-			QSMTool.cmdOperation+" "+lbl(INITMEM)+" "+SmtLabelRepresentation.OP_DATA.PRE+ " initCond_N",
-			QSMTool.cmdOperation+" "+lbl("A")+" "+SmtLabelRepresentation.OP_DATA.PRE+ " somePrecondA",
-			QSMTool.cmdOperation+" "+lbl("A")+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondA",
-			QSMTool.cmdOperation+" "+lbl("B")+" "+SmtLabelRepresentation.OP_DATA.PRE+ " somePrecondB",
-			QSMTool.cmdOperation+" "+lbl("B")+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondB"}));
+		labels.parseCollection(Arrays.asList(QSMTool.cmdOperation+" "+lbl(INITMEM)+" "+SmtLabelRepresentation.OP_DATA.PRE+ " varDecl_N",
+				QSMTool.cmdOperation+" "+lbl(INITMEM)+" "+SmtLabelRepresentation.OP_DATA.PRE+ " initCond_N",
+				QSMTool.cmdOperation+" "+lbl("A")+" "+SmtLabelRepresentation.OP_DATA.PRE+ " somePrecondA",
+				QSMTool.cmdOperation+" "+lbl("A")+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondA",
+				QSMTool.cmdOperation+" "+lbl("B")+" "+SmtLabelRepresentation.OP_DATA.PRE+ " somePrecondB",
+				QSMTool.cmdOperation+" "+lbl("B")+" "+SmtLabelRepresentation.OP_DATA.POST+ " somePostcondB"));
 
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
@@ -140,7 +137,8 @@ public class TestWriteReadLearnerEvaluation {
 	{
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
 		LearnerEvaluationConfiguration cnf=loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config);
-		WMethod.checkM(cnf.graph, graph);
+		WMethod.DifferentFSMException diffException = WMethod.checkM(cnf.graph, graph);
+		Assert.assertNull(diffException);
 		Assert.assertEquals(testData, cnf.testSet);
 		Assert.assertEquals(config, cnf.config);
 		Assert.assertEquals(cnf.config, cnf.graph.config);
@@ -162,7 +160,8 @@ public class TestWriteReadLearnerEvaluation {
 		
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
 		LearnerEvaluationConfiguration cnf=loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),anotherconfig);
-		WMethod.checkM(cnf.graph, graph);
+		WMethod.DifferentFSMException diffException = WMethod.checkM(cnf.graph, graph);
+		Assert.assertNull(diffException);
 		Assert.assertEquals(testData, cnf.testSet);
 		Assert.assertEquals(anotherconfig, cnf.config);
 		Assert.assertEquals(cnf.config, cnf.graph.config);
@@ -182,7 +181,8 @@ public class TestWriteReadLearnerEvaluation {
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
 		LearnerEvaluationConfiguration cnf=loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config);
-		WMethod.checkM(cnf.graph, graph);
+		WMethod.DifferentFSMException diffException = WMethod.checkM(cnf.graph, graph);
+		Assert.assertNull(diffException);
 		Assert.assertEquals(testData, cnf.testSet);
 		Assert.assertEquals(config, cnf.config);
 		Assert.assertEquals(cnf.config, cnf.graph.config);
@@ -194,7 +194,7 @@ public class TestWriteReadLearnerEvaluation {
 	@Test
 	public final void testLearnerEvaluation10()
 	{
-		String anotherXML = null;
+		String anotherXML;
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
@@ -216,7 +216,8 @@ public class TestWriteReadLearnerEvaluation {
 		
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
 		LearnerEvaluationConfiguration cnf=loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config);
-		WMethod.checkM(cnf.graph, graph);
+		WMethod.DifferentFSMException diffException = WMethod.checkM(cnf.graph, graph);
+		Assert.assertNull(diffException);
 		Assert.assertEquals(testData, cnf.testSet);Assert.assertEquals(anotherconfig, cnf.config);Assert.assertEquals(cnf.config, cnf.graph.config);
 		Assert.assertEquals(labels,cnf.labelDetails);
 		Assert.assertNull(cnf.ifthenSequences);
@@ -226,7 +227,7 @@ public class TestWriteReadLearnerEvaluation {
 	@Test
 	public final void testLearnerEvaluation11()
 	{
-		String anotherXML = null;
+		String anotherXML;
 		{
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 			RecordProgressDecorator dumper = new RecordProgressDecorator(null,output,1,config,false);
@@ -248,7 +249,8 @@ public class TestWriteReadLearnerEvaluation {
 		
 		LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
 		LearnerEvaluationConfiguration cnf=loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config);
-		WMethod.checkM(cnf.graph, graph);
+		WMethod.DifferentFSMException diffException = WMethod.checkM(cnf.graph, graph);
+		Assert.assertNull(diffException);
 		Assert.assertEquals(testData, cnf.testSet);Assert.assertEquals(anotherconfig, cnf.config);Assert.assertEquals(cnf.config, cnf.graph.config);
 		Assert.assertEquals(ltl,cnf.ifthenSequences);
 		Assert.assertNull(cnf.labelDetails);
@@ -259,9 +261,9 @@ public class TestWriteReadLearnerEvaluation {
 	public final void testLearnerEvaluation3()
 	{
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(removeTagFromString(xmlData,StatechumXML.ELEM_EVALUATIONDATA).getBytes()),false,converter);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(statechum.analysis.learning.observers.TestRecordProgressDecorator.junkTag),config);
-		}},IllegalArgumentException.class,"expecting to load learner evaluation data");
+		checkForCorrectException(
+				() -> loader.readLearnerEvaluationConfiguration(loader.expectNextElement(TestRecordProgressDecorator.junkTag),config),
+				IllegalArgumentException.class,"expecting to load learner evaluation data");
 	}
 	
 	/** Missing graph. */
@@ -277,9 +279,9 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config);
-		}}, IllegalArgumentException.class,"missing graph");
+		checkForCorrectException(
+				() -> loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config),
+				IllegalArgumentException.class,"missing graph");
 	}	
 
 	/** Duplicate graph. */
@@ -294,9 +296,7 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config);
-		}}, IllegalArgumentException.class,"duplicate graph");
+		checkForCorrectException(() -> loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config), IllegalArgumentException.class,"duplicate graph");
 	}	
 	
 	/** Missing test set. */
@@ -312,9 +312,7 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config);
-		}}, IllegalArgumentException.class,"missing test set");
+		checkForCorrectException(() -> loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config), IllegalArgumentException.class,"missing test set");
 	}	
 	
 	/** Duplicate test set. */
@@ -332,9 +330,7 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config);
-		}}, IllegalArgumentException.class,"duplicate test set");
+		checkForCorrectException(() -> loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config), IllegalArgumentException.class,"duplicate test set");
 	}	
 	
 	/** Duplicate configuration. */
@@ -348,9 +344,7 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config);
-		}}, IllegalArgumentException.class,"duplicate configuration");
+		checkForCorrectException(() -> loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config), IllegalArgumentException.class,"duplicate configuration");
 	}	
 	
 	/** Duplicate label definition. */
@@ -364,9 +358,7 @@ public class TestWriteReadLearnerEvaluation {
 		dumper.topElement.appendChild(learnerConfig);dumper.close();xmlData = output.toString();
 		
 		final LearnerSimulator loader = new LearnerSimulator(new ByteArrayInputStream(xmlData.getBytes()),false,converter);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config);
-		}}, IllegalArgumentException.class,"duplicate label details");
+		checkForCorrectException(() -> loader.readLearnerEvaluationConfiguration(loader.expectNextElement(StatechumXML.ELEM_EVALUATIONDATA.name()),config), IllegalArgumentException.class,"duplicate label details");
 	}	
 	
 }

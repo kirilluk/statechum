@@ -18,9 +18,7 @@ package statechum.analysis.learning.rpnicore;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -31,14 +29,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized.Parameters;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 
-import static org.junit.Assert.assertTrue;
 import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
 import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 
@@ -93,7 +90,7 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	public void checkEq(LearnerGraph graph, String fsm)
 	{
 		final LearnerGraph expected = buildLearnerGraph(fsm,"expected graph",mainConfiguration,converter);
-		assertTrue("incorrect data", expected.equals(graph));
+		assertEquals("incorrect data", expected, graph);
 	}
 
 	@Test
@@ -274,7 +271,7 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	public final void testCheckM_multipleEq2() // equivalent states
 	{
 		final LearnerGraph graph = buildLearnerGraph("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->N-b->N","testCheckM_multipleEq2",mainConfiguration,converter);
-		List<String> states = Arrays.asList(new String[]{"S","A","B","C","D","N"});
+		String[] states = new String[]{"S","A","B","C","D","N"};
 		for(String stA:states)
 			for(String stB:states)
 			{
@@ -289,7 +286,7 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	public final void testCheckM_multipleEq3() // equivalent states
 	{
 		final LearnerGraph graph = buildLearnerGraph("S-a->A-a->D-a->D-b->A-b->B-a->D\nB-b->C-a->D\nC-b->D\nS-b->N-a->M-a->N\nN-b->M-b->N","testCheckM_multipleEq3",mainConfiguration,converter);
-		List<String> states = Arrays.asList(new String[]{"S","A","B","C","D","N","M"});
+		String[] states = new String[]{"S","A","B","C","D","N","M"};
 		for(String stA:states)
 			for(String stB:states)
 			{
@@ -304,7 +301,7 @@ public class TestEquivalenceChecking extends TestWithMultipleConfigurations
 	public final void testCheckM_multipleEq4() // non-equivalent states
 	{
 		final LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->A-b->C-b->B","testCheckM_multipleEq4",mainConfiguration,converter);
-		List<String> states = Arrays.asList(new String[]{"A","B","C"});
+		String[] states = new String[]{"A","B","C"};
 		for(String stA:states)
 			for(String stB:states)
 				if (stA.equals(stB))

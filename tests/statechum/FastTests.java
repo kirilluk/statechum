@@ -20,6 +20,10 @@ package statechum;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
+import statechum.analysis.learning.linear.TestGDMultipleCasesOfRenaming;
+import statechum.analysis.learning.linear.TestGDMultithreaded;
+import statechum.analysis.learning.linear.TestGDMultithreadedNonArray;
+import statechum.model.testset.TestPTAComputePrecisionRecall;
 
 /** This is separate from AllTests because I want to be able to run just FastTests from "ant test" when testing on Iceberg.
  * 
@@ -47,7 +51,7 @@ public class FastTests {
         statechum.analysis.learning.rpnicore.TestAugmentUsingIFTHEN.TestQuestionPTA.class,
         statechum.analysis.learning.rpnicore.TestRandomPathGenerator.class,
         statechum.analysis.learning.TestLoadAnswers.class,
-        statechum.model.testset.TestPTA_computePrecisionRecall.class,
+        TestPTAComputePrecisionRecall.class,
         statechum.analysis.learning.TestLearnerWithLabelRefinementViaPta.class
     }) // commas after the last entry compile from within Eclipse but not from ant
     public static class LearnerTests {// all tests are included in the annotation.
@@ -126,9 +130,9 @@ public class FastTests {
         statechum.analysis.learning.linear.TestSolver.class,
         statechum.analysis.learning.linear.TestMatrixComputationWithMultipleThreads.class,
         statechum.analysis.learning.linear.TestGD.class,
-        statechum.analysis.learning.linear.TestGD_Multithreaded.class,
-        statechum.analysis.learning.linear.TestGD_Multithreaded_NonArray.class,
-        statechum.analysis.learning.linear.TestGD_MultipleCasesOfRenaming.class,
+        TestGDMultithreaded.class,
+        TestGDMultithreadedNonArray.class,
+        TestGDMultipleCasesOfRenaming.class,
         statechum.apps.TestVisualDemo.class
     })
     public static class LinearTests {// all tests are included in the annotation.

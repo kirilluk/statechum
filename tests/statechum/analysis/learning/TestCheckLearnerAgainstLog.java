@@ -28,7 +28,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
@@ -57,7 +57,7 @@ import statechum.collections.ArrayOperations;
  *
  */
 @RunWith(ParameterizedWithName.class)
-public class Test_CheckLearnerAgainstLog 
+public class TestCheckLearnerAgainstLog
 {
 	/** This method is a useful troubleshooting aid - the log it creates should be
 	 * identical to that we are playing, but if something is wrong, it is easier
@@ -85,7 +85,7 @@ public class Test_CheckLearnerAgainstLog
 						@SuppressWarnings("unused") PairScore pairBeingMerged,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 				{
-					return new Pair<Integer,String>(evalData.graph.paths.tracePathPrefixClosed(question),null);
+					return new Pair<>(evalData.graph.paths.tracePathPrefixClosed(question), null);
 				}
 			};
 	
@@ -110,7 +110,6 @@ public class Test_CheckLearnerAgainstLog
 	 * <li>checks most arguments and return values of most methods called by a learner against values recorded in the log.</li>
 	 * </ul> 
 	 * @param logFileName log to play
-	 * @throws IOException 
 	 */
 	public void check(String logFileName) throws IOException
 	{
@@ -205,7 +204,7 @@ public class Test_CheckLearnerAgainstLog
 						@SuppressWarnings("unused") PairScore pairBeingMerged,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
-						return new Pair<Integer,String>(evalData.graph.paths.tracePathPrefixClosed(question),null);
+						return new Pair<>(evalData.graph.paths.tracePathPrefixClosed(question), null);
 					}
 				
 				@Override
@@ -245,7 +244,7 @@ public class Test_CheckLearnerAgainstLog
 						@SuppressWarnings("unused") PairScore pairBeingMerged,
 						@SuppressWarnings("unused")	final Object [] moreOptions)
 						{
-							return new Pair<Integer,String>(evalData.graph.paths.tracePathPrefixClosed(question),null);
+							return new Pair<>(evalData.graph.paths.tracePathPrefixClosed(question), null);
 						}
 			};
 		}
@@ -280,7 +279,7 @@ public class Test_CheckLearnerAgainstLog
 	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
-		Collection<Object []> result = new LinkedList<Object []>();
+		Collection<Object []> result = new LinkedList<>();
 		for(File f:new File(pathToLogFiles).listFiles(new FileFilter(){
 			public @Override boolean accept(File pathName) {
 				return pathName.canRead() && pathName.isFile() &&
@@ -293,7 +292,7 @@ public class Test_CheckLearnerAgainstLog
 		return result;
 	}
 
-	@org.junit.runners.ParameterizedWithName.ParametersToString
+	@junit_runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(File f)
 	{
 		return f.getName();
@@ -301,7 +300,7 @@ public class Test_CheckLearnerAgainstLog
 	
 	protected final File logFileToProcess;
 	
-	public Test_CheckLearnerAgainstLog(File file)
+	public TestCheckLearnerAgainstLog(File file)
 	{
 		logFileToProcess = file;
 	}

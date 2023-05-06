@@ -29,8 +29,8 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
-import org.junit.runners.ParameterizedWithName.ParametersToString;
+import junit_runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName.ParametersToString;
 
 import statechum.Configuration;
 import statechum.Pair;
@@ -52,18 +52,19 @@ import statechum.Label;
  * @author kirill
  *
  */
+@SuppressWarnings("ConstantConditions")
 @RunWith(ParameterizedWithName.class)
 public class TestRecorderIntegration {
 	
 	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
-		Collection<Object []> result = new LinkedList<Object []>();
+		Collection<Object []> result = new LinkedList<>();
 		for(boolean zip:new boolean[]{false,true})
 			for(boolean logCompression:new boolean[]{false,true})
 				for(boolean forceFallback:new boolean[]{false,true})
 					for(RecorderTestKind kind:RecorderTestKind.values())
-			result.add(new Object[]{Boolean.valueOf(zip),Boolean.valueOf(logCompression),Boolean.valueOf(forceFallback),kind});
+			result.add(new Object[]{zip, logCompression, forceFallback,kind});
 		
 		return result;
 	}
@@ -121,13 +122,13 @@ public class TestRecorderIntegration {
 					@SuppressWarnings("unused") PairScore pairBeingMerged,
 					@SuppressWarnings("unused")	final Object [] moreOptions)
 			{
-				return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
+				return new Pair<>(expected.paths.tracePathPrefixClosed(question), null);
 			}
 		};
 		testConfig.setLearnerIdMode(IDMode.POSITIVE_NEGATIVE);
 		ByteArrayOutputStream logStream = new ByteArrayOutputStream();
 		RecordProgressDecorator recorder = new RecordProgressDecorator(l,logStream,1,testConfig,useZip);
-		Collection<List<Label>> testSet = new LinkedList<List<Label>>();
+		Collection<List<Label>> testSet = new LinkedList<>();
 		recorder.writeLearnerEvaluationData(new LearnerEvaluationConfiguration(expected, testSet, testConfig, null, null));
 		LearnerGraph learntStructureA = recorder.learnMachine(buildSet(plus,testConfig,converter), buildSet(minus,testConfig,converter));
 		
@@ -177,7 +178,7 @@ public class TestRecorderIntegration {
 							@SuppressWarnings("unused") PairScore pairBeingMerged,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
-						return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
+						return new Pair<>(expected.paths.tracePathPrefixClosed(question), null);
 					}
 				};
 				new Test_LearnerComparator(learner2,simulator,true).learnMachine(buildSet(plus,testConfig,converter), buildSet(minus,testConfig,converter));
@@ -196,7 +197,7 @@ public class TestRecorderIntegration {
 							@SuppressWarnings("unused") PairScore pairBeingMerged,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
-						return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
+						return new Pair<>(expected.paths.tracePathPrefixClosed(question), null);
 					}
 				};
 				Learner learnerB = new RPNIUniversalLearner(null,new LearnerEvaluationConfiguration(null,null,testConfig,null,null))
@@ -209,7 +210,7 @@ public class TestRecorderIntegration {
 							@SuppressWarnings("unused") PairScore pairBeingMerged,
 							@SuppressWarnings("unused")	final Object [] moreOptions)
 					{
-						return new Pair<Integer,String>(expected.paths.tracePathPrefixClosed(question),null);
+						return new Pair<>(expected.paths.tracePathPrefixClosed(question), null);
 					}
 				};
 				new Test_LearnerComparator(learnerA,learnerB,true).learnMachine(buildSet(plus,testConfig,converter), buildSet(minus,testConfig,converter));

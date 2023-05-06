@@ -9,7 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized.Parameters;
-import org.junit.runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.Label;
@@ -27,7 +27,7 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 
 @RunWith(ParameterizedWithName.class)
-public class TestPaperUAS_Large extends TestWithMultipleConfigurations 
+public class TestPaperUASLarge extends TestWithMultipleConfigurations
 {
 
 	protected ExperimentPaperUAS paper;
@@ -43,7 +43,7 @@ public class TestPaperUAS_Large extends TestWithMultipleConfigurations
 		return TestWithMultipleConfigurations.parametersToString(config);
 	}
 	
-	public TestPaperUAS_Large(Configuration conf)
+	public TestPaperUASLarge(Configuration conf)
 	{
 		super(conf);
 	}

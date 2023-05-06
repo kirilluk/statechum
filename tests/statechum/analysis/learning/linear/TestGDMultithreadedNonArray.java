@@ -14,7 +14,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.ParameterizedWithName;
+import junit_runners.ParameterizedWithName;
 
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
@@ -35,7 +35,7 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
  *
  */
 @RunWith(ParameterizedWithName.class)
-public class TestGD_Multithreaded_NonArray {
+public class TestGDMultithreadedNonArray {
 	protected java.util.Map<CmpVertex,CmpVertex> newToOrig = null;
 
 	/** Number of threads to use. */
@@ -46,7 +46,7 @@ public class TestGD_Multithreaded_NonArray {
 
 	protected final Configuration config;
 
-	public TestGD_Multithreaded_NonArray(int th) {
+	public TestGDMultithreadedNonArray(int th) {
 		threadNumber = th;
 		config = Configuration.getDefaultConfiguration().copy();
 		converter = null;
@@ -55,13 +55,13 @@ public class TestGD_Multithreaded_NonArray {
 	@org.junit.runners.Parameterized.Parameters
 	public static Collection<Object[]> data() 
 	{
-		Collection<Object []> result = new LinkedList<Object []>();
+		Collection<Object []> result = new LinkedList<>();
 		for(int i=1;i<8;++i)
-			result.add(new Object[]{Integer.valueOf(i)});
+			result.add(new Object[]{i});
 		return result;
 	}
 
-	@org.junit.runners.ParameterizedWithName.ParametersToString
+	@junit_runners.ParameterizedWithName.ParametersToString
 	public static String parametersToString(Integer threads)
 	{
 		return ""+threads+" threads";
@@ -70,7 +70,7 @@ public class TestGD_Multithreaded_NonArray {
 	@Before
 	public void beforeTest()
 	{
-		newToOrig = new java.util.TreeMap<CmpVertex,CmpVertex>();
+		newToOrig = new java.util.TreeMap<>();
 	}
 
 	
@@ -82,14 +82,14 @@ public class TestGD_Multithreaded_NonArray {
 	{
 		Configuration configND3 = config.copy();configND3.setTransitionMatrixImplType(STATETREE.STATETREE_SLOWTREE);
 		configND3.setGdKeyPairThreshold(1);configND3.setGdLowToHighRatio(1);
-		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = TestGD_Multithreaded.runTestCompute_ND3(configND3,7,threadNumber,converter);
+		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = TestGDMultithreaded.runTestCompute_ND3(configND3,7,threadNumber,converter);
 		boolean foundC = false, foundB = false;
 		for(Entry<CmpVertex,CmpVertex> entry:gd.aTOb.entrySet()) 
 		{
-			Assert.assertFalse(entry.getKey().equals(VertexID.parseID(TestGD_Multithreaded.testA)));
-			if (entry.getKey().equals(VertexID.parseID(TestGD_Multithreaded.testB))) foundB = true;
-			if (gd.newBToOrig.get(entry.getValue()).equals(VertexID.parseID(TestGD_Multithreaded.nameC))) foundC = true;
-			Assert.assertFalse(gd.newBToOrig.get(entry.getValue()).equals(VertexID.parseID(TestGD_Multithreaded.nameD)));
+			Assert.assertNotEquals(entry.getKey(), VertexID.parseID(TestGDMultithreaded.testA));
+			if (entry.getKey().equals(VertexID.parseID(TestGDMultithreaded.testB))) foundB = true;
+			if (gd.newBToOrig.get(entry.getValue()).equals(VertexID.parseID(TestGDMultithreaded.nameC))) foundC = true;
+			Assert.assertNotEquals(gd.newBToOrig.get(entry.getValue()), VertexID.parseID(TestGDMultithreaded.nameD));
 		}
 		Assert.assertTrue(foundB);
 		Assert.assertTrue(foundC);
@@ -111,18 +111,18 @@ public class TestGD_Multithreaded_NonArray {
 		grA.transitionMatrix.put(newStateA,grA.createNewRow());
 
 		LearnerGraphND grB = buildLearnerGraphND("A-a->G-u->G\nA-a->H-t->H\n"+common,name+"B",configND3, converter);
-		CmpVertex newStateC = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(TestGD_Multithreaded.nameC), configND3);
+		CmpVertex newStateC = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(TestGDMultithreaded.nameC), configND3);
 		DeterministicDirectedSparseGraph.copyVertexData(newStateA, newStateC);
 		grB.transitionMatrix.put(newStateC,grB.createNewRow());
 
-		LearnerGraphND result = TestGD_Multithreaded.checkDiffBetweenND(grA, grB,7,0,threadNumber,configND3,converter);
+		LearnerGraphND result = TestGDMultithreaded.checkDiffBetweenND(grA, grB,7,0,threadNumber,configND3,converter);
 		Assert.assertNull(result.findVertex("testA"));
-		Assert.assertNotNull(result.findVertex(TestGD_Multithreaded.nameC));
-		Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(newStateC,result.findVertex(TestGD_Multithreaded.nameC)));
+		Assert.assertNotNull(result.findVertex(TestGDMultithreaded.nameC));
+		Assert.assertTrue(DeterministicDirectedSparseGraph.deepEquals(newStateC,result.findVertex(TestGDMultithreaded.nameC)));
 
 		// The last check: ensure that disconnected states are or are not key pairs.
 		// This chunk of code simply returns GD, the checking is performed by the caller of this method. 
-		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
+		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<>();
 		gd.init(grA, grB, threadNumber,configND3);gd.identifyKeyPairs();
 		ChangesDisplay display = new ChangesDisplay(null);
 		ChangesRecorder recorder = new ChangesRecorder(display);
@@ -134,7 +134,7 @@ public class TestGD_Multithreaded_NonArray {
 			if (entry.getKey().equals(VertexID.parseID("testA"))) 
 			{
 				foundA = true;
-				Assert.assertTrue(gd.newBToOrig.get(entry.getValue()).equals(VertexID.parseID(TestGD_Multithreaded.nameC)));
+				Assert.assertEquals(gd.newBToOrig.get(entry.getValue()), VertexID.parseID(TestGDMultithreaded.nameC));
 			}
 		}
 		Assert.assertTrue(foundA);
@@ -142,13 +142,13 @@ public class TestGD_Multithreaded_NonArray {
 		
 		LearnerGraphND graph = new LearnerGraphND(configND3);AbstractLearnerGraph.copyGraphs(grA, graph);
 		Configuration configMut = config.copy();configND3.setLearnerCloneGraph(false);
-		LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> graphPatcher = new LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(graph,configMut,null);
+		LearnerGraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> graphPatcher = new LearnerGraphMutator<>(graph, configMut, null);
 		ChangesRecorder.loadDiff(graphPatcher, recorder.writeGD(TestGD.createDoc()), converter);
 		graphPatcher.removeDanglingStates();
 		LearnerGraphND outcome = new LearnerGraphND(configMut);
 		graphPatcher.relabel(outcome);
 		
-		Assert.assertTrue(DeterministicDirectedSparseGraph.nonIDAttributesEquals(outcome.findVertex(TestGD_Multithreaded.nameC),grA.findVertex("testA")));
+		Assert.assertTrue(DeterministicDirectedSparseGraph.nonIDAttributesEquals(outcome.findVertex(TestGDMultithreaded.nameC),grA.findVertex("testA")));
 	}
 	
 }

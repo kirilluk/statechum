@@ -722,7 +722,7 @@ public class PathRoutines {
 	 *
 	 * @param path sequence of inputs to trace
 	 * @param startState the state to start from
-	 * @return
+	 * @return input/output pairs corresponding to the provided input.
 	 */
 	public List<LabelInputOutput> pathToInputOutputPairs(List<Label> path, CmpVertex startState) {
 		assert coregraph.config.getLabelKind() == Configuration.LABELKIND.LABEL_INPUT_OUTPUT;
@@ -937,7 +937,7 @@ public class PathRoutines {
 	 * @param converter label intern converter, used internally
 	 */
 	public static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>>
-		void convertPairAssociationsToTransitions(DirectedSparseGraph whereTo,AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> graph,Configuration config, ConvertALabel converter)
+	LearnerGraphND convertPairAssociationsToTransitions(DirectedSparseGraph whereTo,AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> graph,Configuration config, ConvertALabel converter)
 	{
 		Set<Label> alphabet = graph.pathroutines.computeAlphabet();
 		
@@ -993,6 +993,7 @@ public class PathRoutines {
 		}
 		
 		whereTo.addUserDatum(JUConstants.EDGE, transitionAnnotation, UserData.SHARED);
+		return result;
 	}
 
 	/** Returns a minimal version of this graph. */

@@ -463,12 +463,15 @@ final public class DeterministicDirectedSparseGraph {
 
 		private int hashCode = super.hashCode();
 
-		public DeterministicVertex(VertID thisVertexID) {
+		public DeterministicVertex(VertID thisVertexIDArg) {
 			super();
-			if (thisVertexID == null || thisVertexID instanceof CmpVertex)
+			VertID vertID = thisVertexIDArg;
+			if (vertID == null)
 				throw new IllegalArgumentException("invalid id");
 
-			addUserDatum(JUConstants.LABEL, thisVertexID, UserData.SHARED);
+			if (vertID instanceof CmpVertex)
+				vertID = new VertexID(thisVertexIDArg);
+			addUserDatum(JUConstants.LABEL, vertID, UserData.SHARED);
 		}
 
 		public DeterministicVertex(String name)

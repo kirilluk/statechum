@@ -1249,16 +1249,17 @@ public class WMethod
 		/** Iterates through states in the collection and checks the associations of the vertices
 		 * are preserved by the <em>pairs</em> relation.
 		 */
-		public void checkPairsAssociatedCorrectly()
+		public void checkPairsAssociatedCorrectly(String expectedGraphName, String actualGraphName)
 		{
 			for(Entry<CmpVertex,Set<CmpVertex>> entry:pairs.entrySet())
 			{
-				Map<PAIRCOMPATIBILITY,Set<CmpVertex>> firstMap = statesAssociatedToThoseRelatedTo(entry.getKey());
+				Map<PAIRCOMPATIBILITY,Set<CmpVertex>> expectedMap = statesAssociatedToThoseRelatedTo(entry.getKey());
 				for(CmpVertex secondVertex:entry.getValue())
 				{
-					Map<PAIRCOMPATIBILITY,Set<CmpVertex>> secondMap = statesAssociatedTo(secondVertex);
-					if (!firstMap.equals(secondMap))
-						throw new DifferentFSMException("state pair "+entry.getKey()+" and "+secondVertex+" have incompatible associations");
+					Map<PAIRCOMPATIBILITY,Set<CmpVertex>> actualMap = statesAssociatedTo(secondVertex);
+					if (!expectedMap.equals(actualMap))
+						throw new DifferentFSMException("state pair "+entry.getKey()+" and "+secondVertex+" have incompatible associations : "+expectedMap+
+								" for graph \"" + expectedGraphName+ "\" v.s. "+actualMap+ " for \""+actualGraphName+"\"");
 				}
 			}
 		}
@@ -1419,7 +1420,7 @@ public class WMethod
 
 		// now iterate through the maps of incompatible states and check them.
 		if (checkAssociations)
-			statesAddedToBoundary.checkPairsAssociatedCorrectly();
+			statesAddedToBoundary.checkPairsAssociatedCorrectly(expected.getName(),actual.getName());
 		return null;
 	}
 

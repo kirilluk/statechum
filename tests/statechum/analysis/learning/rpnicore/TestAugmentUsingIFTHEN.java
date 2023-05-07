@@ -38,6 +38,7 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
 import statechum.analysis.learning.AbstractOracle;
+import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.TestStateMerging;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -966,32 +967,34 @@ final public class TestAugmentUsingIFTHEN extends TestWithMultipleConfigurations
 	}
 	
 	@Test
-	public void testConversionOfAssociationsToTransitions2()
-	{
+	public void testConversionOfAssociationsToTransitions2() throws IncompatibleStatesException {
 		Configuration config = mainConfiguration.copy();config.setLearnerCloneGraph(false);
 		LearnerGraph graph = buildLearnerGraph("A-a->B / P-b->Q-c->R / A==THEN==P / B=INCOMPATIBLE=Q=MERGED=R", "testConversionOfAssociationsToTransitions2a", config,converter);
-                DirectedSparseGraph graphAfterConversion = graph.pathroutines.getGraph();
-		PathRoutines.convertPairAssociationsToTransitions(graphAfterConversion,graph, config,converter);
+		DirectedSparseGraph whereTo = graph.pathroutines.getGraph();
+		LearnerGraph obtainedGraph = PathRoutines.convertPairAssociationsToTransitions(whereTo,graph, config,converter).pathroutines.buildDeterministicGraph();
+		LearnerGraph whereToAsLearnerGraph = new LearnerGraph(whereTo,config);
+		Assert.assertNull(WMethod.checkM(whereToAsLearnerGraph, whereToAsLearnerGraph.getInit(), graph, graph.getInit(), VERTEX_COMPARISON_KIND.DEEP, false));// check that the original graph was not modified.
 		graph.pairCompatibility.compatibility.clear();
-		LearnerGraph obtainedGraph = new LearnerGraph(graphAfterConversion,config);
-		Assert.assertNull(WMethod.checkM_and_colours(buildLearnerGraph("A-a->B / P-b->Q-c->R / "+
-				"A-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"->P / "+
-				"P-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"->A / "+
-				
-				"B-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.INCOMPATIBLE.name()+"->Q / "+
-				"Q-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.INCOMPATIBLE.name()+"->B / "+
-				
-				"Q-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"->R / "+
-				"R-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"->Q / ", 
-				"testConversionOfAssociationsToTransitions2b",config,converter), obtainedGraph,VERTEX_COMPARISON_KIND.DEEP));
+		LearnerGraph expectedGraph = buildLearnerGraph("A-a->B / P-b->Q-c->R / "+
+						"A-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"->P / "+
+						"P-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"->A / "+
 
-		Assert.assertNull(graphAfterConversion.getUserDatum(JUConstants.VERTEX));
+						"B-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.INCOMPATIBLE.name()+"->Q / "+
+						"Q-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.INCOMPATIBLE.name()+"->B / "+
+
+						"Q-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"->R / "+
+						"R-"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"->Q / ",
+				"testConversionOfAssociationsToTransitions2b",config,converter);
+		Assert.assertNull(WMethod.checkM(expectedGraph,expectedGraph.getInit(), obtainedGraph, obtainedGraph.getInit(),VERTEX_COMPARISON_KIND.DEEP, false));
+
+		Assert.assertNull(whereTo.getUserDatum(JUConstants.VERTEX));
 		Assert.assertEquals("{A={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"={P=java.awt.Color[r=255,g=255,b=0]}}, " +
 				"B={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.INCOMPATIBLE.name()+"={Q=java.awt.Color[r=255,g=255,b=0]}}, " +
 				"P={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.THEN.name()+"={A=java.awt.Color[r=255,g=255,b=0]}}, " +
-				"Q={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.INCOMPATIBLE.name()+"={B=java.awt.Color[r=255,g=255,b=0]}, "+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"={R=java.awt.Color[r=255,g=255,b=0]}}, " +
+				"Q={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.INCOMPATIBLE.name()+"={B=java.awt.Color[r=255,g=255,b=0]}, "+
+						PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"={R=java.awt.Color[r=255,g=255,b=0]}}, " +
 				"R={"+PathRoutines.associationPrefix+PAIRCOMPATIBILITY.MERGED.name()+"={Q=java.awt.Color[r=255,g=255,b=0]}}}",
-				graphAfterConversion.getUserDatum(JUConstants.EDGE).toString());
+				whereTo.getUserDatum(JUConstants.EDGE).toString());
 
 	}
 

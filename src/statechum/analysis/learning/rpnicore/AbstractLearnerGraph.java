@@ -118,7 +118,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	public enum LearningAbortedReason { LEARNING_OK("L_OK"), LEARNING_TIMEOUT("L_TM"), LEARNING_TOOMANYREDS("L_REDS");
 
 		public final String name;
-		private LearningAbortedReason(String n)
+		LearningAbortedReason(String n)
 		{
 			name = n;
 		}

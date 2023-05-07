@@ -89,7 +89,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
     }
 
 
-	HarmonyHashMap hm;
+	HashMapWithSearch hm;
 
 	final static int hmSize = 1000;
 
@@ -106,88 +106,88 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#HarmonyHashMap()
+	 * @tests java.util.HashMapWithSearch#HashMapWithSearch()
 	 */
 	public void test_Constructor() {
-		// Test for method java.util.HarmonyHashMap()
-		new Support_MapTest2(new HarmonyHashMap()).runTest();
+		// Test for method java.util.HashMapWithSearch()
+		new Support_MapTest2(new HashMapWithSearch()).runTest();
 
-		HarmonyHashMap hm2 = new HarmonyHashMap();
-		assertEquals("Created incorrect HarmonyHashMap", 0, hm2.size());
+		HashMapWithSearch hm2 = new HashMapWithSearch();
+		assertEquals("Created incorrect HashMapWithSearch", 0, hm2.size());
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#HarmonyHashMap(int)
+	 * @tests java.util.HashMapWithSearch#HashMapWithSearch(int)
 	 */
 	public void test_ConstructorI() {
-		// Test for method java.util.HarmonyHashMap(int)
-		HarmonyHashMap hm2 = new HarmonyHashMap(5);
-		assertEquals("Created incorrect HarmonyHashMap", 0, hm2.size());
+		// Test for method java.util.HashMapWithSearch(int)
+		HashMapWithSearch hm2 = new HashMapWithSearch(5);
+		assertEquals("Created incorrect HashMapWithSearch", 0, hm2.size());
 		try {
-			new HarmonyHashMap(-1);
+			new HashMapWithSearch(-1);
 		} catch (IllegalArgumentException e) {
 			return;
 		}
 		fail(
 				"Failed to throw IllegalArgumentException for initial capacity < 0");
 
-		HarmonyHashMap<String, String> empty = new HarmonyHashMap<>(0);
-		assertNull("Empty HarmonyHashMap access", empty.get("nothing"));
+		HashMapWithSearch<String, String, String> empty = new HashMapWithSearch<>(0);
+		assertNull("Empty HashMapWithSearch access", empty.get("nothing"));
 		empty.put("something", "here");
 		assertSame("cannot get element", "here", empty.get("something"));
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#HarmonyHashMap(int, float)
+	 * @tests java.util.HashMapWithSearch#HashMapWithSearch(int, float)
 	 */
 	public void test_ConstructorIF() {
-		// Test for method java.util.HarmonyHashMap(int, float)
-		HarmonyHashMap hm2 = new HarmonyHashMap(5, (float) 0.5);
-		assertEquals("Created incorrect HarmonyHashMap", 0, hm2.size());
+		// Test for method java.util.HashMapWithSearch(int, float)
+		HashMapWithSearch hm2 = new HashMapWithSearch(5, (float) 0.5);
+		assertEquals("Created incorrect HashMapWithSearch", 0, hm2.size());
 		try {
-			new HarmonyHashMap(0, 0);
+			new HashMapWithSearch(0, 0);
 		} catch (IllegalArgumentException e) {
 			return;
 		}
 		fail(
 				"Failed to throw IllegalArgumentException for initial load factor <= 0");
 
-		HarmonyHashMap<String, String> empty = new HarmonyHashMap<String, String>(0, 0.75f);
+		HashMapWithSearch<String, String, String> empty = new HashMapWithSearch<String, String, String>(0, 0.75f);
 		assertNull("Empty hashtable access", empty.get("nothing"));
 		empty.put("something", "here");
 		assertSame("cannot get element", "here", empty.get("something"));
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#HarmonyHashMap(java.util.Map)
+	 * @tests java.util.HashMapWithSearch#HashMapWithSearch(java.util.Map)
 	 */
 	public void test_ConstructorLjava_util_Map() {
-		// Test for method java.util.HarmonyHashMap(java.util.Map)
+		// Test for method java.util.HashMapWithSearch(java.util.Map)
 		Map myMap = new TreeMap();
 		for (int counter = 0; counter < hmSize; counter++)
 			myMap.put(objArray2[counter], objArray[counter]);
-		HarmonyHashMap hm2 = new HarmonyHashMap(myMap);
+		HashMapWithSearch hm2 = new HashMapWithSearch(myMap);
 		for (int counter = 0; counter < hmSize; counter++)
-			assertTrue("Failed to construct correct HarmonyHashMap", hm
+			assertTrue("Failed to construct correct HashMapWithSearch", hm
 					.get(objArray2[counter]) == hm2.get(objArray2[counter]));
         
         try {
             Map mockMap = new MockMap();
-            hm = new HarmonyHashMap(mockMap);
+            hm = new HashMapWithSearch(mockMap);
             fail("Should throw NullPointerException");
         } catch (NullPointerException e) {
             //empty
         }
         
-        HarmonyHashMap<String, String> map = new HarmonyHashMap<String, String>();
+        HashMapWithSearch<String, String, String> map = new HashMapWithSearch<String, String, String>();
         map.put("a", "a");
-        SubMap<String, String> map2 = new SubMap<String, String>(map);
+        SubMap<String, String, String> map2 = new SubMap<String, String, String>(map);
         assertTrue(map2.containsKey("a"));
         assertTrue(map2.containsValue("a"));
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#clear()
+	 * @tests java.util.HashMapWithSearch#clear()
 	 */
 	public void test_clear() {
 		hm.clear();
@@ -197,7 +197,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 					hm.get(objArray2[i]));
         
 		// Check clear on a large loaded map of Integer keys
-		HarmonyHashMap<Integer, String> map = new HarmonyHashMap<Integer, String>();
+		HashMapWithSearch<Integer,Integer, String> map = new HashMapWithSearch<Integer,Integer, String>();
         for (int i = -32767; i < 32768; i++) {
             map.put(i, "foobar");
         }
@@ -209,17 +209,17 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#clone()
+	 * @tests java.util.HashMapWithSearch#clone()
 	 */
 	public void test_clone() {
-		// Test for method java.lang.Object java.util.HarmonyHashMap.clone()
-		HarmonyHashMap hm2 = (HarmonyHashMap) hm.clone();
-		assertTrue("Clone answered equivalent HarmonyHashMap", hm2 != hm);
+		// Test for method java.lang.Object java.util.HashMapWithSearch.clone()
+		HashMapWithSearch hm2 = (HashMapWithSearch) hm.clone();
+		assertTrue("Clone answered equivalent HashMapWithSearch", hm2 != hm);
 		for (int counter = 0; counter < hmSize; counter++)
-			assertTrue("Clone answered unequal HarmonyHashMap", hm
+			assertTrue("Clone answered unequal HashMapWithSearch", hm
 					.get(objArray2[counter]) == hm2.get(objArray2[counter]));
 
-		HarmonyHashMap<String, String> map = new HarmonyHashMap<String, String>();
+		HashMapWithSearch<String, String, String> map = new HashMapWithSearch<String, String, String>();
 		map.put("key", "value");
 		// get the keySet() and values() on the original Map
 		Set<String> keys = map.keySet();
@@ -243,28 +243,28 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 				"key2", key2.iterator().next());
         
         // regresion test for HARMONY-4603
-        HarmonyHashMap<Integer, MockClonable> HarmonyHashMap = new HarmonyHashMap<>();
+        HashMapWithSearch<Integer, Integer, MockClonable> HashMapWithSearch = new HashMapWithSearch<>();
         MockClonable mock = new MockClonable(1);
-        HarmonyHashMap.put(1, mock);
-        assertEquals(1, (HarmonyHashMap.get(1)).i);
-        HarmonyHashMap hm3 = (HarmonyHashMap)HarmonyHashMap.clone();
+        HashMapWithSearch.put(1, mock);
+        assertEquals(1, (HashMapWithSearch.get(1)).i);
+        HashMapWithSearch hm3 = (HashMapWithSearch)HashMapWithSearch.clone();
         assertEquals(1, ((MockClonable) hm3.get(1)).i);
         mock.i = 0;
-        assertEquals(0, (HarmonyHashMap.get(1)).i);
+        assertEquals(0, (HashMapWithSearch.get(1)).i);
         assertEquals(0, ((MockClonable) hm3.get(1)).i);
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#containsKey(java.lang.Object)
+	 * @tests java.util.HashMapWithSearch#containsKey(java.lang.Object)
 	 */
 	public void test_containsKeyLjava_lang_Object() {
 		// Test for method boolean
-		// java.util.HarmonyHashMap.containsKey(java.lang.Object)
+		// java.util.HashMapWithSearch.containsKey(java.lang.Object)
 		assertTrue("Returned false for valid key", hm.containsKey(new Integer(
 				876).toString()));
 		assertFalse("Returned true for invalid key", hm.containsKey("KKDKDKD"));
 
-		HarmonyHashMap m = new HarmonyHashMap();
+		HashMapWithSearch m = new HashMapWithSearch();
 		m.put(null, "test");
 		assertTrue("Failed with null key", m.containsKey(null));
 		assertTrue("Failed with missing key matching null hash", !m
@@ -272,11 +272,11 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#containsValue(java.lang.Object)
+	 * @tests java.util.HashMapWithSearch#containsValue(java.lang.Object)
 	 */
 	public void test_containsValueLjava_lang_Object() {
 		// Test for method boolean
-		// java.util.HarmonyHashMap.containsValue(java.lang.Object)
+		// java.util.HashMapWithSearch.containsValue(java.lang.Object)
 		assertTrue("Returned false for valid value", hm
 				.containsValue(875));
 		assertTrue("Returned true for invalid valie", !hm
@@ -284,10 +284,10 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#entrySet()
+	 * @tests java.util.HashMapWithSearch#entrySet()
 	 */
 	public void test_entrySet() {
-		// Test for method java.util.Set java.util.HarmonyHashMap.entrySet()
+		// Test for method java.util.Set java.util.HashMapWithSearch.entrySet()
 		Set s = hm.entrySet();
 		Iterator i = s.iterator();
 		assertEquals("Returned set of incorrect size", hm.size(), s.size());
@@ -304,18 +304,18 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#get(java.lang.Object)
+	 * @tests java.util.HashMapWithSearch#get(java.lang.Object)
 	 */
 	public void test_getLjava_lang_Object() {
 		// Test for method java.lang.Object
-		// java.util.HarmonyHashMap.get(java.lang.Object)
+		// java.util.HashMapWithSearch.get(java.lang.Object)
 		assertNull("Get returned non-null for non existent key",
 				hm.get("T"));
 		hm.put("T", "HELLO");
 		assertEquals("Get returned incorrect value for existing key", "HELLO", hm.get("T")
 				);
 
-		HarmonyHashMap m = new HarmonyHashMap();
+		HashMapWithSearch m = new HashMapWithSearch();
 		m.put(null, "test");
 		assertEquals("Failed with null key", "test", m.get(null));
 		assertNull("Failed with missing key matching null hash", m
@@ -323,7 +323,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 		
 		// Regression for HARMONY-206
 		ReusableKey k = new ReusableKey();
-		HarmonyHashMap<ReusableKey, String> map = new HarmonyHashMap<>();
+		HashMapWithSearch<ReusableKey, ReusableKey, String> map = new HashMapWithSearch<>();
 		k.setKey(1);
 		map.put(k, "value1");
 
@@ -366,7 +366,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
         assertTrue("Failed to find proxy object as value", hm.containsValue(proxyValue));
         
         // Proxy key and value
-        HarmonyHashMap<MockInterface, MockInterface> map = new HarmonyHashMap<>();
+        HashMapWithSearch<MockInterface, MockInterface, MockInterface> map = new HashMapWithSearch<>();
         map.put(proxyKey, proxyValue);
         assertTrue("Failed to find proxy key", map.containsKey(proxyKey));
         assertEquals(1, map.size());
@@ -376,31 +376,31 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#isEmpty()
+	 * @tests java.util.HashMapWithSearch#isEmpty()
 	 */
 	public void test_isEmpty() {
-		// Test for method boolean java.util.HarmonyHashMap.isEmpty()
-		assertTrue("Returned false for new map", new HarmonyHashMap().isEmpty());
+		// Test for method boolean java.util.HashMapWithSearch.isEmpty()
+		assertTrue("Returned false for new map", new HashMapWithSearch().isEmpty());
 		assertTrue("Returned true for non-empty", !hm.isEmpty());
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#keySet()
+	 * @tests java.util.HashMapWithSearch#keySet()
 	 */
 	public void test_keySet() {
-		// Test for method java.util.Set java.util.HarmonyHashMap.keySet()
+		// Test for method java.util.Set java.util.HashMapWithSearch.keySet()
 		Set s = hm.keySet();
 		assertEquals("Returned set of incorrect size()", s.size(), hm.size());
 		for (int i = 0; i < objArray.length; i++)
 			assertTrue("Returned set does not contain all keys", s
 					.contains(objArray[i].toString()));
 
-		HarmonyHashMap<Object, String> m = new HarmonyHashMap<Object, String>();
+		HashMapWithSearch<Object, Object, String> m = new HashMapWithSearch<Object, Object, String>();
 		m.put(null, "test");
 		assertTrue("Failed with null key", m.keySet().contains(null));
 		assertNull("Failed with null key", m.keySet().iterator().next());
 
-		Map<Integer, String> map = new HarmonyHashMap<Integer, String>(101);
+		Map<Integer, String> map = new HashMapWithSearch<Integer,Integer, String>(101);
 		map.put(1, "1");
 		map.put(102, "102");
 		map.put(203, "203");
@@ -417,7 +417,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 		assertEquals("Wrong size", 1, map.size());
 		assertEquals("Wrong contents", map.keySet().iterator().next(), list.get(0));
 
-		Map<Integer, String> map2 = new HarmonyHashMap<>(101);
+		Map<Integer, String> map2 = new HashMapWithSearch<>(101);
 		map2.put(1, "1");
 		map2.put(4, "4");
 		Iterator<Integer> it2 = map2.keySet().iterator();
@@ -435,13 +435,13 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#put(java.lang.Object, java.lang.Object)
+	 * @tests java.util.HashMapWithSearch#put(java.lang.Object, java.lang.Object)
 	 */
 	public void test_putLjava_lang_ObjectLjava_lang_Object() {
         hm.put("KEY", "VALUE");
         assertEquals("Failed to install key/value pair", "VALUE", hm.get("KEY"));
 
-        HarmonyHashMap<Object,Object> m = new HarmonyHashMap<Object,Object>();
+        HashMapWithSearch<Object,Object, Object> m = new HashMapWithSearch<Object,Object, Object>();
         m.put((short) 0, "short");
         m.put(null, "test");
         m.put(0, "int");
@@ -451,7 +451,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
                 .get(0));
         
         // Check my actual key instance is returned
-        HarmonyHashMap<Integer, String> map = new HarmonyHashMap<Integer, String>();
+        HashMapWithSearch<Integer,Integer, String> map = new HashMapWithSearch<Integer,Integer, String>();
         for (int i = -32767; i < 32768; i++) {
             map.put(i, "foobar");
         }
@@ -472,7 +472,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
                 break;
             }
         }
-        assertFalse("Should not find new key instance in HarmonyHashMap", found);
+        assertFalse("Should not find new key instance in HashMapWithSearch", found);
 
         // Add a new key instance and check it is returned
         assertNotNull(map.remove(myKey));
@@ -485,10 +485,10 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
                 break;
             }
         }
-        assertTrue("Did not find new key instance in HarmonyHashMap", found);
+        assertTrue("Did not find new key instance in HashMapWithSearch", found);
 
         // Ensure keys with identical hashcode are stored separately
-        HarmonyHashMap<Object,Object> objmap = new HarmonyHashMap<Object, Object>();
+        HashMapWithSearch<Object,Object, Object> objmap = new HashMapWithSearch<Object, Object, Object>();
         for (int i = 0; i < 32768; i++) {
             objmap.put(i, "foobar");
         }
@@ -510,36 +510,36 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
         }
     }
 	/**
-	 * @tests java.util.HarmonyHashMap#putAll(java.util.Map)
+	 * @tests java.util.HashMapWithSearch#putAll(java.util.Map)
 	 */
 	public void test_putAllLjava_util_Map() {
-		// Test for method void java.util.HarmonyHashMap.putAll(java.util.Map)
-		HarmonyHashMap hm2 = new HarmonyHashMap();
+		// Test for method void java.util.HashMapWithSearch.putAll(java.util.Map)
+		HashMapWithSearch hm2 = new HashMapWithSearch();
 		hm2.putAll(hm);
 		for (int i = 0; i < 1000; i++)
 			assertTrue("Failed to clear all elements", hm2.get(
 					new Integer(i).toString()).equals((i)));
         
         Map mockMap = new MockMap();
-        hm2 = new HarmonyHashMap();
+        hm2 = new HashMapWithSearch();
         hm2.putAll(mockMap);
         assertEquals("Size should be 0", 0, hm2.size());
 	}
     
     /**
-     * @tests java.util.HarmonyHashMap#putAll(java.util.Map)
+     * @tests java.util.HashMapWithSearch#putAll(java.util.Map)
      */
     public void test_putAllLjava_util_Map_Null() {
-        HarmonyHashMap HarmonyHashMap = new HarmonyHashMap();
+        HashMapWithSearch HashMapWithSearch = new HashMapWithSearch();
         try {
-            HarmonyHashMap.putAll(new MockMapNull());
+            HashMapWithSearch.putAll(new MockMapNull());
             fail("Should throw NullPointerException");
         } catch (NullPointerException e) {
             // expected.
         }
 
         try {
-            HarmonyHashMap = new HarmonyHashMap(new MockMapNull());
+            HashMapWithSearch = new HashMapWithSearch(new MockMapNull());
             fail("Should throw NullPointerException");
         } catch (NullPointerException e) {
             // expected.
@@ -547,7 +547,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
     } 
 
 	/**
-	 * @tests java.util.HarmonyHashMap#remove(java.lang.Object)
+	 * @tests java.util.HashMapWithSearch#remove(java.lang.Object)
 	 */
 	public void test_removeLjava_lang_Object() {
 		int size = hm.size();
@@ -559,13 +559,13 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 		assertNull("Remove of non-existent key returned non-null", hm
 				.remove("LCLCLC"));
 
-		HarmonyHashMap m = new HarmonyHashMap();
+		HashMapWithSearch m = new HashMapWithSearch();
 		m.put(null, "test");
 		assertNull("Failed with same hash as null",
 				m.remove(0));
 		assertEquals("Failed with null key", "test", m.remove(null));
 		
-		HarmonyHashMap<Integer, Object> map = new HarmonyHashMap<Integer, Object>();
+		HashMapWithSearch<Integer, Integer, Object> map = new HashMapWithSearch<Integer, Integer, Object>();
         for (int i = 0; i < 32768; i++) {
             map.put(i, "const");
         }
@@ -579,7 +579,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
         }
 
         // Ensure keys with identical hashcode are removed properly
-        map = new HarmonyHashMap<Integer, Object>();
+        map = new HashMapWithSearch<Integer, Integer, Object>();
         for (int i = -32767; i < 32768; i++) {
             map.put(i, "foobar");
         }
@@ -596,7 +596,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 	 */
     public void test_rehash() {
         // This map should rehash on adding the ninth element.
-        HarmonyHashMap<MyKey, Integer> hm = new HarmonyHashMap<MyKey, Integer>(10, 0.5f);
+        HashMapWithSearch<MyKey, MyKey, Integer> hm = new HashMapWithSearch<MyKey, MyKey, Integer>(10, 0.5f);
 
         // Ordered set of keys.
         MyKey[] keyOrder = new MyKey[9];
@@ -624,19 +624,19 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
     }
 
 	/**
-	 * @tests java.util.HarmonyHashMap#size()
+	 * @tests java.util.HashMapWithSearch#size()
 	 */
 	public void test_size() {
-		// Test for method int java.util.HarmonyHashMap.size()
+		// Test for method int java.util.HashMapWithSearch.size()
 		assertTrue("Returned incorrect size",
 				hm.size() == (objArray.length + 2));
 	}
 
 	/**
-	 * @tests java.util.HarmonyHashMap#values()
+	 * @tests java.util.HashMapWithSearch#values()
 	 */
 	public void test_values() {
-		// Test for method java.util.Collection java.util.HarmonyHashMap.values()
+		// Test for method java.util.Collection java.util.HashMapWithSearch.values()
 		Collection c = hm.values();
 		assertEquals("Returned collection of incorrect size()", c.size(), hm
 				.size());
@@ -644,12 +644,12 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 			assertTrue("Returned collection does not contain all keys", c
 					.contains(objArray[i]));
 
-		HarmonyHashMap myHarmonyHashMap = new HarmonyHashMap();
+		HashMapWithSearch myHarmonyHashMap = new HashMapWithSearch();
 		for (int i = 0; i < 100; i++)
 			myHarmonyHashMap.put(objArray2[i], objArray[i]);
 		Collection values = myHarmonyHashMap.values();
 		new Support_UnmodifiableCollectionTest(
-				"Test Returned Collection From HarmonyHashMap.values()", values)
+				"Test Returned Collection From HashMapWithSearch.values()", values)
 				.runTest();
 		values.remove(0);
 		assertTrue(
@@ -663,7 +663,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
      */
     public void test_toString() {
 
-        HarmonyHashMap m = new HarmonyHashMap();
+        HashMapWithSearch m = new HashMapWithSearch();
         m.put(m, m);
         String result = m.toString();
         assertTrue("should contain self ref", result.indexOf("(this") > -1);
@@ -693,7 +693,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
     
 	public void test_Map_Entry_hashCode() {
         //Related to HARMONY-403
-	    HarmonyHashMap<Integer, Integer> map = new HarmonyHashMap<Integer, Integer>(10);
+	    HashMapWithSearch<Integer, Integer, Integer> map = new HashMapWithSearch<Integer, Integer, Integer>(10);
 	    Integer key = 1;
 	    Integer val = 2;
 	    map.put(key, val);
@@ -723,7 +723,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
      * Regression test for HY-4750
      */
     public void test_EntrySet() {
-        HarmonyHashMap<Object, String> map = new HarmonyHashMap<Object, String>();
+        HashMapWithSearch<Object, Object, String> map = new HashMapWithSearch<Object, Object, String>();
         map.put(1, "ONE");
 
         Set<Map.Entry<Object, String>> entrySet = map.entrySet();
@@ -759,7 +759,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 	 * is called before a test is executed.
 	 */
 	protected void setUp() {
-		hm = new HarmonyHashMap();
+		hm = new HashMapWithSearch();
 		for (int i = 0; i < objArray.length; i++)
 			hm.put(objArray2[i], objArray[i]);
 		hm.put("test", null);
@@ -767,7 +767,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
 	}
 
 
-    class SubMap<K, V> extends HarmonyHashMap<K, V> {
+    class SubMap<I, K extends I, V> extends HashMapWithSearch<I, K, V> {
         public SubMap(Map<? extends K, ? extends V> m) {
             super(m);
         }
@@ -781,7 +781,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
      * @tests serialization/deserialization.
      */
     public void testSerializationSelf() throws Exception {
-        HarmonyHashMap<String, String> hm = new HarmonyHashMap<String, String>();
+        HashMapWithSearch<String, String, String> hm = new HashMapWithSearch<String, String, String>();
         hm.put("key", "value");
 
         SerializationTest.verifySelf(hm);        
@@ -795,7 +795,7 @@ public class HarmonyHashMapTest extends junit.framework.TestCase {
      * @tests serialization/deserialization compatibility with RI.
      */
     public void testSerializationCompatibility() throws Exception {
-        HarmonyHashMap<String, String> hm = new HarmonyHashMap<String, String>();
+        HashMapWithSearch<String, String, String> hm = new HashMapWithSearch<String, String, String>();
         hm.put("key", "value");
 
         SerializationTest.verifyGolden(this, hm);

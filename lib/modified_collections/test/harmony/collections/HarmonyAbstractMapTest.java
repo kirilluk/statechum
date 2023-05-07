@@ -64,17 +64,17 @@ public class HarmonyAbstractMapTest extends junit.framework.TestCase {
      * @tests java.util.HarmonyAbstractMap#keySet()
      */
     public void test_keySet() {
-        HarmonyAbstractMap map1 = new HarmonyHashMap(0);
-        assertSame("HarmonyHashMap(0)", map1.keySet(), map1.keySet());
+        HarmonyAbstractMap map1 = new HashMapWithSearch(0);
+        assertSame("HashMapWithSearch(0)", map1.keySet(), map1.keySet());
 
-        HarmonyAbstractMap map2 = new HarmonyHashMap(10);
-        assertSame("HarmonyHashMap(10)", map2.keySet(), map2.keySet());
+        HarmonyAbstractMap map2 = new HashMapWithSearch(10);
+        assertSame("HashMapWithSearch(10)", map2.keySet(), map2.keySet());
 
         Map map3 = Collections.EMPTY_MAP;
         assertSame("EMPTY_MAP", map3.keySet(), map3.keySet());
 
         HarmonyAbstractMap map5 = new HashMapWithSearch(122);
-        assertSame("LinkedHarmonyHashMap", map5.keySet(), map5.keySet());
+        assertSame("LinkedHashMapWithSearch", map5.keySet(), map5.keySet());
 
         HarmonyAbstractMap map6 = new TreeMapWithSearch();
         assertSame("TreeMapWithSearch", map6.keySet(), map6.keySet());
@@ -88,13 +88,13 @@ public class HarmonyAbstractMapTest extends junit.framework.TestCase {
         Object key = new Object();
         Object value = new Object();
 
-        HarmonyAbstractMap map1 = new HarmonyHashMap(0);
+        HarmonyAbstractMap map1 = new HashMapWithSearch(0);
         map1.put("key", value);
-        assertSame("HarmonyHashMap(0)", map1.remove("key"), value);
+        assertSame("HashMapWithSearch(0)", map1.remove("key"), value);
 
         HarmonyAbstractMap map5 = new HashMapWithSearch(122);
         map5.put(key, value);
-        assertSame("LinkedHarmonyHashMap", map5.remove(key), value);
+        assertSame("LinkedHashMapWithSearch", map5.remove(key), value);
 
         HarmonyAbstractMap map6 = new TreeMapWithSearch(new Comparator() {
             // Bogus comparator
@@ -116,7 +116,7 @@ public class HarmonyAbstractMapTest extends junit.framework.TestCase {
      */
     public void test_clear() {
         // normal clear()
-        HarmonyAbstractMap map = new HarmonyHashMap();
+        HarmonyAbstractMap map = new HashMapWithSearch();
         map.put(1, 1);
         map.clear();
         assertTrue(map.isEmpty());
@@ -203,17 +203,17 @@ public class HarmonyAbstractMapTest extends junit.framework.TestCase {
      * @tests java.util.HarmonyAbstractMap#values()
      */
     public void test_values() {
-        HarmonyAbstractMap map1 = new HarmonyHashMap(0);
-        assertSame("HarmonyHashMap(0)", map1.values(), map1.values());
+        HarmonyAbstractMap map1 = new HashMapWithSearch(0);
+        assertSame("HashMapWithSearch(0)", map1.values(), map1.values());
 
-        HarmonyAbstractMap map2 = new HarmonyHashMap(10);
-        assertSame("HarmonyHashMap(10)", map2.values(), map2.values());
+        HarmonyAbstractMap map2 = new HashMapWithSearch(10);
+        assertSame("HashMapWithSearch(10)", map2.values(), map2.values());
 
         Map map3 = Collections.EMPTY_MAP;
         assertSame("EMPTY_MAP", map3.values(), map3.values());
 
         HarmonyAbstractMap map5 = new HashMapWithSearch(122);
-        assertSame("IdentityHarmonyHashMap", map5.values(), map5.values());
+        assertSame("IdentityHashMapWithSearch", map5.values(), map5.values());
 
         HarmonyAbstractMap map6 = new TreeMapWithSearch();
         assertSame("TreeMapWithSearch", map6.values(), map6.values());
@@ -225,7 +225,7 @@ public class HarmonyAbstractMapTest extends junit.framework.TestCase {
      */
     public void test_clone() {
         class MyMap extends HarmonyAbstractMap implements Cloneable {
-            private final Map map = new HarmonyHashMap();
+            private final Map map = new HashMapWithSearch();
 
             public Set entrySet() {
                 return map.entrySet();
@@ -328,11 +328,11 @@ public class HarmonyAbstractMapTest extends junit.framework.TestCase {
     }
 
     public void testEqualsWithNullValues() {
-        Map<String, String> a = new HarmonyHashMap<>();
+        Map<String, String> a = new HashMapWithSearch<>();
         a.put("a", null);
         a.put("b", null);
 
-        Map<String, String> b = new HarmonyHashMap<>();
+        Map<String, String> b = new HashMapWithSearch<>();
         a.put("c", "cat");
         a.put("d", "dog");
 

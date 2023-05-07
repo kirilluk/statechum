@@ -15,210 +15,122 @@
  *  limitations under the License.
  */
 
-package harmony.collections;
-
-import statechum.collections.MapWithSearch;
-
-import java.util.*;
-
-/**
- * HashMapWithSearch is a variant of HarmonyHashMap. Its entries are kept in a
- * doubly-linked list. The iteration order is, by default, the order in which
- * keys were inserted. Reinserting an already existing key doesn't change the
- * order. A key is existing if a call to {@code containsKey} would return true.
- * <p>
- * If the three argument constructor is used, and {@code order} is specified as
- * {@code true}, the iteration will be in the order that entries were accessed.
- * The access order gets affected by put(), get(), putAll() operations, but not
- * by operations on the collection views.
- * <p>
- * Null elements are allowed, and all the optional map operations are supported.
- * <p>
- * <b>Note:</b> The implementation of {@code HashMapWithSearch} is not synchronized.
- * If one thread of several threads accessing an instance modifies the map
- * structurally, access to the map needs to be synchronized. For
- * insertion-ordered instances a structural modification is an operation that
- * removes or adds an entry. Access-ordered instances also are structurally
- * modified by put(), get() and putAll() since these methods change the order of
- * the entries. Changes in the value of an entry are not structural changes.
- * <p>
- * The Iterator that can be created by calling the {@code iterator} method
- * throws a {@code ConcurrentModificationException} if the map is structurally
- * changed while an iterator is used to iterate over the elements. Only the
- * {@code remove} method that is provided by the iterator allows for removal of
- * elements during iteration. It is not possible to guarantee that this
- * mechanism works in all cases of unsynchronized concurrent modification. It
- * should only be used for debugging purposes.
- *
- * @since 1.4
- */
- 
 // The origin of this file is Apache Harmony SVN repository,
 // location: classlib/modules/luni/src/main/java/java/util
 // checked out Dec 3, 2022.
 
-public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> implements Map<K, V>, MapWithSearch<I, K, V> {
+package harmony.collections;
+
+import statechum.collections.MapWithSearch;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.util.*;
+
+/**
+ * HarmonyHashMap is an implementation of Map. All optional operations (adding and
+ * removing) are supported. Keys and values can be any objects.
+ */
+public class HashMapWithSearch<I, K extends  I, V> extends HarmonyAbstractMap<K, V> implements Map<K, V>, MapWithSearch<I,K,V>,
+        Cloneable, Serializable {
 
     public static final int DEFAULT_INITIAL_CAPACITY = 16;
+    private static final long serialVersionUID = 362498820763181265L;
 
-    private static final long serialVersionUID = 3801124242820219131L;
-
-    private final boolean accessOrder;
-
-    transient private LinkedHashMapEntry<K, V> head, tail;
-
-    /**
-     * Constructs a new empty {@code HashMapWithSearch} instance.
+    /*
+     * Actual count of entries
      */
-    public HashMapWithSearch() {
-        super();
-        accessOrder = false;
-        head = null;
-    }
+    transient int elementCount;
 
-    /**
-     * Constructs a new {@code HashMapWithSearch} instance with the specified
-     * capacity.
-     * 
-     * @param s
-     *            the initial capacity of this map.
-     * @throws IllegalArgumentException
-     *                if the capacity is less than zero.
+    /*
+     * The internal data structure to hold Entries
      */
-    public HashMapWithSearch(int s) {
-        super(s);
-        accessOrder = false;
-        head = null;
-    }
+    transient Entry<K, V>[] elementData;
 
-    /**
-     * Constructs a new {@code HashMapWithSearch} instance with the specified
-     * capacity and load factor.
-     * 
-     * @param s
-     *            the initial capacity of this map.
-     * @param lf
-     *            the initial load factor.
-     * @throws IllegalArgumentException
-     *             when the capacity is less than zero or the load factor is
-     *             less or equal to zero.
+    /*
+     * modification count, to keep track of structural modifications between the
+     * HarmonyHashMap and the iterator
      */
-    public HashMapWithSearch(int s, float lf) {
-        super(s, lf);
-        accessOrder = false;
-        head = null;
-        tail = null;
-    }
+    transient int modCount = 0;
 
-    /**
-     * Constructs a new {@code HashMapWithSearch} instance with the specified
-     * capacity, load factor and a flag specifying the ordering behavior.
-     * 
-     * @param s
-     *            the initial capacity of this hash map.
-     * @param lf
-     *            the initial load factor.
-     * @param order
-     *            {@code true} if the ordering should be done based on the last
-     *            access (from least-recently accessed to most-recently
-     *            accessed), and {@code false} if the ordering should be the
-     *            order in which the entries were inserted.
-     * @throws IllegalArgumentException
-     *             when the capacity is less than zero or the load factor is
-     *             less or equal to zero.
+    /*
+     * default size that an HarmonyHashMap created using the default constructor would
+     * have.
      */
-    public HashMapWithSearch(int s, float lf, boolean order) {
-        super(s, lf);
-        accessOrder = order;
-        head = null;
-        tail = null;
-    }
+    private static final int DEFAULT_SIZE = 16;
 
-    /**
-     * Constructs a new {@code HashMapWithSearch} instance containing the mappings
-     * from the specified map. The order of the elements is preserved.
-     * 
-     * @param m
-     *            the mappings to add.
+    /*
+     * maximum ratio of (stored elements)/(storage size) which does not lead to
+     * rehash
      */
-    public HashMapWithSearch(Map<? extends K, ? extends V> m) {
-        accessOrder = false;
-        head = null;
-        tail = null;
-        putAll(m);
-    }
+    final float loadFactor;
+
+    /*
+     * maximum number of elements that can be put in this map before having to
+     * rehash
+     */
+    int threshold;
 
     @Override
     public boolean expectsConvertibleToInt() {
         return false;
     }
 
-    /** Returns a key object associated with the provided key. */
-    @Override
-    public K findKey(I id) {
-        LinkedHashMapEntry<K, V> m;
-        if (id == null) {
-            m = (LinkedHashMapEntry<K, V>) findNullKeyEntry();
-        } else {
-            int hash = id.hashCode();
-            int index = (hash & 0x7FFFFFFF) % elementData.length;
-            m = (LinkedHashMapEntry<K, V>) findNonNullKeyEntry(id, index, hash);
+    static class Entry<K, V> extends HarmonyMapEntry<K, V> {
+        final int origKeyHash;
+
+        Entry<K, V> next;
+
+        Entry(K theKey, int hash) {
+            super(theKey, null);
+            this.origKeyHash = hash;
         }
-        if (m == null) {
-            return null;
+
+        Entry(K theKey, V theValue) {
+            super(theKey, theValue);
+            origKeyHash = (theKey == null ? 0 : computeHashCode(theKey));
         }
-        if (accessOrder && tail != m) {
-            LinkedHashMapEntry<K, V> p = m.chainBackward;
-            LinkedHashMapEntry<K, V> n = m.chainForward;
-            n.chainBackward = p;
-            if (p != null) {
-                p.chainForward = n;
-            } else {
-                head = n;
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public Object clone() {
+            Entry<K, V> entry = (Entry<K, V>) super.clone();
+            if (next != null) {
+                entry.next = (Entry<K, V>) next.clone();
             }
-            m.chainForward = null;
-            m.chainBackward = tail;
-            tail.chainForward = m;
-            tail = m;
+            return entry;
         }
-        return m.key;
     }
 
-    @Override
-    public Set<Map.Entry<K, V>> getTreeEntrySet() {
-        return entrySetOrdered();
-    }
-
-    @Override
-    public Set<Map.Entry<K, V>> getPotentiallyOrderedEntrySet(boolean ordered) {
-        if (ordered)
-            return getTreeEntrySet();
-
-        return entrySet();
-    }
-
-    @Override
-    public Set<K> getPotentiallyOrderedKeySet(boolean ordered) {
-        if (ordered)
-            return new TreeMapWithSearch<>(this).keySet();
-
-        return keySet();
-    }
-
-    private static class AbstractMapIterator<I, K extends  I, V>  {
+    private static class AbstractMapIterator<I, K extends I, V>  {
+        private int position = 0;
         int expectedModCount;
-        LinkedHashMapEntry<K, V>  futureEntry;
-        LinkedHashMapEntry<K, V>  currentEntry;
+        Entry<K, V> futureEntry;
+        Entry<K, V> currentEntry;
+        Entry<K, V> prevEntry;
+
         final HashMapWithSearch<I, K, V> associatedMap;
 
-        AbstractMapIterator(HashMapWithSearch<I, K, V> map) {
-            expectedModCount = map.modCount;
-            futureEntry = map.head;
-            associatedMap = map;
+        AbstractMapIterator(HashMapWithSearch<I, K, V> hm) {
+            associatedMap = hm;
+            expectedModCount = hm.modCount;
+            futureEntry = null;
         }
 
         public boolean hasNext() {
-            return (futureEntry != null);
+            if (futureEntry != null) {
+                return true;
+            }
+            while (position < associatedMap.elementData.length) {
+                if (associatedMap.elementData[position] == null) {
+                    position++;
+                } else {
+                    return true;
+                }
+            }
+            return false;
         }
 
         final void checkConcurrentMod() throws ConcurrentModificationException {
@@ -232,53 +144,40 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
-            currentEntry = futureEntry;
-            futureEntry = futureEntry.chainForward;
+            if (futureEntry == null) {
+                currentEntry = associatedMap.elementData[position++];
+                futureEntry = currentEntry.next;
+                prevEntry = null;
+            } else {
+                if(currentEntry!=null){
+                    prevEntry = currentEntry;
+                }
+                currentEntry = futureEntry;
+                futureEntry = futureEntry.next;
+            }
         }
 
-        public void remove() {
+        public final void remove() {
             checkConcurrentMod();
             if (currentEntry==null) {
                 throw new IllegalStateException();
             }
-            associatedMap.removeEntry(currentEntry);
-            LinkedHashMapEntry<K, V> lhme =  currentEntry;
-            LinkedHashMapEntry<K, V> p = lhme.chainBackward;
-            LinkedHashMapEntry<K, V> n = lhme.chainForward;
-            HashMapWithSearch<I, K, V> lhm = associatedMap;
-            if (p != null) {
-                p.chainForward = n;
-                if (n != null) {
-                    n.chainBackward = p;
-                } else {
-                    lhm.tail = p;
-                }
+            if(prevEntry==null){
+                int index = currentEntry.origKeyHash & (associatedMap.elementData.length - 1);
+                associatedMap.elementData[index] = associatedMap.elementData[index].next;
             } else {
-                lhm.head = n;
-                if (n != null) {
-                    n.chainBackward = null;
-                } else {
-                    lhm.tail = null;
-                }
+                prevEntry.next = currentEntry.next;
             }
             currentEntry = null;
             expectedModCount++;
+            associatedMap.modCount++;
+            associatedMap.elementCount--;
+
         }
     }
 
-    private static abstract class IteratorNoModification<I, K extends I, V> extends AbstractMapIterator<I, K, V> {
 
-        public IteratorNoModification(HashMapWithSearch<I, K, V> map) {
-            super(map);
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException("modification of iterator is not allowed for HashMapWithSearch");
-        }
-    }
-
-    private static class EntryIterator <I, K extends I, V> extends IteratorNoModification<I, K, V> implements Iterator<Map.Entry<K, V>> {
+    private static class EntryIterator <I, K extends I, V> extends AbstractMapIterator<I, K, V> implements Iterator<Map.Entry<K, V>> {
 
         EntryIterator (HashMapWithSearch<I, K, V> map) {
             super(map);
@@ -300,18 +199,9 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
             makeNext();
             return currentEntry.key;
         }
-
-        @Override
-        public void remove() {
-            if (currentEntry == null)
-                throw new IllegalStateException("next was not yet called");
-            super.remove();
-            //expectedModCount = modCount;// to permit more than a single remove to take place consecutively
-        }
-
     }
 
-    private static class ValueIterator <I, K extends I, V> extends IteratorNoModification<I, K, V> implements Iterator<V> {
+    private static class ValueIterator <I, K extends I, V> extends AbstractMapIterator<I, K, V> implements Iterator<V> {
 
         ValueIterator (HashMapWithSearch<I, K, V> map) {
             super(map);
@@ -323,123 +213,258 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
         }
     }
 
-    static final class LinkedHashMapEntrySet<IT, KT extends  IT, VT> extends HashMapEntrySet<KT, VT> {
-        public LinkedHashMapEntrySet(HashMapWithSearch<IT, KT, VT> lhm) {
-            super(lhm);
+    static class HashMapEntrySet<IT, KT extends IT, VT> extends AbstractSet<Map.Entry<KT, VT>> {
+        private final HashMapWithSearch<IT, KT, VT> associatedMap;
+
+        public HashMapEntrySet(HashMapWithSearch<IT, KT, VT> hm) {
+            associatedMap = hm;
+        }
+
+        HashMapWithSearch<IT, KT, VT> HashMapWithSearch() {
+            return associatedMap;
         }
 
         @Override
-        public Iterator<Map.Entry<KT, VT>> iterator() {
-
-            return new EntryIterator<>((HashMapWithSearch<IT, KT, VT>) HarmonyHashMap());
-        }
-
-        @Override
-        public boolean remove(@SuppressWarnings("unused") Object o) {
-            throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+        public int size() {
+            return associatedMap.elementCount;
         }
 
         @Override
         public void clear() {
-            throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
+            associatedMap.clear();
         }
 
         @Override
-        public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
-            throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
-        }
-
-        /* (non-Javadoc)
-         * @see java.util.AbstractCollection#add(java.lang.Object)
-         */
-        @Override
-        public boolean add(Map.Entry<KT, VT> ktvtEntry) {
-            throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
-        }
-
-        /* (non-Javadoc)
-         * @see java.util.AbstractCollection#addAll(java.util.Collection)
-         */
-        @Override
-        public boolean addAll(Collection<? extends Map.Entry<KT, VT>> c) {
-            throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
-        }
-
-        /* (non-Javadoc)
-         * @see java.util.AbstractCollection#retainAll(java.util.Collection)
-         */
-        @Override
-        public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
-            throw new UnsupportedOperationException("modification of entry set is not allowed for HashMapWithSearch");
-        }
-    }
-
-    static final class LinkedHashMapEntry<K, V> extends HarmonyHashMap.Entry<K, V> {
-        LinkedHashMapEntry<K, V> chainForward, chainBackward;
-
-        LinkedHashMapEntry(K theKey, V theValue) {
-            super(theKey, theValue);
-            chainForward = null;
-            chainBackward = null;
-        }
-
-        LinkedHashMapEntry(K theKey, int hash) {
-            super(theKey, hash);
-            chainForward = null;
-            chainBackward = null;
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public Object clone() {
-            LinkedHashMapEntry<K, V> entry = (LinkedHashMapEntry<K, V>) super
-                    .clone();
-            entry.chainBackward = chainBackward;
-            entry.chainForward = chainForward;
-            LinkedHashMapEntry<K, V> lnext = (LinkedHashMapEntry<K, V>) entry.next;
-            if (lnext != null) {
-                entry.next = (LinkedHashMapEntry<K, V>) lnext.clone();
+        public boolean remove(Object object) {
+            if (object instanceof Map.Entry) {
+                Map.Entry<?, ?> oEntry = (Map.Entry<?, ?>) object;
+                Entry<KT,VT> entry = associatedMap.getEntry(oEntry.getKey());
+                if(valuesEq(entry, oEntry)) {
+                    associatedMap.removeEntry(entry);
+                    return true;
+                }
             }
-            return entry;
+            return false;
+        }
+
+        @Override
+        public boolean contains(Object object) {
+            if (object instanceof Map.Entry) {
+                Map.Entry<?, ?> oEntry = (Map.Entry<?, ?>) object;
+                Entry<KT, VT> entry = associatedMap.getEntry(oEntry.getKey());
+                return valuesEq(entry, oEntry);
+            }
+            return false;
+        }
+
+        private static boolean valuesEq(Entry entry, Map.Entry<?, ?> oEntry) {
+            return (entry != null) &&
+                                   ((entry.value == null) ?
+                                    (oEntry.getValue() == null) :
+                                    (areEqualValues(entry.value, oEntry.getValue())));
+        }
+
+        @Override
+        public Iterator<Map.Entry<KT, VT>> iterator() {
+            return new EntryIterator<>(associatedMap);
         }
     }
 
+    /**
+     * Create a new element array
+     *
+     * @param s size of element array
+     * @return Reference to the element array
+     */
+    @SuppressWarnings("unchecked")
+    Entry<K, V>[] newElementArray(int s) {
+        return new Entry[s];
+    }
+
+    /**
+     * Constructs a new empty {@code HarmonyHashMap} instance.
+     */
+    public HashMapWithSearch() {
+        this(DEFAULT_SIZE);
+    }
+
+    /**
+     * Constructs a new {@code HarmonyHashMap} instance with the specified capacity.
+     *
+     * @param capacity
+     *            the initial capacity of this hash map.
+     * @throws IllegalArgumentException
+     *                when the capacity is less than zero.
+     */
+    public HashMapWithSearch(int capacity) {
+        this(capacity, 0.75f);  // default load factor of 0.75
+        }
+
+    /**
+     * Calculates the capacity of storage required for storing given number of
+     * elements
+     * 
+     * @param x
+     *            number of elements
+     * @return storage size
+     */
+    private static int calculateCapacity(int x) {
+        if(x >= 1 << 30){
+            return 1 << 30;
+        }
+        if(x == 0){
+            return 16;
+        }
+        x = x -1;
+        x |= x >> 1;
+        x |= x >> 2;
+        x |= x >> 4;
+        x |= x >> 8;
+        x |= x >> 16;
+        return x + 1;
+    }
+
+    /**
+     * Constructs a new {@code HarmonyHashMap} instance with the specified capacity and
+     * load factor.
+     *
+     * @param capacity
+     *            the initial capacity of this hash map.
+     * @param loadFactor
+     *            the initial load factor.
+     * @throws IllegalArgumentException
+     *                when the capacity is less than zero or the load factor is
+     *                less or equal to zero.
+     */
+    public HashMapWithSearch(int capacity, float loadFactor) {
+        if (capacity >= 0 && loadFactor > 0) {
+            capacity = calculateCapacity(capacity);
+            elementCount = 0;
+            elementData = newElementArray(capacity);
+            this.loadFactor = loadFactor;
+            computeThreshold();
+        } else {
+            throw new IllegalArgumentException();
+        }
+    }
+
+    /**
+     * Constructs a new {@code HarmonyHashMap} instance containing the mappings from
+     * the specified map.
+     *
+     * @param map
+     *            the mappings to add.
+     */
+    public HashMapWithSearch(Map<? extends K, ? extends V> map) {
+        this(calculateCapacity(map.size()));
+        putAllImpl(map);
+    }
+
+    /**
+     * Removes all mappings from this hash map, leaving it empty.
+     *
+     * @see #isEmpty
+     * @see #size
+     */
+    @Override
+    public void clear() {
+        if (elementCount > 0) {
+            elementCount = 0;
+            Arrays.fill(elementData, null);
+            modCount++;
+        }
+    }
+
+    /**
+     * Returns a shallow copy of this map.
+     *
+     * @return a shallow copy of this map.
+     */
+    @Override
+    @SuppressWarnings("unchecked")
+    public Object clone() {
+        try {
+            HashMapWithSearch<I, K, V> map = (HashMapWithSearch<I, K, V>) super.clone();
+            map.elementCount = 0;
+            map.elementData = newElementArray(elementData.length);
+            map.putAll(this);
+            
+            return map;
+        } catch (CloneNotSupportedException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Computes the threshold for rehashing
+     */
+    private void computeThreshold() {
+        threshold = (int) (elementData.length * loadFactor);
+    }
+
+    /**
+     * Returns whether this map contains the specified key.
+     *
+     * @param key
+     *            the key to search for.
+     * @return {@code true} if this map contains the specified key,
+     *         {@code false} otherwise.
+     */
+    @Override
+    public boolean containsKey(Object key) {
+        Entry<K, V> m = getEntry(key);
+        return m != null;
+    }
+
+    /**
+     * Returns whether this map contains the specified value.
+     *
+     * @param value
+     *            the value to search for.
+     * @return {@code true} if this map contains the specified value,
+     *         {@code false} otherwise.
+     */
     @Override
     public boolean containsValue(Object value) {
-        LinkedHashMapEntry<K, V> entry = head;
-        if (null == value) {
-            while (null != entry) {
-                if (null == entry.value) {
-                    return true;
+        if (value != null) {
+            for (Entry<K, V> elementDatum : elementData) {
+                Entry<K, V> entry = elementDatum;
+                while (entry != null) {
+                    if (areEqualValues(value, entry.value)) {
+                        return true;
+                    }
+                    entry = entry.next;
                 }
-                entry = entry.chainForward;
             }
         } else {
-            while (null != entry) {
-                if (value.equals(entry.value)) {
-                    return true;
+            for (Entry<K, V> elementDatum : elementData) {
+                Entry<K, V> entry = elementDatum;
+                while (entry != null) {
+                    if (entry.value == null) {
+                        return true;
+                    }
+                    entry = entry.next;
                 }
-                entry = entry.chainForward;
             }
         }
         return false;
     }
 
     /**
-     * Create a new element array
-     * 
-     * @param s size of the array to create
-     * @return Reference to the element array
+     * Returns a set containing all of the mappings in this map. Each mapping is
+     * an instance of {@link Map.Entry}. As the set is backed by this map,
+     * changes in one will be reflected in the other.
+     *
+     * @return a set of the mappings.
      */
     @Override
-    @SuppressWarnings("unchecked")
-    HarmonyHashMap.Entry<K, V>[] newElementArray(int s) {
-        return new LinkedHashMapEntry[s];
+    public Set<Map.Entry<K, V>> entrySet() {
+        return new HashMapEntrySet<>(this);
     }
 
     /**
      * Returns the value of the mapping with the specified key.
-     * 
+     *
      * @param key
      *            the key.
      * @return the value of the mapping with the specified key, or {@code null}
@@ -447,204 +472,67 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
      */
     @Override
     public V get(Object key) {
-        LinkedHashMapEntry<K, V> m;
-        if (key == null) {
-            m = (LinkedHashMapEntry<K, V>) findNullKeyEntry();
-        } else {
-            int hash = key.hashCode();
-            int index = (hash & 0x7FFFFFFF) % elementData.length;
-            m = (LinkedHashMapEntry<K, V>) findNonNullKeyEntry(key, index, hash);
+        Entry<K, V> m = getEntry(key);
+        if (m != null) {
+            return m.value;
         }
-        if (m == null) {
-            return null;
-        }
-        if (accessOrder && tail != m) {
-            LinkedHashMapEntry<K, V> p = m.chainBackward;
-            LinkedHashMapEntry<K, V> n = m.chainForward;
-            n.chainBackward = p;
-            if (p != null) {
-                p.chainForward = n;
-            } else {
-                head = n;
-            }
-            m.chainForward = null;
-            m.chainBackward = tail;
-            tail.chainForward = m;
-            tail = m;
-        }
-        return m.value;
+        return null;
     }
 
-    /*
-     * @param key @param index @return Entry
-     */
     @Override
-    HarmonyHashMap.Entry<K, V> createEntry(K key, int index, V value) {
-        LinkedHashMapEntry<K, V> m = new LinkedHashMapEntry<>(key, value);
-        m.next = elementData[index];
-        elementData[index] = m;
-        linkEntry(m);
+    public K findKey(I key) {
+        Entry<K, V> m = getEntry(key);
+        if (m != null) {
+            return m.key;
+        }
+        return null;
+    }
+
+    final Entry<K, V> getEntry(Object key) {
+        Entry<K, V> m;
+        if (key == null) {
+            m = findNullKeyEntry();
+        } else {
+            int hash = computeHashCode(key);
+            int index = hash & (elementData.length - 1);
+            m = findNonNullKeyEntry(key, index, hash);
+        }
         return m;
     }
 
-    HarmonyHashMap.Entry<K, V> createHashedEntry(K key, int index, int hash) {
-        LinkedHashMapEntry<K, V> m = new LinkedHashMapEntry<>(key, hash);
-        m.next = elementData[index];
-        elementData[index] = m;
-        linkEntry(m);
+    final Entry<K,V> findNonNullKeyEntry(Object key, int index, int keyHash) {
+        Entry<K,V> m = elementData[index];
+        while (m != null
+                && (m.origKeyHash != keyHash || !areEqualKeys(key, m.key))) {
+            m = m.next;
+        }
+        return m;
+    }
+
+    final Entry<K,V> findNullKeyEntry() {
+        Entry<K,V> m = elementData[0];
+        while (m != null && m.key != null)
+            m = m.next;
         return m;
     }
 
     /**
-     * Maps the specified key to the specified value.
-     * 
-     * @param key
-     *            the key.
-     * @param value
-     *            the value.
-     * @return the value of any previous mapping with the specified key or
-     *         {@code null} if there was no such mapping.
-     */
-    @Override
-    public V put(K key, V value) {
-        if (key == null)
-            throw new IllegalArgumentException("key cannot be null for HashMapWithSearch");
-        if (value == null)
-            throw new IllegalArgumentException("value cannot be null for HashMapWithSearch");
-
-        V result = putImpl(key, value);
-
-        if (removeEldestEntry(head)) {
-            remove(head.key);
-        }
-
-        return result;
-    }
-
-    V putImpl(K key, V value) {
-        LinkedHashMapEntry<K, V> m;
-        if (elementCount == 0) {
-            head = tail = null;
-        }
-        if (key == null) {
-            m = (LinkedHashMapEntry<K, V>) findNullKeyEntry();
-            if (m == null) {
-                modCount++;
-                // Check if we need to remove the oldest entry. The check
-                // includes accessOrder since an accessOrder HashMapWithSearch does
-                // not record the oldest member in 'head'.
-                if (++elementCount > threshold) {
-                    rehash();
-                }
-                m = (LinkedHashMapEntry<K, V>) createHashedEntry(null, 0, 0);
-            } else {
-                linkEntry(m);
-            }
-        } else {
-            int hash = key.hashCode();
-            int index = (hash & 0x7FFFFFFF) % elementData.length;
-            m = (LinkedHashMapEntry<K, V>) findNonNullKeyEntry(key, index, hash);
-            if (m == null) {
-                modCount++;
-                if (++elementCount > threshold) {
-                    rehash();
-                    index = (hash & 0x7FFFFFFF) % elementData.length;
-                }
-                m = (LinkedHashMapEntry<K, V>) createHashedEntry(key, index,
-                        hash);
-            } else {
-                linkEntry(m);
-            }
-        }
-
-        V result = m.value;
-        m.value = value;
-        return result;
-    }
-
-    /*
-     * @param m
-     */
-    void linkEntry(LinkedHashMapEntry<K, V> m) {
-        if (tail == m) {
-            return;
-        }
-
-        if (head == null) {
-            // Check if the map is empty
-            head = tail = m;
-            return;
-        }
-
-        // we need to link the new entry into either the head or tail
-        // of the chain depending on if the HashMapWithSearch is accessOrder or not
-        LinkedHashMapEntry<K, V> p = m.chainBackward;
-        LinkedHashMapEntry<K, V> n = m.chainForward;
-        if (p == null) {
-            if (n != null) {
-                // The entry must be the head but not the tail
-                if (accessOrder) {
-                    head = n;
-                    n.chainBackward = null;
-                    m.chainBackward = tail;
-                    m.chainForward = null;
-                    tail.chainForward = m;
-                    tail = m;
-                }
-            } else {
-                // This is a new entry
-                m.chainBackward = tail;
-                m.chainForward = null;
-                tail.chainForward = m;
-                tail = m;
-            }
-            return;
-        }
-
-        if (n == null) {
-            // The entry must be the tail so we can't get here
-            return;
-        }
-
-        // The entry is neither the head nor tail
-        if (accessOrder) {
-            p.chainForward = n;
-            n.chainBackward = p;
-            m.chainForward = null;
-            m.chainBackward = tail;
-            tail.chainForward = m;
-            tail = m;
-        }
-    }
-
-    /**
-     * Returns a set containing all of the mappings in this map. Each mapping is
-     * an instance of {@link Map.Entry}. As the set is backed by this map,
-     * changes in one will be reflected in the other.
-     * 
-     * @return a set of the mappings.
-     */
-    @Override
-    public Set<Map.Entry<K, V>> entrySet() {
-        return new LinkedHashMapEntrySet<>(this);
-    }
-
-    /**
-     * Returns a set containing all of the mappings in this map, ordered as if they were in a TreeMap. Each mapping is
-     * an instance of {@link Map.Entry}. The mappings are decoupled from the content of this hash in that changes to either of the
-     * two will not affect another.
+     * Returns whether this map is empty.
      *
-     * @return a set of the mappings.
+     * @return {@code true} if this map has no elements, {@code false}
+     *         otherwise.
+     * @see #size()
      */
-    public Set<Map.Entry<K, V>> entrySetOrdered() {
-        return new TreeMapWithSearch<>(this).entrySet();
+    @Override
+    public boolean isEmpty() {
+        return elementCount == 0;
     }
 
     /**
      * Returns a set of the keys contained in this map. The set is backed by
      * this map so changes to one are reflected by the other. The set does not
      * support adding.
-     * 
+     *
      * @return a set of the keys.
      */
     @Override
@@ -668,36 +556,204 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
 
                 @Override
                 public boolean remove(Object key) {
-                    if (containsKey(key)) {
-                        HashMapWithSearch.this.remove(key);
-                        return true;
-                    }
-                    return false;
+                    Entry<K, V> entry = HashMapWithSearch.this.removeEntry(key);
+                    return entry != null;
                 }
 
                 @Override
                 public Iterator<K> iterator() {
                     return new KeyIterator<>(HashMapWithSearch.this);
                 }
-
-                /* (non-Javadoc)
-                 * @see java.util.AbstractCollection#add(java.lang.Object)
-                 */
-                @Override
-                public boolean add(@SuppressWarnings("unused") K e) {
-                    throw new UnsupportedOperationException("modification of key set is not allowed for HashMapWithSearch");
-                }
-
-                /* (non-Javadoc)
-                 * @see java.util.AbstractCollection#addAll(java.util.Collection)
-                 */
-                @Override
-                public boolean addAll(@SuppressWarnings("unused") Collection<? extends K> c) {
-                    throw new UnsupportedOperationException("modification of key set is not allowed for HashMapWithSearch");
-                }
             };
         }
         return keySet;
+    }
+
+    /**
+     * Maps the specified key to the specified value.
+     *
+     * @param key
+     *            the key.
+     * @param value
+     *            the value.
+     * @return the value of any previous mapping with the specified key or
+     *         {@code null} if there was no such mapping.
+     */
+    @Override
+    public V put(K key, V value) {
+        return putImpl(key, value);
+    }
+
+    V putImpl(K key, V value) {
+        Entry<K,V> entry;
+        if(key == null) {
+            entry = findNullKeyEntry();
+            if (entry == null) {
+                modCount++;
+                entry = createHashedEntry(null, 0, 0);
+                if (++elementCount > threshold) {
+                    rehash();
+                }
+            }
+        } else {
+            int hash = computeHashCode(key);
+            int index = hash & (elementData.length - 1);
+            entry = findNonNullKeyEntry(key, index, hash);
+            if (entry == null) {
+                modCount++;
+                entry = createHashedEntry(key, index, hash);
+                if (++elementCount > threshold) {
+                    rehash();
+                }
+            }
+        }
+
+        V result = entry.value;
+        entry.value = value;
+        return result;
+    }
+
+    Entry<K, V> createEntry(K key, int index, V value) {
+        Entry<K, V> entry = new Entry<>(key, value);
+        entry.next = elementData[index];
+        elementData[index] = entry;
+        return entry;
+    }
+
+    Entry<K,V> createHashedEntry(K key, int index, int hash) {
+        Entry<K,V> entry = new Entry<>(key, hash);
+        entry.next = elementData[index];
+        elementData[index] = entry;
+        return entry;
+    }
+
+    /**
+     * Copies all the mappings in the specified map to this map. These mappings
+     * will replace all mappings that this map had for any of the keys currently
+     * in the given map.
+     *
+     * @param map
+     *            the map to copy mappings from.
+     * @throws NullPointerException
+     *             if {@code map} is {@code null}.
+     */
+    @Override
+    public void putAll(Map<? extends K, ? extends V> map) {
+        if (!map.isEmpty()) {
+            putAllImpl(map);
+        }
+    }
+
+    private void putAllImpl(Map<? extends K, ? extends V> map) {
+        int capacity = elementCount + map.size();
+        if (capacity > threshold) {
+            rehash(capacity);
+        }
+        for (Map.Entry<? extends K, ? extends V> entry : map.entrySet()) {
+            putImpl(entry.getKey(), entry.getValue());
+        }
+    }
+
+    void rehash(int capacity) {
+        int length = calculateCapacity((capacity == 0 ? 1 : capacity << 1));
+
+        Entry<K, V>[] newData = newElementArray(length);
+        for (int i = 0; i < elementData.length; i++) {
+            Entry<K, V> entry = elementData[i];
+            elementData[i] = null;
+            while (entry != null) {
+                int index = entry.origKeyHash & (length - 1);
+                Entry<K, V> next = entry.next;
+                entry.next = newData[index];
+                newData[index] = entry;
+                entry = next;
+            }
+        }
+        elementData = newData;
+        computeThreshold();
+    }
+
+    void rehash() {
+        rehash(elementData.length);
+    }
+
+    /**
+     * Removes the mapping with the specified key from this map.
+     *
+     * @param key
+     *            the key of the mapping to remove.
+     * @return the value of the removed mapping or {@code null} if no mapping
+     *         for the specified key was found.
+     */
+    @Override
+    public V remove(Object key) {
+        Entry<K, V> entry = removeEntry(key);
+        if (entry != null) {
+            return entry.value;
+        }
+        return null;
+    }
+
+    /*
+     * Remove the given entry from the HarmonyHashMap.
+     * Assumes that the entry is in the map.
+     */
+    final void removeEntry(Entry<K, V> entry) {
+        int index = entry.origKeyHash & (elementData.length - 1);
+        Entry<K, V> m = elementData[index];
+        if (m == entry) {
+            elementData[index] = entry.next;
+        } else {
+            while (m.next != entry) {
+                m = m.next;
+            }
+            m.next = entry.next;
+
+        }
+        modCount++;
+        elementCount--;
+    }
+
+    final Entry<K, V> removeEntry(Object key) {
+        int index = 0;
+        Entry<K, V> entry;
+        Entry<K, V> last = null;
+        if (key != null) {
+            int hash = computeHashCode(key);
+            index = hash & (elementData.length - 1);
+            entry = elementData[index];
+            while (entry != null && !(entry.origKeyHash == hash && areEqualKeys(key, entry.key))) {
+                last = entry;
+                entry = entry.next;
+            }
+        } else {
+            entry = elementData[0];
+            while (entry != null && entry.key != null) {
+                last = entry;
+                entry = entry.next;
+            }
+        }
+        if (entry == null) {
+            return null;
+        }
+        if (last == null) {
+            elementData[index] = entry.next;
+        } else {
+            last.next = entry.next;
+        }
+        modCount++;
+        elementCount--;
+        return entry;
+    }
+
+    /**
+     * Returns the number of elements in this map.
+     *
+     * @return the number of elements in this map.
+     */
+    @Override
+    public int size() {
+        return elementCount;
     }
 
     /**
@@ -708,9 +764,9 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
      * <p>
      * This method returns a collection which is the subclass of
      * AbstractCollection. The iterator method of this subclass returns a
-     * "wrapper object" over the iterator of map's entrySet(). The size method
-     * wraps the map's size method and the contains method wraps the map's
-     * containsValue method.
+     * "wrapper object" over the iterator of map's entrySet(). The {@code size}
+     * method wraps the map's size method and the {@code contains} method wraps
+     * the map's containsValue method.
      * <p>
      * The collection is created when this method is called for the first time
      * and returned in response to all subsequent calls. This method may return
@@ -722,7 +778,7 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
     @Override
     public Collection<V> values() {
         if (valuesCollection == null) {
-            valuesCollection = new AbstractSet<V>() {
+            valuesCollection = new AbstractCollection<V>() {
                 @Override
                 public boolean contains(Object object) {
                     return containsValue(object);
@@ -733,103 +789,90 @@ public class HashMapWithSearch<I, K extends  I, V> extends HarmonyHashMap<K, V> 
                     return HashMapWithSearch.this.size();
                 }
 
-//                @Override
-//                public void clear() {
-//                    HashMapWithSearch.this.clear();
-//                }
+                @Override
+                public void clear() {
+                    HashMapWithSearch.this.clear();
+                }
 
                 @Override
                 public Iterator<V> iterator() {
                     return new ValueIterator<>(HashMapWithSearch.this);
-                }
-
-                @Override
-                public void clear() {
-                    throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
-                }
-                @Override
-                public boolean remove(@SuppressWarnings("unused") Object o) {
-                    throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
-                }
-                @Override
-                public boolean removeAll(@SuppressWarnings("unused") Collection<?> c) {
-                    throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
-                }
-                @Override
-                public boolean retainAll(@SuppressWarnings("unused") Collection<?> c) {
-                    throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
-                }
-                /* (non-Javadoc)
-                 * @see java.util.AbstractCollection#add(java.lang.Object)
-                 */
-                @Override
-                public boolean add(@SuppressWarnings("unused") V e) {
-                    throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
-                }
-                /* (non-Javadoc)
-                 * @see java.util.AbstractCollection#addAll(java.util.Collection)
-                 */
-                @Override
-                public boolean addAll(@SuppressWarnings("unused") Collection<? extends V> c) {
-                    throw new UnsupportedOperationException("modification of value set is not allowed for HashMapWithSearch");
                 }
             };
         }
         return valuesCollection;
     }
 
-    /**
-     * Removes the mapping with the specified key from this map.
-     * 
-     * @param key
-     *            the key of the mapping to remove.
-     * @return the value of the removed mapping or {@code null} if no mapping
-     *         for the specified key was found.
-     */
-    @Override
-    public V remove(Object key) {
-        LinkedHashMapEntry<K, V> m = (LinkedHashMapEntry<K, V>) removeEntry(key);
-        if (m == null) {
-            return null;
+    private void writeObject(ObjectOutputStream stream) throws IOException {
+        stream.defaultWriteObject();
+        stream.writeInt(elementData.length);
+        stream.writeInt(elementCount);
+        for (Map.Entry<K, V> kvEntry : entrySet()) {
+            Entry<?, ?> entry = (Entry<?, ?>) kvEntry;
+            stream.writeObject(entry.key);
+            stream.writeObject(entry.value);
         }
-        LinkedHashMapEntry<K, V> p = m.chainBackward;
-        LinkedHashMapEntry<K, V> n = m.chainForward;
-        if (p != null) {
-            p.chainForward = n;
-        } else {
-            head = n;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void readObject(ObjectInputStream stream) throws IOException,
+            ClassNotFoundException {
+        stream.defaultReadObject();
+        int length = stream.readInt();
+        elementData = newElementArray(length);
+        elementCount = stream.readInt();
+        for (int i = elementCount; --i >= 0;) {
+            K key = (K) stream.readObject();
+            int index = (null == key) ? 0 : (computeHashCode(key) & (length - 1));
+            createEntry(key, index, (V) stream.readObject());
         }
-        if (n != null) {
-            n.chainBackward = p;
-        } else {
-            tail = p;
-        }
-        return m.value;
     }
 
     /**
-     * This method is queried from the put and putAll methods to check if the
-     * eldest member of the map should be deleted before adding the new member.
-     * If this map was created with accessOrder = true, then the result of
-     * removeEldestEntry is assumed to be false.
-     * 
-     * @param eldest
-     *            the entry to check if it should be removed.
-     * @return {@code true} if the eldest member should be removed.
+     * Returns a set containing all of the mappings in this map, ordered as if they were in a TreeMap. Each mapping is
+     * an instance of {@link Map.Entry}. The mappings are decoupled from the content of this hash in that changes to either of the
+     * two will not affect another.
+     *
+     * @return a set of the mappings.
      */
-    protected boolean removeEldestEntry(Map.Entry<K, V> eldest) {
-        return false;
+    public Set<Map.Entry<K, V>> entrySetOrdered() {
+        return new TreeMapWithSearch<>(this).entrySet();
     }
 
-    /**
-     * Removes all elements from this map, leaving it empty.
-     * 
-     * @see #isEmpty()
-     * @see #size()
+    /*
+     * Contract-related functionality 
      */
-    @Override
-    public void clear() {
-        super.clear();
-        head = tail = null;
+    static int computeHashCode(Object key) {
+        return key.hashCode();
+}
+
+    static boolean areEqualKeys(Object key1, Object key2) {
+        return (key1 == key2) || key1.equals(key2);
     }
+    
+    static boolean areEqualValues(Object value1, Object value2) {
+        return (value1 == value2) || value1.equals(value2);
+    }
+
+    @Override
+    public Set<Map.Entry<K, V>> getTreeEntrySet() {
+        return entrySetOrdered();
+    }
+
+    @Override
+    public Set<Map.Entry<K, V>> getPotentiallyOrderedEntrySet(boolean ordered) {
+        if (ordered)
+            return getTreeEntrySet();
+
+        return entrySet();
+    }
+
+    @Override
+    public Set<K> getPotentiallyOrderedKeySet(boolean ordered) {
+        if (ordered)
+            return new TreeMapWithSearch<>(this).keySet();
+
+        return keySet();
+    }
+
 }

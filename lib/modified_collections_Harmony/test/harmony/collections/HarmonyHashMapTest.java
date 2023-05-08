@@ -31,6 +31,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import ext_lib.collections.HarmonyAbstractMap;
+import ext_lib.collections.HashMapWithSearch;
+
 public class HarmonyHashMapTest extends junit.framework.TestCase {
     class MockMap extends HarmonyAbstractMap {
         public Set entrySet() {

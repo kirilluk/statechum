@@ -22,7 +22,8 @@ import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
-import statechum.collections.HashMapWithSearch;
+import ext_lib.collections.HashMapWithSearch;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="src" path="lib/modified_collections/test"/>
-	<classpathentry kind="src" path="lib/modified_collections/src"/>
+	<classpathentry kind="src" path="lib/modified_collections_harmony/test"/>
+	<classpathentry kind="src" path="lib/modified_collections_harmony/src"/>
+	<classpathentry kind="src" path="lib/jung-1.7.6/src"/>
 	<classpathentry kind="src" path="tests"/>
 	<classpathentry kind="src" path="lib/junit-statechum"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
@@ -12,7 +13,6 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/colt.jar"/>
 	<classpathentry kind="lib" path="lib/commons-collections-3.1.jar"/>
-	<classpathentry kind="lib" path="lib/jung-1.7.6/src"/>
 	<classpathentry kind="lib" path="lib/sootclasses.jar"/>
 	<classpathentry kind="lib" path="lib/jltl2ba.jar"/>
 	<classpathentry kind="lib" path="lib/javaGD.jar"/>

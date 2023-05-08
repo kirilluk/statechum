@@ -21,6 +21,10 @@ package harmony.collections;
 
 import java.util.*;
 
+import ext_lib.collections.HarmonyAbstractMap;
+import ext_lib.collections.HashMapWithSearch;
+import ext_lib.collections.TreeMapWithSearch;
+
 import static org.junit.Assert.assertNotEquals;
 
 

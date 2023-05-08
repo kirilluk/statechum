@@ -25,11 +25,11 @@ import java.util.*;
 
 import static statechum.Helper.throwUnchecked;
 
-import statechum.collections.HashMapWithSearch;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import ext_lib.collections.HashMapWithSearch;
 import statechum.AttributeMutator.GETMETHOD_KIND;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.rpnicore.AbstractPersistence;

@@ -34,6 +34,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import ext_lib.collections.HarmonyAbstractMap;
+import ext_lib.collections.LinkedHashMapWithSearch;
+
 /**
  * Tests java.util.LinkedHashMapWithSearch
  */

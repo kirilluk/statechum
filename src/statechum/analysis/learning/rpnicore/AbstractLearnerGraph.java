@@ -28,7 +28,7 @@ import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import edu.uci.ics.jung.graph.Vertex;
-import statechum.collections.TreeMapWithSearch;
+import ext_lib.collections.*;
 import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
@@ -42,8 +42,10 @@ import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.Visualiser.LayoutOptions;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.Transform.LabelConverter;
-import statechum.collections.*;
-import statechum.collections.HashMapWithSearch;
+import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.ConvertibleToInt;
+import statechum.collections.MapWithSearch;
+import statechum.collections.MapWithSearchAndCounter;
 
 abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
 {

@@ -18,7 +18,7 @@
 // The origin of this file is Apache Harmony SVN repository,
 // location: classlib/modules/luni/src/main/java/java/util
 // checked out Dec 3, 2022.
-package harmony.collections;
+package ext_lib.collections;
 
 import java.util.Map;
 

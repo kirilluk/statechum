@@ -19,7 +19,7 @@
 // location: classlib/modules/luni/src/main/java/java/util
 // checked out Dec 3, 2022.
 
-package harmony.collections;
+package ext_lib.collections;
 
 import statechum.collections.MapWithSearch;
 

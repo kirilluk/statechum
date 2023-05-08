@@ -26,6 +26,9 @@ import java.text.CollationKey;
 import java.text.Collator;
 import java.util.*;
 
+import ext_lib.collections.HarmonyAbstractMap;
+import ext_lib.collections.TreeMapWithSearch;
+
 import static org.junit.Assert.assertNotEquals;
 
 public class TreeMapWithSearchTest extends junit.framework.TestCase {

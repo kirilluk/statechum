@@ -18,10 +18,11 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import statechum.collections.TreeMapWithSearch;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import ext_lib.collections.TreeMapWithSearch;
 import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;

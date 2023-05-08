@@ -6,12 +6,13 @@
  * This file is essentially an adapted LinkedHashMap/HashMap
 */
 
-package statechum.collections;
+package ext_lib.collections;
 
 import java.util.*;
 
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
+import statechum.collections.MapWithSearch;
 
 
 public class HashMapWithSearch<I, K extends I,V> implements MapWithSearch<I,K,V>

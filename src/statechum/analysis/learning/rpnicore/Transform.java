@@ -35,7 +35,7 @@ import java.util.TreeSet;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import statechum.collections.HashMapWithSearch;
+import ext_lib.collections.HashMapWithSearch;
 import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;

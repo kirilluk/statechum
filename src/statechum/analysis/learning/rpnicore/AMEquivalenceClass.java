@@ -28,7 +28,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
-import statechum.collections.HashMapWithSearch;
+import ext_lib.collections.HashMapWithSearch;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.VertID;

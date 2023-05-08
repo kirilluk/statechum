@@ -20,7 +20,7 @@ package statechum.analysis.learning.rpnicore;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
-import statechum.collections.HashMapWithSearch;
+import ext_lib.collections.HashMapWithSearch;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.*;
 import statechum.GlobalConfiguration;

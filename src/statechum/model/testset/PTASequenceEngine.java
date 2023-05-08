@@ -29,7 +29,7 @@ import java.util.Queue;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import statechum.collections.HashMapWithSearch;
+import ext_lib.collections.HashMapWithSearch;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;

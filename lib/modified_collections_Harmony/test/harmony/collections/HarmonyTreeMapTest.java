@@ -28,6 +28,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
+import ext_lib.collections.HarmonyAbstractMap;
+import ext_lib.collections.HarmonyTreeMap;
+
 import static org.junit.Assert.assertNotEquals;
 
 public class HarmonyTreeMapTest extends junit.framework.TestCase {

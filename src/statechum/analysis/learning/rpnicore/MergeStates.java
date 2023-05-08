@@ -20,7 +20,6 @@ package statechum.analysis.learning.rpnicore;
 import java.util.*;
 import java.util.Map.Entry;
 
-import statechum.collections.HashMapWithSearch;
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph;
@@ -38,6 +37,7 @@ import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
+import ext_lib.collections.HashMapWithSearch;
 import statechum.Label;
 import statechum.collections.MapWithSearch;
 

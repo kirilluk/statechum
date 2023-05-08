@@ -15,7 +15,7 @@
  *  limitations under the License.
  */
 
-package harmony.collections;
+package ext_lib.collections;
 
 import statechum.collections.MapWithSearch;
 

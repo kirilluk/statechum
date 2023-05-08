@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
 
-import statechum.collections.HashMapWithSearch;
+import ext_lib.collections.HashMapWithSearch;
 import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;

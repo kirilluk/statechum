@@ -20,7 +20,7 @@ package statechum.analysis.learning.rpnicore;
 import java.util.*;
 import java.util.Map.Entry;
 
-import statechum.collections.HashMapWithSearch;
+import ext_lib.collections.HashMapWithSearch;
 import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;

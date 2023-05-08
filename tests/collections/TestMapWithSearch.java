@@ -1,17 +1,21 @@
 package collections;
 
-import statechum.collections.HashMapWithSearch;
-import statechum.collections.TreeMapWithSearch;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import ext_lib.collections.*;
 import junit_runners.ParameterizedWithName;
 import junit_runners.ParameterizedWithName.ParametersToString;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
+import statechum.collections.ArrayMapWithSearch;
+import statechum.collections.ArrayMapWithSearchPos;
+import statechum.collections.ArrayOperations;
+import statechum.collections.ConvertibleToInt;
+import statechum.collections.MapWithSearch;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.TestHelper;
-import statechum.collections.*;
 
 import java.util.*;
 import java.util.Map.Entry;

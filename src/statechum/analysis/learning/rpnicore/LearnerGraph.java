@@ -19,8 +19,8 @@
 package statechum.analysis.learning.rpnicore;
 
 import edu.uci.ics.jung.graph.Graph;
-import statechum.collections.HashMapWithSearch;
-import statechum.collections.TreeMapWithSearch;
+import ext_lib.collections.HashMapWithSearch;
+import ext_lib.collections.TreeMapWithSearch;
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;

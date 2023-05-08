@@ -20,7 +20,7 @@ package statechum.analysis.learning.rpnicore;
 import java.util.*;
 import java.util.Map.Entry;
 
-import harmony.collections.HashMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph;
@@ -102,6 +102,7 @@ public class MergeStates {
 			CmpVertex targetInResultGraph = visitedTargetStates.get(targetState);// this returns the vertex in the target graph. For vertices built from eq classes, it is the same as mergedVertex, 
 				// for others (those not in eqClasses, corresponding to singleton equivalence classes) it will be a clone of that vertex that is used in the target graph.
 			if (nextClass != null && targetInResultGraph != null)
+				//noinspection RedundantIfStatement
 				if (targetInResultGraph != nextClass.getMergedVertex())
 				{
 					assert false:"vertex in target graph is not the same as a merged vertex";// using assert false so that a breakpoint can be set on this line.
@@ -121,6 +122,7 @@ public class MergeStates {
 				if (verticesToConsider == null || verticesToConsider.contains(targetState))
 					currentExplorationBoundary.offer(targetState);// inconsistency is computed per-vertex, therefore if outgoing transitions lead to states that we do not intend to explore, we still need to add them, it is just that we do not need to add subsequent transitions to them. 
 			}
+			//noinspection RedundantIfStatement
 			if (GlobalConfiguration.getConfiguration().isAssertEnabled() && row.containsKey(entry.getKey()))
 				assert row.get(entry.getKey()) == targetInResultGraph :"every time we meet a target state, we should use the same object as a target state";// using assertfalse so that a breakpoint can be set on this line.
 			row.put(entry.getKey(), targetInResultGraph);
@@ -152,10 +154,10 @@ public class MergeStates {
 	 */
 	private static Queue<CmpVertex> addVerticesAndConstructExplorationBoundary(Collection<CmpVertex> vertices, LearnerGraph result, Map<CmpVertex,CmpVertex> originalVertexToClonedVertex, Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToNew)
 	{
-		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue containing vertices to be explored
+		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<>();// FIFO queue containing vertices to be explored
 		for(CmpVertex v:vertices)
 		{
-			CmpVertex vOrig = v, vertexResult = null;
+			CmpVertex vOrig = v, vertexResult;
 			EquivalenceClass<CmpVertex, LearnerGraphCachedData> vEqClass = origToNew.get(v);
 			if (vEqClass != null)
 			{
@@ -230,11 +232,11 @@ public class MergeStates {
 		// This map associates vertices in the original graph to those in the cloned one. It is populated when new vertices are explored and therefore doubles as a 'visited' set.
 		MapWithSearch<VertID,CmpVertex,CmpVertex> originalVertexToClonedVertex = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
 				new ArrayMapWithSearch<>(original.vertPositiveID, original.vertNegativeID):
-					new HashMapWithSearch<>();
+					new HashMapWithSearch<>(original.vertPositiveID + original.vertNegativeID);
 				
 		Collection<CmpVertex> verticesToStartFrom = limitVerticesTo;
 		if (limitVerticesTo == null)
-			verticesToStartFrom = Arrays.asList(new CmpVertex[]{original.getInit()});
+			verticesToStartFrom = Collections.singletonList(original.getInit());
 		Queue<CmpVertex> currentExplorationBoundary = addVerticesAndConstructExplorationBoundary(verticesToStartFrom,result,originalVertexToClonedVertex,origToEqClass);
 		if (limitVerticesTo == null)
 		{

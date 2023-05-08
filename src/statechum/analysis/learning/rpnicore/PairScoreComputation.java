@@ -20,7 +20,7 @@ package statechum.analysis.learning.rpnicore;
 import java.util.*;
 import java.util.Map.Entry;
 
-import harmony.collections.HashMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
@@ -141,7 +141,7 @@ public class PairScoreComputation {
 			}
 	
 			// Now that we have a collection of all potentially red vertices, pick one to make red and then then check if others can remain blue.
-			CmpVertex newRedNode = null;
+			CmpVertex newRedNode;
 			if (!RedStatesFound.isEmpty())
 			{
 				if (RedStatesFound.size() > 1 && decisionProcedure != null)
@@ -209,7 +209,7 @@ public class PairScoreComputation {
 			}
 			case GENERAL_NOFULLMERGE:
 			{
-				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);compatibilityScore=computedScore;
 				break;
 			}
@@ -419,7 +419,7 @@ public class PairScoreComputation {
 	{
 		EquivalenceClass<CmpVertex,LearnerGraphCachedData> firstClass = stateToEquivalenceClass.get(currentPair.firstElem);
 		EquivalenceClass<CmpVertex,LearnerGraphCachedData> secondClass= stateToEquivalenceClass.get(currentPair.secondElem);
-		EquivalenceClass<CmpVertex,LearnerGraphCachedData> equivalenceClass = null;
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> equivalenceClass;
 
 		boolean singleton = true;
 		if (firstClass == null)
@@ -935,14 +935,14 @@ public class PairScoreComputation {
 		 */
 		public ArrayList<PairScore>	chooseStatePairs_internal(final double threshold, final double scale)
 		{
-			ArrayList<PairScore> pairsAndScores = new ArrayList<PairScore>(pairToScore.length);
+			ArrayList<PairScore> pairsAndScores = new ArrayList<>(pairToScore.length);
 
-			List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<HandleRow<List<CmpVertex>>>();
+			List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
 			@SuppressWarnings("unchecked")
 			final List<PairScore> resultsPerThread [] = new List[threadNumber];
 			for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
 			{
-				resultsPerThread[threadCnt]=new LinkedList<PairScore>();
+				resultsPerThread[threadCnt]= new LinkedList<>();
 				handlerList.add(new HandleRow<List<CmpVertex>>()
 				{
 					@Override
@@ -1019,12 +1019,12 @@ public class PairScoreComputation {
 			ArrayList<PairScore> pairsAndScores = chooseStatePairs_internal(threshold, scale);
 			if (threshold <= 0)
 			{
-				List<HandleRow<TARGET_TYPE>> handlerList = new LinkedList<HandleRow<TARGET_TYPE>>();
+				List<HandleRow<TARGET_TYPE>> handlerList = new LinkedList<>();
 				@SuppressWarnings("unchecked")
 				final List<PairScore> resultsPerThread [] = new List[threadNumber];
 				for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
 				{
-					resultsPerThread[threadCnt]=new LinkedList<PairScore>();
+					resultsPerThread[threadCnt]= new LinkedList<>();
 					handlerList.add(new HandleRow<TARGET_TYPE>()
 					{
 						@Override

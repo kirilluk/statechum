@@ -17,7 +17,7 @@
 
 package statechum.analysis.learning.rpnicore.old_generalised_merge_routines;
 
-import harmony.collections.HashMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.GlobalConfiguration;
@@ -59,7 +59,7 @@ public class OldPairScoreComputation
 	{
 		EquivalenceClass<CmpVertex,LearnerGraphCachedData> firstClass = stateToEquivalenceClass.get(currentPair.firstElem);
 		EquivalenceClass<CmpVertex,LearnerGraphCachedData> secondClass= stateToEquivalenceClass.get(currentPair.secondElem);
-		EquivalenceClass<CmpVertex,LearnerGraphCachedData> equivalenceClass = null;
+		EquivalenceClass<CmpVertex,LearnerGraphCachedData> equivalenceClass;
 
 		boolean singleton = true;
 		if (firstClass == null)

@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
 
-import harmony.collections.HashMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
@@ -151,7 +151,7 @@ public class LearningAlgorithms
 
 		public static ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown constructReducerIfUsingSiccoScoring(LearnerGraph reference, ScoringToApply scoringMethod)
 		{
-			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer = null;
+			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer;
 			switch(scoringMethod)
 			{
 			case SCORING_SICCO:
@@ -169,7 +169,7 @@ public class LearningAlgorithms
 		}
 		public static StateMergingStatistics constructReducerIfUsingSiccoScoring(LearnerGraph reference, OverrideScoringToApply scoringToUse) 
 		{
-			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer = null;
+			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer;
 			switch(scoringToUse)
 			{
 			case SCORING_SICCO:
@@ -366,7 +366,7 @@ public class LearningAlgorithms
 		public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair)
 		{
 			
-			LearnerGraph outcome = null;
+			LearnerGraph outcome;
 			checkTimeout();
 			
 			if (config.getOverride_usePTAMerging())
@@ -388,7 +388,7 @@ public class LearningAlgorithms
 		public LearnerGraph learnMachine()
 		{
 			Timer tmTimer =  null;
-			LearnerGraph outcome = null;
+			LearnerGraph outcome;
 			
 			if (config.getTimeOut() >= 0)
 			{
@@ -450,8 +450,7 @@ public class LearningAlgorithms
 			// The first element is the one where o2 is greater than o1, i.e. comparison below returns negative.
 			Comparator<PairScore> PairComparator = (o1, o2) -> {
 				// if o1 is negative and o2 is positive, the outcome is negative.
-				int outcome = LearningSupportRoutines.signum(o2.getAnotherScore() - o1.getAnotherScore());
-				return outcome;
+				return LearningSupportRoutines.signum(o2.getAnotherScore() - o1.getAnotherScore());
 			};
 				
 			correctPairs.sort(PairComparator);
@@ -889,7 +888,7 @@ public class LearningAlgorithms
 		@Override
 		public LearnerGraph learnMachine(Collection<List<Label>> plus, Collection<List<Label>> minus) 
 		{
-			LearnerGraph outcome = null;
+			LearnerGraph outcome;
 			try
 			{
 				outcome = learner.learnMachine(plus, minus);
@@ -1362,7 +1361,6 @@ public class LearningAlgorithms
 	 * @param initial the initial state in the ND graph
 	 * @param ndFileName the name of the file to save the graph before running the determinisation, in case it blows and I need to re-run a lengthy experiment. Ignored if null.
 	 * @return deterministic version of the provided graph with state mergers described by<i>stateToEquivalenceClass</i> carried out.
-	 * @throws IncompatibleStatesException
 	 */
 	static LearnerGraph constructKTailsNDGraphAndDeterminizeIt(LearnerGraph existingGraph,Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass,CmpVertex initial, String ndFileName) throws IncompatibleStatesException
 	{
@@ -1388,11 +1386,7 @@ public class LearningAlgorithms
 				CmpVertex considerTarget = transition.getValue();
 				if (targetEq != null)
 					considerTarget = targetEq.getRepresentative();
-				List<CmpVertex> targetStates = transitionRow.get(transition.getKey());
-				if (targetStates == null)
-				{
-					targetStates = new ArrayList<>();transitionRow.put(transition.getKey(), targetStates);
-				}
+				List<CmpVertex> targetStates = transitionRow.computeIfAbsent(transition.getKey(), k -> new ArrayList<>());
 				targetStates.add(considerTarget);
 			}
 		}
@@ -1581,61 +1575,56 @@ public class LearningAlgorithms
 	{
 		AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
 		Pair<Integer,Integer> acceptRejectNumber = pta.getAcceptAndRejectStateNumber();
-		MapWithSearch<VertID,CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =
-				pta.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-						new ArrayMapWithSearch<>(acceptRejectNumber.firstElem + 1, acceptRejectNumber.secondElem + 1):
+		MapWithSearch<VertID, CmpVertex, EquivalenceClass<CmpVertex, LearnerGraphCachedData>> stateToEquivalenceClass =
+				pta.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY ?
+						new ArrayMapWithSearch<>(acceptRejectNumber.firstElem + 1, acceptRejectNumber.secondElem + 1) :
 						new HashMapWithSearch<>(acceptRejectNumber.firstElem + acceptRejectNumber.secondElem + 1);
-			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, pta);
-			initialEQ.mergeWith(pta.getInit(),null);
-			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
-			for(CmpVertex v:pta.transitionMatrix.keySet())
-				if (!v.isAccept())
-				{
-					throw new IllegalArgumentException("k-tails expects all pairs that pass the threshold to be merged, however in the presence of negatives a few acceptable mergers may lead to a contradiction");
-				}
-			for(CmpVertex vA:pta.transitionMatrix.keySet())
-			if (vA.isAccept() || k ==0)
-			{
-				for(CmpVertex vB:pta.transitionMatrix.keySet())
+		EquivalenceClass<CmpVertex, LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, pta);
+		initialEQ.mergeWith(pta.getInit(), null);
+		stateToEquivalenceClass.put(pta.getInit(), initialEQ);
+		for (CmpVertex v : pta.transitionMatrix.keySet())
+			if (!v.isAccept())
+				throw new IllegalArgumentException("k-tails expects all pairs that pass the threshold to be merged, however in the presence of negatives a few acceptable mergers may lead to a contradiction");
+
+		for (CmpVertex vA : pta.transitionMatrix.keySet())
+			if (vA.isAccept() || k == 0) {
+				for (CmpVertex vB : pta.transitionMatrix.keySet())
 					if (vA == vB)
 						break;
-					else
-					if (vB.isAccept() || k ==0)
-					{
-						StatePair pair = new StatePair(vA,vB);
-						if (computeStateScoreKTails(pta,pair,k,true) >=0)
-							pta.pairscores.mergePair(pair,stateToEquivalenceClass,mergingDetails);
+					else if (vB.isAccept() || k == 0) {
+						StatePair pair = new StatePair(vA, vB);
+						if (computeStateScoreKTails(pta, pair, k, true) >= 0)
+							pta.pairscores.mergePair(pair, stateToEquivalenceClass, mergingDetails);
 					}
 			}
-			return constructKTailsNDGraphAndDeterminizeIt(pta,stateToEquivalenceClass,initialEQ.getRepresentative(),null);	
+		return constructKTailsNDGraphAndDeterminizeIt(pta,stateToEquivalenceClass,initialEQ.getRepresentative(),null);
 	}
 	
 	public static LearnerGraph ptaConcurrentKtails(final LearnerGraph pta, final int k, int threadNumber, String ndFileName)
 	{
 		final AMEquivalenceClassMergingDetails mergingDetails = new AMEquivalenceClassMergingDetails();mergingDetails.nextEquivalenceClass = 0;
 		Pair<Integer,Integer> acceptRejectNumber = pta.getAcceptAndRejectStateNumber();
-		final MapWithSearch<VertID,CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> stateToEquivalenceClass =
-				pta.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
-						new ArrayMapWithSearch<>(acceptRejectNumber.firstElem + 1, acceptRejectNumber.secondElem + 1):
+		final MapWithSearch<VertID, CmpVertex, EquivalenceClass<CmpVertex, LearnerGraphCachedData>> stateToEquivalenceClass =
+				pta.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY ?
+						new ArrayMapWithSearch<>(acceptRejectNumber.firstElem + 1, acceptRejectNumber.secondElem + 1) :
 						new HashMapWithSearch<>(acceptRejectNumber.firstElem + acceptRejectNumber.secondElem + 1);
-			EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, pta);
-			try
+		EquivalenceClass<CmpVertex, LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, pta);
+		try
+		{
+			initialEQ.mergeWith(pta.getInit(), null);
+		} catch (IncompatibleStatesException e)
+		{
+			Helper.throwUnchecked("failed to merge states in the construction of the initial eq class", e);
+		}
+
+		stateToEquivalenceClass.put(pta.getInit(), initialEQ);
+		for (CmpVertex v : pta.transitionMatrix.keySet())
+			if (!v.isAccept())
 			{
-				initialEQ.mergeWith(pta.getInit(),null);
+				throw new IllegalArgumentException("k-tails expects all pairs that pass the threshold to be merged, however in the presence of negatives a few acceptable mergers may lead to a contradiction");
 			}
-			catch(IncompatibleStatesException e)
-			{
-				Helper.throwUnchecked("failed to merge states in the construction of the initial eq class", e);
-			}
-			
-			stateToEquivalenceClass.put(pta.getInit(), initialEQ);
-			for(CmpVertex v:pta.transitionMatrix.keySet())
-				if (!v.isAccept())
-				{
-					throw new IllegalArgumentException("k-tails expects all pairs that pass the threshold to be merged, however in the presence of negatives a few acceptable mergers may lead to a contradiction");
-				}
-			List<HandleRow<CmpVertex>> handlerList = new LinkedList<>();
-			for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
+		List<HandleRow<CmpVertex>> handlerList = new LinkedList<>();
+		for (int threadCnt = 0; threadCnt < threadNumber; ++threadCnt)
 			handlerList.add(new HandleRow<CmpVertex>() {
 				@Override
 				public void init(@SuppressWarnings("unused") int threadNo) {
@@ -1645,18 +1634,24 @@ public class LearningAlgorithms
 				@Override
 				public void handleEntry(Entry<CmpVertex, MapWithSearch<Label, Label, CmpVertex>> entryA, @SuppressWarnings("unused") int threadNo) {// we are never called with entryA which has been filtered out.
 					CmpVertex stateA = entryA.getKey();
-					for (Entry<CmpVertex, MapWithSearch<Label, Label, CmpVertex>> cmpVertexMapWithSearchEntry : pta.transitionMatrix.entrySet()) {
+					for (Entry<CmpVertex, MapWithSearch<Label, Label, CmpVertex>> cmpVertexMapWithSearchEntry : pta.transitionMatrix.entrySet())
+					{
 						CmpVertex stateB = cmpVertexMapWithSearchEntry.getKey();
 						if (stateB.equals(stateA))
 							break; // we only process a triangular subset.
-						if (k == 0 || stateB.isAccept()) {
+						if (k == 0 || stateB.isAccept())
+						{
 							StatePair pair = new StatePair(stateA, stateB);
-							if (computeStateScoreKTails(pta, pair, k, true) >= 0) {
-								try {
-									synchronized (stateToEquivalenceClass) {// modifications to equivalence classes have to be made in sync
+							if (computeStateScoreKTails(pta, pair, k, true) >= 0)
+							{
+								try
+								{
+									synchronized (stateToEquivalenceClass)
+									{// modifications to equivalence classes have to be made in sync
 										pta.pairscores.mergePair(pair, stateToEquivalenceClass, mergingDetails);
 									}
-								} catch (IncompatibleStatesException e) {
+								} catch (IncompatibleStatesException e)
+								{
 									Helper.throwUnchecked("failed to merge states", e);
 								}
 							}
@@ -1664,27 +1659,26 @@ public class LearningAlgorithms
 					}
 				}
 			});
-			
-			StatesToConsider filter = vert -> {
-				if (k == 0)
-					return true;
 
-				return vert.isAccept();
-			};
-			GDLearnerGraph.performRowTasks(handlerList, threadNumber, pta.transitionMatrix, filter,GDLearnerGraph.partitionWorkLoadTriangular(threadNumber,pta.transitionMatrix,filter));
-			
-			//System.out.println(new Date()+"started to make deterministic");
-			LearnerGraph outcome = null;
-			try
-			{
-				outcome = constructKTailsNDGraphAndDeterminizeIt(pta,stateToEquivalenceClass,initialEQ.getRepresentative(),ndFileName);
-			}
-			catch(IncompatibleStatesException e)
-			{
-				Helper.throwUnchecked("failed to merge states in the final merge", e);
-			}
-			
-			return outcome;
+		StatesToConsider filter = vert -> {
+			if (k == 0)
+				return true;
+
+			return vert.isAccept();
+		};
+		GDLearnerGraph.performRowTasks(handlerList, threadNumber, pta.transitionMatrix, filter, GDLearnerGraph.partitionWorkLoadTriangular(threadNumber, pta.transitionMatrix, filter));
+
+		//System.out.println(new Date()+"started to make deterministic");
+		LearnerGraph outcome = null;
+		try
+		{
+			outcome = constructKTailsNDGraphAndDeterminizeIt(pta, stateToEquivalenceClass, initialEQ.getRepresentative(), ndFileName);
+		} catch (IncompatibleStatesException e)
+		{
+			Helper.throwUnchecked("failed to merge states in the final merge", e);
+		}
+
+		return outcome;
 	}
 
 }

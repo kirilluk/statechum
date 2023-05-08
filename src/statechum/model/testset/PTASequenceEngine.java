@@ -26,11 +26,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import harmony.collections.HashMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import statechum.Pair;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
@@ -406,7 +405,7 @@ public class PTASequenceEngine
 	protected PTASequenceEngine.Node followToNextNode(PTASequenceEngine.Node currentNode, Label input)
 	{
 		Map<Label,PTASequenceEngine.Node> row = pta.get(currentNode);
-		PTASequenceEngine.Node nextCurrentNode = null;
+		PTASequenceEngine.Node nextCurrentNode;
 
 		if (row.containsKey(input))
 			nextCurrentNode = row.get(input); // the next node is an accept one
@@ -519,7 +518,7 @@ public class PTASequenceEngine
 		}
 		if (seqIt.hasNext())
 			return true;// reached a reject state but not the end of the sequence; the reject node is definitely a leaf.
-		
+
 		return false;// check if the current node is a leaf one
 	}
 	

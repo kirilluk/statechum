@@ -1,7 +1,7 @@
 package collections;
 
-import harmony.collections.HashMapWithSearch;
-import harmony.collections.TreeMapWithSearch;
+import statechum.collections.HashMapWithSearch;
+import statechum.collections.TreeMapWithSearch;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -148,7 +148,14 @@ public class TestMapWithSearch
 	{
 		return new TreeSet<>(c);
 	}
-	
+
+	protected  static <U> Set<String> toStringSet(Collection<U> elems) {
+		TreeSet<String> elemsAsString = new TreeSet<>();
+		for(Object obj:elems)
+			elemsAsString.add(obj.toString());
+		return elemsAsString;
+	}
+
 	static <K,V>  void compareForEquality(Map<K,V> realMap,Map<K,V> ourMap)
 	{
 		Assert.assertEquals(realMap, ourMap);
@@ -161,7 +168,7 @@ public class TestMapWithSearch
 		Assert.assertEquals(realMap.keySet(), ourMap.keySet());
 
 		Set<V> realValues = new TreeSet<>(realMap.values());
-		Assert.assertEquals(realValues, ourMap.values());
+		Assert.assertEquals(realValues, new TreeSet<>(ourMap.values()));
 		//Assert.assertTrue(ourMap.values().equals(realValues));// this one is very slow because we have to go through the entire list for each element of the collection, giving it a quadratic performance in the number of elements.
 		if (realMap.isEmpty())
 		{
@@ -173,12 +180,12 @@ public class TestMapWithSearch
 			Assert.assertEquals(0,ourMap.size());
 		}
 		
-		Assert.assertEquals(realMap.keySet().hashCode(), ourMap.keySet().hashCode());
-		//Assert.assertEquals(realMap.keySet().toString(),ourMap.keySet().toString());// this may fail where the order of elements is different between the two maps, hence effectively delegated to comparing copies of the two maps into maps with identical ordering.
+//		Assert.assertEquals(realMap.keySet().hashCode(), ourMap.keySet().hashCode());
+		Assert.assertEquals(toStringSet(realMap.keySet()).toString(),toStringSet(ourMap.keySet()).toString());// this may fail where the order of elements is different between the two maps, hence effectively delegated to comparing copies of the two maps into maps with identical ordering.
 		Assert.assertEquals(ourMap.size(),ourMap.keySet().size());
 
-		Assert.assertEquals(realValues.hashCode(), ourMap.values().hashCode());
-		//Assert.assertEquals(realMap.values().toString(), ourMap.values().toString());// this may fail where the order of elements is different between the two maps, hence effectively delegated to comparing copies of the two maps into maps with identical ordering.
+//		Assert.assertEquals(realValues.hashCode(), ourMap.values().hashCode());
+		Assert.assertEquals(toStringSet(realMap.values()).toString(), toStringSet(ourMap.values()).toString());// this may fail where the order of elements is different between the two maps, hence effectively delegated to comparing copies of the two maps into maps with identical ordering.
 		Assert.assertEquals(ourMap.size(),ourMap.values().size());
 
 		Assert.assertEquals(ourMap.entrySet(), realMap.entrySet());
@@ -561,61 +568,85 @@ public class TestMapWithSearch
 	@SuppressWarnings("ConstantConditions")
 	private <K,V> void checkUnsupportedOperationsOnEntrySet(final Map<K,V> map)
 	{
-		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().iterator().remove(),
-				UnsupportedOperationException.class,"modification of iterator");
+		statechum.TestHelper.checkForCorrectExceptionAnyOf(() -> map.entrySet().iterator().remove(),
+				Arrays.asList(
+						new TestHelper.ExceptionAndStrings(IllegalStateException.class, null),
+						new TestHelper.ExceptionAndStrings(UnsupportedOperationException.class, Collections.singletonList("modification of iterator"))));
 
 		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().add(null),
-				UnsupportedOperationException.class,"modification of entry set");
+				UnsupportedOperationException.class,null);
+			//UnsupportedOperationException.class,"modification of entry set");
 
-		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().addAll(null),
-				UnsupportedOperationException.class,"modification of entry set");
+		statechum.TestHelper.checkForCorrectExceptionAnyOf(() -> map.entrySet().addAll(null),
+				Arrays.asList(
+						new TestHelper.ExceptionAndStrings(NullPointerException.class, Collections.singletonList("Cannot invoke ")),
+						new TestHelper.ExceptionAndStrings(NullPointerException.class, null),
+						new TestHelper.ExceptionAndStrings(UnsupportedOperationException.class, Collections.singletonList("modification of entry set"))));
 
-		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().remove(null),
-				UnsupportedOperationException.class,"modification of entry set");
-		
-		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().removeAll(map.entrySet()),
-				UnsupportedOperationException.class,"modification of entry set");
-		
-		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().retainAll(map.entrySet()),
-				UnsupportedOperationException.class,"modification of entry set");
-		
-		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().clear(),
-				UnsupportedOperationException.class,"modification of entry set");
+		// needed for Harmony, not for JDK-modified map.
+//		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().remove(null),
+//				UnsupportedOperationException.class,"modification of entry set");
+
+		// needed for Harmony, not for JDK-modified map.
+//		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().removeAll(map.entrySet()),
+//				UnsupportedOperationException.class,"modification of entry set");
+
+		// needed for Harmony, not for JDK-modified map.
+//		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().retainAll(map.entrySet()),
+//				UnsupportedOperationException.class,"modification of entry set");
+
+		// needed for Harmony, not for JDK-modified map.
+//		statechum.TestHelper.checkForCorrectException(() -> map.entrySet().clear(),
+//				UnsupportedOperationException.class,"modification of entry set");
 	}
 	
 	@SuppressWarnings("ConstantConditions")
 	private <K,V> void checkUnsupportedOperationsOnValueSet(final Map<K,V> map)
 	{
-		statechum.TestHelper.checkForCorrectException(() -> map.values().iterator().remove(),
-				UnsupportedOperationException.class,"modification of iterator");
-		
+		statechum.TestHelper.checkForCorrectExceptionAnyOf(() -> map.entrySet().iterator().remove(),
+				Arrays.asList(
+						new TestHelper.ExceptionAndStrings(IllegalStateException.class, null),
+						new TestHelper.ExceptionAndStrings(UnsupportedOperationException.class, Collections.singletonList("modification of iterator"))));
+
 		statechum.TestHelper.checkForCorrectException(() -> map.values().add(null),
-				UnsupportedOperationException.class,"modification of value set");
+				UnsupportedOperationException.class,null);
+//		UnsupportedOperationException.class,"modification of value set");
 
-		statechum.TestHelper.checkForCorrectException(() -> map.values().addAll(null),
-				UnsupportedOperationException.class,"modification of value set");
+		statechum.TestHelper.checkForCorrectExceptionAnyOf(() -> map.entrySet().addAll(null),
+				Arrays.asList(
+						new TestHelper.ExceptionAndStrings(NullPointerException.class, Collections.singletonList("Cannot invoke ")),
+						new TestHelper.ExceptionAndStrings(NullPointerException.class, null),
+						new TestHelper.ExceptionAndStrings(UnsupportedOperationException.class, Collections.singletonList("modification of entry set"))));
 
-		statechum.TestHelper.checkForCorrectException(() -> map.values().remove(null),
-				UnsupportedOperationException.class,"modification of value set");
-		
-		statechum.TestHelper.checkForCorrectException(() -> map.values().removeAll(null),
-				UnsupportedOperationException.class,"modification of value set");
-		
-		statechum.TestHelper.checkForCorrectException(() -> map.values().retainAll(null),
-				UnsupportedOperationException.class,"modification of value set");
-		
-		statechum.TestHelper.checkForCorrectException(() -> map.values().clear(),
-				UnsupportedOperationException.class,"modification of value set");
+		// needed for Harmony, not for JDK-modified map.
+//		statechum.TestHelper.checkForCorrectException(() -> map.values().remove(null),
+//				UnsupportedOperationException.class,"modification of value set");
+
+		// needed for Harmony, not for JDK-modified map.
+//		statechum.TestHelper.checkForCorrectException(() -> map.values().removeAll(null),
+//				UnsupportedOperationException.class,"modification of value set");
+
+		// needed for Harmony, not for JDK-modified map.
+//		statechum.TestHelper.checkForCorrectException(() -> map.values().retainAll(null),
+//				UnsupportedOperationException.class,"modification of value set");
+
+		// needed for Harmony, not for JDK-modified map.
+//		statechum.TestHelper.checkForCorrectException(() -> map.values().clear(),
+//				UnsupportedOperationException.class,"modification of value set");
 	}
 	
 	@SuppressWarnings("ConstantConditions")
 	private <K,V> void checkUnsupportedOperationsOnKeySet(final Map<K,V> map)
 	{
 		statechum.TestHelper.checkForCorrectException(() -> map.keySet().add(null),
-				UnsupportedOperationException.class,"modification of key set");
-		
-		statechum.TestHelper.checkForCorrectException(() -> map.keySet().addAll(null),
-				UnsupportedOperationException.class,"modification of key set");
+				UnsupportedOperationException.class,null);
+//		UnsupportedOperationException.class,"modification of key set");
+
+		statechum.TestHelper.checkForCorrectExceptionAnyOf(() -> map.entrySet().addAll(null),
+				Arrays.asList(
+						new TestHelper.ExceptionAndStrings(NullPointerException.class, Collections.singletonList("Cannot invoke ")),
+						new TestHelper.ExceptionAndStrings(NullPointerException.class, null),
+						new TestHelper.ExceptionAndStrings(UnsupportedOperationException.class, Collections.singletonList("modification of entry set"))));
 	}
 	
 	@SuppressWarnings("ConstantConditions")
@@ -1431,8 +1462,13 @@ public class TestMapWithSearch
 	public void testSizeOne_KeySetIteratorRemove1()
 	{
 		final Attempt<CInteger,Long> map = createMapOne(keyOne,valueOne);
-		
-		statechum.TestHelper.checkForCorrectException(() -> map.getOurs().keySet().iterator().remove(),IllegalStateException.class,"next was not yet called");
+
+		statechum.TestHelper.checkForCorrectExceptionAnyOf(() -> map.getOurs().keySet().iterator().remove(),
+				Arrays.asList(
+						new TestHelper.ExceptionAndStrings(java.lang.IllegalStateException.class, Collections.singletonList("next was not yet called")),
+						new TestHelper.ExceptionAndStrings(java.lang.IllegalStateException.class, null)
+				)
+		);
 	}
 	
 	@Test
@@ -1449,42 +1485,51 @@ public class TestMapWithSearch
 	{
 		final Attempt<CInteger,Long> map = createMapOne(keyOne,valueOne);
 		final Iterator<CInteger> iter = map.keySet().iterator();
-		iter.next();iter.remove();	
-		statechum.TestHelper.checkForCorrectException(
-				() -> map.getOurs().keySet().iterator().remove(),
-				IllegalStateException.class,"next was not yet called");
+		iter.next();iter.remove();
+
+		statechum.TestHelper.checkForCorrectExceptionAnyOf(() -> map.getOurs().keySet().iterator().remove(),
+				Arrays.asList(
+						new TestHelper.ExceptionAndStrings(java.lang.IllegalStateException.class, Collections.singletonList("next was not yet called")),
+						new TestHelper.ExceptionAndStrings(java.lang.IllegalStateException.class, null)
+				)
+		);
+
 	}
 	
 	@Test
 	public void testNull1()
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
-		statechum.TestHelper.checkForCorrectException(
+		statechum.TestHelper.checkForCorrectExceptionAnyOf(
 				() -> map.getOurs().put(null, 33L),
-				IllegalArgumentException.class,"key cannot be null");
+				Arrays.asList(
+						new TestHelper.ExceptionAndStrings(java.lang.IllegalArgumentException.class,Collections.singletonList("key cannot be null")),
+						new TestHelper.ExceptionAndStrings(java.lang.NullPointerException.class,null)
+				));
 	}
 	
-	@SuppressWarnings("ConstantConditions")
-	@Test
-	public void testNull2()
-	{
-		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
-		statechum.TestHelper.checkForCorrectException(
-				() -> map.getOurs().put(keyOne, null),
-				IllegalArgumentException.class,"value cannot be null");
-		statechum.TestHelper.checkForCorrectException(
-				() -> map.getOurs().putAll(null),
-				NullPointerException.class,null);
-	}
-	
-	@Test
-	public void testNull3()
-	{
-		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
-		Assert.assertNull(map.getOurs().get(null));
-		Assert.assertFalse(map.getOurs().containsKey(null));
-		Assert.assertFalse(map.getOurs().containsValue(null));
-	}
+//	@SuppressWarnings("ConstantConditions")
+//	JDK-derived collections support nulls
+//	@Test
+//	public void testNull2()
+//	{
+//		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
+//		statechum.TestHelper.checkForCorrectException(
+//				() -> map.getOurs().put(keyOne, null),
+//				IllegalArgumentException.class,"value cannot be null");
+//		statechum.TestHelper.checkForCorrectException(
+//				() -> map.getOurs().putAll(null),
+//				NullPointerException.class,null);
+//	}
+//
+//	@Test
+//	public void testNull3()
+//	{
+//		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
+//		Assert.assertNull(map.getOurs().get(null));
+//		Assert.assertFalse(map.getOurs().containsKey(null));
+//		Assert.assertFalse(map.getOurs().containsValue(null));
+//	}
 	
 	@Test
 	public void testContains()
@@ -1494,13 +1539,13 @@ public class TestMapWithSearch
 		Assert.assertFalse(map.containsKey(new CInteger(-7)));
 		Assert.assertTrue(map.containsKey(keyOne));
 		Assert.assertTrue(map.containsKey(keyTwo));
-		Assert.assertFalse(map.getOurs().containsKey(null));
+//		Assert.assertFalse(map.getOurs().containsKey(null));
 		Assert.assertTrue(map.keySet().containsAll(map.keySet()));// contains all on an empty set returns true
 		Assert.assertTrue(map.keySet().containsAll(createMapTwo(keyOne,valueOne, keyTwo, valueTwo).keySet()));// contains all on an empty set returns true
 		Assert.assertTrue(map.keySet().containsAll(createMapOne(keyOne,valueOne).keySet()));
 		Assert.assertFalse(map.keySet().containsAll(Arrays.asList(new CInteger(0),keyOne)));
 		Assert.assertTrue(map.keySet().containsAll(Arrays.asList(keyOne,keyOne)));
-		Assert.assertFalse(map.getOurs().keySet().containsAll(Arrays.asList(keyOne,null,keyOne)));
+//		Assert.assertFalse(map.getOurs().keySet().containsAll(Arrays.asList(keyOne,null,keyOne)));
 		checkArrayWithTwoPairs(map, keyOne, valueOne, keyTwo, valueTwo);
 	}
 	
@@ -1793,7 +1838,7 @@ public class TestMapWithSearch
 		
 		Assert.assertTrue(map.keySet().remove(keyOne));// remove one pair
 		checkArrayWithOnePair(map, keyTwo, valueTwo);
-		Assert.assertFalse(map.getOurs().keySet().remove(null));// remove invalid element
+//		Assert.assertFalse(map.getOurs().keySet().remove(null));// remove invalid element
 		checkArrayWithOnePair(map, keyTwo, valueTwo);
 	}
 	
@@ -1917,8 +1962,13 @@ public class TestMapWithSearch
 	public void testSizeTwo_KeySetIteratorRemove1()
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
-		
-		statechum.TestHelper.checkForCorrectException(() -> map.getOurs().keySet().iterator().remove(),IllegalStateException.class,"next was not yet called");
+
+		statechum.TestHelper.checkForCorrectExceptionAnyOf(() -> map.getOurs().keySet().iterator().remove(),
+				Arrays.asList(
+						new TestHelper.ExceptionAndStrings(java.lang.IllegalStateException.class, Collections.singletonList("next was not yet called")),
+						new TestHelper.ExceptionAndStrings(java.lang.IllegalStateException.class, null)
+				)
+		);
 	}
 	
 	@Test
@@ -1937,8 +1987,13 @@ public class TestMapWithSearch
 	{
 		final Attempt<CInteger,Long> map = createMapTwo(keyOne,valueOne, keyTwo, valueTwo);
 		final Iterator<CInteger> iter = map.keySet().iterator();
-		iter.next();iter.remove();	
-		statechum.TestHelper.checkForCorrectException(() -> map.getOurs().keySet().iterator().remove(),IllegalStateException.class,"next was not yet called");
+		iter.next();iter.remove();
+		statechum.TestHelper.checkForCorrectExceptionAnyOf(() -> map.getOurs().keySet().iterator().remove(),
+				Arrays.asList(
+						new TestHelper.ExceptionAndStrings(java.lang.IllegalStateException.class, Collections.singletonList("next was not yet called")),
+						new TestHelper.ExceptionAndStrings(java.lang.IllegalStateException.class, null)
+				)
+		);
 	}
 	
 	
@@ -2257,30 +2312,32 @@ public class TestMapWithSearch
 		Assert.assertEquals("[3]",keys.toString());	
 	}
 
-	@Test
-	public void testInvalidModification2()
-	{
-		TestHelper.checkForCorrectException(
-				() -> createOurMap().values().remove(45),
-				UnsupportedOperationException.class, "modification");
-	}
-
-	@Test
-	public void testInvalidModification3b()
-	{
-
-		TestHelper.checkForCorrectException(
-				() -> createOurMap().values().clear(),
-				UnsupportedOperationException.class, "modification");
-	}
-
-	@Test
-	public void testInvalidModification4()
-	{
-
-		TestHelper.checkForCorrectException(
-				() -> createOurMap().entrySet().clear(),
-				UnsupportedOperationException.class, "modification");
-	}
+//	Does not throw on JDK-derived collection class
+//	@Test
+//	public void testInvalidModification2()
+//	{
+//		TestHelper.checkForCorrectException(
+//				() -> createOurMap().values().remove(45),
+//				UnsupportedOperationException.class, "modification");
+//	}
+//
+//	@Test
+//	public void testInvalidModification3b()
+//	{
+//
+//		TestHelper.checkForCorrectException(
+//				() -> createOurMap().values().clear(),
+//				UnsupportedOperationException.class, "modification");
+//	}
+//
+// Does not throw on JDK-derived collection class.
+//	@Test
+//	public void testInvalidModification4()
+//	{
+//
+//		TestHelper.checkForCorrectException(
+//				() -> createOurMap().entrySet().clear(),
+//				UnsupportedOperationException.class, "modification");
+//	}
 
 }

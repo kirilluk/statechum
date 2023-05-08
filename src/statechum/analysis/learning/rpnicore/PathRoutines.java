@@ -19,7 +19,7 @@ package statechum.analysis.learning.rpnicore;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
-import harmony.collections.HashMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
@@ -321,7 +321,7 @@ public class PathRoutines {
 				if (accepted && !currentState.isAccept())
 				{
 					currentState.setHighlight(true);
-					throw new IllegalArgumentException("incompatible "+(accepted?"accept":"reject")+" labelling: "+sequence.subList(0, position));
+					throw new IllegalArgumentException("incompatible accept labelling: "+sequence.subList(0, position));
 				}
 
 				if (!accepted && currentState.isAccept())
@@ -596,7 +596,7 @@ public class PathRoutines {
 			// most likely DeterministicVertex too).  
 			if (remaining.isEmpty())
 			{// all unreachable vertices came from the original PTA
-				remaining.clear();remaining.addAll(unreachables);remaining.removeAll(notRemoved);
+				remaining.addAll(unreachables);remaining.removeAll(notRemoved);
 				// Now remaining is the set of unreachable vertices which should've been removed but apparently were not.
 				// Possibly, they have incoming transitions (if a chunk of a tree became orphaned, it will surely
 				// not get merged into anything).

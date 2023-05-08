@@ -35,7 +35,7 @@ import java.util.TreeSet;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import harmony.collections.HashMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
@@ -1386,8 +1386,8 @@ public class Transform
 		if (depth < 0)
 			return trimmedOne;
 		
-		final Queue<CmpVertex> currentExplorationBoundary = new LinkedList<CmpVertex>();// FIFO queue
-		final Map<CmpVertex,Integer> visited = new HashMap<CmpVertex,Integer>();
+		final Queue<CmpVertex> currentExplorationBoundary = new LinkedList<>();// FIFO queue
+		final Map<CmpVertex,Integer> visited = new HashMap<>();
 		for(CmpVertex v:coregraph.transitionMatrix.keySet()) 
 			if (v.getColour() == JUConstants.RED)
 			{ 
@@ -1399,7 +1399,7 @@ public class Transform
 		if (visited.isEmpty())
 			return trimmedOne;
 		
-		CmpVertex explorationElement = null;
+		CmpVertex explorationElement;
 		while(!currentExplorationBoundary.isEmpty())
 		{
 			explorationElement = currentExplorationBoundary.remove();

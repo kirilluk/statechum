@@ -20,7 +20,7 @@ package statechum.analysis.learning.rpnicore;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
-import harmony.collections.HashMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.*;
 import statechum.GlobalConfiguration;
@@ -664,7 +664,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 
 		public EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> getNext(Label lbl, CacheOfStateGroups<TARGET_TYPE,CACHE_TYPE> cache) throws IncompatibleStatesException
 		{
-			return new EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>(cache.getNext(first, lbl),cache.getNext(second, lbl));
+			return new EquivalenceStatePair<>(cache.getNext(first, lbl), cache.getNext(second, lbl));
 		}
 
 		public boolean sameStates()
@@ -727,7 +727,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		}
 
 		/** Records which outgoing transitions have sorted target states. */
-		protected Set<Label> sortedTargets = new TreeSet<Label>();
+		protected Set<Label> sortedTargets = new TreeSet<>();
 
 		/** Once we started sorting target states, no new additions will be permitted. */
 		protected boolean sortingStarted = false;
@@ -767,7 +767,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 						{
 							@SuppressWarnings("unchecked")
 							ArrayList<CmpVertex> arrayTarget = (ArrayList<CmpVertex>)target;
-							TreeSet<CmpVertex> targets = new TreeSet<CmpVertex>(arrayTarget);
+							TreeSet<CmpVertex> targets = new TreeSet<>(arrayTarget);
 							arrayTarget.clear();arrayTarget.addAll(targets);
 						}
 						else
@@ -803,11 +803,11 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 
 		protected EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> getNextClass(Object target) throws IncompatibleStatesException
 		{
-			EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> outcome = null;
+			EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> outcome;
 			outcome = cache.get(target);
 			if (outcome == null)
 			{
-				outcome = new EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE>(eqClassNumber++,coregraph);
+				outcome = new EqClassWithSortedTargets<>(eqClassNumber++, coregraph);
 				if (target instanceof CmpVertex)
 				{// nothing to do
 					outcome.mergeWithState((CmpVertex) target);
@@ -834,7 +834,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			return getNextClass(current.getSortedTarget(lbl));
 		}
 
-		public final Map<Object,EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE>> cache = new HashMap<Object,EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE>>();
+		public final Map<Object,EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE>> cache = new HashMap<>();
 	}
 
 	/** Computes a score for a pair of states in a potentially non-deterministic graph.
@@ -842,8 +842,6 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 * @param a first of a pair of states
 	 * @param b second of a pair of states
 	 * @param cache cached map of groups of states to the corresponding equivalence classes.
-	 * @return
-	 * @throws IncompatibleStatesException
 	 */
 	public long computeScore(CmpVertex a, CmpVertex b, CacheOfStateGroups<TARGET_TYPE,CACHE_TYPE> cache)
 	{
@@ -852,10 +850,10 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		{
 			EqClassWithSortedTargets<TARGET_TYPE,CACHE_TYPE> initialA = cache.getNextClass(a), initialB = cache.getNextClass(b);
 
-			EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> pair = new EquivalenceStatePair<TARGET_TYPE, CACHE_TYPE>(initialA,initialB);
-			Queue<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>>();// FIFO queue containing equivalence classes to be explored
+			EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE> pair = new EquivalenceStatePair<>(initialA, initialB);
+			Queue<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>> currentExplorationBoundary = new LinkedList<>();// FIFO queue containing equivalence classes to be explored
 			currentExplorationBoundary.offer(pair);
-			Set<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>> visited = new HashSet<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>>();visited.add(pair);
+			Set<EquivalenceStatePair<TARGET_TYPE,CACHE_TYPE>> visited = new HashSet<>();visited.add(pair);
 
 			while(!currentExplorationBoundary.isEmpty())
 			{

@@ -108,11 +108,11 @@ public class AllTests {
     */
     @RunWith(Suite.class)
     @SuiteClasses({
-            harmony.collections.HarmonyAbstractMapTest.class,
-            harmony.collections.HarmonyHashMapTest.class,
-            harmony.collections.HarmonyTreeMapTest.class,
-            harmony.collections.LinkedHashMapTest.class,
-            harmony.collections.TreeMapWithSearchTest.class
+//            harmony.collections.HarmonyAbstractMapTest.class,
+//            harmony.collections.HarmonyHashMapTest.class,
+//            harmony.collections.HarmonyTreeMapTest.class,
+//            harmony.collections.LinkedHashMapTest.class,
+//            statechum.collections.TreeMapWithSearchTest.class
     })
     public static class HarmonyTests {// of these tests, only HarmonyAbstractMap and HarmonyHashMap need to be tested.
     }

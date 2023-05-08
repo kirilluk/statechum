@@ -25,7 +25,7 @@ import java.util.*;
 
 import static statechum.Helper.throwUnchecked;
 
-import harmony.collections.HashMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -1432,7 +1432,7 @@ public class Configuration implements Cloneable {
 		STATETREE_SLOWTREE("TREE"), STATETREE_LINKEDHASH("LNHASH"), STATETREE_ARRAY("ARRAY");
 		
 		public final String name;
-		private STATETREE(String nameText)
+		STATETREE(String nameText)
 		{
 			name = nameText;
 		}
@@ -1691,7 +1691,7 @@ public class Configuration implements Cloneable {
 					Object origValue = getter.invoke(defaultConfiguration);
 					Object value = getter.invoke(this);
 					if (value != null) {
-						if ((origValue == null) || !value.equals(origValue)) {
+						if (origValue == null || !value.equals(origValue)) {
 							resultHolder.append("config ");
 							resultHolder.append(var.getName());resultHolder.append(' ');
 							resultHolder.append(value.toString());

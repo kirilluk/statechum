@@ -18,7 +18,7 @@
 
 package statechum.analysis.learning.rpnicore;
 
-import harmony.collections.TreeMapWithSearch;
+import statechum.collections.TreeMapWithSearch;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

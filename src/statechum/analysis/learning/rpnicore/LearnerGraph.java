@@ -19,8 +19,8 @@
 package statechum.analysis.learning.rpnicore;
 
 import edu.uci.ics.jung.graph.Graph;
-import harmony.collections.HashMapWithSearch;
-import harmony.collections.TreeMapWithSearch;
+import statechum.collections.HashMapWithSearch;
+import statechum.collections.TreeMapWithSearch;
 import statechum.Configuration;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -340,7 +340,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 			if (currentState == rejectNumber) throw new IllegalArgumentException("reject number in vFrom");
 			if (tTable[currentState].length != alphabetSize)
 				throw new IllegalArgumentException("rows of inconsistent size");
-			MapWithSearch<Label, Label, CmpVertex> row = new HashMapWithSearch<>();
+			MapWithSearch<Label, Label, CmpVertex> row = new HashMapWithSearch<>(tTable.length);
 			stateName[currentState].setAccept(true);
 			for (int input = 0; input < tTable[currentState].length; ++input)
 				if (tTable[currentState][input] != rejectNumber) {

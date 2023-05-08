@@ -72,6 +72,48 @@ public class TestHelper {
 		}
 	}
 
+	public static class ExceptionAndStrings {
+		Class<? extends Exception> expectedException;
+		List<String> expectedText;
+
+		public ExceptionAndStrings(Class<? extends Exception> expected, List<String> text) {
+			expectedException = expected;expectedText = text;
+		}
+	}
+
+	public static void checkForCorrectExceptionAnyOf(whatToRun what, List<ExceptionAndStrings> expected)
+	{
+		try
+		{
+			what.run();
+			Assert.fail("Exception not thrown");
+		}
+		catch(Exception ex)
+		{
+			StringWriter str = new StringWriter();ex.printStackTrace(new PrintWriter(str));
+			boolean textFound = false;
+			for(ExceptionAndStrings e:expected) {
+				if (ex.getClass() == e.expectedException) {
+					if (e.expectedText == null && ex.getMessage() == null) {
+						textFound = true;
+						break;
+					}
+
+					if (e.expectedText != null && ex.getMessage() != null)
+						for(String possibleText:e.expectedText)
+							if (ex.getMessage().contains(possibleText)) {
+								textFound = true;break;
+							}
+
+					if (textFound)
+						break;
+				}
+			}
+
+			Assert.assertTrue("wrong type of exception received or exception did not contained the expected text, got: "+
+					ex.getClass()+" with text "+ (ex.getMessage() == null?"null":"\""+ex.getMessage()+"\""), textFound);
+		}
+	}
 	public interface whatToRun
 	{
 		void run() throws NumberFormatException, java.io.IOException, IncompatibleStatesException;

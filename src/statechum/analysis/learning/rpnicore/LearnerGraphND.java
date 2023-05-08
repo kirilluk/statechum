@@ -21,7 +21,7 @@ package statechum.analysis.learning.rpnicore;
 import edu.uci.ics.jung.graph.Graph;
 import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseEdge;
-import harmony.collections.TreeMapWithSearch;
+import statechum.collections.TreeMapWithSearch;
 import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;

@@ -28,7 +28,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Map.Entry;
 
-import harmony.collections.HashMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.VertID;
@@ -156,13 +156,13 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		}
 	}
 	
-	/** Adds a state to the collection of states in this equivalence class.
-	 * 
+	/**
+	 * Adds a state to the collection of states in this equivalence class.
+	 *
 	 * @param vert transitions to add from.
-	 * @return false if the new state is not compatible with any state in this equivalence class
 	 * @throws IncompatibleStatesException if the state to be added is incompatible with any state in the equivalence class.
 	 */
-	protected boolean addState(CmpVertex vert) throws IncompatibleStatesException
+	protected void addState(CmpVertex vert) throws IncompatibleStatesException
 	{
 		if (!states.isEmpty() &&
 				(accept != vert.isAccept() || incompatibleStates.contains(vert)))
@@ -174,7 +174,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 				if (entry.getValue() == JUConstants.PAIRCOMPATIBILITY.INCOMPATIBLE) incompatibleStates.add(entry.getKey());
 		updateColour(vert.getColour());
 
-		states.add(vert);updateRep(vert);return true;		
+		states.add(vert);updateRep(vert);
 	}
 	
 	public static class IncompatibleStatesException extends Exception
@@ -482,7 +482,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	CmpVertex constructMergedVertexFrom(CmpVertex sourceVertex, JUConstants currentColour, AbstractLearnerGraph<TARGET_C_TYPE,CACHE_C_TYPE> graph,
 			boolean useDifferentNameIfAlreadyExist, boolean setOrigState) 
 	{
-		CmpVertex mergedVertex = null;
+		CmpVertex mergedVertex;
 		if (useDifferentNameIfAlreadyExist && graph.transitionMatrix.containsKey(sourceVertex))
 			mergedVertex=graph.copyVertexUnderDifferentName(sourceVertex);
 		else

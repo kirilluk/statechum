@@ -22,7 +22,7 @@ import edu.uci.ics.jung.graph.Edge;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.DirectedSparseVertex;
 import edu.uci.ics.jung.utils.UserData;
-import harmony.collections.HashMapWithSearch;
+import statechum.collections.HashMapWithSearch;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,7 +66,7 @@ public class TestEqualityComparisonAndHashCode {
 
 	final ConvertALabel converter;
 	
-	private Configuration mainConfiguration = null;
+	private final Configuration mainConfiguration;
 	
 	/** Configuration settings used to test creation/cloning of graphs. */
 	private Configuration confJung,confString,confSame;
@@ -2245,6 +2245,7 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
 		graph.removeTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config,converter),graph.findVertex("A"));
+		//noinspection AssertBetweenInconvertibleTypes
 		assertEquals(testGraphString, graph);
 	}
 
@@ -2257,6 +2258,7 @@ public class TestEqualityComparisonAndHashCode {
 		final LearnerGraphND graph = new LearnerGraphND(testGraph,config);
 		graph.removeTransition(graph.transitionMatrix.get(graph.findVertex("B")),AbstractLearnerGraph.generateNewLabel("c",config,converter),graph.findVertex("B"));
 		Assert.assertNull(graph.transitionMatrix.get(graph.findVertex("B")).get(AbstractLearnerGraph.generateNewLabel("c",config,converter)));
+		//noinspection AssertBetweenInconvertibleTypes
 		assertEquals(buildLearnerGraph("A-a->A-b->B\nA-c-#C\nB-b->B", "updateDiagram_add2", config, converter), graph);
 	}
 
@@ -2350,6 +2352,7 @@ public class TestEqualityComparisonAndHashCode {
 		assertEquals(a, b);
 
 		Assert.assertNotEquals(null, a);
+		//noinspection AssertBetweenInconvertibleTypes
 		Assert.assertNotEquals("hello", a);
 		b.setInit(new StringVertex("B"));
 		Assert.assertNotEquals(a, b);
@@ -2364,6 +2367,7 @@ public class TestEqualityComparisonAndHashCode {
 		assertEquals(a, b);
 
 		Assert.assertNotEquals(null, a);
+		//noinspection AssertBetweenInconvertibleTypes
 		Assert.assertNotEquals("hello", a);
 		b.setInit(new StringVertex("B"));
 		Assert.assertNotEquals(a, b);
@@ -2380,6 +2384,7 @@ public class TestEqualityComparisonAndHashCode {
 		assertEquals(a, b);
 
 		Assert.assertNotEquals(null, a);
+		//noinspection AssertBetweenInconvertibleTypes
 		Assert.assertNotEquals("hello", a);
 		b.setInit(new StringVertex("B"));
 		Assert.assertNotEquals(a, b);
@@ -2522,6 +2527,7 @@ public class TestEqualityComparisonAndHashCode {
 		Configuration orderedConfig = Configuration.getDefaultConfiguration().copy();orderedConfig.setUseOrderedEntrySet(true);
 		LearnerGraphND otherGraph = new LearnerGraphND(orderedConfig);
 		AbstractLearnerGraph.copyGraphs(graph, otherGraph);
+		//noinspection AssertBetweenInconvertibleTypes
 		assertEquals(otherGraph, graph);
 	}
 	

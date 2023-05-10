@@ -1487,7 +1487,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 					forward.getStateNumber() > grCombined.config.getGdMaxNumberOfStatesInCrossProduct())
 				fallbackToInitialPair = true;
 
-		Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh = null;
+		Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh;
 		switch(argConfig.getGdScoreComputationAlgorithm())
 		{
 		case SCORE_RANDOMPATHS:
@@ -1817,7 +1817,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	{
 		VertID currentVertex = oldVerticesToNew.get(currID);
 		VertID newID = VertexID.parseID(prefix+(currentVertex==null?"":currentVertex.toString()));
-		if (oldVerticesToNew.containsKey(newID) || oldVerticesToNew.containsKey(newID))
+		if (oldVerticesToNew.containsKey(newID))
 			throw new IllegalArgumentException("duplicate vertex "+newID+" in outcome");
 		oldVerticesToNew.put(currID,newID);
 	}

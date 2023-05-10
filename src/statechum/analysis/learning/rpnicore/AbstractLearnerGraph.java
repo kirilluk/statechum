@@ -157,7 +157,7 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 	protected AbstractLearnerGraph(Configuration conf) {
 		config = conf;
 		transitionMatrix = createNewTransitionMatrix(new Pair<>(config.getMaxAcceptStateNumber(), config.getMaxRejectStateNumber()));
-		pairCompatibility = new PairCompatibility<>(config.getMaxAcceptStateNumber(), config.getMaxRejectStateNumber());
+		pairCompatibility = new PairCompatibility<>(this, config.getMaxAcceptStateNumber(), config.getMaxRejectStateNumber());
 		initEmpty();
 	}
 	
@@ -1037,13 +1037,13 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		switch(config.getTransitionMatrixImplType())
 		{
 		case STATETREE_LINKEDHASH:
-			map = new HashMapWithSearch<>(pos_neg.firstElem + pos_neg.secondElem);// the sum is usually ignored by the linkedmap, but provided just in case.
+			map = new HashMapWithSearch<>(2*(pos_neg.firstElem + pos_neg.secondElem));// the sum is usually ignored by the linkedmap, but provided just in case.
 			break;
 		case STATETREE_ARRAY:
 			if (pos_neg.firstElem+pos_neg.secondElem > config.getThresholdToGoHash() || config.getAlwaysUseTheSameMatrixType())
 				map = new ArrayMapWithSearch<>(pos_neg.firstElem, pos_neg.secondElem);
 			else
-				map = new HashMapWithSearch<>(pos_neg.firstElem + pos_neg.secondElem);
+				map = new HashMapWithSearch<>(2*(pos_neg.firstElem + pos_neg.secondElem));
 			break;
 		case STATETREE_SLOWTREE:
 			map = new TreeMapWithSearch<>(pos_neg.firstElem + pos_neg.secondElem);
@@ -1078,10 +1078,11 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 		 * @param rejectStateNumber determines the maximal number of reject states.  Both values are passed to
 		 * {@link HashMapWithSearch} where it determines the initial size of the hash map.
 		 */
-		public PairCompatibility(int acceptStateNumber, int rejectStateNumber)
+		public PairCompatibility(AbstractLearnerGraph graph, int acceptStateNumber, int rejectStateNumber)
 		{
 			maxAcceptStateNumber = acceptStateNumber;maxRejectStateNumber = rejectStateNumber;
-			compatibility = new HashMapWithSearch<>(maxAcceptStateNumber + maxRejectStateNumber);
+			compatibility = constructMap(graph.config,graph);
+			//new HashMapWithSearch<>(maxAcceptStateNumber + maxRejectStateNumber);
 		}
 		
 		/** Verifies whether a supplied pair is either incompatible (one state is accept and another one - reject) 

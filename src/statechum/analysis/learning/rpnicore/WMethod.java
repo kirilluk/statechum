@@ -32,6 +32,7 @@ import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTA_FSMStructure;
@@ -1181,90 +1182,123 @@ public class WMethod
 	
 	public enum VERTEX_COMPARISON_KIND { NONE, NAMES, DEEP }
 	
-	private static class CollectionOfPairs
-	{
-		public final LearnerGraph first,second;
-		
-		public CollectionOfPairs(LearnerGraph f,LearnerGraph s)
-		{
-			first=f;second=s;
+	private static class CollectionOfPairs {
+		public final LearnerGraph first, second;
+
+		public CollectionOfPairs(LearnerGraph f, LearnerGraph s) {
+			first = f;
+			second = s;
+			pairs = new ArrayMapWithSearch<>(f.vertPositiveID, f.vertNegativeID);
 		}
-		
-		public final Map<CmpVertex,Set<CmpVertex>> pairs = new TreeMap<CmpVertex,Set<CmpVertex>>();
-		
-		/** Adds the supplied pairs to the collection and returns true if the pair was not yet in the collection
+
+		public final Map<CmpVertex, Object> pairs;
+
+		/**
+		 * Adds the supplied pairs to the collection and returns true if the pair was not yet in the collection
 		 * and false otherwise.
+		 *
 		 * @param pairAB pair to add
 		 * @return false if the pair is already in the collection.
 		 */
-		public boolean addAndCheck(StatePair pairAB)
-		{
-			Set<CmpVertex> row = pairs.computeIfAbsent(pairAB.firstElem, k -> new TreeSet<CmpVertex>());
-			boolean result = row.contains(pairAB.secondElem);// if we've just created a row, the outcome will be false, same if the value does not exist.
-			if (!result)
-				row.add(pairAB.secondElem);
+		public boolean addAndCheck(StatePair pairAB) {
+			boolean pairNotInCollection = true;
+			Object row = pairs.get(pairAB.firstElem);
+			if (row == null)
+			{
+				pairs.put(pairAB.firstElem, pairAB.secondElem);
+			} else
+			{
+				if (row instanceof Set)
+				{
+					Set<CmpVertex> rowAsSet = (Set<CmpVertex>) row;
+					pairNotInCollection = rowAsSet.add(pairAB.secondElem);
+				} else
+				{
+					pairNotInCollection = !row.equals(pairAB.secondElem);
+					if (pairNotInCollection)
+					{
+						Set<Object> setAsRow = new TreeSet<Object>();
+						setAsRow.add(row);
+						setAsRow.add(pairAB.secondElem);
+						pairs.put(pairAB.firstElem, setAsRow);
+					}
+				}
 
-			return !result;
+			}
+
+			return pairNotInCollection;
 		}
-		
-		/** Given a state in the first graph (expected), this method takes set of states related to it and for each of them
-		 * takes states associated with them on the right-hand side of <em>StatePair</em> 
+
+		/**
+		 * Given a state in the first graph (expected), this method takes set of states related to it (pairCompatibility)
+		 * and for each of them takes states associated with them on the right-hand side of <em>StatePair</em>
+		 *
 		 * @param state to handle
 		 * @return states related to the provided state
 		 */
-		public Map<PAIRCOMPATIBILITY,Set<CmpVertex>> statesAssociatedToThoseRelatedTo(CmpVertex state)
-		{
-			Map<PAIRCOMPATIBILITY,Set<CmpVertex>> result = new TreeMap<PAIRCOMPATIBILITY,Set<CmpVertex>>();
-			Map<CmpVertex,PAIRCOMPATIBILITY> map = first.pairCompatibility.compatibility.get(state);
+		public Map<PAIRCOMPATIBILITY, Set<CmpVertex>> statesAssociatedToThoseRelatedTo(CmpVertex state) {
+			Map<PAIRCOMPATIBILITY, Set<CmpVertex>> result = new TreeMap<PAIRCOMPATIBILITY, Set<CmpVertex>>();
+			Map<CmpVertex, PAIRCOMPATIBILITY> map = first.pairCompatibility.compatibility.get(state);
 			if (map != null)
-				for(Entry<CmpVertex,PAIRCOMPATIBILITY> entry:map.entrySet())
-				{
-					Set<CmpVertex> row = result.computeIfAbsent(entry.getValue(), k -> new TreeSet<CmpVertex>());
-					Set<CmpVertex> rightHand = pairs.get(entry.getKey());
-					String errorDescrPart1 = "state "+ state+" is mapped with "+entry.getValue().name()+" to "+entry.getKey()+" of the graph ";
+				for (Entry<CmpVertex, PAIRCOMPATIBILITY> entry : map.entrySet())
+				{// entry/value are the states + compatibility associated with "state" in the expected graph.
+					Set<CmpVertex> row = result.computeIfAbsent(entry.getValue(), k -> new HashSet<CmpVertex>());
+					Object rightHand = pairs.get(entry.getKey());
 					if (rightHand == null)
-						throw new DifferentFSMException(errorDescrPart1 + "which does not have a corresponding state in the expected graph, only "+ pairs +" are known");
-					row.addAll(rightHand);
+						throw new DifferentFSMException("state " + state + " is mapped with " + entry.getValue().name() + " to " + entry.getKey() + " of the graph " +
+								"which does not have a corresponding state in the expected graph, only " + pairs + " are known");
+					if (rightHand instanceof Set)
+						row.addAll((Set<CmpVertex>) rightHand);
+					else
+						row.add((CmpVertex) rightHand);// a single state
 				}
-			
+
 			return result;
 		}
-		
-		/** Given a state in the second graph (actual), returns a map relating PAIRCOMPATIBILITY to
-		 * its associated states. 
+
+		/**
+		 * Given a state in the second graph (actual), returns a map relating PAIRCOMPATIBILITY to
+		 * its associated states.
 		 */
-		public Map<PAIRCOMPATIBILITY,Set<CmpVertex>> statesAssociatedTo(CmpVertex state)
-		{
-			Map<PAIRCOMPATIBILITY,Set<CmpVertex>> result = new TreeMap<PAIRCOMPATIBILITY,Set<CmpVertex>>();
-			Map<CmpVertex,PAIRCOMPATIBILITY> map = second.pairCompatibility.compatibility.get(state);
+		public Map<PAIRCOMPATIBILITY, Set<CmpVertex>> statesAssociatedTo(CmpVertex state) {
+			Map<PAIRCOMPATIBILITY, Set<CmpVertex>> result = new TreeMap<PAIRCOMPATIBILITY, Set<CmpVertex>>();
+			Map<CmpVertex, PAIRCOMPATIBILITY> map = second.pairCompatibility.compatibility.get(state);
 			if (map != null)
-				for(Entry<CmpVertex,PAIRCOMPATIBILITY> entry:map.entrySet())
+				for (Entry<CmpVertex, PAIRCOMPATIBILITY> entry : map.entrySet())
 				{
 					Set<CmpVertex> row = result.computeIfAbsent(entry.getValue(), k -> new TreeSet<CmpVertex>());
 					row.add(entry.getKey());
 				}
 			return result;
 		}
-		
-		/** Iterates through states in the collection and checks the associations of the vertices
+
+		/**
+		 * Iterates through states in the collection and checks the associations of the vertices
 		 * are preserved by the <em>pairs</em> relation.
 		 */
-		public void checkPairsAssociatedCorrectly(String expectedGraphName, String actualGraphName)
-		{
-			for(Entry<CmpVertex,Set<CmpVertex>> entry:pairs.entrySet())
+		public void checkPairsAssociatedCorrectly(String expectedGraphName, String actualGraphName) {
+			for (Entry<CmpVertex, Object> entry : pairs.entrySet())
 			{
-				Map<PAIRCOMPATIBILITY,Set<CmpVertex>> expectedMap = statesAssociatedToThoseRelatedTo(entry.getKey());
-				for(CmpVertex secondVertex:entry.getValue())
+				Map<PAIRCOMPATIBILITY, Set<CmpVertex>> expectedMap = statesAssociatedToThoseRelatedTo(entry.getKey());
+				Object rightHand = entry.getValue();
+				if (rightHand instanceof Set)
+					for (CmpVertex secondVertex : (Set<CmpVertex>) rightHand)
+					{
+						Map<PAIRCOMPATIBILITY, Set<CmpVertex>> actualMap = statesAssociatedTo(secondVertex);
+						if (!expectedMap.equals(actualMap))
+							throw new DifferentFSMException("state pair " + entry.getKey() + " and " + secondVertex + " have incompatible associations : "+expectedMap+
+									" for graph \"" + expectedGraphName+ "\" v.s. "+actualMap+ " for \""+actualGraphName+"\"");
+					}
+				else
 				{
-					Map<PAIRCOMPATIBILITY,Set<CmpVertex>> actualMap = statesAssociatedTo(secondVertex);
+					Map<PAIRCOMPATIBILITY, Set<CmpVertex>> actualMap = statesAssociatedTo((CmpVertex) rightHand);
 					if (!expectedMap.equals(actualMap))
-						throw new DifferentFSMException("state pair "+entry.getKey()+" and "+secondVertex+" have incompatible associations : "+expectedMap+
+						throw new DifferentFSMException("state pair " + entry.getKey() + " and " + rightHand + " have incompatible associations : "+expectedMap+
 								" for graph \"" + expectedGraphName+ "\" v.s. "+actualMap+ " for \""+actualGraphName+"\"");
 				}
 			}
 		}
 	}
-	
 	/** Checks the equivalence between the two states, stateG of graphA and stateB of graphB.
 	 * Unreachable states  are ignored.
 	 * Compatibility labelling other than INCOMPATIBLE is only checked for deterministic graphs.

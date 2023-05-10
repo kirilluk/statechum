@@ -177,7 +177,7 @@ public class MergeStates {
 		return currentExplorationBoundary;
 	}
 	
-	/** Merges the supplied pair of states states of the supplied machine. 
+	/** Merges the supplied pair of states of the supplied machine.
 	 * Returns the result of merging and populates the collection containing equivalence classes.
 	 *  
 	 * @param original the machine in which to merge two states
@@ -189,13 +189,18 @@ public class MergeStates {
 	 * In addition, mergedStates of the graph returned is set to equivalence classes 
 	 * relating original and merged states.
 	 */
-	public static LearnerGraph mergeCollectionOfVertices(LearnerGraph original,CmpVertex redVertex, Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices, Collection<CmpVertex> limitVerticesTo, boolean updateAuxInformation)
+	public static LearnerGraph mergeCollectionOfVertices(LearnerGraph original,CmpVertex redVertex,
+														 Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> mergedVertices,
+														 Collection<CmpVertex> limitVerticesTo, boolean updateAuxInformation)
 	{
 		LearnerGraph result = new LearnerGraph(original.config);result.initEmpty();
 		Configuration cloneConfig = result.config.copy();cloneConfig.setLearnerCloneGraph(true);
 		LearnerGraph configHolder = new LearnerGraph(cloneConfig);
 		// Build a map from old vertices to the corresponding equivalence classes
-		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToEqClass = new HashMap<>();
+		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToEqClass =
+				new HashMap<>(2 * (original.vertPositiveID + original.vertNegativeID));
+
+				// The choice of ArrayMapWithSearch slows LearnFromLargePTA a great deal (many times).
 				/*original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
 				new ArrayMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.vertPositiveID,original.vertNegativeID):
 				new HashMapWithSearch<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>>(original.vertPositiveID+original.vertNegativeID);*/
@@ -232,7 +237,7 @@ public class MergeStates {
 		// This map associates vertices in the original graph to those in the cloned one. It is populated when new vertices are explored and therefore doubles as a 'visited' set.
 		MapWithSearch<VertID,CmpVertex,CmpVertex> originalVertexToClonedVertex = original.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?
 				new ArrayMapWithSearch<>(original.vertPositiveID, original.vertNegativeID):
-					new HashMapWithSearch<>(original.vertPositiveID + original.vertNegativeID);
+					new HashMapWithSearch<>(2*(original.vertPositiveID + original.vertNegativeID));
 				
 		Collection<CmpVertex> verticesToStartFrom = limitVerticesTo;
 		if (limitVerticesTo == null)

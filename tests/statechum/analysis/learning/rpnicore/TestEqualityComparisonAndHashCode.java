@@ -799,7 +799,8 @@ public class TestEqualityComparisonAndHashCode {
 	{
 		CmpVertex A = new StringVertex("A"), B = new StringVertex("B"), C=AbstractLearnerGraph.generateNewJungVertex("C");
 		C.setAccept(false);
-		PairCompatibility<CmpVertex> incompatibles = new PairCompatibility<>(HashMapWithSearch.DEFAULT_INITIAL_CAPACITY / 2, HashMapWithSearch.DEFAULT_INITIAL_CAPACITY / 2);
+		// testGraph here only determines the type of transition matrix created.
+		PairCompatibility<CmpVertex> incompatibles = new PairCompatibility<>(testGraph,HashMapWithSearch.DEFAULT_INITIAL_CAPACITY / 2, HashMapWithSearch.DEFAULT_INITIAL_CAPACITY / 2);
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, B, incompatibles));
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(B, A, incompatibles));
 		Assert.assertTrue(AbstractLearnerGraph.checkCompatible(A, A, incompatibles));

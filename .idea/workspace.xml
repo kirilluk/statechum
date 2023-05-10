@@ -4,42 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Moved Harmony to separate directory, currently using old collections. All (including lengthy) tests pass.">
-      <change beforePath="$PROJECT_DIR$/.classpath" beforeDir="false" afterPath="$PROJECT_DIR$/.classpath" afterDir="false" />
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Misc cleanup">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.settings/org.eclipse.jdt.core.prefs" beforeDir="false" afterPath="$PROJECT_DIR$/.settings/org.eclipse.jdt.core.prefs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/XMachineTool.iml" beforeDir="false" afterPath="$PROJECT_DIR$/XMachineTool.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections/statechum/collections/HashMapWithSearch.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections/statechum/collections/TreeMapWithSearch.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections_Harmony/src/harmony/collections/HarmonyAbstractMap.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections_Harmony/src/harmony/collections/HarmonyMapEntry.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections_Harmony/src/harmony/collections/HarmonyTreeMap.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections_Harmony/src/harmony/collections/HashMapWithSearch.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections_Harmony/src/harmony/collections/LinkedHashMapWithSearch.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections_Harmony/src/harmony/collections/TreeMapWithSearch.java" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections_Harmony/test/harmony/collections/HarmonyAbstractMapTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_collections_Harmony/test/harmony/collections/HarmonyAbstractMapTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections_Harmony/test/harmony/collections/HarmonyHashMapTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_collections_Harmony/test/harmony/collections/HarmonyHashMapTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections_Harmony/test/harmony/collections/HarmonyTreeMapTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_collections_Harmony/test/harmony/collections/HarmonyTreeMapTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections_Harmony/test/harmony/collections/LinkedHashMapTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_collections_Harmony/test/harmony/collections/LinkedHashMapTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/modified_collections_Harmony/test/harmony/collections/TreeMapWithSearchTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/lib/modified_collections_Harmony/test/harmony/collections/TreeMapWithSearchTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/Configuration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Configuration.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AMEquivalenceClass.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AMEquivalenceClass.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractLearnerGraph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractLearnerGraph.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractPathRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractPathRoutines.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/LearnerGraph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/LearnerGraph.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/LearnerGraphND.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/LearnerGraphND.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/MergeStates.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/MergeStates.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PathRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PathRoutines.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/WMethod.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/WMethod.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/model/testset/PTASequenceEngine.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/model/testset/PTASequenceEngine.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/collections/TestMapWithSearch.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/collections/TestMapWithSearch.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestEqualityComparisonAndHashCode.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestEqualityComparisonAndHashCode.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestLTLToBa.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestLTLToBa.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/old_generalised_merge_routines/OldPairScoreComputation.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/old_generalised_merge_routines/OldPairScoreComputation.java" afterDir="false" />
     </list>
+    <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -78,7 +46,7 @@
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
     &quot;jdk.selected.JAVA_MODULE&quot;: &quot;1.8&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/experiment/statechum-master/lib/weka.jar&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/experiment/git-statechum&quot;,
     &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
     &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
     &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
@@ -315,6 +283,29 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="TestLearnerFromLargePTA" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.TestLearnerFromLargePTA" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="TestLengthy (using OTP24)" type="JUnit" factoryName="JUnit">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -377,30 +368,6 @@
       <option name="TEST_OBJECT" value="method" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <option name="PARAMETERS" value="[1,tests for TreeMapWithSearch]" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestMapWithSearch.testSizeTwo3" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="collections.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
-      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
-      <option name="PACKAGE_NAME" value="collections" />
-      <option name="MAIN_CLASS_NAME" value="collections.TestMapWithSearch" />
-      <option name="METHOD_NAME" value="testSizeTwo3" />
-      <option name="TEST_OBJECT" value="method" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <option name="PARAMETERS" value="[0,tests for HashMapWithSearch]" />
       <envs>
         <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
         <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
@@ -551,19 +518,19 @@
       <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangSomething" />
       <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangMapParser" />
       <item itemvalue="JUnit.TestParserDot" />
+      <item itemvalue="JUnit.TestLearnerFromLargePTA" />
       <item itemvalue="JUnit.TestPaperUASLarge" />
       <item itemvalue="JUnit.TestMapWithSearch" />
       <item itemvalue="JUnit.TestMapWithSearch.testNull1" />
-      <item itemvalue="JUnit.TestMapWithSearch.testSizeTwo3" />
       <item itemvalue="JUnit.TestMapWithSearch.testSizeTwo_EntrySet1" />
     </list>
     <recent_temporary>
       <list>
         <item itemvalue="JUnit.TestPaperUASLarge" />
+        <item itemvalue="JUnit.TestLearnerFromLargePTA" />
         <item itemvalue="JUnit.TestMapWithSearch" />
         <item itemvalue="JUnit.TestMapWithSearch.testNull1" />
         <item itemvalue="JUnit.TestMapWithSearch.testSizeTwo_EntrySet1" />
-        <item itemvalue="JUnit.TestMapWithSearch.testSizeTwo3" />
       </list>
     </recent_temporary>
   </component>
@@ -571,6 +538,7 @@
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="" />
+      <changelist id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="" />
       <created>1651006527168</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
@@ -690,7 +658,21 @@
       <option name="project" value="LOCAL" />
       <updated>1683553889497</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="Misc cleanup">
+      <created>1683678542790</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1683678542790</updated>
+    </task>
+    <task id="LOCAL-00018" summary="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news.">
+      <created>1683678906638</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1683678906638</updated>
+    </task>
+    <option name="localTasksCounter" value="19" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -743,14 +725,16 @@
     <MESSAGE value="Renamed ParameterizedWithName's package to junit_runners in order for it to be different to JUnit's since when running under Eclipse it causes security error given that JUnit package is signed and ParameterizedWithName is not. In addition, made sure that construction of vertices does not pass an existing vertex to DeterministicVertex as an ID - even a single attempt to compareTo between DeterministicVertex with StringVertex as ID and another ID appears to reduce the performance of subsequent computations by around 10%." />
     <MESSAGE value="Renamed ParameterizedWithName's package to junit_runners in order for it to be different to JUnit's since when running under Eclipse it causes security error given that JUnit package is signed and ParameterizedWithName is not. In addition, made sure that construction of vertices does not pass an existing vertex to DeterministicVertex as an ID - even a single attempt to compareTo between DeterministicVertex with StringVertex as ID and another ID appears to reduce the performance of subsequent computations by around 10%. Miscellaneous cleanup." />
     <MESSAGE value="Moved Harmony to separate directory, currently using old collections. All (including lengthy) tests pass." />
-    <option name="LAST_COMMIT_MESSAGE" value="Moved Harmony to separate directory, currently using old collections. All (including lengthy) tests pass." />
+    <MESSAGE value="Misc cleanup" />
+    <MESSAGE value="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
+    <option name="LAST_COMMIT_MESSAGE" value="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/WMethod.java</url>
-          <line>785</line>
+          <line>786</line>
           <option name="timeStamp" value="22" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">

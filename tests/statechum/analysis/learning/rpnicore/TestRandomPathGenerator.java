@@ -1000,7 +1000,7 @@ public class TestRandomPathGenerator {
 		LearnerGraph pta = new LearnerGraph(config);
 		pta.paths.augmentPTA(generator.getAllSequences(0));
 		
-		LearnerGraph expectedPTA = buildLearnerGraph("A-a1->B-a2->C-a4->C1-a3->D-c1->E / C1-a4->C2-a4->C3-b2->Anew1 / D-b3->Anew2 / E-b3-#REJ/E-b1-#REJ2","test_generatePathThatEndsAtInitialState1",config,converter);
+		LearnerGraph expectedPTA = buildLearnerGraph("A-a1->B-a2->C-a4->C1-a3->D-c1->E / C1-a4->C2-a4->C3-b2->AneP / D-b3->AneQ / E-b3-#REJ/E-b1-#REJ2","test_generatePathThatEndsAtInitialState1",config,converter);
 		DifferentFSMException diff = WMethod.checkM(expectedPTA, pta);
 		if (diff != null)
 			throw diff;

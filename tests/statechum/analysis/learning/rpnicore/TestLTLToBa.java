@@ -944,11 +944,11 @@ public class TestLTLToBa
 				"IAD-a->ABDE\n"+
 				"ABDE-a->IBCE\n"+
 				"IBCE-a->IACD\n"+
-				"IACD-a->IABDE\n"+
-				"IABDE-a->IABCDE\n"+
-				"IABCDE-a->IABCDE\n"+
-				"BE-b->B-a->C-a->I\n"+"ABDE-b->B\n"+"IBCE-b->B\n"+"IABDE-b->B\n"+"IABCDE-b->B\n"+"B-b->B\n"+
-				"BE-c->E-a->I\n"+"ABDE-c->E\n"+"IBCE-c->E\n"+"IABDE-c->E\n"+"IABCDE-c->E\n"+"E-c->E\n"
+				"IACD-a->IABX\n"+
+				"IABX-a->IABY\n"+
+				"IABY-a->IABY\n"+
+				"BE-b->B-a->C-a->I\n"+"ABDE-b->B\n"+"IBCE-b->B\n"+"IABX-b->B\n"+"IABY-b->B\n"+"B-b->B\n"+
+				"BE-c->E-a->I\n"+"ABDE-c->E\n"+"IBCE-c->E\n"+"IABX-c->E\n"+"IABY-c->E\n"+"E-c->E\n"
 				, "testLTL_ba_nd2",config,converter);
 		Assert.assertNull(WMethod.checkM(expected,loadLTLFromOutputOfLTL2BA(text)));
 	}

@@ -22,7 +22,7 @@
 /* The following line is based on http://www.vtk.org/pipermail/vtkusers/2006-May/085047.html */
 //typedef long long __int64;
 
-#include <jni.h>
+#include "jni.h"
 
 #define ERRMSG_MAX 4096
 

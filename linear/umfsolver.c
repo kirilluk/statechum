@@ -27,7 +27,17 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
-	
+
+
+#ifdef WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include "openblas64/openblas_config.h"
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved) {
+  return DllMainBlas(hModule,ul_reason_for_call,lpReserved);// make sure Open Blas is initialised
+}
+#endif
+
 
 #if HAVE_CONFIG_H
 #  include <config.h>
@@ -355,3 +365,4 @@ STDCALLFUDGE(Java_statechum_analysis_learning_rpnicore_LSolver_extsolve)(
 
   return JNI_TRUE;
 }
+

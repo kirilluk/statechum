@@ -4,8 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Misc cleanup">
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Corrected a couple of tests - they were failing due to the conversion from string names to vertex numbers. Previously this was not noticable but now I'm using array-based collections in checkM so such things stand out.">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/linear/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/linear/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/linear/umfsolver.c" beforeDir="false" afterPath="$PROJECT_DIR$/linear/umfsolver.c" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
@@ -76,7 +79,7 @@
       <recent name="statechum.analysis.learning.rpnicore" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.TestPaperUASLarge">
+  <component name="RunManager" selected="JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23">
     <configuration name="OTP 24 - erlangtmp" type="JUnit" factoryName="JUnit">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -132,6 +135,23 @@
       <option name="METHOD_NAME" value="testPredictTransitionsFromStatesForward3" />
       <option name="TEST_OBJECT" value="method" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestAll - OpenJDK 18 - UMFPACK Jan 23" type="JUnit" factoryName="JUnit">
+      <module name="XMachineTool" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
+      <option name="PACKAGE_NAME" value="statechum" />
+      <option name="MAIN_CLASS_NAME" value="statechum.AllTests" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=&quot;d:\experiment\statechum-linear\lib\bin&quot;;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <envs>
         <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
         <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
@@ -283,6 +303,52 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="TestLTLToBa" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestLTLToBa" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestLTLToBa.testLTL_ba_nd2" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestLTLToBa" />
+      <option name="METHOD_NAME" value="testLTL_ba_nd2" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="TestLearnerFromLargePTA" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -329,77 +395,6 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestMapWithSearch" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="collections.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
-      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
-      <option name="PACKAGE_NAME" value="collections" />
-      <option name="MAIN_CLASS_NAME" value="collections.TestMapWithSearch" />
-      <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestMapWithSearch.testNull1" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="collections.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
-      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
-      <option name="PACKAGE_NAME" value="collections" />
-      <option name="MAIN_CLASS_NAME" value="collections.TestMapWithSearch" />
-      <option name="METHOD_NAME" value="testNull1" />
-      <option name="TEST_OBJECT" value="method" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <option name="PARAMETERS" value="[1,tests for TreeMapWithSearch]" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestMapWithSearch.testSizeTwo_EntrySet1" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="collections.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
-      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
-      <option name="PACKAGE_NAME" value="collections" />
-      <option name="MAIN_CLASS_NAME" value="collections.TestMapWithSearch" />
-      <option name="METHOD_NAME" value="testSizeTwo_EntrySet1" />
-      <option name="TEST_OBJECT" value="method" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <option name="PARAMETERS" value="[1,tests for TreeMapWithSearch]" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="TestPaperUASLarge" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -435,6 +430,29 @@
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
       <option name="METHOD_NAME" value="" />
       <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestRandomPathGenerator.test_generatePathThatEndsAtInitialState2c" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestRandomPathGenerator" />
+      <option name="METHOD_NAME" value="test_generatePathThatEndsAtInitialState2c" />
+      <option name="TEST_OBJECT" value="method" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <envs>
         <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
@@ -506,6 +524,7 @@
     </configuration>
     <list>
       <item itemvalue="JUnit.TestAll - OpenJDK 18" />
+      <item itemvalue="JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23" />
       <item itemvalue="JUnit.Run All tests with old OTP" />
       <item itemvalue="JUnit.TestAutoAnswers - OTP 17" />
       <item itemvalue="JUnit.TestAutoAnswers - OTP 24" />
@@ -518,19 +537,19 @@
       <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangSomething" />
       <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangMapParser" />
       <item itemvalue="JUnit.TestParserDot" />
+      <item itemvalue="JUnit.TestLTLToBa" />
+      <item itemvalue="JUnit.TestLTLToBa.testLTL_ba_nd2" />
+      <item itemvalue="JUnit.TestRandomPathGenerator.test_generatePathThatEndsAtInitialState2c" />
       <item itemvalue="JUnit.TestLearnerFromLargePTA" />
       <item itemvalue="JUnit.TestPaperUASLarge" />
-      <item itemvalue="JUnit.TestMapWithSearch" />
-      <item itemvalue="JUnit.TestMapWithSearch.testNull1" />
-      <item itemvalue="JUnit.TestMapWithSearch.testSizeTwo_EntrySet1" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="JUnit.TestRandomPathGenerator.test_generatePathThatEndsAtInitialState2c" />
+        <item itemvalue="JUnit.TestLTLToBa" />
+        <item itemvalue="JUnit.TestLTLToBa.testLTL_ba_nd2" />
         <item itemvalue="JUnit.TestPaperUASLarge" />
         <item itemvalue="JUnit.TestLearnerFromLargePTA" />
-        <item itemvalue="JUnit.TestMapWithSearch" />
-        <item itemvalue="JUnit.TestMapWithSearch.testNull1" />
-        <item itemvalue="JUnit.TestMapWithSearch.testSizeTwo_EntrySet1" />
       </list>
     </recent_temporary>
   </component>
@@ -727,7 +746,8 @@
     <MESSAGE value="Moved Harmony to separate directory, currently using old collections. All (including lengthy) tests pass." />
     <MESSAGE value="Misc cleanup" />
     <MESSAGE value="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
-    <option name="LAST_COMMIT_MESSAGE" value="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
+    <MESSAGE value="Corrected a couple of tests - they were failing due to the conversion from string names to vertex numbers. Previously this was not noticable but now I'm using array-based collections in checkM so such things stand out." />
+    <option name="LAST_COMMIT_MESSAGE" value="Corrected a couple of tests - they were failing due to the conversion from string names to vertex numbers. Previously this was not noticable but now I'm using array-based collections in checkM so such things stand out." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -752,15 +772,20 @@
           <line>46</line>
           <option name="timeStamp" value="60" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/statechum/DeterministicDirectedSparseGraph.java</url>
-          <line>133</line>
-          <option name="timeStamp" value="77" />
-        </line-breakpoint>
         <line-breakpoint type="java-line">
           <url>file://$PROJECT_DIR$/tests/collections/TestMapWithSearch.java</url>
           <line>1759</line>
           <option name="timeStamp" value="79" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/DeterministicDirectedSparseGraph.java</url>
+          <line>243</line>
+          <option name="timeStamp" value="81" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/LSolver.java</url>
+          <line>466</line>
+          <option name="timeStamp" value="82" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

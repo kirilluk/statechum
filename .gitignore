@@ -46,3 +46,7 @@ smt/m4/
 smt/yices_caller.lo
 smt/yices_caller.o
 /erl_crash.dump
+
+
+linear/cmake-build-relwithdebinfo-visual-studio-2022-x64
+linear/.idea

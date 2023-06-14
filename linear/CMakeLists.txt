@@ -94,16 +94,16 @@ target_include_directories(StatechumSolver PRIVATE ${JNI_INCLUDE_DIRS})
 target_link_libraries(StatechumSolver PUBLIC ${JNI_LIBRARIES})
 
 # dependencies
-target_link_libraries(StatechumSolver PUBLIC
+target_link_libraries(StatechumSolver PRIVATE
         ${BLAS_LIBRARIES}
         ${LAPACK_LIBRARIES}
-        ${AMD}
-        ${CAMD} ${CCOLAMD} ${COLAMD}
-        ${SUITESPARSE_CONFIG}
+        ${AMD_STATIC}
+        ${CAMD_static} ${CCOLAMD_STATIC} ${COLAMD_STATIC}
+        ${SUITESPARSE_CONFIG_STATIC}
         )
 
 # umfpack:
-target_link_libraries ( StatechumSolver PUBLIC ${UMFPACK_LIBRARIES} )
+target_link_libraries ( StatechumSolver PRIVATE ${UMFPACK_STATIC} )
 include_directories ( ${UMFPACK_INCLUDE_DIR} )
 
 #-------------------------------------------------------------------------------

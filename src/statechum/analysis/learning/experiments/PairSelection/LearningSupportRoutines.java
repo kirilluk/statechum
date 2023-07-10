@@ -93,28 +93,28 @@ public class LearningSupportRoutines
 	{
 		Set<Label> deadLabels = new HashSet<>();
 		
-		Map<Label,CmpVertex> labelToState = new TreeMap<>();
+		Map<Label,CmpVertex> labelFromState = new TreeMap<>();
 		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 		{
 			CmpVertex state = entry.getKey(); 
 			for(Entry<Label,CmpVertex> target:entry.getValue().entrySet())
 				if (!deadLabels.contains(target.getKey()))
 				{// the label is not already recorded as present on transitions from different states.
-					CmpVertex recordedState = labelToState.get(target.getKey());
+					CmpVertex recordedState = labelFromState.get(target.getKey());
 					if (recordedState == null)
 						// first time we've seen this label in use
-						labelToState.put(target.getKey(),state);
+						labelFromState.put(target.getKey(),state);
 					else
 						if (recordedState != state)
 						{
-							// record the label as leading to multiple states
+							// record the label as leading from multiple states
 							deadLabels.add(target.getKey());
-							labelToState.remove(target.getKey());
+							labelFromState.remove(target.getKey());
 						}
 				}
 		}
 		
-		return labelToState;
+		return labelFromState;
 	}
 
 	/** Finds a label that uniquely identifies the initial state. 
@@ -134,7 +134,7 @@ public class LearningSupportRoutines
 		return liveLabels.iterator().next();
 	}
 	
-	/** All label starting from this prefix are going to be merged. */
+	/** All labels starting from this prefix are going to be merged. */
 	public static final String prefixOfMandatoryMergeTransition = "toMerge", pairwiseAutomata = "pairwiseConstraints";
 	
 	public static void addIfThenForMandatoryMerge(LearnerEvaluationConfiguration initialData, Collection<Label> dataOnUniqueTransitions)
@@ -146,7 +146,8 @@ public class LearningSupportRoutines
 		for(Label l:dataOnUniqueTransitions)
 		{
 			String lbl = l.toString(), mandatory = prefixOfMandatoryMergeTransition+"_"+transitionNumber+"_"+lbl;
-			initialData.ifthenSequences.add(QSMTool.cmdIFTHENAUTOMATON + " Mandatory_"+transitionNumber+"_via_"+lbl+" A- !"+lbl+" || "+mandatory+" ->A-"+lbl+"->B - "+lbl+" ->B / B- !"+lbl+" || "+mandatory+" ->A / B == THEN == C / C-"+mandatory+"->D");
+			initialData.ifthenSequences.add(QSMTool.cmdIFTHENAUTOMATON +
+					" Mandatory_"+transitionNumber+"_via_"+lbl+" A- !"+lbl+" || "+mandatory+" ->A-"+lbl+"->B - "+lbl+" ->B / B- !"+lbl+" || "+mandatory+" ->A / B == THEN == C / C-"+mandatory+"->D");
 			++transitionNumber;
 		}
 	}
@@ -320,7 +321,7 @@ public class LearningSupportRoutines
 			return pair.getScore();
 		
 		if (
-				!pair.getQ().isAccept() || !pair.getR().isAccept() || // if any is a negative, it can always be merged.
+				!pair.getQ().isAccept() || !pair.getR().isAccept() || // if any is a negative, it can always be merged because only leaf states can be negative vertices.
 				tentativeGraph.pairscores.computePairCompatibilityScore_general(pair, pairsList, verticesToMerge, false) >= 0 // the pair does not contradict mandatory merge.
 		)
 		return pair.getScore();

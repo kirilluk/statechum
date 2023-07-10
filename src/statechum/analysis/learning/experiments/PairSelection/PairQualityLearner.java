@@ -18,41 +18,20 @@
 package statechum.analysis.learning.experiments.PairSelection;
 
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.Map.Entry;
-
-
-import java.util.Stack;
-import java.util.TreeMap;
-import java.util.TreeSet;
-
 import statechum.Configuration;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.JUConstants;
 import statechum.Label;
 import statechum.StatechumXML;
-import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.MarkovClassifier;
+import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
+import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelperClassifier;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.StateMergingStatistics;
 import statechum.analysis.learning.experiments.PairSelection.WekaDataCollector.PairRank;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments;
@@ -60,15 +39,16 @@ import statechum.analysis.learning.observers.LearnerSimulator;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason;
-import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
-import statechum.analysis.learning.rpnicore.EquivalenceClass;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.PairScoreComputation;
+import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import weka.classifiers.Classifier;
 import weka.core.Instance;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.*;
+import java.util.Map.Entry;
 
 /** This one aims to learn how to choose pairs and red states in the way that leads to most accurate learning
  * outcomes.
@@ -99,8 +79,8 @@ public class PairQualityLearner
 	public static int computeTreeSize(LearnerGraph graph,CmpVertex stateToStartFrom)
 	{
 		int counter = 0;
-		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
-		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();
+		Queue<CmpVertex> fringe = new LinkedList<>();
+		Set<CmpVertex> statesInFringe = new HashSet<>();
 		fringe.add(stateToStartFrom);statesInFringe.add(stateToStartFrom);
 		while(!fringe.isEmpty())
 		{
@@ -221,14 +201,14 @@ public class PairQualityLearner
 		
 		public List<String> getColumnList()
 		{
-			List<String> result = new ArrayList<String>();result.addAll(Arrays.asList(new String[]{Integer.toString(ifDepth),graphIsPTA?"PTA":"nonPTA"}));result.addAll(markovParameters.getColumnListForMarkovLearner());
+			List<String> result = new ArrayList<>();result.addAll(Arrays.asList(Integer.toString(ifDepth),graphIsPTA?"PTA":"nonPTA"));result.addAll(markovParameters.getColumnListForMarkovLearner());
 			return result;
 		}
 		
 		@Override
 		public String toString()
 		{
-			return "["+(ifDepth>=0?ifDepth:"Num")+(graphIsPTA?"_PTA":"")+"_G="+Double.toString(good_vs_bad_diff)+"_I="+fraction_of_pairs_to_ignore+(peel?"_P":"_N")+"_"+markovParameters.getColumnID(true)+"]";
+			return "["+(ifDepth>=0?ifDepth:"Num")+(graphIsPTA?"_PTA":"")+"_G="+ good_vs_bad_diff +"_I="+fraction_of_pairs_to_ignore+(peel?"_P":"_N")+"_"+markovParameters.getColumnID(true)+"]";
 		}
 		
 		public DataCollectorParameters()
@@ -252,9 +232,9 @@ public class PairQualityLearner
 	public static WekaDataCollector createDataCollector(final DataCollectorParameters parameters, MarkovHelper m, MarkovHelperClassifier multi)
 	{
 		final WekaDataCollector classifier = new WekaDataCollector(m,multi,parameters);
-		List<PairRank> assessors = new ArrayList<PairRank>(20);
+		List<PairRank> assessors = new ArrayList<>(20);
 		int arg=0;
-		List<PairRank> assessorsThatComputeScores = new ArrayList<PairRank>(), assessorsThatUseMarkov = new ArrayList<PairRank>();
+		List<PairRank> assessorsThatComputeScores = new ArrayList<>(), assessorsThatUseMarkov = new ArrayList<>();
 		
 		
 		if (parameters.graphIsPTA && (parameters.bitstringOfEnabledParameters & (1 << arg++)) != 0)
@@ -574,7 +554,7 @@ public class PairQualityLearner
 		
 		if (multi != null)
 		{
-			MarkovModel models [] = multi.getModels();
+			MarkovModel[] models = multi.getModels();
 			for(int i=0;i<models.length;++i)
 			{
 				if  ((parameters.bitstringOfEnabledParameters & (1 << arg)) != 0)
@@ -851,7 +831,7 @@ public class PairQualityLearner
 						int []comparisonResults = new int[dataCollector.getInstanceLength()];
 						dataCollector.fillInPairDetails(comparisonResults,p, pairs);
 						Instance instance = dataCollector.constructInstance(comparisonResults, true);
-						double distribution[]=classifier.distributionForInstance(instance);
+						double[] distribution =classifier.distributionForInstance(instance);
 						long quality = obtainMeasureOfQualityFromDistribution(distribution,classTrue);
 						if ( quality >= 0 )
 						{
@@ -870,7 +850,7 @@ public class PairQualityLearner
 		}
 		
 		static final long maxQuality = 100, unknown=-1000; 
-		long obtainMeasureOfQualityFromDistribution(double distribution[], int classOfInterest)
+		long obtainMeasureOfQualityFromDistribution(double[] distribution, int classOfInterest)
 		{
 			assert distribution.length == 2;
 			double goodClass = distribution[classOfInterest], badClass = distribution[1-classOfInterest];
@@ -888,14 +868,14 @@ public class PairQualityLearner
 		
 		protected Collection<PairScore> classifyAllPairsUsingClassifyPair(Collection<PairScore> allPairs)
 		{
-			Collection<PairScore> outcome = new ArrayList<PairScore>(allPairs.size());
+			Collection<PairScore> outcome = new ArrayList<>(allPairs.size());
 			int []comparisonResults = new int[dataCollector.getInstanceLength()];
 
 			for(PairScore p:allPairs)
 			{
 				dataCollector.fillInPairDetails(comparisonResults,p, allPairs);
 				Instance instance = dataCollector.constructInstance(comparisonResults, true);// here classification is a dummy.
-				double distribution[]=null;
+				double[] distribution =null;
 				try
 				{
 					distribution=classifier.distributionForInstance(instance);
@@ -907,7 +887,7 @@ public class PairQualityLearner
 				}
 				long trueQuality = obtainMeasureOfQualityFromDistribution(distribution,classTrue);
 				long falseQuality = obtainMeasureOfQualityFromDistribution(distribution,classFalse);
-				PairScore revisedPair = null;
+				PairScore revisedPair;
 				if (trueQuality > 0)
 					revisedPair = new PairScore(p.getQ(),p.getR(),p.getScore(),classTrue);
 				else if (falseQuality > 0)
@@ -936,14 +916,14 @@ public class PairQualityLearner
 		protected Collection<PairScore> classifyAllPairsInListUsingPeel(Collection<PairScore> allPairs)
 		{
 			int []comparisonResults = new int[dataCollector.getInstanceLength()], bestComparisonResults = new int[dataCollector.getInstanceLength()];
-			List<PairScore> currentPairs = new ArrayList<PairScore>(allPairs.size());currentPairs.addAll(allPairs);
-			Collection<PairScore> outcome = new ArrayList<PairScore>(allPairs.size());
+			List<PairScore> currentPairs = new ArrayList<>(allPairs.size());currentPairs.addAll(allPairs);
+			Collection<PairScore> outcome = new ArrayList<>(allPairs.size());
 			int pairsLeft = allPairs.size();
 			while(pairsLeft >allPairs.size()*par.dataCollectorParameters.fraction_of_pairs_to_ignore)
 			{
 				PairScore currentBest = dataCollector.pickNextMostNonZeroPair(currentPairs, comparisonResults, bestComparisonResults);
 				Instance instance = dataCollector.constructInstance(bestComparisonResults, true);// here classification is a dummy.
-				double distribution[]=null;
+				double[] distribution;
 				try
 				{
 					distribution=classifier.distributionForInstance(instance);
@@ -955,7 +935,7 @@ public class PairQualityLearner
 				}
 				long trueQuality = obtainMeasureOfQualityFromDistribution(distribution,classTrue);
 				long falseQuality = obtainMeasureOfQualityFromDistribution(distribution,classFalse);
-				PairScore revisedPair = null;
+				PairScore revisedPair;
 				if (trueQuality > 0)
 					revisedPair = new PairScore(currentBest.getQ(),currentBest.getR(),currentBest.getScore(),classTrue);
 				else if (falseQuality > 0)
@@ -1005,8 +985,8 @@ public class PairQualityLearner
 					allPairsNegative = false;break;
 				}
 			}
-			Stack<PairScore> possibleResults = new Stack<PairScore>();
-			ArrayList<PairScore> nonNegPairs = new ArrayList<PairScore>(pairsToStartWith.size());
+			Stack<PairScore> possibleResults = new Stack<>();
+			ArrayList<PairScore> nonNegPairs = new ArrayList<>(pairsToStartWith.size());
 			if (allPairsNegative)
 				possibleResults.addAll(pairsToStartWith);
 			else
@@ -1075,7 +1055,7 @@ public class PairQualityLearner
 			}
 		}
 		
-		public static final void debugBreak()
+		public static void debugBreak()
 		{
 			System.out.println();
 		}
@@ -1083,12 +1063,12 @@ public class PairQualityLearner
 		/** If there is a state to be labelled red, returns it. This permits one to enlarge a set of possible pairs, merging only best ones compared to choosing from a list of mediocre pairs. */
 		protected CmpVertex selectRedStateIfAnySeemsRedEnough(Collection<PairScore> pairsToStartWith, LearnerGraph tentativeGraph, LearnerGraphND invTentativeGraph, CmpVertex stateToDebug)
 		{
-			Map<CmpVertex,ValueAndCount> possiblyRedVerticesToTheirQuality = new TreeMap<CmpVertex,ValueAndCount>();
+			Map<CmpVertex,ValueAndCount> possiblyRedVerticesToTheirQuality = new TreeMap<>();
 			for(PairScore p:pairsToStartWith)
 				possiblyRedVerticesToTheirQuality.put(p.getQ(),new ValueAndCount());
 
 			dataCollector.buildSetsForComparators(pairsToStartWith,tentativeGraph,invTentativeGraph);
-			LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+			LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();
 			List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
 
 			Collection<PairScore> pairs=classifyAllPairs(pairsToStartWith);
@@ -1273,7 +1253,7 @@ public class PairQualityLearner
 		}
 
 		
-		public static interface CollectionOfPairsEstimator
+		public interface CollectionOfPairsEstimator
 		{
 			double obtainEstimateOfTheQualityOfTheCollectionOfPairs(LearnerGraph coregraph, LearnerGraphND invTentativeGraph, Collection<PairScore> pairs);
 		}
@@ -1350,9 +1330,9 @@ public class PairQualityLearner
 		
 		protected Set<CmpVertex> obtainBlueStatesThatChouldBecomeRedUsingReferenceGraph(LearnerGraph coregraph, List<PairScore> pairs)
 		{
-			List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
+			List<PairScore> correctPairs = new ArrayList<>(pairs.size()), wrongPairs = new ArrayList<>(pairs.size());
 			LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairs, correctPairs, wrongPairs);
-			Set<CmpVertex> possiblyRedVertices = new TreeSet<CmpVertex>();
+			Set<CmpVertex> possiblyRedVertices = new TreeSet<>();
 			for(PairScore p:pairs)
 				possiblyRedVertices.add(p.getQ());
 
@@ -1396,7 +1376,7 @@ public class PairQualityLearner
 
 				if (par.classifierToChooseWhereNoMergeIsAppropriate)
 				{
-					List<PairScore> correctPairs = new ArrayList<PairScore>(pairs.size()), wrongPairs = new ArrayList<PairScore>(pairs.size());
+					List<PairScore> correctPairs = new ArrayList<>(pairs.size()), wrongPairs = new ArrayList<>(pairs.size());
 					LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(coregraph, referenceGraph, pairs, correctPairs, wrongPairs);
 					if (predictionQuality != null)
 					{
@@ -1478,13 +1458,13 @@ public class PairQualityLearner
 				}
 
 				{
-					List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
-					List<PairScore> pairs = new ArrayList<PairScore>(1);pairs.add(outcome.peek());
+					List<PairScore> correctPairs = new ArrayList<>(1), wrongPairs = new ArrayList<>(1);
+					List<PairScore> pairs = new ArrayList<>(1);pairs.add(outcome.peek());
 					LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, pairs, correctPairs, wrongPairs);
 					
 					{
 						Collection<PairScore> classifiedPairs = classifyAllPairs(origPairs);
-						List<PairScore> correctPairsFromAll = new ArrayList<PairScore>(classifiedPairs.size()), wrongPairsFromAll = new ArrayList<PairScore>(classifiedPairs.size());
+						List<PairScore> correctPairsFromAll = new ArrayList<>(classifiedPairs.size()), wrongPairsFromAll = new ArrayList<>(classifiedPairs.size());
 						LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, classifiedPairs, correctPairsFromAll, wrongPairsFromAll);
 						if (predictionQuality != null)
 						{
@@ -1496,7 +1476,7 @@ public class PairQualityLearner
 					if (correctPairs.isEmpty())
 					{
 						System.out.println("wrong merge at "+outcome.peek()+" entire list of pairs is "+origPairs);
-						List<PairScore> correctPairsFromAllPairs = new ArrayList<PairScore>(origPairs.size()), wrongPairsFromAllPairs = new ArrayList<PairScore>(origPairs.size());
+						List<PairScore> correctPairsFromAllPairs = new ArrayList<>(origPairs.size()), wrongPairsFromAllPairs = new ArrayList<>(origPairs.size());
 						LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(graph, referenceGraph, origPairs, correctPairsFromAllPairs, wrongPairsFromAllPairs);
 						System.out.println("correct pairs are: "+correctPairsFromAllPairs);
 						classifyPairs(origPairs,graph,redNodeSelection.getInvTentativeGraph(),outcome.peek());
@@ -1512,9 +1492,9 @@ public class PairQualityLearner
 	} // uses a classifier in order to rank pairs.
 
 	/** Used to encapsulate computation of a typical difference using different methods. */
-	public static interface DifferenceToReference
+	public interface DifferenceToReference
 	{
-		public double getValue();
+		double getValue();
 	}
 	
 	public static class DifferenceOfTheNumberOfStates implements DifferenceToReference
@@ -1633,8 +1613,8 @@ public class PairQualityLearner
 				return new DifferenceToReferenceDiff(0,0);// a graph with all reject states is used to indicate that the learnt graph contains too many states.
 			
 	       	LearnerGraph learntGraph = new LearnerGraph(actualAutomaton.config);AbstractPathRoutines.removeRejectStates(actualAutomaton,learntGraph);
-			statechum.analysis.learning.linear.GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new statechum.analysis.learning.linear.GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>();
-			statechum.analysis.learning.linear.GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> changesCounter = new statechum.analysis.learning.linear.GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData>(referenceGraph, learntGraph, null);
+			statechum.analysis.learning.linear.GD<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> gd = new statechum.analysis.learning.linear.GD<>();
+			statechum.analysis.learning.linear.GD.ChangesCounter<CmpVertex,CmpVertex,LearnerGraphCachedData,LearnerGraphCachedData> changesCounter = new statechum.analysis.learning.linear.GD.ChangesCounter<>(referenceGraph, learntGraph, null);
 			gd.computeGD(referenceGraph, learntGraph, cpuNumber,changesCounter,config);
 			
 			int referenceEdges = referenceGraph.pathroutines.countEdges(), actualEdges = learntGraph.pathroutines.countEdges();
@@ -1751,27 +1731,27 @@ public class PairQualityLearner
 	
 	public static class ThreadResult 
 	{
-		public List<SampleData> samples = new LinkedList<SampleData>();
+		public List<SampleData> samples = new LinkedList<>();
 	}
 	
-	public static interface ThreadResultID
+	public interface ThreadResultID
 	{
 		/** Returns an ID of a row of results in a spreadsheet. Different columns correspond to different values of parameters. */
-		public String getRowID();
+		String getRowID();
 		/** Header for each column. It is frequently multi-line hence an array of strings is returned. */
-		public String []getColumnText();
+		String []getColumnText();
 		/** Returns an ID of a column of results in a spreadsheet. Where multiple experiments populate the 
 		 * same row in a spreadsheet, we need to tell which entries are to be placed in a single row. 
 		 * This ID makes it possible to do it. 
 		 */
-		public String getColumnID();
+		String getColumnID();
 		/** Each cell may contain results of multiple experiments, this one reports the respective headers. */
-		public String[] headerValuesForEachCell();
+		String[] headerValuesForEachCell();
 		/** Returns the name of the current experiment. */
-		public String getSubExperimentName();
+		String getSubExperimentName();
 		/** Returns the position of the "execution time element" among values in a cell (with headings from  {@link ThreadResultID#headerValuesForEachCell()}), 
 		 * starting from zero. Negatives mean no execution time. This element will be scaled based on the factor in the global configuration. 
 		 */
-		public int executionTimeInCell();
+		int executionTimeInCell();
 	}
 }

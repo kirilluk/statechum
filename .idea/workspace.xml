@@ -4,11 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Corrected a couple of tests - they were failing due to the conversion from string names to vertex numbers. Previously this was not noticable but now I'm using array-based collections in checkM so such things stand out.">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Builds with new umfpack and passes tests.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/linear/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/linear/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/linear/umfsolver.c" beforeDir="false" afterPath="$PROJECT_DIR$/linear/umfsolver.c" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningSupportRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningSupportRoutines.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityLearner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityLearner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/WekaDataCollector.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/WekaDataCollector.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/EquivalenceClass.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/EquivalenceClass.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
@@ -523,25 +526,25 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="JUnit.TestAll - OpenJDK 18" />
-      <item itemvalue="JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23" />
-      <item itemvalue="JUnit.Run All tests with old OTP" />
-      <item itemvalue="JUnit.TestAutoAnswers - OTP 17" />
-      <item itemvalue="JUnit.TestAutoAnswers - OTP 24" />
-      <item itemvalue="JUnit.TestAll (using OTP24)" />
-      <item itemvalue="JUnit.TestLengthy (using OTP24)" />
-      <item itemvalue="JUnit.Test something" />
-      <item itemvalue="JUnit.OTP 24" />
       <item itemvalue="JUnit.OTP 24 - erlangtmp" />
+      <item itemvalue="JUnit.OTP 24" />
+      <item itemvalue="JUnit.Test something" />
+      <item itemvalue="JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23" />
+      <item itemvalue="JUnit.TestAll - OpenJDK 18" />
+      <item itemvalue="JUnit.TestAll (using OTP24)" />
+      <item itemvalue="JUnit.TestAutoAnswers - OTP 17" />
+      <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangMapParser" />
       <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangParser" />
       <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangSomething" />
-      <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangMapParser" />
+      <item itemvalue="JUnit.TestAutoAnswers - OTP 24" />
+      <item itemvalue="JUnit.TestLengthy (using OTP24)" />
       <item itemvalue="JUnit.TestParserDot" />
+      <item itemvalue="JUnit.Run All tests with old OTP" />
       <item itemvalue="JUnit.TestLTLToBa" />
       <item itemvalue="JUnit.TestLTLToBa.testLTL_ba_nd2" />
-      <item itemvalue="JUnit.TestRandomPathGenerator.test_generatePathThatEndsAtInitialState2c" />
       <item itemvalue="JUnit.TestLearnerFromLargePTA" />
       <item itemvalue="JUnit.TestPaperUASLarge" />
+      <item itemvalue="JUnit.TestRandomPathGenerator.test_generatePathThatEndsAtInitialState2c" />
     </list>
     <recent_temporary>
       <list>
@@ -691,7 +694,14 @@
       <option name="project" value="LOCAL" />
       <updated>1683678906638</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="Builds with new umfpack and passes tests.">
+      <created>1686774603264</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1686774603264</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -722,7 +732,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer)." />
     <MESSAGE value="Started to adapt dialyzer-4.4.4 to Statechum - need to do it in steps so that changes can be applied to subsequent versions of dialyzer" />
     <MESSAGE value="Migration to newer OTP continuing, a lot of work still pending." />
     <MESSAGE value="Added a simple parser for DOT file format." />
@@ -747,7 +756,8 @@
     <MESSAGE value="Misc cleanup" />
     <MESSAGE value="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <MESSAGE value="Corrected a couple of tests - they were failing due to the conversion from string names to vertex numbers. Previously this was not noticable but now I'm using array-based collections in checkM so such things stand out." />
-    <option name="LAST_COMMIT_MESSAGE" value="Corrected a couple of tests - they were failing due to the conversion from string names to vertex numbers. Previously this was not noticable but now I'm using array-based collections in checkM so such things stand out." />
+    <MESSAGE value="Builds with new umfpack and passes tests." />
+    <option name="LAST_COMMIT_MESSAGE" value="Builds with new umfpack and passes tests." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

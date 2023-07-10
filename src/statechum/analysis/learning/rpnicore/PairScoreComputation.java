@@ -228,7 +228,9 @@ public class PairScoreComputation {
 				break;
 			}
 			case KTAILS:
-			{// computeStateScore cannot be used here because it will see that we want to do KTails and will not evaluate whether a merge is feasible, hence later causing an experiment to fail with "elements of the pair are incompatible"
+			{// computeStateScore cannot be used here because it will see that we want to do KTails and will not evaluate whether a merge is feasible,
+			 // that is, whether k-tail-equivalent states cause subsequent merge of a positive with a negative. In such a case
+			 // an experiment will fail with "elements of the pair are incompatible" exception.
 				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);
 				if (computedScore >= 0)
@@ -236,7 +238,8 @@ public class PairScoreComputation {
 				break;
 			}
 			case KTAILS_ANY:
-			{// computeStateScore cannot be used here because it will see that we want to do KTails and will not evaluate whether a merge is feasible, hence later causing an experiment to fail with "elements of the pair are incompatible"
+			{// computeStateScore cannot be used here because it will see that we want to do KTails and will not evaluate whether a merge is feasible,
+			 // hence later causing an experiment to fail with "elements of the pair are incompatible"
 				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);
 				if (computedScore >= 0)
@@ -624,8 +627,10 @@ public class PairScoreComputation {
 					}
 					else
 					{// this is an existing equivalence class. 
-					// After emptying the "frontline" stack, we are left with an empty setOfEquivalenceClassesOnStack because additions/removals from the stack are matched by the corresponding operations with setOfEquivalenceClassesOnStack.
-					// We are hence at liberty to use setOfEquivalenceClassesOnStack to store equivalence classes that we have come across, in order to add only one entry to mergedVertices for each of them.
+						// After emptying the "frontline" stack, we are left with an empty setOfEquivalenceClassesOnStack because additions/removals
+						// from the stack are matched by the corresponding operations with setOfEquivalenceClassesOnStack.
+						// We are hence at liberty to use setOfEquivalenceClassesOnStack to store equivalence classes that we have come across,
+						// in order to add only one entry to mergedVertices for each of them.
 						if (setOfEquivalenceClassesOnStack.get(eqClass) == null)
 						{
 							setOfEquivalenceClassesOnStack.put(eqClass,eqClass);mergedVertices.add(eqClass);

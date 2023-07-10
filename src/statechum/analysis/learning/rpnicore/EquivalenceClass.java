@@ -26,7 +26,7 @@ public interface EquivalenceClass<TARGET_TYPE, CACHE_TYPE extends CachedData<TAR
 	 * 
 	 * @param from transitions to add from.
 	 * @throws IncompatibleStatesException if vertex is not compatible with any vertices in the collection.
-	 * @throws statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldEquivalenceClass.IncompatibleStatesException 
+	 * @throws statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException
 	 */
 	boolean mergeWith(CmpVertex vert, Collection<Entry<Label, CmpVertex>> from) throws IncompatibleStatesException;
 
@@ -34,7 +34,7 @@ public interface EquivalenceClass<TARGET_TYPE, CACHE_TYPE extends CachedData<TAR
 	 * 
 	 * @param to the equivalence class to merge with
 	 * @throws IncompatibleStatesException if vertex is not compatible with any vertices in the collection.
-	 * @throws statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldEquivalenceClass.IncompatibleStatesException 
+	 * @throws statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException
 	 */
 	boolean mergeWith(EquivalenceClass<TARGET_TYPE, CACHE_TYPE> to) throws IncompatibleStatesException;
 

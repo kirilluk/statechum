@@ -94,7 +94,9 @@ public class LearningAlgorithms
 	/** Returns a test set to use for evaluation of the supplied reference graph using BCR. */
 	public static Collection<List<Label>> buildEvaluationSet(LearnerGraph referenceGraph)
 	{
-		return computeEvaluationSet(referenceGraph,referenceGraph.getAcceptStateNumber()*maxStateNumberMultiplier,LearningSupportRoutines.makeEven(referenceGraph.getAcceptStateNumber()*referenceGraph.pathroutines.computeAlphabet().size()));
+		return computeEvaluationSet(
+				referenceGraph,referenceGraph.getAcceptStateNumber()*maxStateNumberMultiplier,
+				LearningSupportRoutines.makeEven(referenceGraph.getAcceptStateNumber()*referenceGraph.pathroutines.computeAlphabet().size()));
 	}
 	
 	/** Sicco heuristic intentionally undermerges, particularly in dense graphs. In order to easily evaluate whether a subsequent pass of SAT/SMT would

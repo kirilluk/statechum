@@ -89,7 +89,7 @@ public class WekaDataCollector
 	public WekaDataCollector(MarkovHelper helper, MarkovHelperClassifier manyHelpers, DataCollectorParameters p)
 	{
 		markovHelper = helper;markovMultiHelper = manyHelpers; dataCollectorParameters = p;
-		classAttribute = new Attribute("class",Arrays.asList(new String[]{Boolean.TRUE.toString(),Boolean.FALSE.toString()}));
+		classAttribute = new Attribute("class",Arrays.asList(Boolean.TRUE.toString(),Boolean.FALSE.toString()));
 	}
 
 	protected int n,attrMult=2;
@@ -136,7 +136,7 @@ public class WekaDataCollector
 		if (assessors != null) throw new IllegalArgumentException("WekaDataCollector should not be re-initialised");
 		
 		assessors = argAssessor;measurementsForFilteredCollectionOfPairs.valueAverage = new double[assessors.size()];measurementsForFilteredCollectionOfPairs.valueSD=new double[assessors.size()];
-		comparators = new ArrayList<PairComparator>(assessors.size());
+		comparators = new ArrayList<>(assessors.size());
 		for(PairRank pr:assessors)
 			comparators.add(new PairComparator(pr));
 		if (comparators.size() > Long.SIZE-1)
@@ -164,7 +164,7 @@ public class WekaDataCollector
 		useNumericalAttributes = false;
 
 		boolean [] uniqueArray = new boolean[instanceLength];
-		attributes = new ArrayList<Attribute>(instanceLength+1);
+		attributes = new ArrayList<>(instanceLength + 1);
 		attributesOfAnInstance = new Attribute[instanceLength];
 		fillInAttributeNames(attributesOfAnInstance,0,0,1,0,"",0,uniqueArray);
 		for(int i=0;i<instanceLength;++i)
@@ -192,7 +192,7 @@ public class WekaDataCollector
 	{
 		if (assessors != null) throw new IllegalArgumentException("WekaDataCollector should not be re-initialised");
 		
-		pairValues = new ArrayList<PairEvaluator>(argAssessor.size());
+		pairValues = new ArrayList<>(argAssessor.size());
 		for(PairRank pr:argAssessor)
 			pairValues.add(new PairEvaluator(pr));
 
@@ -202,7 +202,7 @@ public class WekaDataCollector
 		instanceLength = n;
 		useNumericalAttributes = true;
 		
-		attributes = new ArrayList<Attribute>(instanceLength+1);
+		attributes = new ArrayList<>(instanceLength + 1);
 		for(int i=0;i<instanceLength;++i)
 			attributes.add(pairValues.get(i).getAttribute());
 		attributes.add(classAttribute);
@@ -220,7 +220,7 @@ public class WekaDataCollector
 	
 	public int [] getMask()
 	{
-		int outcome[] = new int[fillinMask.length];System.arraycopy(fillinMask, 0, outcome, 0, fillinMask.length);return outcome;
+		int[] outcome = new int[fillinMask.length];System.arraycopy(fillinMask, 0, outcome, 0, fillinMask.length);return outcome;
 	}
 	
 	/** Fills in the names attributes for the current level and position in the level, recursing across all the positions in the next level.
@@ -237,7 +237,7 @@ public class WekaDataCollector
 	 * @param currentLevel current level in construction of the attributes.
 	 * @param checkUniqueness only used for testing, an array to verify that computation of indices is hitting unique cells.
 	 */
-	protected void fillInAttributeNames(Attribute[] whatToFillIn, int section_start, int idx_in_section, int prev_section_size, long xyz, String pathToThisLevel, int currentLevel, boolean checkUniqueness[])
+	protected void fillInAttributeNames(Attribute[] whatToFillIn, int section_start, int idx_in_section, int prev_section_size, long xyz, String pathToThisLevel, int currentLevel, boolean[] checkUniqueness)
 	{
 		final int attrCountAtThisLevel = (n-currentLevel);
 		final int sectionPlusOffset = attrMult*(section_start + idx_in_section);
@@ -297,7 +297,7 @@ public class WekaDataCollector
 
 	protected double convertAssessmentResultToString(int assessmentResult, Attribute attribute)
 	{
-		String value = null;
+		String value;
 		switch(assessmentResult)
 		{
 		case 2:
@@ -371,7 +371,6 @@ public class WekaDataCollector
 	 *  
 	 * @param comparisonResults the outcome of {@link #fillInPairDetails(int[], PairScore, Collection)}.
 	 * @return a non-negative "quality" of a pair. 
-	 * @throws Exception 
 	 */
 	double getPairQuality(int[]comparisonResults) throws Exception
 	{
@@ -398,16 +397,16 @@ public class WekaDataCollector
 	
 	protected final MarkovHelperClassifier markovMultiHelper;
 	
-	class MeasurementsForCollectionOfPairs
+	static class MeasurementsForCollectionOfPairs
 	{
-		Map<StatePair,FilteredPairMeasurements> measurementsForComparators=new HashMap<StatePair,FilteredPairMeasurements>();
-		double valueAverage[]=new double[0], valueSD[]=new double[0];
+		Map<StatePair,FilteredPairMeasurements> measurementsForComparators= new HashMap<>();
+		double[] valueAverage =new double[0], valueSD =new double[0];
 		
 		
 	}
-	Map<StatePair,PairMeasurements> measurementsObtainedFromPairs = new HashMap<StatePair,PairMeasurements>();
+	Map<StatePair,PairMeasurements> measurementsObtainedFromPairs = new HashMap<>();
 	
-	Map<CmpVertex,Integer> treeForComparators = new TreeMap<CmpVertex,Integer>();
+	Map<CmpVertex,Integer> treeForComparators = new TreeMap<>();
 	
 	MeasurementsForCollectionOfPairs measurementsForFilteredCollectionOfPairs = new MeasurementsForCollectionOfPairs();
 	
@@ -449,16 +448,16 @@ public class WekaDataCollector
 			measurementsObtainedFromPairs.put(pair,m);
 		}
 
-		scoreNDbackwardCache = new AbstractPathRoutines.CacheOfStateGroups<List<CmpVertex>,LearnerGraphNDCachedData>(invTentativeGraph);
-		scoreNDforwardCache = new AbstractPathRoutines.CacheOfStateGroups<CmpVertex,LearnerGraphCachedData>(tentativeGraph);
+		scoreNDbackwardCache = new AbstractPathRoutines.CacheOfStateGroups<>(invTentativeGraph);
+		scoreNDforwardCache = new AbstractPathRoutines.CacheOfStateGroups<>(tentativeGraph);
 		
 		if(dataCollectorParameters.depthToTrim >= 0)
 		{
 			Configuration configForLinear = tentativeGraph.config.copy();configForLinear.setAttenuationK(dataCollectorParameters.attenuation);
 			LearnerGraph trimmedGraph = tentativeGraph.transform.trimGraph(dataCollectorParameters.depthToTrim,configForLinear);
-			linearForwards = new PairScoreComputation.LinearScoring<CmpVertex,LearnerGraphCachedData>(trimmedGraph,dataCollectorParameters.threadNumber,null,LearnerGraphND.ignoreNone, null); // StateBasedRandom is set to null since we are not using it.
-			linearBackwards = new PairScoreComputation.LinearScoring<List<CmpVertex>,LearnerGraphNDCachedData>(MarkovClassifier.computeInverseGraph(trimmedGraph),dataCollectorParameters.threadNumber,
-					null,LearnerGraphND.ignoreNone, null); // StateBasedRandom is set to null since we are not using it.
+			linearForwards = new PairScoreComputation.LinearScoring<>(trimmedGraph, dataCollectorParameters.threadNumber, null, LearnerGraphND.ignoreNone, null); // StateBasedRandom is set to null since we are not using it.
+			linearBackwards = new PairScoreComputation.LinearScoring<>(MarkovClassifier.computeInverseGraph(trimmedGraph), dataCollectorParameters.threadNumber,
+					null, LearnerGraphND.ignoreNone, null); // StateBasedRandom is set to null since we are not using it.
 		}
 		
 		// Second, obtain measurements that depend on other pairs in a collection of pairs.  
@@ -642,7 +641,6 @@ public class WekaDataCollector
 	 * @param pairs other pairs it is to be compared with. This can be a collection of all pairs where we intend to identify dominating pairs or only a collection of 'bad' pairs where we filter pairs dominating (or being dominated) by the wrong-merge pairs for learning of a 'positive' classifier and the other way around for a 'negative' one.
 	 * @param measurements long-to-compute parameters of the pairs, used by assessors to evaluate the pairOfInterest
 	 * @param currentLevel current level in construction of the attributes.
-	 * @return true if any entries were filled in.
 	 */
 	protected void fillInEntry(int [] whatToFillIn,int section_start, int idx_in_section, int prev_section_size, long xyz, 
 			PairScore pairOfInterest, Collection<PairScore> pairs,MeasurementsForCollectionOfPairs measurements, int currentLevel)
@@ -670,7 +668,7 @@ public class WekaDataCollector
 						if (attributeREL != 0)
 						{
 							assert attributeREL == 1 || attributeREL == -1;
-							Collection<PairScore> others = new ArrayList<PairScore>(pairs.size());
+							Collection<PairScore> others = new ArrayList<>(pairs.size());
 							for(PairScore currentPair:pairs)
 								if (currentPair != null)
 								{// to permit the list of pairs to have holes
@@ -706,7 +704,7 @@ public class WekaDataCollector
 		assert idx_in_section >= 0 && idx_in_section < currentSectionSize;
 		boolean outcome = false;
 		int attrOffset = 0;
-		for(int attr=0;attr<n;++attr)
+		for(long attr=0;attr<n;++attr)
 		{
 			if (  ((1 << attr) & xyz) == 0 )
 			{
@@ -771,8 +769,8 @@ public class WekaDataCollector
 	{
 		buildSetsForComparators(pairs,currentGraph, invCurrentGraph);
 		
-		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
-		List<PairScore> pairsToConsider = new LinkedList<PairScore>();
+		List<PairScore> correctPairs = new LinkedList<>(), wrongPairs = new LinkedList<>();
+		List<PairScore> pairsToConsider = new LinkedList<>();
 		if (!pairs.isEmpty())
 		{
 			for(PairScore p:pairs) if (p.getQ().isAccept() && p.getR().isAccept()) pairsToConsider.add(p);// only consider non-negatives
@@ -790,12 +788,12 @@ public class WekaDataCollector
 				
 				if (correctPair)
 				{
-					List<PairScore> badPairs = new ArrayList<PairScore>(wrongPairs.size()+1);badPairs.addAll(wrongPairs);badPairs.add(p);
+					List<PairScore> badPairs = new ArrayList<>(wrongPairs.size() + 1);badPairs.addAll(wrongPairs);badPairs.add(p);
 					fillInPairDetails(comparisonResults,p, badPairs);// this is the correct pair, hence compare it to all the 'wrong' pairs.
 				}
 				else
 				{
-					List<PairScore> badPairs = new ArrayList<PairScore>(wrongPairs.size()+1);badPairs.addAll(correctPairs);badPairs.add(p);
+					List<PairScore> badPairs = new ArrayList<>(wrongPairs.size() + 1);badPairs.addAll(correctPairs);badPairs.add(p);
 					fillInPairDetails(comparisonResults,p, badPairs);// this is the wrong pair, hence compare it to all the 'correct' pairs.
 				}
 			}
@@ -808,8 +806,8 @@ public class WekaDataCollector
 	public void updateDatasetWithPairsNumericalValues(Collection<PairScore> pairs, LearnerGraph currentGraph, LearnerGraphND inverseCurrentGraph, LearnerGraph correctGraph)
 	{
 		buildSetsForComparators(pairs,currentGraph,inverseCurrentGraph);
-		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
-		List<PairScore> pairsToConsider = new LinkedList<PairScore>();
+		List<PairScore> correctPairs = new LinkedList<>(), wrongPairs = new LinkedList<>();
+		List<PairScore> pairsToConsider = new LinkedList<>();
 		if (!pairs.isEmpty())
 		{
 			for(PairScore p:pairs) if (p.getQ().isAccept() && p.getR().isAccept()) pairsToConsider.add(p);// only consider non-negatives
@@ -876,8 +874,8 @@ public class WekaDataCollector
 	{
 		buildSetsForComparators(pairs,currentGraph,inverseCurrentGraph);
 		
-		List<PairScore> correctPairs = new LinkedList<PairScore>(), wrongPairs = new LinkedList<PairScore>();
-		List<PairScore> currentPairs = new ArrayList<PairScore>(pairs.size());
+		List<PairScore> correctPairs = new LinkedList<>(), wrongPairs = new LinkedList<>();
+		List<PairScore> currentPairs = new ArrayList<>(pairs.size());
 		for(PairScore p:pairs) 
 			if (p.getQ().isAccept() && p.getR().isAccept()) currentPairs.add(p);// only consider non-negatives
 

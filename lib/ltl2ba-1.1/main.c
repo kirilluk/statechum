@@ -30,6 +30,9 @@
 /* Some of the code in this file was taken from the Spin software         */
 /* Written by Gerard J. Holzmann, Bell Laboratories, U.S.A.               */
 
+#include <stdio.h>
+#include <unistd.h>
+
 #include "ltl2ba.h"
 
 FILE	*tl_out;
@@ -213,8 +216,7 @@ main(int argc, char *argv[])
    Return 1 if the difference is negative, otherwise 0.  */
  
 int
-timeval_subtract (result, x, y)
-struct timeval *result, *x, *y;
+timeval_subtract (struct timeval *result, struct timeval *x,struct timeval * y)
 {
 	if (x->tv_usec < y->tv_usec) {
 		x->tv_usec += 1000000;
@@ -321,7 +323,7 @@ non_fatal(char *s1, char *s2)
 	if (s2)
 		printf(s1, s2);
 	else
-		printf(s1);
+	  printf("%s",s1);
 	if (tl_yychar != -1 && tl_yychar != 0)
 	{	printf(", saw '");
 		tl_explain(tl_yychar);

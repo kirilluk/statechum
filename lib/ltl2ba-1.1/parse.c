@@ -31,7 +31,7 @@
 /* Written by Gerard J. Holzmann, Bell Laboratories, U.S.A.               */
 
 #include "ltl2ba.h"
-
+extern void     put_uform(void);
 extern int	tl_yylex(void);
 extern int	tl_verbose, tl_simp_log;
 

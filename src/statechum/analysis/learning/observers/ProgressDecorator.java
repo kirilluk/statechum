@@ -124,24 +124,24 @@ public abstract class ProgressDecorator extends LearnerDecorator
 			score=elem.getAttribute(StatechumXML.ATTR_SCORE.name()), otherscore = elem.getAttribute(StatechumXML.ATTR_OTHERSCORE.name());
 		int scoreInt = JUConstants.intUNKNOWN, otherScoreInt = JUConstants.intUNKNOWN;
 		if (score != null && score.length() > 0)
-			try { scoreInt = Integer.valueOf(score); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a score in a pair", ex); }
+			try { scoreInt = Integer.parseInt(score); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a score in a pair", ex); }
 		if (otherscore != null && otherscore.length() > 0)
-			try { otherScoreInt = Integer.valueOf(otherscore); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a anotherscore in a pair", ex); }
+			try { otherScoreInt = Integer.parseInt(otherscore); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read anotherscore in a pair", ex); }
 		return new PairScore(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(q), graph.config),
 				AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(r), graph.config),
 				scoreInt,otherScoreInt);		
 	}
 	
-	/** Checks that the supplied element contains single children with the provided names 
+	/** Checks that the supplied element contains unique (no duplicate) children with the provided names
 	 * and throws {@link IllegalArgumentException} otherwise. 
 	 * 
 	 * @param elem element to check
 	 * @param elemNames names to check for. Ignored if <em>null</em>.
 	 */
-	public static void checkSingles(Element elem,final Set<String> elemNames)
+	public static void checkChildrenAreUniquelyNamed(Element elem, final Set<String> elemNames)
 	{
 		NodeList children = elem.getChildNodes();
-		Set<String> namesEncountered = new HashSet<String>();
+		Set<String> namesEncountered = new HashSet<>();
 		for(int i=0;i<children.getLength();++i)
 			if (children.item(i).getNodeType() == Node.ELEMENT_NODE)
 			{
@@ -161,7 +161,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 	{
 		public LearnerGraph graph = null;
 		public Collection<List<Label>> testSet = null;
-		public Configuration config = null; 
+		public Configuration config;
 		public Collection<String> ifthenSequences = null;
 		public SmtLabelRepresentation labelDetails = null;
 		
@@ -238,10 +238,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 				return false;
 			
 			assert graph != null && other.graph != null;
-			if (graph == null) {
-				if (other.graph != null)
-					return false;
-			} else if (!graph.equals(other.graph))
+			if (!graph.equals(other.graph))
 				return false;
 			if (ifthenSequences == null) {
 				if (other.ifthenSequences != null)
@@ -256,25 +253,24 @@ public abstract class ProgressDecorator extends LearnerDecorator
 				return false;
 
 			if (labelDetails == null) {
-				if (other.labelDetails != null)
-					return false;
-			} else if (!labelDetails.equals(other.labelDetails))
-				return false;
-			return true;
+				return other.labelDetails == null;
+			} else
+				return labelDetails.equals(other.labelDetails);
 		}
 		
 	}
 
 	/** <p>
-	 * Data need to construct an experiment and evaluate the results. This is not 
-	 * a part of <em>AbstractExperiment</em> because this is only for testing and
-	 * hence one would only want to record
-	 * data from <b>some</b> experiments, not all of them.
-	 * </p><p>
+	 * Data need to construct an experiment and evaluate the results. This is not a part of <em>AbstractExperiment</em>
+	 * because this is only for testing and hence one would only want to record data from <b>some</b> experiments, not all of them.
+	 * </p>
+	 * <p>
 	 * If possible, this also loads the configuration and uses it for all methods requiring a configuration.
 	 * Unexpected elements are ignored.
-	 * </p><p>
-	 * {@link LearnerEvaluationConfiguration#labelConverter} is not assigned since it is a function that is supposed to be set globally for an entire experiment.
+	 * </p>
+	 * <p>
+	 * {@link LearnerEvaluationConfiguration#labelConverter} is not assigned since it is a function that is supposed
+	 * to be set globally for an entire experiment.
 	 * </p>
 	 */
 	public LearnerEvaluationConfiguration readLearnerEvaluationConfiguration(Element evaluationDataElement,Configuration defaultConfig)
@@ -428,7 +424,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 							result.plus = labelio.readSequenceList(e, StatechumXML.ATTR_POSITIVE_SEQUENCES.name());
 							if (!e.hasAttribute(StatechumXML.ATTR_POSITIVE_SIZE.name())) throw new IllegalArgumentException("missing positive size");
 							String size = e.getAttribute(StatechumXML.ATTR_POSITIVE_SIZE.name());
-							try{ result.plusSize = Integer.valueOf(size); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("positive value is not an integer "+size, ex);}
+							try{ result.plusSize = Integer.parseInt(size); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("positive value is not an integer "+size, ex);}
 						}
 						else
 							if (sequenceName.equals(StatechumXML.ATTR_NEGATIVE_SEQUENCES.name()))
@@ -438,7 +434,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 								result.minus = labelio.readSequenceList(e, StatechumXML.ATTR_NEGATIVE_SEQUENCES.name());
 								if (!e.hasAttribute(StatechumXML.ATTR_NEGATIVE_SIZE.name())) throw new IllegalArgumentException("missing negative size");
 								String size = e.getAttribute(StatechumXML.ATTR_NEGATIVE_SIZE.name());
-								try{ result.minusSize = Integer.valueOf(size); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("negative value is not an integer "+size, ex);}
+								try{ result.minusSize = Integer.parseInt(size); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("negative value is not an integer "+size, ex);}
 							}
 							else throw new IllegalArgumentException("unexpected kind of sequences: "+sequenceName);
 					}
@@ -460,7 +456,6 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		
 		/** The initial PTA as a PTA, useful where storing sequences of labels will take a lot of space (sparse PTA). */
 		public LearnerGraph graph=null;
-		public SmtLabelRepresentation labelDetails = null;
 
 		public InitialData() {
 			// rely on defaults above.
@@ -543,9 +538,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 				return false;
 			if (!kind.equals(other.kind))
 				return false;
-			if (!sequence.equals(other.sequence))
-				return false;
-			return true;
+			return sequence.equals(other.sequence);
 		}
 	}
 	
@@ -588,7 +581,7 @@ public abstract class ProgressDecorator extends LearnerDecorator
 				sequence = element.getTextContent();
 		if (sequence.length() == 0) throw new IllegalArgumentException("missing sequence");
 		result.sequence = labelio.readInputSequence(sequence);
-		result.accept = Boolean.valueOf(accept);
+		result.accept = Boolean.parseBoolean(accept);
 		if (colour.length() > 0)
 			result.colour=Enum.valueOf(JUConstants.class, colour);
 		result.kind=Enum.valueOf(RestartLearningEnum.class, kind);

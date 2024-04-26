@@ -71,7 +71,7 @@ public class PairOfPaths
 	
 	public void WritePair(Element top, SequenceIO<statechum.Label> labelio)
 	{
-		Collection<List<Label>> elements = new LinkedList<List<Label>>();elements.add(R);if (Q != null) elements.add(Q);
+		Collection<List<Label>> elements = new LinkedList<>();elements.add(R);if (Q != null) elements.add(Q);
 		Element sequences = labelio.writeSequenceList(pairElement, elements);
 		top.appendChild(sequences);		
 	}
@@ -99,7 +99,7 @@ public class PairOfPaths
 
     public static List<PairOfPaths> readPairs(Reader inStream, Configuration configuration, ConvertALabel conv)
     {
-    	List<PairOfPaths> outcome = new ArrayList<PairOfPaths>();
+    	List<PairOfPaths> outcome = new ArrayList<>();
     	Document doc = LearnerSimulator.getDocumentOfXML(inStream);
     	NodeList nlist = doc.getChildNodes();
     	if (nlist.getLength() != 1)
@@ -134,7 +134,7 @@ public class PairOfPaths
 	 */
 	public PairOfPaths(LearnerGraph coregraph,PairScore pair)
 	{
-		Set<CmpVertex> statesOfInterest = new TreeSet<CmpVertex>();statesOfInterest.add(pair.getR());if (pair.getQ() != null) statesOfInterest.add(pair.getQ());
+		Set<CmpVertex> statesOfInterest = new TreeSet<>();statesOfInterest.add(pair.getR());if (pair.getQ() != null) statesOfInterest.add(pair.getQ());
 		Map<CmpVertex,LinkedList<Label>> stateToPath = convertSetOfStatesToPaths(coregraph, statesOfInterest);
 		if (stateToPath == null)
 			throw new IllegalArgumentException("failed to find paths to the supplied pair "+pair);// we should not reach here because the two states should exist in the graph
@@ -150,13 +150,13 @@ public class PairOfPaths
 	 */
 	public static Map<CmpVertex,LinkedList<Label>> convertSetOfStatesToPaths(LearnerGraph coregraph, Collection<CmpVertex> statesOfInterestArg)
 	{
-		Map<CmpVertex,LinkedList<Label>> stateToPath = new HashMap<CmpVertex,LinkedList<Label>>();// not many of these hence not a HashSetWithSearch
-		stateToPath.put(coregraph.getInit(), new LinkedList<Label>());
+		Map<CmpVertex,LinkedList<Label>> stateToPath = new HashMap<>();// not many of these hence not a HashSetWithSearch
+		stateToPath.put(coregraph.getInit(), new LinkedList<>());
 		
-		Queue<CmpVertex> fringe = new LinkedList<CmpVertex>();
-		Set<CmpVertex> statesInFringe = new HashSet<CmpVertex>();// in order not to iterate through the list all the time.
+		Queue<CmpVertex> fringe = new LinkedList<>();
+		Set<CmpVertex> statesInFringe = new HashSet<>();// in order not to iterate through the list all the time.
 		fringe.add(coregraph.getInit());statesInFringe.add(coregraph.getInit());
-		Set<CmpVertex> statesOfInterest = new TreeSet<CmpVertex>(statesOfInterestArg);// make a copy of the set, otherwise we might modify something like a keyset of our coregraph and mess up both the graph and the traversal process.
+		Set<CmpVertex> statesOfInterest = new TreeSet<>(statesOfInterestArg);// make a copy of the set, otherwise we might modify something like a keyset of our coregraph and mess up both the graph and the traversal process.
 		int pathsLeft=statesOfInterest.size();
 		while(!fringe.isEmpty())
 		{
@@ -202,21 +202,24 @@ public class PairOfPaths
 	 */
 	public static Stack<PairOfPaths> convertStack(LearnerGraph coregraph,Stack<PairScore> stack)
 	{
-		Stack<PairOfPaths> outcome = new Stack<PairOfPaths>();
+		Stack<PairOfPaths> outcome = new Stack<>();
 		if (!stack.isEmpty())
 		{
 			
-			Set<CmpVertex> statesOfInterest = new HashSet<CmpVertex>();
+			Set<CmpVertex> statesOfInterest = new HashSet<>();
 			for(PairScore pair:stack)
 			{
 				statesOfInterest.add(pair.getQ());statesOfInterest.add(pair.getR());
 			}
 			
 			Map<CmpVertex,LinkedList<Label>> stateToPath = convertSetOfStatesToPaths(coregraph, statesOfInterest);
+			assert stateToPath != null;
 			// Now populate the stack to return
-			for(int i=0;i<stack.size();++i)
+			for (PairScore pairScore : stack)
 			{
-				PairOfPaths pair = new PairOfPaths();pair.Q = stateToPath.get(stack.get(i).getQ());pair.R = stateToPath.get(stack.get(i).getR());
+				PairOfPaths pair = new PairOfPaths();
+				pair.Q = stateToPath.get(pairScore.getQ());
+				pair.R = stateToPath.get(pairScore.getR());
 				assert pair.Q != null && pair.R != null;
 				outcome.add(pair);
 			}

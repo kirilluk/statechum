@@ -17,8 +17,7 @@
  */ 
 package statechum.analysis.learning.smt;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
 import statechum.analysis.learning.smt.SmtLabelRepresentation.CompositionOfFunctions;
@@ -144,7 +143,7 @@ public class SmtLabelParser {
 		/** Whenever we start processing next label or a completely different term, this object needs to be reset. */
 		public void reset();
 	}
-	
+
 	/** Given an expression with brackets interprets it as (func args). 
 	 * If passed a non-null maps, populates it with arguments to functions of interest.
 	 * <p>
@@ -203,7 +202,8 @@ public class SmtLabelParser {
 			throw new IllegalArgumentException("missing function name when parsing "+lexExpr.getText());
 		StringBuffer result = new StringBuffer();
 		String outcome = null;
-		if (!topLevel) outcome = functionArgumentsHandler.HandleLowLevelFunction(function, args);
+		if (!topLevel)
+			outcome = functionArgumentsHandler.HandleLowLevelFunction(function, args);
 		if (outcome == null)
 		{
 			boolean first = false;if (!topLevel) result.append('(');

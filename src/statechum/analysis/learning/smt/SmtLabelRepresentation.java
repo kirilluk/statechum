@@ -16,19 +16,7 @@
  * along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
  */
 package statechum.analysis.learning.smt;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.StringTokenizer;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.Map.Entry;
 
 import org.w3c.dom.Document;
@@ -92,7 +80,7 @@ public class SmtLabelRepresentation
 	
 	/** Eliminates spaces at the beginning and end of the supplied 
 	 * string. If not empty, the outcome is appended to the buffer provided. 
-	 * This is needed because a in number 
+	 * This is needed because in a number
 	 * of cases we cannot simply include an empty string into Yices expression - 
 	 * we have to know that the sting is empty and put "true".
 	 * For this reason, empty values are designated with nulls and this method makes it possible to maintain them
@@ -188,11 +176,9 @@ public class SmtLabelRepresentation
 			} else if (!name.equals(other.name))
 				return false;
 			if (varDeclaration == null) {
-				if (other.varDeclaration != null)
-					return false;
-			} else if (!varDeclaration.equals(other.varDeclaration))
-				return false;
-			return true;
+				return other.varDeclaration == null;
+			} else
+				return varDeclaration.equals(other.varDeclaration);
 		}
 
 		public String getName() {
@@ -262,7 +248,6 @@ public class SmtLabelRepresentation
 			text = composition.text;relabelledText = composition.relabelledText;varDeclarations = composition.varDeclarations;variablesUsedForArgs = null;
 			finalText = composition.relabelledText+encloseInBeginEndIfNotEmpty(whatToAdd,blockVALUES);
 			assert varDeclarations != null;
-			assert finalText != null;
 		}
 		
 		public String getCondition() 
@@ -343,11 +328,9 @@ public class SmtLabelRepresentation
 			} else if (!varDeclarations.equals(other.varDeclarations))
 				return false;
 			if (variablesUsedForArgs == null) {
-				if (other.variablesUsedForArgs != null)
-					return false;
-			} else if (!variablesUsedForArgs.equals(other.variablesUsedForArgs))
-				return false;
-			return true;
+				return other.variablesUsedForArgs == null;
+			} else
+				return variablesUsedForArgs.equals(other.variablesUsedForArgs);
 		}
 	}
 
@@ -410,11 +393,9 @@ public class SmtLabelRepresentation
 			} else if (!post.equals(other.post))
 				return false;
 			if (pre == null) {
-				if (other.pre != null)
-					return false;
-			} else if (!pre.equals(other.pre))
-				return false;
-			return true;
+				return other.pre == null;
+			} else
+				return pre.equals(other.pre);
 		}
 
 		/* (non-Javadoc)
@@ -514,7 +495,7 @@ public class SmtLabelRepresentation
 	protected Map<String,LowLevelFunction> functionMap = new TreeMap<>();
 	
 	/** This one stores the text from which label descriptions have been loaded. */
-	private List<String> originalText = new LinkedList<>();
+	private final List<String> originalText = new LinkedList<>();
 	
 	public Element storeToXML(Document doc,StatechumXML.SequenceIO<String> stringio)
 	{
@@ -649,12 +630,15 @@ public class SmtLabelRepresentation
 		public String HandleLowLevelFunction(String functionName,List<String> args) 
 		{
 			String result = null;
-			
+
 			// First, we check that the supplied function does not refer to variables it is not allowed to refer to. */
+			// TODO: this part is currently broken because it is used both for declarations of xmachine functions and for
+			//  handling low-level functions when parsing traces. For this reason commented out.
+			/*
 			for(String arg:args)
-			{// TODO: to test these checks, apparently tests did not cover this at all.
+			{
 				char first = arg.charAt(0);
-				if (first < '0' && first > '9' && !arg.startsWith(functionArg))
+				if ((first < '0' || first > '9') && !arg.startsWith(functionArg))
 				{// must be a user-declared identifier
 					@SuppressWarnings("unused")
 					boolean next = false, prev=false;
@@ -671,23 +655,23 @@ public class SmtLabelRepresentation
 					VARTYPE type = variables.get(variableName);
 					if (type == null)
 						throw new IllegalArgumentException("undeclared variable "+arg+" used in function "+functionName);
-					
-					if ((type == VARTYPE.VAR_INPUT || type == VARTYPE.VAR_OUTPUT) && next) 
-						throw new IllegalArgumentException("i/o variables (declared as VAR_INPUT or VAR_OUTPUT) should only be used with "+varOldSuffix+" suffix");
-					
-					if (useKind == VARIABLEUSE.PRE && 
+
+					if ((type == VARTYPE.VAR_INPUT || type == VARTYPE.VAR_OUTPUT) && next)
+						throw new IllegalArgumentException("i/o variables (declared as VAR_INPUT or VAR_OUTPUT) should only be used with "+varOldSuffix+" suffix, variable "+variableName+" is declared as "+type);
+
+					if (useKind == VARIABLEUSE.PRE &&
 							(type == VARTYPE.VAR_OUTPUT || (type == VARTYPE.VAR_MEMORY && next)))
 						throw new IllegalArgumentException("preconditions cannot refer to new values of memory or to outputs");
 				}
 			}
-			
+			*/
 			LowLevelFunction func = functionMap.get(functionName);
 			if (func != null)
 			{// this is a function of interest to us
 				if (args.size() != func.arity)
 					throw new IllegalArgumentException("function "+functionName+" should take "+func.arity+" arguments instead of "+args);
 				assert func.varDeclaration != null;
-				
+
 				int useCounter = 0;
 				Integer currentUseCounter = functionToUseCounter.get(func);
 				if (currentUseCounter != null) useCounter = currentUseCounter;
@@ -842,7 +826,7 @@ public class SmtLabelRepresentation
 		if (!tokenizer.hasMoreTokens()) return;// ignore empty input
 		String functionName = tokenizer.nextToken();
 		if (!tokenizer.hasMoreTokens()) throw new IllegalArgumentException("expected details for function "+functionName);
-		FUNC_DATA kind = null;String prepost = tokenizer.nextToken();
+		FUNC_DATA kind;String prepost = tokenizer.nextToken();
 		try
 		{// determines the kind of information we'll get for this function, ARITY/CONSTRAINT/DECL/CONSTRAINARGS etc.
 			kind=FUNC_DATA.valueOf(prepost);
@@ -905,7 +889,7 @@ public class SmtLabelRepresentation
 		if (!tokenizer.hasMoreTokens()) return;// ignore empty input
 		String varName = tokenizer.nextToken();
 		if (!tokenizer.hasMoreTokens()) throw new IllegalArgumentException("expected details for variable "+varName);
-		VARTYPE kind = null;String prepost = tokenizer.nextToken();
+		VARTYPE kind;String prepost = tokenizer.nextToken();
 		try
 		{
 			kind=VARTYPE.valueOf(prepost);
@@ -934,7 +918,7 @@ public class SmtLabelRepresentation
 		Label labelName = AbstractLearnerGraph.generateNewLabel(labelNameString, config,converter);
 		
 		if (!tokenizer.hasMoreTokens()) throw new IllegalArgumentException("expected details for label "+labelName);
-		OP_DATA kind = null;String prepost = tokenizer.nextToken();
+		OP_DATA kind;String prepost = tokenizer.nextToken();
 		try
 		{
 			kind=OP_DATA.valueOf(prepost);
@@ -1206,11 +1190,9 @@ public class SmtLabelRepresentation
 			if (stateNumber != other.stateNumber)
 				return false;
 			if (variableDeclarations == null) {
-				if (other.variableDeclarations != null)
-					return false;
-			} else if (!variableDeclarations.equals(other.variableDeclarations))
-				return false;
-			return true;
+				return other.variableDeclarations == null;
+			} else
+				return variableDeclarations.equals(other.variableDeclarations);
 		}
 	}
 
@@ -1396,7 +1378,7 @@ public class SmtLabelRepresentation
 		Map<CmpVertex,Collection<SmtLabelRepresentation.AbstractState>> grMap = new TreeMap<>();
 		gr.setVertexToAbstractState(grMap);
 		AbstractState initialAbstractState = new AbstractState(gr.getInit(),elementCounter++);
-		grMap.put(gr.getInit(),Arrays.asList(initialAbstractState));
+		grMap.put(gr.getInit(), Collections.<AbstractState>singletonList(initialAbstractState));
 
 		populateVarsUsedForArgs(init.post, initialAbstractState.stateNumber, initialAbstractState.stateNumber);
 		// Add details of the current abstract state to what we know of supplied data traces.
@@ -1848,11 +1830,9 @@ public class SmtLabelRepresentation
 		} else if (!originalText.equals(other.originalText))
 			return false;
 		if (traces == null) {
-			if (other.traces != null)
-				return false;
-		} else if (!traces.equals(other.traces))
-			return false;
-		return true;
+			return other.traces == null;
+		} else
+			return traces.equals(other.traces);
 	}
 	
 

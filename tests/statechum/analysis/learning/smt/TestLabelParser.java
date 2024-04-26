@@ -18,13 +18,9 @@
 package statechum.analysis.learning.smt;
 
 import static statechum.analysis.learning.smt.SmtLabelRepresentation.INITMEM;
+import static statechum.analysis.learning.smt.SmtLabelRepresentation.VARTYPE.*;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -71,14 +67,12 @@ public class TestLabelParser {
 	
 	void parseDataTrace(String whatToParse)
 	{
-		lbls.parseCollection(Arrays.asList(new String[]{
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-				QSMTool.cmdOperation+" "+"add"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
-				QSMTool.cmdDataTrace+" "+whatToParse
-		}));
+		lbls.parseCollection(Arrays.asList(QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+                QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.POST+ " (= m"+_N+" 0)",
+                QSMTool.cmdOperation+" "+"add"+" "+ OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.PRE+ " (> m"+_M+" 0)",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
+                QSMTool.cmdDataTrace+" "+whatToParse));
 	
 	}
 	
@@ -86,37 +80,31 @@ public class TestLabelParser {
 	@Test
 	public final void testDetectWhenToUseLowLevelFunctions()
 	{
-		List<String> decl = Arrays.asList(new String[] {
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-				QSMTool.cmdOperation+" "+"add"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
-				QSMTool.cmdDataTrace+" + callA((= 0 (fn input"+_M+" 7)) (< output"+_N+" 8)) callB callC((and (fn 5 input"+_M+") (> input"+_M+" output"+_N+")))"
-			});
+		List<String> decl = Arrays.asList(QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+                QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.POST+ " (= m"+_N+" 0)",
+                QSMTool.cmdOperation+" "+"add"+" "+ OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.PRE+ " (> m"+_M+" 0)",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
+                QSMTool.cmdDataTrace+" + callA((= 0 (fn input"+_M+" 7)) (< output"+_N+" 8)) callB callC((and (fn 5 input"+_M+") (> input"+_M+" output"+_N+")))");
 
 		{
 			final SmtLabelRepresentation l = new SmtLabelRepresentation(config,converter);
-			List<String> data = new LinkedList<String>();data.addAll(decl);data.addAll(Arrays.asList(new String[] {
-					QSMTool.cmdLowLevelFunction+" fn ARITY 2",
-					QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0)",
-					QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"2::int)",
-					QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)",
-					QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
-					QSMTool.cmdLowLevelFunction+" fn CONSTRAINARGS true",
-			}));
+			List<String> data = new LinkedList<>();data.addAll(decl);data.addAll(Arrays.asList(QSMTool.cmdLowLevelFunction+" fn ARITY 2",
+                QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0)",
+                QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"2::int)",
+                QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)",
+                QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
+                QSMTool.cmdLowLevelFunction+" fn CONSTRAINARGS true"));
 			l.parseCollection(data);
 			Assert.assertTrue(l.usingLowLevelFunctions);
 		}
 
 		{
 			final SmtLabelRepresentation l = new SmtLabelRepresentation(config,converter);
-			List<String> data = new LinkedList<String>();data.addAll(decl);data.addAll(Arrays.asList(new String[] {
-					QSMTool.cmdLowLevelFunction+" fn ARITY 0",
-					QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0)",
-					QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
-					QSMTool.cmdLowLevelFunction+" fn CONSTRAINARGS true",
-			}));
+			List<String> data = new LinkedList<>();data.addAll(decl);data.addAll(Arrays.asList(QSMTool.cmdLowLevelFunction+" fn ARITY 0",
+                QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0)",
+                QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
+                QSMTool.cmdLowLevelFunction+" fn CONSTRAINARGS true"));
 			Assert.assertFalse(l.usingLowLevelFunctions);
 		}
 
@@ -128,14 +116,12 @@ public class TestLabelParser {
 
 		{
 			final SmtLabelRepresentation l = new SmtLabelRepresentation(config,converter);
-			List<String> data = new LinkedList<String>();data.addAll(decl);data.addAll(Arrays.asList(new String[] {
-					QSMTool.cmdLowLevelFunction+" fn ARITY 2",
-					QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0)",
-					QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"2::int)",
-					QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)",
-					QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
-					QSMTool.cmdLowLevelFunction+" fn CONSTRAINARGS false",
-			}));
+			List<String> data = new LinkedList<>();data.addAll(decl);data.addAll(Arrays.asList(QSMTool.cmdLowLevelFunction+" fn ARITY 2",
+                QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0)",
+                QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"2::int)",
+                QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)",
+                QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
+                QSMTool.cmdLowLevelFunction+" fn CONSTRAINARGS false"));
 			l.parseCollection(data);
 			Assert.assertFalse(l.usingLowLevelFunctions);
 		}
@@ -145,140 +131,96 @@ public class TestLabelParser {
 	@Test
 	public final void testFunctionParser_fail0a()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			lbls.parseCollection(Arrays.asList(new String[]{
-					QSMTool.cmdLowLevelFunction+" = "
-			}));
-		}},IllegalArgumentException.class,"expected details");
+		TestHelper.checkForCorrectException(() -> lbls.parseCollection(Collections.singletonList(QSMTool.cmdLowLevelFunction + " = ")),IllegalArgumentException.class,"expected details");
 	}
 	
 	/** Missing pre/post etc, this time the line ends right after function name. */
 	@Test
 	public final void testFunctionParser_fail0b()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			lbls.parseCollection(Arrays.asList(new String[]{
-					QSMTool.cmdLowLevelFunction+" ="
-			}));
-		}},IllegalArgumentException.class,"expected details");
+		TestHelper.checkForCorrectException(() -> lbls.parseCollection(Collections.singletonList(QSMTool.cmdLowLevelFunction + " =")),IllegalArgumentException.class,"expected details");
 	}
 	
 	/** Invalid pre/post. */
 	@Test
 	public final void testFunctionParser_fail0c()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			lbls.parseCollection(Arrays.asList(new String[]{
-					QSMTool.cmdLowLevelFunction+" = AA"
-			}));
-		}},IllegalArgumentException.class,"but got: AA");
+		TestHelper.checkForCorrectException(() -> lbls.parseCollection(Collections.singletonList(QSMTool.cmdLowLevelFunction + " = AA")),IllegalArgumentException.class,"but got: AA");
 	}
 	
 	/** Missing arity argument. */
 	@Test
 	public final void testFunctionParser_fail0d()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			lbls.parseCollection(Arrays.asList(new String[]{
-					QSMTool.cmdLowLevelFunction+" = ARITY",
-					QSMTool.cmdLowLevelFunction+" = CONSTRAINARGS true",
-			}));
-		}},IllegalArgumentException.class,"expected specification");
+		TestHelper.checkForCorrectException(() -> lbls.parseCollection(Arrays.asList(QSMTool.cmdLowLevelFunction+" = ARITY",
+QSMTool.cmdLowLevelFunction+" = CONSTRAINARGS true")),IllegalArgumentException.class,"expected specification");
 	}
 	
 	/** Invalid arity. */
 	@Test
 	public final void testFunctionParser_fail1()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			lbls.parseCollection(Arrays.asList(new String[]{
-					QSMTool.cmdLowLevelFunction+" = ARITY aa",
-					QSMTool.cmdLowLevelFunction+" = CONSTRAINARGS true",
-			}));
-		}},IllegalArgumentException.class,"which is not a number");
+		TestHelper.checkForCorrectException(() -> lbls.parseCollection(Arrays.asList(QSMTool.cmdLowLevelFunction+" = ARITY aa",
+QSMTool.cmdLowLevelFunction+" = CONSTRAINARGS true")),IllegalArgumentException.class,"which is not a number");
 	}
 	
 	/** Negative arity. */
 	@Test
 	public final void testFunctionParser_fail2()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			lbls.parseCollection(Arrays.asList(new String[]{
-					QSMTool.cmdLowLevelFunction+" = ARITY -8",
-					QSMTool.cmdLowLevelFunction+" = CONSTRAINARGS true",
-			}));
-		}},IllegalArgumentException.class,"an invalid number");
+		TestHelper.checkForCorrectException(() -> lbls.parseCollection(Arrays.asList(QSMTool.cmdLowLevelFunction+" = ARITY -8",
+QSMTool.cmdLowLevelFunction+" = CONSTRAINARGS true")),IllegalArgumentException.class,"an invalid number");
 	}
 	
 	/** Missing types of arguments. */
 	@Test
 	public final void testFunctionParser_fail3()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			lbls.parseCollection(Arrays.asList(new String[]{
-					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
-					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-					QSMTool.cmdLowLevelFunction+" = ARITY 2",
-					QSMTool.cmdLowLevelFunction+" = CONSTRAINARGS true",
-			}));
-		}},IllegalArgumentException.class,"types of return value and arguments");
+		TestHelper.checkForCorrectException(() -> lbls.parseCollection(Arrays.asList(QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.POST+ " (= m"+_N+" 0)",
+QSMTool.cmdLowLevelFunction+" = ARITY 2",
+QSMTool.cmdLowLevelFunction+" = CONSTRAINARGS true")),IllegalArgumentException.class,"types of return value and arguments");
 	}
 	
 	/** Arity is already known. */
 	@Test
 	public final void testFunctionParser_fail4()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			lbls.parseCollection(Arrays.asList(new String[]{
-					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
-					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-					QSMTool.cmdLowLevelFunction+" = ARITY 2",
-					QSMTool.cmdLowLevelFunction+" = ARITY 2",
-					QSMTool.cmdLowLevelFunction+" = CONSTRAINARGS true",
-			}));
-		}},IllegalArgumentException.class,"the arity of = is already known");
+		TestHelper.checkForCorrectException(() -> lbls.parseCollection(Arrays.asList(QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.POST+ " (= m"+_N+" 0)",
+QSMTool.cmdLowLevelFunction+" = ARITY 2",
+QSMTool.cmdLowLevelFunction+" = ARITY 2",
+QSMTool.cmdLowLevelFunction+" = CONSTRAINARGS true")),IllegalArgumentException.class,"the arity of = is already known");
 	}
 		
 	/** Missing declaration of a return type of a function. */
 	@Test
 	public final void testFunctionParser_fail5()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			lbls.parseCollection(Arrays.asList(new String[]{
-					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
-					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-					QSMTool.cmdLowLevelFunction+" = ARITY 2",
-			}));
-		}},IllegalArgumentException.class,"types of return value and arguments is missing");
+		TestHelper.checkForCorrectException(() -> lbls.parseCollection(Arrays.asList(QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.POST+ " (= m"+_N+" 0)",
+QSMTool.cmdLowLevelFunction+" = ARITY 2")),IllegalArgumentException.class,"types of return value and arguments is missing");
 	}
 		
 	/** Missing declaration of a return type of a function. */
 	@Test
 	public final void testFunctionParser_fail6()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			lbls.parseCollection(Arrays.asList(new String[]{
-					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
-					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-					QSMTool.cmdLowLevelFunction+" = ARITY 1",
-					QSMTool.cmdLowLevelFunction+" = DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)",
-			}));
-		}},IllegalArgumentException.class,"missing a declaration for the return value");
+		TestHelper.checkForCorrectException(() -> lbls.parseCollection(Arrays.asList(QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.POST+ " (= m"+_N+" 0)",
+QSMTool.cmdLowLevelFunction+" = ARITY 1",
+QSMTool.cmdLowLevelFunction+" = DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)")),IllegalArgumentException.class,"missing a declaration for the return value");
 	}
 		
 	/** Missing declaration of one of the arguments of a function. */
 	@Test
 	public final void testFunctionParser_fail7()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			lbls.parseCollection(Arrays.asList(new String[]{
-					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
-					QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-					QSMTool.cmdLowLevelFunction+" = ARITY 2",
-					QSMTool.cmdLowLevelFunction+" = DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
-					QSMTool.cmdLowLevelFunction+" = DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)"
-			}));
-		}},IllegalArgumentException.class,"missing a declaration for argument 2");
+		TestHelper.checkForCorrectException(() -> lbls.parseCollection(Arrays.asList(QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.POST+ " (= m"+_N+" 0)",
+QSMTool.cmdLowLevelFunction+" = ARITY 2",
+QSMTool.cmdLowLevelFunction+" = DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
+QSMTool.cmdLowLevelFunction+" = DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)")),IllegalArgumentException.class,"missing a declaration for argument 2");
 	}
 		
 	@Test
@@ -294,19 +236,18 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser2a()
 	{
-		lbls.parseCollection(Arrays.asList(new String[]{
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-				QSMTool.cmdOperation+" "+"add"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
-				QSMTool.cmdDataTrace+" + callA () callB",
-				QSMTool.cmdDataTrace+" - callA () callC",
-				QSMTool.cmdDataTrace+" + callA () callB callD"}));
+		lbls.parseCollection(Arrays.asList(QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+                QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.POST+ " (= m"+_N+" 0)",
+                QSMTool.cmdOperation+" "+"add"+" "+ OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.PRE+ " (> m"+_M+" 0)",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
+                QSMTool.cmdDataTrace+" + callA () callB",
+                QSMTool.cmdDataTrace+" - callA () callC",
+                QSMTool.cmdDataTrace+" + callA () callB callD"));
 		Assert.assertEquals(3,lbls.traces.size());
-		Set<List<Label>> positives = new LinkedHashSet<List<Label>>();positives.addAll(lbls.getSPlus());
+        Set<List<Label>> positives = new LinkedHashSet<>(lbls.getSPlus());
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"},new String[]{"callA","callB", "callD"}},config,converter),positives);
-		Set<List<Label>> negatives = new LinkedHashSet<List<Label>>();negatives.addAll(lbls.getSMinus());
+        Set<List<Label>> negatives = new LinkedHashSet<>(lbls.getSMinus());
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callC"}},config,converter),negatives);
 	}
 	
@@ -314,45 +255,40 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser2b()
 	{
-		lbls.parseCollection(Arrays.asList(new String[]{
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-				QSMTool.cmdOperation+" "+"add"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
-				QSMTool.cmdDataTrace+" + callA () callB",
-				QSMTool.cmdDataTrace+" + callT () callC",
-				QSMTool.cmdDataTrace+" + callA () callB callD"}));
+		lbls.parseCollection(Arrays.asList(QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+                QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.POST+ " (= m"+_N+" 0)",
+                QSMTool.cmdOperation+" "+"add"+" "+ OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.PRE+ " (> m"+_M+" 0)",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
+                QSMTool.cmdDataTrace+" + callA () callB",
+                QSMTool.cmdDataTrace+" + callT () callC",
+                QSMTool.cmdDataTrace+" + callA () callB callD"));
 		Assert.assertEquals(3,lbls.traces.size());
-		Set<List<Label>> positives = new LinkedHashSet<List<Label>>();positives.addAll(lbls.getSPlus());
+        Set<List<Label>> positives = new LinkedHashSet<>(lbls.getSPlus());
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"},new String[]{"callA","callB", "callD"},new String[]{"callT","callC"}},config,converter),positives);
-		Set<List<Label>> negatives = new LinkedHashSet<List<Label>>();negatives.addAll(lbls.getSMinus());
+        Set<List<Label>> negatives = new LinkedHashSet<>(lbls.getSMinus());
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{},config,converter),negatives);
 	}
 	
 	@Test
 	public final void testTraceParser_invalidtype()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			parseDataTrace("callA () callB");
-		}},IllegalArgumentException.class,"invalid data trace type");
+		TestHelper.checkForCorrectException(() -> parseDataTrace("callA () callB"),IllegalArgumentException.class,"invalid data trace type");
 	}
 	
 	void checkParsingSimpleTrace(String whatToParse)
 	{
-		lbls.parseCollection(Arrays.asList(new String[]{
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-				QSMTool.cmdOperation+" "+"add"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
-				QSMTool.cmdDataTrace+" "+whatToParse
-		}));
+		lbls.parseCollection(Arrays.asList(QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+                QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.POST+ " (= m"+_N+" 0)",
+                QSMTool.cmdOperation+" "+"add"+" "+ OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.PRE+ " (> m"+_M+" 0)",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
+                QSMTool.cmdDataTrace+" "+whatToParse));
 	
 		Assert.assertEquals(1,lbls.traces.size());
-		Set<List<Label>> positives = new LinkedHashSet<List<Label>>();positives.addAll(lbls.getSPlus());
+        Set<List<Label>> positives = new LinkedHashSet<>(lbls.getSPlus());
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"callA","callB"}},config,converter),positives);
-		Set<List<Label>> negatives = new LinkedHashSet<List<Label>>();negatives.addAll(lbls.getSMinus());
+        Set<List<Label>> negatives = new LinkedHashSet<>(lbls.getSMinus());
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{},config,converter),negatives);
 		
 		TraceWithData trace = lbls.traces.iterator().next();
@@ -376,18 +312,14 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail1()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			parseDataTrace("+ callA ()()callB");
-		}},IllegalArgumentException.class,"multiple groups of arguments for label");
+		TestHelper.checkForCorrectException(() -> parseDataTrace("+ callA ()()callB"),IllegalArgumentException.class,"multiple groups of arguments for label");
 	}
 	
 	/** Brackets without a function name. */	
 	@Test
 	public final void testTraceParser_fail2()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			parseDataTrace("+ () callA");
-		}},IllegalArgumentException.class,"arguments without a label");
+		TestHelper.checkForCorrectException(() -> parseDataTrace("+ () callA"),IllegalArgumentException.class,"arguments without a label");
 	}
 	
 	@Test
@@ -408,20 +340,21 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser5c()
 	{
-		lbls.parseCollection(Arrays.asList(new String[]{
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-				QSMTool.cmdOperation+" "+"add"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
-				QSMTool.cmdDataTrace+" + callA((= 0 (fn input"+_M+" 7)) (< output"+_N+" 8)) callB callC((and (fn 5 input"+_M+") (> input"+_M+" output"+_N+")))",
-				QSMTool.cmdLowLevelFunction+" fn ARITY 2",
-				QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0)",
-				QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
-				QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)",
-				QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"2::int)",
-				QSMTool.cmdLowLevelFunction+" fn CONSTRAINARGS true",
-		}));
+		lbls.parseCollection(Arrays.asList(
+				QSMTool.cmdVarInput+" "+"input"+" "+VAR_INPUT,
+				QSMTool.cmdVarInput+" "+"m"+" "+VAR_MEMORY,
+				QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+                QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.POST+ " (= m"+_N+" 0)",
+                QSMTool.cmdOperation+" "+"add"+" "+ OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.PRE+ " (> m"+_M+" 0)",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
+                QSMTool.cmdDataTrace+" + callA((= 0 (fn input"+_M+" 7)) (< output"+_N+" 8)) callB callC((and (fn 5 input"+_M+") (> input"+_M+" output"+_N+")))",
+                QSMTool.cmdLowLevelFunction+" fn ARITY 2",
+                QSMTool.cmdLowLevelFunction+" fn CONSTRAINT (< 6 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0)",
+                QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
+                QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)",
+                QSMTool.cmdLowLevelFunction+" fn DECL (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"2::int)",
+                QSMTool.cmdLowLevelFunction+" fn CONSTRAINARGS true"));
 		Assert.assertEquals(1,lbls.traces.size());
 		TraceWithData trace = lbls.traces.iterator().next();
 		Assert.assertArrayEquals(asArray(new String[]{"callA","callB","callC"}), trace.traceDetails.toArray());
@@ -506,9 +439,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail_missing_closing_in_first_1()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			parseDataTrace("+ callA((= input  (< output 8)) callB callC( (and (= 5 input) (> (func output input) output)))");
-		}},IllegalArgumentException.class,"missing name of a function");
+		TestHelper.checkForCorrectException(() -> parseDataTrace("+ callA((= input  (< output 8)) callB callC( (and (= 5 input) (> (func output input) output)))"),IllegalArgumentException.class,"missing name of a function");
 	}
 	
 	/** Missing closing brace in the first operation which picks the second expression and fails because
@@ -517,27 +448,21 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail_missing_closing_in_first_2()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			parseDataTrace("+ callA((= input  (< output 8)) callB callC(n (and (= 5 input) (> (func output input) output)))");
-		}},IllegalArgumentException.class,"unexpected end of input");
+		TestHelper.checkForCorrectException(() -> parseDataTrace("+ callA((= input  (< output 8)) callB callC(n (and (= 5 input) (> (func output input) output)))"),IllegalArgumentException.class,"unexpected end of input");
 	}
 	
 	/** Too many closing braces in the first operation.*/
 	@Test
 	public final void testTraceParser_fail3()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			parseDataTrace("+ callA((= input  (< output 8)))) callB callC((and (= 5 input) (> (func output input) output)))");
-		}},IllegalArgumentException.class,"unexpected closing brace");
+		TestHelper.checkForCorrectException(() -> parseDataTrace("+ callA((= input  (< output 8)))) callB callC((and (= 5 input) (> (func output input) output)))"),IllegalArgumentException.class,"unexpected closing brace");
 	}
 	
 	/** Missing closing brace in the second expression picks the third expression and chokes due to ((. */
 	@Test
 	public final void testTraceParser_fail4()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			parseDataTrace("+ callA((= input 7) (< output 8)) callB( callC((and (= 5 input) (> (func output input) output))))");
-		}},IllegalArgumentException.class,"missing name of a function");
+		TestHelper.checkForCorrectException(() -> parseDataTrace("+ callA((= input 7) (< output 8)) callB( callC((and (= 5 input) (> (func output input) output))))"),IllegalArgumentException.class,"missing name of a function");
 	}
 	
 	/** Missing closing brace in the second expression picks the third expression but fails because the 
@@ -545,9 +470,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail5()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			parseDataTrace("+ callA((= input 7) (< output 8)) callB( callC(n (and (= 5 input) (> (func output input) output)))");
-		}},IllegalArgumentException.class,"unexpected end of input");
+		TestHelper.checkForCorrectException(() -> parseDataTrace("+ callA((= input 7) (< output 8)) callB( callC(n (and (= 5 input) (> (func output input) output)))"),IllegalArgumentException.class,"unexpected end of input");
 	}
 	
 	/** Parses a chunk of text
@@ -557,38 +480,32 @@ public class TestLabelParser {
 	 */
 	void checkParsingPre(String whatToParse,boolean argsToFunc)
 	{
-		lbls.parseCollection(Arrays.asList(new String[]{
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-				QSMTool.cmdOperation+" "+"add"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
-				(!argsToFunc?QSMTool.cmdComment+" ":QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.ARITY+" 2"),
-				(!argsToFunc?QSMTool.cmdComment+" ":QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)"),
-				(!argsToFunc?QSMTool.cmdComment+" ":QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)"),
-				(!argsToFunc?QSMTool.cmdComment+" ":QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"2::int)"),
-				(!argsToFunc?QSMTool.cmdComment+" ":QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.CONSTRAINT+" (> 55 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0)"),
-				(!argsToFunc?QSMTool.cmdComment+" ":QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.CONSTRAINT+" (> "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"2)"),
-				QSMTool.cmdOperation+" "+"func "+OP_DATA.PRE+" "+whatToParse
-		}));
+		lbls.parseCollection(Arrays.asList(QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+                QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.POST+ " (= m"+_N+" 0)",
+                QSMTool.cmdOperation+" "+"add"+" "+ OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.PRE+ " (> m"+_M+" 0)",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
+                (!argsToFunc?QSMTool.cmdComment+" ":QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.ARITY+" 2"),
+                (!argsToFunc?QSMTool.cmdComment+" ":QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)"),
+                (!argsToFunc?QSMTool.cmdComment+" ":QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)"),
+                (!argsToFunc?QSMTool.cmdComment+" ":QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"2::int)"),
+                (!argsToFunc?QSMTool.cmdComment+" ":QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.CONSTRAINT+" (> 55 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0)"),
+                (!argsToFunc?QSMTool.cmdComment+" ":QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.CONSTRAINT+" (> "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1 "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"2)"),
+                QSMTool.cmdOperation+" "+"func "+OP_DATA.PRE+" "+whatToParse));
 	}
 	
 	/** Missing closing brace. */
 	@Test
 	public final void testTraceParser_fail6a()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			checkParsingPre("(and (= 5 input"+_M+") (> (func output"+_N+" input"+_M+") output"+_N+")",true);
-		}},IllegalArgumentException.class,"unexpected end of input");
+		TestHelper.checkForCorrectException(() -> checkParsingPre("(and (= 5 input"+_M+") (> (func output"+_N+" input"+_M+") output"+_N+")",true),IllegalArgumentException.class,"unexpected end of input");
 	}
 
 	/** Missing closing brace. */
 	@Test
 	public final void testTraceParser_fail6b()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			checkParsingPre("(and (= 5 input"+_M+") (> (func output"+_N+" input"+_M+") output"+_N+")",false);
-		}},IllegalArgumentException.class,"unexpected end of input");
+		TestHelper.checkForCorrectException(() -> checkParsingPre("(and (= 5 input"+_M+") (> (func output"+_N+" input"+_M+") output"+_N+")",false),IllegalArgumentException.class,"unexpected end of input");
 	}
 		
 	/** An empty chunk of text to parse (PRE/POST/IO). */
@@ -597,9 +514,7 @@ public class TestLabelParser {
 	{
 		checkParsingPre("(and)",false);
 		final SmtLabelParser parser = new SmtLabelParser();
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			parser.interpretPrePostCondition("", lbls.new FunctionVariablesHandler(VARIABLEUSE.PRE));
-		}},IllegalArgumentException.class,"unexpected end of expression");
+		TestHelper.checkForCorrectException(() -> parser.interpretPrePostCondition("", lbls.new FunctionVariablesHandler(VARIABLEUSE.PRE)),IllegalArgumentException.class,"unexpected end of expression");
 	}
 
 	/** An empty chunk of text to parse (LABEL). */
@@ -608,9 +523,7 @@ public class TestLabelParser {
 	{
 		checkParsingPre("(and)",false);
 		final SmtLabelParser parser = new SmtLabelParser();
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			parser.interpretTrace("", lbls.new FunctionVariablesHandler(VARIABLEUSE.PRE));
-		}},IllegalArgumentException.class,"unexpected end of expression");
+		TestHelper.checkForCorrectException(() -> parser.interpretTrace("", lbls.new FunctionVariablesHandler(VARIABLEUSE.PRE)),IllegalArgumentException.class,"unexpected end of expression");
 	}
 
 	/** An empty chunk of text to parse - lexical analysis fails. */
@@ -619,36 +532,28 @@ public class TestLabelParser {
 	{
 		checkParsingPre("(and)",false);
 		final SmtLabelParser parser = new SmtLabelParser();
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			parser.interpretPrePostCondition("   ", lbls.new FunctionVariablesHandler(VARIABLEUSE.PRE));
-		}},IllegalArgumentException.class,"failed to lex");
+		TestHelper.checkForCorrectException(() -> parser.interpretPrePostCondition("   ", lbls.new FunctionVariablesHandler(VARIABLEUSE.PRE)),IllegalArgumentException.class,"failed to lex");
 	}
 
 	/** An empty chunk of text to parse. */
 	@Test
 	public final void testPreParser_fail0c()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			checkParsingPre("()",false);
-		}},IllegalArgumentException.class,"missing function name");
+		TestHelper.checkForCorrectException(() -> checkParsingPre("()",false),IllegalArgumentException.class,"missing function name");
 	}
 
 	/** Operation used before being defined. */
 	@Test
 	public final void testPreParser_fail1()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			checkParsingPre("",false);
-		}},IllegalArgumentException.class,"expected specification for label func");
+		TestHelper.checkForCorrectException(() -> checkParsingPre("",false),IllegalArgumentException.class,"expected specification for label func");
 	}
 	
 	/** Missing chunk of expression. */
 	@Test
 	public final void testPreParser_fail2()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			checkParsingPre("(",false);
-		}},IllegalArgumentException.class,"unexpected end of expression");
+		TestHelper.checkForCorrectException(() -> checkParsingPre("(",false),IllegalArgumentException.class,"unexpected end of expression");
 	}
 	
 	/** Does not start with an opening brace - this is ok since we could have a boolean var here. */
@@ -662,18 +567,14 @@ public class TestLabelParser {
 	@Test
 	public final void testPreParser_fail4()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			checkParsingPre("(and (",false);
-		}},IllegalArgumentException.class,"unexpected end of expression");
+		TestHelper.checkForCorrectException(() -> checkParsingPre("(and (",false),IllegalArgumentException.class,"unexpected end of expression");
 	}
 	
 	/** Missing chunk of expression. */
 	@Test
 	public final void testPreParser_fail5()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			checkParsingPre("(and (or",false);
-		}},IllegalArgumentException.class,"unexpected end of input");
+		TestHelper.checkForCorrectException(() -> checkParsingPre("(and (or",false),IllegalArgumentException.class,"unexpected end of input");
 	}
 	
 
@@ -688,9 +589,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail7b()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			checkParsingPre("(and (= 5 input"+_M+") (> func output"+_N+" input"+_M+") output"+_N+"))",false);
-		}},IllegalArgumentException.class,"extra text at the end of expression");
+		TestHelper.checkForCorrectException(() -> checkParsingPre("(and (= 5 input"+_M+") (> func output"+_N+" input"+_M+") output"+_N+"))",false),IllegalArgumentException.class,"extra text at the end of expression");
 	}
 	
 	/** A few nested terms. This method test that variables are correctly associated with functions 
@@ -773,25 +672,23 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser12()
 	{
-		lbls.parseCollection(Arrays.asList(new String[]{
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.PRE+ " ( define m"+_N+"::nat )",
-				QSMTool.cmdOperation+" "+INITMEM+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" 0)",
-				QSMTool.cmdOperation+" "+"add"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.PRE+ " (> m"+_M+" 0)",
-				QSMTool.cmdOperation+" "+"remove"+" "+SmtLabelRepresentation.OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
-				QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.ARITY+" 2",
-				QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
-				QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)",
-				QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"2::int)",
-				QSMTool.cmdLowLevelFunction+" funcT "+FUNC_DATA.ARITY+" 0",
-				QSMTool.cmdLowLevelFunction+" funcT "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
-				QSMTool.cmdLowLevelFunction+" funcOne "+FUNC_DATA.ARITY+" 1",
-				QSMTool.cmdLowLevelFunction+" funcOne "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
-				QSMTool.cmdLowLevelFunction+" funcOne "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)",
-				QSMTool.cmdLowLevelFunction+" funcOne "+FUNC_DATA.CONSTRAINT+" (> "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1 0)",
-				QSMTool.cmdOperation+" "+"func "+OP_DATA.PRE+" "+
-"(and (= (funcT) (+ y (func (funcOne (+ x 3)) (+ 2 (func (+ input"+_M+" (funcT)) output"+_N+" ))))) (> (func output"+_N+" (funcOne (funcT))) input"+_M+"))"
-		}));
+		lbls.parseCollection(Arrays.asList(QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.PRE+ " ( define m"+_N+"::nat )",
+                QSMTool.cmdOperation+" "+INITMEM+" "+ OP_DATA.POST+ " (= m"+_N+" 0)",
+                QSMTool.cmdOperation+" "+"add"+" "+ OP_DATA.POST+ " (= m"+_N+" (+ m"+_M+" 1))",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.PRE+ " (> m"+_M+" 0)",
+                QSMTool.cmdOperation+" "+"remove"+" "+ OP_DATA.POST+ " (= m"+_N+" (- m"+_M+" 1))",
+                QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.ARITY+" 2",
+                QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
+                QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)",
+                QSMTool.cmdLowLevelFunction+" func "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"2::int)",
+                QSMTool.cmdLowLevelFunction+" funcT "+FUNC_DATA.ARITY+" 0",
+                QSMTool.cmdLowLevelFunction+" funcT "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
+                QSMTool.cmdLowLevelFunction+" funcOne "+FUNC_DATA.ARITY+" 1",
+                QSMTool.cmdLowLevelFunction+" funcOne "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"0::int)",
+                QSMTool.cmdLowLevelFunction+" funcOne "+FUNC_DATA.DECL+" (define "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1::int)",
+                QSMTool.cmdLowLevelFunction+" funcOne "+FUNC_DATA.CONSTRAINT+" (> "+SmtLabelRepresentation.functionArg+SmtLabelRepresentation.delimiterString+"1 0)",
+                QSMTool.cmdOperation+" "+"func "+OP_DATA.PRE+" "+
+"(and (= (funcT) (+ y (func (funcOne (+ x 3)) (+ 2 (func (+ input"+_M+" (funcT)) output"+_N+" ))))) (> (func output"+_N+" (funcOne (funcT))) input"+_M+"))"));
 
 		String 
 			FUNC_0=SmtLabelRepresentation.generateFreshVariable("func", VARIABLEUSE.PRE, 0, 0),
@@ -881,9 +778,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail8()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			checkParsingPre("(and (= 5 input"+_M+") (> (func output"+_N+" (func )))  output"+_N+")",true);
-		}},IllegalArgumentException.class,"function func should take 2 arguments");
+		TestHelper.checkForCorrectException(() -> checkParsingPre("(and (= 5 input"+_M+") (> (func output"+_N+" (func )))  output"+_N+")",true),IllegalArgumentException.class,"function func should take 2 arguments");
 	}
 	
 	/** Function without arguments - we do not ask for arguments to be collected, hence an exception should not be thrown. */
@@ -896,9 +791,7 @@ public class TestLabelParser {
 	/** Inconsistent number of arguments to a function. */
 	public final void testTraceParser_fail9()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			checkParsingPre("(and (= 5 input"+_M+") (> (func output"+_N+" (func a input"+_M+") (func b (func 8))) output"+_N+"))",true);
-		}},IllegalArgumentException.class,"function func should take 2 arguments");
+		TestHelper.checkForCorrectException(() -> checkParsingPre("(and (= 5 input"+_M+") (> (func output"+_N+" (func a input"+_M+") (func b (func 8))) output"+_N+"))",true),IllegalArgumentException.class,"function func should take 2 arguments");
 	}
 
 	/** Inconsistent number of arguments to a function - exception not thrown because we did not ask for this particular function to be extracted. */
@@ -912,9 +805,7 @@ public class TestLabelParser {
 	@Test
 	public final void testTraceParser_fail10a()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() { public @Override void run() {
-			checkParsingPre("(and (= 5 input"+_M+") (> (func output (func (func b 4 6) input"+_M+")) output"+_N+"))",true);
-		}},IllegalArgumentException.class,"function func should take 2 arguments");
+		TestHelper.checkForCorrectException(() -> checkParsingPre("(and (= 5 input"+_M+") (> (func output (func (func b 4 6) input"+_M+")) output"+_N+"))",true),IllegalArgumentException.class,"function func should take 2 arguments");
 	}
 
 	/** Inconsistent number of arguments to a function - not thrown since we did not parse details. */

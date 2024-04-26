@@ -174,7 +174,7 @@ public class TestWriteReadPair {
 				breakNumericalValue(xmlData, StatechumXML.ATTR_OTHERSCORE).getBytes()),false,converter);
 		checkForCorrectException(new whatToRun() { public @Override void run() {
 			ProgressDecorator.readPair(graph, loader.expectNextElement(StatechumXML.ELEM_PAIR.name()));
-		}},IllegalArgumentException.class,"failed to read a anotherscore");
+		}},IllegalArgumentException.class,"failed to read anotherscore");
 	}
 
 }

@@ -88,14 +88,13 @@ public class LearnerSimulator extends ProgressDecorator
 	 */ 
 	public Element expectNextElement(String name)
 	{
-		org.w3c.dom.Node result = null;
-		result = getNextElement();
+		Element result = getNextElement();
 		if (result == null)
 			throw new IllegalArgumentException("failed to find element called "+name);
 
 		if (!name.equals(result.getNodeName()))
 			throw new IllegalArgumentException("encountered "+result.getNodeName()+" instead of "+name);
-		return (Element)result;
+		return result;
 	}
 
 	protected InputStream inputStreamForXMLparser = new InputStream(){
@@ -306,7 +305,7 @@ public class LearnerSimulator extends ProgressDecorator
 	protected static final Map<String,StatechumXML> stringToEnumMap;
 	
 	static {
-		stringToEnumMap = new TreeMap<String,StatechumXML>();
+		stringToEnumMap = new TreeMap<>();
 		for(StatechumXML kind: StatechumXML.values())
 			stringToEnumMap.put(kind.name(), kind);
 	}
@@ -346,6 +345,7 @@ public class LearnerSimulator extends ProgressDecorator
 				switch(kind)
 				{
 				case ATTR_WITHCONSTRAINTS:
+					assert graph != null;
 					topLevelListener.AddConstraints(graph,new LearnerGraph(graph,graph.config),null);break;
 				case ELEM_ANSWER:
 					List<Label> question = labelio.readInputSequence(currentElement.getAttribute(StatechumXML.ATTR_QUESTION.name()));
@@ -356,7 +356,7 @@ public class LearnerSimulator extends ProgressDecorator
 					topLevelListener.ChooseStatePairs(graph);
 					break;
 				case ELEM_QUESTIONS:
-					checkSingles(currentElement, childrenQuestions);
+					checkChildrenAreUniquelyNamed(currentElement, childrenQuestions);
 					topLevelListener.ComputeQuestions(readPair(graph, getElement(StatechumXML.ELEM_PAIR.name())),graph,temp);
 					break;
 				case ELEM_MERGEANDDETERMINIZE:
@@ -406,7 +406,6 @@ public class LearnerSimulator extends ProgressDecorator
 	 * @param g estimated graph, not loaded.
 	 * @param question question loaded from XML
 	 * @param responseForNoRestart ignored.
-	 * @param lengthInHardFacts ignored.
 	 * @param options set to null by the simulator.
 	 * @return value loaded from XML
 	 */
@@ -421,7 +420,7 @@ public class LearnerSimulator extends ProgressDecorator
 		Integer failedPosition = Integer.valueOf(currentElement.getAttribute(StatechumXML.ATTR_FAILEDPOS.name()));
 		String ltlValue = null;
 		if (currentElement.hasAttribute(StatechumXML.ATTR_LTL.name())) ltlValue = currentElement.getAttribute(StatechumXML.ATTR_LTL.name());
-		Pair<Integer,String> returnValue = new Pair<Integer,String>(failedPosition,ltlValue);expectedReturnValue=returnValue;
+		Pair<Integer,String> returnValue = new Pair<>(failedPosition, ltlValue);expectedReturnValue=returnValue;
 		return returnValue;
 	}
 
@@ -434,7 +433,7 @@ public class LearnerSimulator extends ProgressDecorator
 	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 	{
 		org.w3c.dom.NodeList Pairs = currentElement.getChildNodes();
-		Stack<PairScore> result = new Stack<PairScore>();
+		Stack<PairScore> result = new Stack<>();
 		for(int i=0;i<Pairs.getLength();++i)
 		{
 			org.w3c.dom.Node pair = Pairs.item(i);
@@ -490,7 +489,7 @@ public class LearnerSimulator extends ProgressDecorator
 	
 	static
 	{
-		childrenQuestions = new TreeSet<String>();childrenQuestions.addAll(Arrays.asList(new String[]{StatechumXML.ELEM_PAIR.name(),StatechumXML.ELEM_SEQ.name()}));
+		childrenQuestions = new TreeSet<>();childrenQuestions.addAll(Arrays.asList(StatechumXML.ELEM_PAIR.name(),StatechumXML.ELEM_SEQ.name()));
 	}
 	
 	/** Loads the current learner input parameters and initialises the internal data in the simulator.

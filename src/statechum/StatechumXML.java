@@ -114,22 +114,22 @@ public enum StatechumXML
 					return finalNodeA;// the first element if available
 				if (index == 1)
 					return finalNodeB;// the second element if available
-				throw new IllegalArgumentException("only "+finalCounter+" elements in a collectin but requested element "+index);
+				throw new IllegalArgumentException("only "+finalCounter+" elements in a collection but requested element "+index);
 			}};
 	}
 
 	/** Writing sequences may require use of various tags for different kinds of sequences
 	 * and elements may require conversion in order to be read or written.
 	 */
-	public static interface SequenceIO<ELEM_TYPE>
+	public interface SequenceIO<ELEM_TYPE>
 	{
 		/** Given a collection of sequences, it writes them out in a form of XML element.
 		 * 
 		 * @param name the tag of the new element
 		 * @param data what to write
 		 * @return the written element.
-		 */ 
-		abstract public Element writeSequenceList(final String name, Collection<List<ELEM_TYPE>> data);
+		 */
+		Element writeSequenceList(final String name, Collection<List<ELEM_TYPE>> data);
 		
 		
 		/** Given an element, loads the data contained in it back into a collection.
@@ -139,15 +139,14 @@ public enum StatechumXML
 		 * @param expectedName the name which should have been given to this collection
 		 * @return the collection of sequences of strings loaded from that element.
 		 */
-		abstract public List<List<ELEM_TYPE>> readSequenceList(Element elem, String expectedName);
+		List<List<ELEM_TYPE>> readSequenceList(Element elem, String expectedName);
 
 		/** Dumps a sequence of inputs to the writer.
 		 * 
 		 * @param wr where to write sequences
 		 * @param str sequence of inputs to write out. The collection can be empty but no input can be of length zero.
-		 * @throws IOException
-		 */	
-		abstract public void writeInputSequence(StringBuffer wr,Collection<ELEM_TYPE> str);
+		 */
+		void writeInputSequence(StringBuffer wr,Collection<ELEM_TYPE> str);
 		
 		/** Loads a sequence of inputs from a string.
 		 * It does not create an XML element because the outcome may often be stored in an attribute
@@ -156,7 +155,7 @@ public enum StatechumXML
 		 * @param string data to read
 		 * @return collection of inputs read from a stream
 		 */
-		abstract public List<ELEM_TYPE> readInputSequence(String string);
+		List<ELEM_TYPE> readInputSequence(String string);
 	}
 	
 	public abstract static class XMLSequenceWriter<ELEM_TYPE> implements SequenceIO<ELEM_TYPE> 
@@ -189,7 +188,7 @@ public enum StatechumXML
 		public Element writeSequenceList(final String name, Collection<List<ELEM_TYPE>> data,String separator,String prefix, String suffix)
 		{
 			Element sequenceListElement = doc.createElement(StatechumXML.ELEM_SEQ.name());
-			sequenceListElement.setAttribute(StatechumXML.ATTR_SEQ.name(), name.toString());
+			sequenceListElement.setAttribute(StatechumXML.ATTR_SEQ.name(), name);
 			StringBuffer strBuffer = new StringBuffer();if (prefix != null) strBuffer.append(prefix);
 			boolean first = true;
 			for(List<ELEM_TYPE> seq:data)
@@ -213,7 +212,7 @@ public enum StatechumXML
 		@Override
 		public List<List<ELEM_TYPE>> readSequenceList(Element elem, String expectedName)
 		{
-			List<List<ELEM_TYPE>> result = new LinkedList<List<ELEM_TYPE>>();
+			List<List<ELEM_TYPE>> result = new LinkedList<>();
 			if (!elem.getNodeName().equals(StatechumXML.ELEM_SEQ.name()))
 				throw new IllegalArgumentException("expecting to load a list of sequences "+elem.getNodeName());
 			if (!elem.getAttribute(StatechumXML.ATTR_SEQ.name()).equals(expectedName))
@@ -235,8 +234,7 @@ public enum StatechumXML
 		 * 
 		 * @param wr where to write sequences
 		 * @param str sequence of inputs to write out. The collection can be empty but no input can be of length zero.
-		 * @throws IOException
-		 */	
+		 */
 		@Override
 		abstract public void writeInputSequence(StringBuffer wr,Collection<ELEM_TYPE> str);
 	}
@@ -259,7 +257,7 @@ public enum StatechumXML
 		{
 			if (!(obj instanceof OtpErlangList))
 				throw new IllegalArgumentException("expected a sequence, got "+obj);
-			List<String> outcome = new LinkedList<String>();
+			List<String> outcome = new LinkedList<>();
 			for(OtpErlangObject o:((OtpErlangList)obj))
 			{
 				if (!(o instanceof OtpErlangString))
@@ -276,7 +274,7 @@ public enum StatechumXML
 			OtpErlangObject obj = ErlangLabel.parseText(sequence);
 			if (!(obj instanceof OtpErlangList))
 				throw new IllegalArgumentException("expected a sequence of sequences, got "+obj);
-			List<List<String>> outcome = new LinkedList<List<String>>();
+			List<List<String>> outcome = new LinkedList<>();
 			for(OtpErlangObject o:((OtpErlangList)obj))
 				outcome.add(readSequenceFromErlangObject(o));
 			return outcome;
@@ -359,7 +357,7 @@ public enum StatechumXML
 		if (!(obj instanceof OtpErlangList))
 			throw new IllegalArgumentException("expected a sequence, got "+obj);
     	OtpErlangList list = (OtpErlangList)obj;
-    	List<List<Label>> outcome = new LinkedList<List<Label>>();
+    	List<List<Label>> outcome = new LinkedList<>();
     	for(OtpErlangObject o:list.elements())
     		outcome.add(readInputSequenceFromErlangObject(o,config,conv));
     	return outcome;
@@ -387,11 +385,11 @@ public enum StatechumXML
 		if (!(obj instanceof OtpErlangList))
 			throw new IllegalArgumentException("expected a sequence, got "+obj);
     	OtpErlangList list = (OtpErlangList)obj;
-    	List<Label> outcome = new LinkedList<Label>();
+    	List<Label> outcome = new LinkedList<>();
     	
     	for(OtpErlangObject o:list.elements())
     	{
-    		Label label = null;
+    		Label label;
     		switch(config.getLabelKind())
     		{
     		case LABEL_STRING:
@@ -429,7 +427,7 @@ public enum StatechumXML
 		 */
 		public static final char seqStart='{',seqEnd='}',seqSep=',',seqNewLine='\n';
 		
-		private static final String badChars = "\\"+seqStart+"\\"+seqSep+"\\"+seqEnd+seqNewLine;
+		private static final String badChars = "\\"+seqStart+seqSep+"\\"+seqEnd+seqNewLine;
 		
 
 		static
@@ -445,7 +443,7 @@ public enum StatechumXML
 		@Override
 		public List<List<String>> readSequenceList(String sequence)
 		{
-			List<List<String>> result = new LinkedList<List<String>>();
+			List<List<String>> result = new LinkedList<>();
 			Reader reader = new StringReader(sequence);
 			try
 			{
@@ -457,7 +455,7 @@ public enum StatechumXML
 					result.add(readInputSequence(reader,ch));
 					ch = reader.read();while(ch == seqNewLine) ch=reader.read();
 				}
-				if (ch != -1 && ch != seqStart) throw new IllegalArgumentException("invalid char "+ch+" instead of a sequence");
+				if (ch != -1) throw new IllegalArgumentException("invalid char "+ch+" instead of a sequence");
 			}
 			catch(IOException e)
 			{
@@ -513,16 +511,16 @@ public enum StatechumXML
 		 */
 		public List<String> readInputSequence(Reader rd, int firstChar)
 		{
-			List<String> result = new LinkedList<String>();
+			List<String> result = new LinkedList<>();
 			try
 			{
 				int ch = (firstChar == -1?rd.read():firstChar);while(ch == seqNewLine) ch=rd.read();if (ch != seqStart) throw new IllegalArgumentException("invalid char "+ch+" instead of a sequence");
 				boolean after_open_bracket = true;
 				do
 				{
-					StringBuffer input = new StringBuffer();
+					StringBuilder input = new StringBuilder();
 					ch = rd.read();
-					while(ch != -1 && ch == ' ')
+					while(ch == ' ')
 						ch = rd.read();
 					while(ch != -1 && ch != seqEnd && ch != seqSep)
 					{
@@ -571,10 +569,10 @@ public enum StatechumXML
 		@Override
 		public Element writeSequenceList(String name, Collection<List<Label>> data) 
 		{
-			List<List<String>> dataToWrite = new ArrayList<List<String>>(data.size());
+			List<List<String>> dataToWrite = new ArrayList<>(data.size());
 			for(List<Label> seq:data)
 			{
-				List<String> s = new ArrayList<String>(seq.size());
+				List<String> s = new ArrayList<>(seq.size());
 				for(Label l:seq) s.add(l.toErlangTerm());
 				dataToWrite.add(s);
 			}
@@ -585,7 +583,7 @@ public enum StatechumXML
 		public List<List<Label>> readSequenceList(Element elem, String expectedName) 
 		{
 			List<List<String>> data = delegate.readSequenceList(elem, expectedName);
-			List<List<Label>> convertedData = new ArrayList<List<Label>>(data.size());
+			List<List<Label>> convertedData = new ArrayList<>(data.size());
 			for(List<String> str:data)
 				convertedData.add(AbstractLearnerGraph.buildList(str, config, converter));
 
@@ -594,7 +592,7 @@ public enum StatechumXML
 
 		@Override
 		public void writeInputSequence(StringBuffer wr, Collection<Label> str) {
-			List<String> s = new ArrayList<String>(str.size());
+			List<String> s = new ArrayList<>(str.size());
 			for(Label l:str) s.add(l.toErlangTerm());
 			delegate.writeInputSequence(wr, s);
 		}

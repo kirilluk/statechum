@@ -703,11 +703,9 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 			} else if (!first.equals(other.first))
 				return false;
 			if (second == null) {
-				if (other.second != null)
-					return false;
-			} else if (!second.equals(other.second))
-				return false;
-			return true;
+				return other.second == null;
+			} else
+				return second.equals(other.second);
 		}
 
 		@Override
@@ -1144,11 +1142,11 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 					for(CmpVertex targetState:coregraph.getTargets(transition.getValue()))
 						if (filter.stateToConsider(targetState))
 						{
-							MapWithSearch<Label,Label,TARGET_B_TYPE> entryForState = matrixND.transitionMatrix.get(entry.getKey());
-							if (entryForState == null)
-							{
-								entryForState = matrixND.createNewRow();matrixND.transitionMatrix.put(entry.getKey(), entryForState);
-							}
+							MapWithSearch<Label,Label,TARGET_B_TYPE> entryForState = matrixND.transitionMatrix.computeIfAbsent(entry.getKey(),
+								k->{
+								MapWithSearch<Label,Label,TARGET_B_TYPE> transitions = matrixND.createNewRow();matrixND.transitionMatrix.put(entry.getKey(), transitions);
+								return transitions;
+								});
 							matrixND.addTransition(entryForState, transition.getKey(), targetState);
 						}
 			}
@@ -1161,7 +1159,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		if (filter.stateToConsider(coregraph.getInit()))
 			matrixND.setInit(coregraph.getInit());// assign an initial state if not filtered out
 	}
-		
+
 	/** Builds a (non-deterministic in general) transition matrix where all 
 	 * transitions point in an opposite direction to the current one. 
 	 * The matrix produced is used in the PLTSDiff algorithm to scan the state comparison matrix columnwise.

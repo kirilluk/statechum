@@ -89,7 +89,6 @@ public class GraphSeries {
 	 * or a difference between the previous and the new graph.
 	 *  
 	 * @param node XML element to load from
-	 * @param config configuration to use when loading graph.
 	 * @return loaded graph.
 	 */
 	public LearnerGraph readGraph(Node node)
@@ -108,7 +107,8 @@ public class GraphSeries {
 			ChangesRecorder.applyGD_WithRelabelling(graph != null?new LearnerGraph(graph,config):new LearnerGraph(config), element,converter,newGraph);
 			graph = newGraph;
 		}
-		else throw new IllegalArgumentException("expected either graph or GD, got "+element.getNodeName());
+		else
+			throw new IllegalArgumentException("expected either graph or GD, got "+element.getNodeName());
 		
 		assert graph != null;
 		return graph;
@@ -119,8 +119,7 @@ public class GraphSeries {
 	
 	/** Stores the difference between the current and the new graph.
 	 * 
-	 * @param newGraph graph to store
-	 * @param doc XML document to create a node in.
+	 * @param newGraph graph to store in the doc (XML document to create a node in).
 	 * @return XML element corresponding to the graph or the differences.
 	 */
 	public Element writeGraph(LearnerGraph newGraph)

@@ -640,7 +640,7 @@ public class TestRecordProgressDecorator
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 
 			Set<String> singlesCollection = new TreeSet<>(Arrays.asList("A", "B"));
-			ProgressDecorator.checkSingles(dumper.topElement, singlesCollection);
+			ProgressDecorator.checkChildrenAreUniquelyNamed(dumper.topElement, singlesCollection);
 		}
 		
 		@Test
@@ -652,7 +652,7 @@ public class TestRecordProgressDecorator
 			A=dumper.doc.createElement("A");dumper.topElement.appendChild(A);
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 			
-			ProgressDecorator.checkSingles(dumper.topElement, null);
+			ProgressDecorator.checkChildrenAreUniquelyNamed(dumper.topElement, null);
 		}
 		
 		@Test
@@ -667,7 +667,7 @@ public class TestRecordProgressDecorator
 
 			final Set<String> singlesCollection = new TreeSet<>(Arrays.asList("A", "B"));
 			checkForCorrectException(
-					() -> ProgressDecorator.checkSingles(dumper.topElement, singlesCollection),IllegalArgumentException.class,"duplicate");
+					() -> ProgressDecorator.checkChildrenAreUniquelyNamed(dumper.topElement, singlesCollection),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -682,7 +682,7 @@ public class TestRecordProgressDecorator
 
 			final Set<String> singlesCollection = new TreeSet<>(Arrays.asList("A", "B"));
 			checkForCorrectException(
-					() -> ProgressDecorator.checkSingles(dumper.topElement, singlesCollection),IllegalArgumentException.class,"duplicate");
+					() -> ProgressDecorator.checkChildrenAreUniquelyNamed(dumper.topElement, singlesCollection),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -696,7 +696,7 @@ public class TestRecordProgressDecorator
 
 			final Set<String> singlesCollection = new TreeSet<>(Arrays.asList("A", "B"));
 			checkForCorrectException(
-					() -> ProgressDecorator.checkSingles(dumper.topElement, singlesCollection),IllegalArgumentException.class,"duplicate");
+					() -> ProgressDecorator.checkChildrenAreUniquelyNamed(dumper.topElement, singlesCollection),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -710,7 +710,7 @@ public class TestRecordProgressDecorator
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 		
 			checkForCorrectException(
-					() -> ProgressDecorator.checkSingles(dumper.topElement, null),IllegalArgumentException.class,"duplicate");
+					() -> ProgressDecorator.checkChildrenAreUniquelyNamed(dumper.topElement, null),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -724,7 +724,7 @@ public class TestRecordProgressDecorator
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 		
 			checkForCorrectException(
-					() -> ProgressDecorator.checkSingles(dumper.topElement, null),IllegalArgumentException.class,"duplicate");
+					() -> ProgressDecorator.checkChildrenAreUniquelyNamed(dumper.topElement, null),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -738,7 +738,7 @@ public class TestRecordProgressDecorator
 			A=dumper.doc.createElement("B");dumper.topElement.appendChild(A);
 		
 			checkForCorrectException(
-					() -> ProgressDecorator.checkSingles(dumper.topElement, null),IllegalArgumentException.class,"duplicate");
+					() -> ProgressDecorator.checkChildrenAreUniquelyNamed(dumper.topElement, null),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -752,7 +752,7 @@ public class TestRecordProgressDecorator
 
 			final Set<String> singlesCollection = new TreeSet<>(Collections.singletonList("B"));
 			checkForCorrectException(
-					() -> ProgressDecorator.checkSingles(dumper.topElement, singlesCollection),IllegalArgumentException.class,"duplicate");
+					() -> ProgressDecorator.checkChildrenAreUniquelyNamed(dumper.topElement, singlesCollection),IllegalArgumentException.class,"duplicate");
 		}
 		
 		@Test
@@ -767,7 +767,7 @@ public class TestRecordProgressDecorator
 
 			final Set<String> singlesCollection = new TreeSet<>(Arrays.asList("A", "B"));
 			checkForCorrectException(
-					() -> ProgressDecorator.checkSingles(dumper.topElement, singlesCollection),IllegalArgumentException.class,"found unexpected elements");
+					() -> ProgressDecorator.checkChildrenAreUniquelyNamed(dumper.topElement, singlesCollection),IllegalArgumentException.class,"found unexpected elements");
 		}
 		
 		@Test

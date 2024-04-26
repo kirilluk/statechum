@@ -1523,7 +1523,12 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 			Class erlangMap = Class.forName("com.ericsson.otp.erlang.OtpErlangMap");
 			classToDumper.put(erlangMap,(ErlangParserComponent)statechumErlangMap.getMethod("getSingleton",(Class[])null).invoke(null));
 		} catch (ClassNotFoundException | NoSuchMethodException | InvocationTargetException | IllegalAccessException ignored) {
-			// ignore this - if we are here, the class is not available
+			// ignore this - if we are here, com.ericsson.otp.erlang.OtpErlangMap or statechum.analysis.Erlang.ErlangMap classes are not available.
+			// This is queried dynamically to support both very old Erlang Otp and newer Otp.
+			// Class statechum.analysis.Erlang.ErlangMap will be unavailable if we only support an old Otp runtime and
+			// thus do not include the lib/Erlang24 directory in the build source path. It is not convenient to support both runtimes
+			// at the same time because old otpErlang library does not work with new Otp and vice-versa, and directly using
+			// otpErlang.jar as a dependency helps development a lot, compared to using Class.forName for all the relevant classes in it.
 		}
 
 		classToDumper.put(OtpErlangTuple.class, ErlangTuple.getSingleton());

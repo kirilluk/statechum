@@ -62,7 +62,7 @@ import statechum.model.testset.PTASequenceEngine;
 public class LearningAlgorithms
 {
 	/** In a number of experiments, evaluation of automata is conducted by exploration either by generating a test set or by generating walks of some length. Both are governed by a bound:
-	 * if a learnt automaton has traces that cannot be explored within that bound, it is quite easy to obtain something with a huge number of states that passes all check with flying colours.
+	 * if a learnt automaton has traces that cannot be explored within that bound, it is quite easy to obtain something with a huge number of states that passes all checks with flying colours.
 	 * This is the maximal number of states permitted in a learnt graph, as a multiplier of a number of states in a reference graph. 
 	 */
 	public static int maxStateNumberMultiplier = 3;
@@ -638,7 +638,10 @@ public class LearningAlgorithms
 		{
 		}
 		
-		/** Override in child classes to permit learning FSM without a limit on state number. Useful in production use but not for research experiments where evaluation explores learnt automata up to a specfic limit. */
+		/** Override in child classes to permit learning FSM without a limit on state number.
+		 * Useful in production use but not for research experiments where evaluation explores learnt
+		 * automata up to a specfic limit on the number of states.
+		 */
 		protected boolean permitUnlimitedNumberOfStates()
 		{
 			return true;
@@ -898,7 +901,7 @@ public class LearningAlgorithms
 
 				if (outcome.getInit().getColour() == null)
 				{// If the initial graph is a PTA, the initial state only has one transition to the state reached by the uniqueFromInitial, it will not hence receive a colour and hence will not participate in state merging.
-					CmpVertex newInit = LearningSupportRoutines.findBestMatchForInitialVertexInGraph(outcome,initPTA);// will only return null if the learner failed (and returned an single-state reject graph)
+					CmpVertex newInit = LearningSupportRoutines.findBestMatchForInitialVertexInGraph(outcome,initPTA);// will only return null if the learner failed (and returned a single-state reject graph)
 					if (newInit != null)
 						outcome.setInit(newInit);
 				}

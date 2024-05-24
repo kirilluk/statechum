@@ -64,7 +64,7 @@ public class ComputePathLengthDistribution
 		int total = 0;
 		for(int i=0;i<plsSlotNumber;++i)
 			total+=statistics[i];
-		StringBuffer result = new StringBuffer();
+		StringBuilder result = new StringBuilder();
 		for(int i=0;i<plsSlotNumber-1;++i)
 		{
 			result.append((double)statistics[i]/total);result.append(separator);

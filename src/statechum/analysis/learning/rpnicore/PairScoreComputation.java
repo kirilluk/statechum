@@ -809,7 +809,7 @@ public class PairScoreComputation {
 		
 		long outcome = 0;
 		Set<Label> outgoingRed = new TreeSet<>(), outgoingNew = new TreeSet<>();
-		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq:mergedVertices)
+		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eq:mergedVertices) // here we go through all equivalence classes, analysing them one by one.
 			if (howToScore != SiccoGeneralScoring.S_ONEPAIR || eq.getStates().contains(pair.getR()))
 			{
 				outgoingRed.clear();outgoingNew.clear();

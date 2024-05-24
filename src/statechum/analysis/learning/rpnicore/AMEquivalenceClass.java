@@ -204,13 +204,17 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		Object valueInMap = where.get(label);
 		boolean outcome = false;
 		if (valueInMap == null)
-		{
+		{// no transition present for the provided label
 			if (useArrayMap)
 			{
+				// Array maps are intended to conserve memory and not use collections where we do not need them (very useful for a PTA with millions of states and few branches).
+				// These maps are not treated like usual maps: we use Object to mean either a CmpVertex or a collection of vertices,
+				// depending on the number of target states for the considered label. Right now, there are no targets hence
+				// we simply put the current target state on the right-hand side of the map.
 				where.put(label,target);
 			}
 			else
-			{
+			{// Here we are using 'ordinary' maps hence create a singleton collection of target states.
 				List<CmpVertex> details = new ArrayList<>(5);details.add(target);where.put(label, details);
 			}
 			outcome = true;
@@ -226,8 +230,10 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		return outcome;
 	}
 
-	/** Adds a supplied collection of transitions to the existing collection of outgoing transitions. Returns true if the outcome is a singleton set (since we only add transitions and never remove them, we cannot get an empty set).
-	 * The idea of a singleton is significant because in this case we do not need to consider that specific input where we merge subsequent states: only those entered by transitions with the same inputs need to be merged.
+	/** Adds a supplied collection of transitions to the existing collection of outgoing transitions.
+	 * Returns true if the outcome is a singleton set (since we only add transitions and never remove them, we cannot get an empty set).
+	 * The idea of a singleton is significant because in this case we do not need to consider that specific
+	 * input where we merge subsequent states: only those entered by transitions with the same inputs need to be merged.
 	 * 
 	 * @param where collection of transitions to update
 	 * @param what labels and target states associated with the transitions to add.
@@ -241,7 +247,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		for(Entry<Label,Object> entry:what.entrySet())
 		{
 			if (entry.getValue() instanceof CmpVertex)
-				singleton &=addTransition(where,entry.getKey(),(CmpVertex)entry.getValue(), useArrayMap);
+				singleton &= addTransition(where,entry.getKey(),(CmpVertex)entry.getValue(), useArrayMap);
 			else
 			{
 				Label label = entry.getKey();
@@ -257,7 +263,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 							valueInMap = v;
 						}
 						else
-						{// if not using an array, create a list
+						{// if not using an 'arraymap' to store data, create a list
 							List<CmpVertex> details = new ArrayList<>(5);details.add(v);valueInMap = details;
 						}
 					}
@@ -301,7 +307,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	public boolean mergeWith(EquivalenceClass<TARGET_TYPE,CACHE_TYPE> whatToMergeWith) throws IncompatibleStatesException
 	{
 		if (!(whatToMergeWith instanceof AMEquivalenceClass))
-			throw new IllegalArgumentException("compareTo was called with an instance of a type other than AMEquivalenceClass");
+			throw new IllegalArgumentException("mergeWith was called with an instance of a type other than AMEquivalenceClass");
 		
 		@SuppressWarnings("rawtypes")
 		AMEquivalenceClass to = (AMEquivalenceClass)whatToMergeWith;
@@ -417,12 +423,12 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 				final Map<JUConstants,JUConstants> transformation = new TreeMap<>();
 				ColourPriorities.put(col,transformation);
 				
-				// lower priority and the current priority
+				// lower priority and the current priority: if a color is lower priority, current color wins.
 				for(int other=0;other<=priority;++other)
 					for(JUConstants lowerP:priorities[other])
 						transformation.put(lowerP,col);
 				
-				// higher priority
+				// higher priority: always wins against the current colour.
 				for(int other=priority+1;other<priorities.length;++other)
 					for(JUConstants higherP:priorities[other])
 						transformation.put(higherP,higherP);

@@ -1094,7 +1094,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		Set<CmpVertex> reachableStates = coregraph.pathroutines.computeReachableStates();
 		LearnerGraphND inverse = new LearnerGraphND(coregraph.config);
 		AbstractPathRoutines.buildInverse(coregraph, LearnerGraphND.ignoreNone, inverse);
-		reachableStates.removeAll(inverse.pathroutines.computeReachableStates());// buildInverse sets the initial state in the inverse to the initial one in the source.
+		reachableStates.removeAll(inverse.pathroutines.computeReachableStates());// buildInverse sets the initial state in the inverse to the initial one in the source, assuming that this state has not been filtered out.
 		return reachableStates;
 	}
 
@@ -1153,9 +1153,8 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		
 		// It cannot happen that some target states will not be included in the set
 		// of source states because routines building LearnerGraph ensure
-		// that all states are mentioned on the left-hand side
+		// that all states are mentioned on the left-hand side of
 		// LearnerGraph's transition matrix.
-
 		if (filter.stateToConsider(coregraph.getInit()))
 			matrixND.setInit(coregraph.getInit());// assign an initial state if not filtered out
 	}
@@ -1194,8 +1193,10 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 							sourceStates.add(entry.getKey());
 						}
 			}
-		if (matrixND.transitionMatrix.isEmpty()) matrixND.setInit(null);
-		else matrixND.setInit(graph.getInit());
+		if (!filter.stateToConsider(graph.getInit()))
+			matrixND.setInit(null);
+		else
+			matrixND.setInit(graph.getInit());
 	}
 
 	/** Returns a state, randomly chosen according to the supplied random number generator. */

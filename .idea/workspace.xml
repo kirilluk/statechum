@@ -4,21 +4,30 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Builds with new umfpack and passes tests.">
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Modernised a number of experiments. Commented out part of HandleLowLevelFunction that was both broken and not covered by tests.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/StatechumXML.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/StatechumXML.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangLabel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/ErlangLabel.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/PairOfPaths.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/PairOfPaths.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/observers/GraphSeries.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/observers/GraphSeries.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/observers/LearnerSimulator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/observers/LearnerSimulator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/Configuration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Configuration.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/GlobalConfiguration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/GlobalConfiguration.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/DrawGraphs.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/DrawGraphs.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/Learner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/Learner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ComputePathLengthDistribution.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ComputePathLengthDistribution.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ExperimentRunner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ExperimentRunner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireLabelledNoRepeatStateMachineGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireLabelledNoRepeatStateMachineGenerator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireLabelledStateMachineGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireLabelledStateMachineGenerator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningSupportRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningSupportRoutines.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityLearner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityLearner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/ExperimentPaperUAS.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/ExperimentPaperUAS.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/ExperimentPaperUAS2.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/ExperimentPaperUAS2.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/PaperUASParameters.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/PaperUASParameters.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/SGE_ExperimentRunner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/SGE_ExperimentRunner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/UASExperiment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/UASExperiment.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/observers/ProgressDecorator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/observers/ProgressDecorator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AMEquivalenceClass.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AMEquivalenceClass.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractLearnerGraph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractLearnerGraph.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractPathRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractPathRoutines.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/smt/SmtLabelParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/smt/SmtLabelParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/smt/SmtLabelRepresentation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/smt/SmtLabelRepresentation.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestRecordProgressDecorator.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestRecordProgressDecorator.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestWriteReadPair.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/observers/TestWriteReadPair.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/smt/TestLabelParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/smt/TestLabelParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/smt/TestSmtLabelRepresentation.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/smt/TestSmtLabelRepresentation.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
@@ -63,30 +72,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "JUnit.FastTests$SmtTests.executor": "Run",
-    "JUnit.OTP 24.executor": "Run",
-    "JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23.executor": "Run",
-    "JUnit.TestLabelParser.testTraceParser1.executor": "Run",
-    "JUnit.TestLabelParser.testTraceParser5c.executor": "Run",
-    "JUnit.TestRandomPathGenerator.executor": "Run",
-    "JUnit.TestSmtLabelRepresentation$TestFeaturesOfAbstractStates.testAddNewPathAndUpdateMap.executor": "Run",
-    "JUnit.TestSmtLabelRepresentation.testCreateConjunctionEmpty2.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "master",
-    "ignore.virus.scanning.warn.message": "true",
-    "jdk.selected.JAVA_MODULE": "1.8",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "D:/experiment/git-statechum",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "preferences.sourceCode.Java"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;JUnit.FastTests$SmtTests.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OTP 24.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestLabelParser.testTraceParser1.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestLabelParser.testTraceParser5c.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestLearnerFromLargePTA.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestPaperUASLarge.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestRandomPathGenerator.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestSmtLabelRepresentation$TestFeaturesOfAbstractStates.testAddNewPathAndUpdateMap.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestSmtLabelRepresentation.testCreateConjunctionEmpty2.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;1.8&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/experiment/git-statechum&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;editor.preferences.tabs&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\experiment\statechum-master\lib\Erlang24\src\statechum\analysis\Erlang" />
@@ -110,7 +121,7 @@
       <recent name="statechum.analysis.learning.rpnicore" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.FastTests$SmtTests">
+  <component name="RunManager" selected="JUnit.TestPaperUASLarge">
     <configuration name="Unnamed" type="Application" factoryName="Application" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="generate_fsm_and_traces.Generator" />
       <module name="XMachineTool" />
@@ -364,29 +375,6 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestLabelParser.testTraceParser1" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
-      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.smt" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.smt.TestLabelParser" />
-      <option name="METHOD_NAME" value="testTraceParser1" />
-      <option name="TEST_OBJECT" value="method" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=&quot;d:\experiment\statechum-linear\lib\bin&quot;;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="TestLabelParser.testTraceParser5c" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -401,6 +389,29 @@
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.smt.TestLabelParser" />
       <option name="METHOD_NAME" value="testTraceParser5c" />
       <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=&quot;d:\experiment\statechum-linear\lib\bin&quot;;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestLearnerFromLargePTA" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.TestLearnerFromLargePTA" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=&quot;d:\experiment\statechum-linear\lib\bin&quot;;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <envs>
         <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
@@ -425,6 +436,29 @@
       <option name="METHOD_NAME" value="" />
       <option name="TEST_OBJECT" value="class" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestPaperUASLarge" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning.experiments" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.TestPaperUASLarge" />
+      <option name="METHOD_NAME" value="" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=&quot;d:\experiment\statechum-linear\lib\bin&quot;;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <envs>
         <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
         <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
@@ -467,29 +501,6 @@
       <option name="PACKAGE_NAME" value="statechum.analysis.learning.smt.TestSmtLabelRepresentation" />
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.smt.TestSmtLabelRepresentation$TestFeaturesOfAbstractStates" />
       <option name="METHOD_NAME" value="testAddNewPathAndUpdateMap" />
-      <option name="TEST_OBJECT" value="method" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=&quot;d:\experiment\statechum-linear\lib\bin&quot;;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestSmtLabelRepresentation.testCreateConjunctionEmpty2" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.smt.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
-      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.smt" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.smt.TestSmtLabelRepresentation" />
-      <option name="METHOD_NAME" value="testCreateConjunctionEmpty2" />
       <option name="TEST_OBJECT" value="method" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=&quot;d:\experiment\statechum-linear\lib\bin&quot;;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <envs>
@@ -579,19 +590,19 @@
       <item itemvalue="JUnit.TestLengthy (using OTP24)" />
       <item itemvalue="JUnit.TestParserDot" />
       <item itemvalue="JUnit.Run All tests with old OTP" />
+      <item itemvalue="JUnit.TestLearnerFromLargePTA" />
+      <item itemvalue="JUnit.TestPaperUASLarge" />
       <item itemvalue="JUnit.FastTests$SmtTests" />
-      <item itemvalue="JUnit.TestLabelParser.testTraceParser1" />
       <item itemvalue="JUnit.TestLabelParser.testTraceParser5c" />
       <item itemvalue="JUnit.TestSmtLabelRepresentation$TestFeaturesOfAbstractStates.testAddNewPathAndUpdateMap" />
-      <item itemvalue="JUnit.TestSmtLabelRepresentation.testCreateConjunctionEmpty2" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="JUnit.TestPaperUASLarge" />
+        <item itemvalue="JUnit.TestLearnerFromLargePTA" />
         <item itemvalue="JUnit.FastTests$SmtTests" />
         <item itemvalue="JUnit.TestLabelParser.testTraceParser5c" />
         <item itemvalue="JUnit.TestSmtLabelRepresentation$TestFeaturesOfAbstractStates.testAddNewPathAndUpdateMap" />
-        <item itemvalue="JUnit.TestSmtLabelRepresentation.testCreateConjunctionEmpty2" />
-        <item itemvalue="JUnit.TestLabelParser.testTraceParser1" />
       </list>
     </recent_temporary>
   </component>
@@ -747,7 +758,15 @@
       <option name="project" value="LOCAL" />
       <updated>1686774603264</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="Modernised a number of experiments. Commented out part of HandleLowLevelFunction that was both broken and not covered by tests.">
+      <option name="closed" value="true" />
+      <created>1714167188520</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1714167188520</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -808,7 +827,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Started to adapt dialyzer-4.4.4 to Statechum - need to do it in steps so that changes can be applied to subsequent versions of dialyzer" />
     <MESSAGE value="Migration to newer OTP continuing, a lot of work still pending." />
     <MESSAGE value="Added a simple parser for DOT file format." />
     <MESSAGE value="Early Dec 2022 updates - minor changes plus some OTP migration" />
@@ -833,7 +851,8 @@
     <MESSAGE value="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <MESSAGE value="Corrected a couple of tests - they were failing due to the conversion from string names to vertex numbers. Previously this was not noticable but now I'm using array-based collections in checkM so such things stand out." />
     <MESSAGE value="Builds with new umfpack and passes tests." />
-    <option name="LAST_COMMIT_MESSAGE" value="Builds with new umfpack and passes tests." />
+    <MESSAGE value="Modernised a number of experiments. Commented out part of HandleLowLevelFunction that was both broken and not covered by tests." />
+    <option name="LAST_COMMIT_MESSAGE" value="Modernised a number of experiments. Commented out part of HandleLowLevelFunction that was both broken and not covered by tests." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

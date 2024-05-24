@@ -41,20 +41,19 @@ public class ForestFireLabelledNoRepeatStateMachineGenerator extends ForestFireL
 	@Override
 	protected Label selectLabel(DeterministicVertex v, Set<Label> outgoingAlphabet)
 	{
-		Set<Label> incomingAlphabet = new TreeSet<Label>();
+		Set<Label> incomingAlphabet = new TreeSet<>();
 		for(Object e:v.getInEdges()) {
 			DirectedSparseEdge edge = (DirectedSparseEdge)e;
 			incomingAlphabet.addAll((Set<Label>)edge.getUserDatum(JUConstants.LABEL));
 		}
 
-		Set<Label> possibles = new TreeSet<Label>();
-		possibles.addAll(alphabet);
-		possibles.removeAll(outgoingAlphabet);possibles.removeAll(incomingAlphabet);
-		if(possibles.isEmpty())
+        Set<Label> possibleLabels = new TreeSet<>(alphabet);
+		possibleLabels.removeAll(outgoingAlphabet);possibleLabels.removeAll(incomingAlphabet);
+		if(possibleLabels.isEmpty())
 			return null;
 		
-		Label possiblesArray [] = new Label[possibles.size()];possibles.toArray(possiblesArray);
-		return possiblesArray[randomInt(possiblesArray.length)];
+		Label[] possibleLabelsArray = new Label[possibleLabels.size()];possibleLabels.toArray(possibleLabelsArray);
+		return possibleLabelsArray[randomInt(possibleLabelsArray.length)];
 	}
 	
 	/** Overridden to stop generation of self-loops. */

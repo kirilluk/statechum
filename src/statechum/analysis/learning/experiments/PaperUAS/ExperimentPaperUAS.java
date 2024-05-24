@@ -172,18 +172,9 @@ public class ExperimentPaperUAS
     /** Updates the (provided as an argument) collection of traces for a specific UAV with a new trace. */
     protected static void addTraceToUAV(String UAV, int frame, List<Label> trace,Map<String,Map<Integer,Set<List<Label>>>> collectionOfTraces)
     {
-       	Map<Integer,Set<List<Label>>> UAVdetails = collectionOfTraces.get(UAV);
-    	if (UAVdetails == null)
-    	{
-    		UAVdetails = new TreeMap<Integer,Set<List<Label>>>();collectionOfTraces.put(UAV,UAVdetails);
-    	}
-   	
-    	Set<List<Label>> traces = UAVdetails.get(frame);
-    	if (traces == null)
-    	{
-    		traces = new HashSet<List<Label>>();UAVdetails.put(frame, traces);
-    	}
-    	
+       	Map<Integer,Set<List<Label>>> UAVdetails = collectionOfTraces.computeIfAbsent(UAV, u -> new TreeMap<Integer,Set<List<Label>>>());
+    	Set<List<Label>> traces = UAVdetails.computeIfAbsent(frame, f -> new HashSet<List<Label>>());
+
     	traces.add(trace);
     }
     
@@ -240,18 +231,11 @@ public class ExperimentPaperUAS
 			@Override
 			public void process(final int frame, final String UAV, final String seed) {
 	           	final int frameNumber = frame/divisor;
-            	if (!data.containsKey(UAVAllSeeds))
-            		data.put(UAVAllSeeds,new TracesForSeed());
-             	TracesForSeed dataForSeedTmp = data.get(seed);
-             	if (dataForSeedTmp == null)
-             	{
-             		dataForSeedTmp = new TracesForSeed();data.put(seed,dataForSeedTmp);
-             	}
-             	final TracesForSeed dataForSeed = dataForSeedTmp;
+			    data.computeIfAbsent(UAVAllSeeds, all -> new TracesForSeed());
+             	final TracesForSeed dataForSeed = data.computeIfAbsent(seed, s -> new TracesForSeed());
 
-             	if (!dataForSeed.maxFrameNumber.containsKey(UAV))
-             		dataForSeed.maxFrameNumber.put(UAV,-1);
-            	
+				dataForSeed.maxFrameNumber.computeIfAbsent(UAV, u -> -1);
+
             	// This is a consistency check which is unnecessary for analysis but could be useful to catch problems with logging.
             	if (frameNumber < dataForSeed.maxFrameNumber.get(UAV))
             		throw new IllegalArgumentException("current frame number "+frameNumber+", previous one "+dataForSeed.maxFrameNumber.get(UAV));
@@ -356,6 +340,9 @@ public class ExperimentPaperUAS
             	// This is a consistency check which is unnecessary for analysis but could be useful to catch problems with logging.
             	if (frameNumber < 0)
             		throw new IllegalArgumentException("current frame number "+frameNumber+" is invalid");
+
+				// Here we check that the current frame number is greater than any previously recorded frame number for that UAV -
+				// this is important because we expect to read data for frames in an increasing order.
                 if (frameNumber < 0 || frameNumber < dataForSeed.maxFrameNumber.get(UAV))
             		throw new IllegalArgumentException("current frame number "+frameNumber+", previous one "+dataForSeed.maxFrameNumber.get(UAV));
 

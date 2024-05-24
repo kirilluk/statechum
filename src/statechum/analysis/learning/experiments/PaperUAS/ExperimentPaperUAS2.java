@@ -131,7 +131,7 @@ public class ExperimentPaperUAS2
 	{
 		int ThreadNumber = ExperimentRunner.getCpuNumber();
 		executorService = Executors.newFixedThreadPool(ThreadNumber);
-		runner = new ExecutorCompletionService<String>(executorService);
+		runner = new ExecutorCompletionService<>(executorService);
 	}
 	
 	public void shutdown()
@@ -144,7 +144,7 @@ public class ExperimentPaperUAS2
 	}
 	
 	/** All traces, maps a seed to a collection of traces for the specific seed. */
-	public Map<String,TracesForSeed> collectionOfTraces = new TreeMap<String,TracesForSeed>();
+	public Map<String,TracesForSeed> collectionOfTraces = new TreeMap<>();
 	
 	public Map<String,TracesForSeed> getCollectionOfTraces()
 	{
@@ -171,8 +171,8 @@ public class ExperimentPaperUAS2
 	/** Data recorded for each seed. */
 	public static class TracesForSeed
 	{
-	    Map<String,Map<Integer,Set<List<Label>>>> collectionOfPositiveTraces = new TreeMap<String,Map<Integer,Set<List<Label>>>>();
-	    Map<String,Map<Integer,Set<List<Label>>>> collectionOfNegativeTraces = new TreeMap<String,Map<Integer,Set<List<Label>>>>();
+	    Map<String,Map<Integer,Set<List<Label>>>> collectionOfPositiveTraces = new TreeMap<>();
+	    Map<String,Map<Integer,Set<List<Label>>>> collectionOfNegativeTraces = new TreeMap<>();
 
 	    public Map<String,Map<Integer,PTASequenceEngine>> tracesForUAVandFrame = null;
 	    
@@ -207,7 +207,7 @@ public class ExperimentPaperUAS2
 	    Map<String,List<Label>> lastPointOnTrace = null;
 	    
 	    /** Last encountered timeframe for a specific UAV. */
-	    Map<String,Integer> maxFrameNumber=new TreeMap<String,Integer>();
+	    Map<String,Integer> maxFrameNumber= new TreeMap<>();
 	}
 	
 	
@@ -216,19 +216,10 @@ public class ExperimentPaperUAS2
     {
     	synchronized(collectionOfTraces)
     	{
-	       	Map<Integer,Set<List<Label>>> UAVdetails = collectionOfTraces.get(UAV);
-	    	if (UAVdetails == null)
-	    	{
-	    		UAVdetails = new TreeMap<Integer,Set<List<Label>>>();collectionOfTraces.put(UAV,UAVdetails);
-	    	}
-	   	
-	    	Set<List<Label>> traces = UAVdetails.get(frame);
-	    	if (traces == null)
-	    	{
-	    		traces = new HashSet<List<Label>>();UAVdetails.put(frame, traces);
-	    	}
-	    	
-	    	traces.add(trace);
+			Map<Integer,Set<List<Label>>> UAVdetails = collectionOfTraces.computeIfAbsent(UAV, u -> new TreeMap<>());
+			Set<List<Label>> traces = UAVdetails.computeIfAbsent(frame, f -> new HashSet<>());
+
+			traces.add(trace);
     	}
     }
     
@@ -279,12 +270,11 @@ public class ExperimentPaperUAS2
      */
     public void loadData(final Reader []inputData)
     {
-        final Map<String,TracesForSeed> data = new TreeMap<String,TracesForSeed>();
-        final Set<String> UAVs = new TreeSet<String>();UAVs.add(UAVAll);UAVs.add(UAVAllSeeds);
-        final Set<Integer> frameNumbers = new TreeSet<Integer>();
-    	if (!data.containsKey(UAVAllSeeds))
-    		data.put(UAVAllSeeds,new TracesForSeed());
-       
+        final Map<String,TracesForSeed> data = new TreeMap<>();
+        final Set<String> UAVs = new TreeSet<>();UAVs.add(UAVAll);UAVs.add(UAVAllSeeds);
+        final Set<Integer> frameNumbers = new TreeSet<>();
+		data.computeIfAbsent(UAVAllSeeds,s -> new TracesForSeed());
+
         scanData(inputData, new HandleOneTrace() {
 			
 			@Override
@@ -294,17 +284,13 @@ public class ExperimentPaperUAS2
 
              	synchronized(data)
              	{// synchronized permits running a different input file in a separate thread, speeding-up the loading process
-	             	dataForSeedTmp = data.get(seed);
-	             	if (dataForSeedTmp == null)
-	             	{
-	             		dataForSeedTmp = new TracesForSeed();data.put(seed,dataForSeedTmp);
-	             	}
-             	}
+	             	dataForSeedTmp = data.computeIfAbsent(seed, s -> new TracesForSeed());
+
+				}
              	final TracesForSeed dataForSeed = dataForSeedTmp;
              	synchronized(dataForSeed)
              	{// synchronized permits running a different input file in a separate thread, speeding-up the loading process
-	             	if (!dataForSeed.maxFrameNumber.containsKey(UAV))
-	             		dataForSeed.maxFrameNumber.put(UAV,-1);
+					dataForSeed.maxFrameNumber.computeIfAbsent(UAV, u -> -1);
 	            	
 	            	// This is a consistency check which is unnecessary for analysis but could be useful to catch problems with logging.
 	            	if (frameNumber < dataForSeed.maxFrameNumber.get(UAV))
@@ -358,7 +344,7 @@ public class ExperimentPaperUAS2
    		{
 			int lastFrameNumber = lastFrameNumberInteger.intValue();
 			List<Label> currentLastTrace = dataForSeed.lastPointOnTrace.get(UAV);
-			final List<Label> lastPositiveTrace = new ArrayList<Label>(currentLastTrace.size());lastPositiveTrace.addAll(currentLastTrace);// make a copy because the positive trace constantly gets added to. 
+			final List<Label> lastPositiveTrace = new ArrayList<>(currentLastTrace.size());lastPositiveTrace.addAll(currentLastTrace);// make a copy because the positive trace constantly gets added to.
 			addTraceToUAV(UAVAllSeeds,lastFrameNumber,lastPositiveTrace,data.get(UAVAllSeeds).collectionOfPositiveTraces);
 			addTraceToUAV(UAVAll,lastFrameNumber,lastPositiveTrace,dataForSeed.collectionOfPositiveTraces);
 			addTraceToUAV(UAV,lastFrameNumber,lastPositiveTrace,dataForSeed.collectionOfPositiveTraces);
@@ -380,13 +366,13 @@ public class ExperimentPaperUAS2
      */
     public void loadDataByConcatenation(final Reader []inputData)
     {
-        final Map<String,TracesForSeed> data = new TreeMap<String,TracesForSeed>();
-        final Set<String> UAVs = new TreeSet<String>();UAVs.add(UAVAll);UAVs.add(UAVAllSeeds);
-        final Set<Integer> frameNumbers = new TreeSet<Integer>();
+        final Map<String,TracesForSeed> data = new TreeMap<>();
+        final Set<String> UAVs = new TreeSet<>();UAVs.add(UAVAll);UAVs.add(UAVAllSeeds);
+        final Set<Integer> frameNumbers = new TreeSet<>();
 
         if (!data.containsKey(UAVAllSeeds))
     	{
-    		TracesForSeed dataForSeedTmp = new TracesForSeed();data.put(UAVAllSeeds,dataForSeedTmp);dataForSeedTmp.lastPointOnTrace=new TreeMap<String,List<Label>>();
+    		TracesForSeed dataForSeedTmp = new TracesForSeed();data.put(UAVAllSeeds,dataForSeedTmp);dataForSeedTmp.lastPointOnTrace= new TreeMap<>();
     	}
         
         scanData(inputData, new HandleOneTrace() {
@@ -402,7 +388,7 @@ public class ExperimentPaperUAS2
             		dataForSeedTmp = data.get(seed);
                  	if (dataForSeedTmp == null)
                  	{
-                 		dataForSeedTmp = new TracesForSeed();data.put(seed,dataForSeedTmp);dataForSeedTmp.lastPointOnTrace=new TreeMap<String,List<Label>>();
+                 		dataForSeedTmp = new TracesForSeed();data.put(seed,dataForSeedTmp);dataForSeedTmp.lastPointOnTrace= new TreeMap<>();
                  	}
             	}
              	final TracesForSeed dataForSeed = dataForSeedTmp;
@@ -415,12 +401,15 @@ public class ExperimentPaperUAS2
 	
 	            	if (!dataForSeed.maxFrameNumber.containsKey(UAV))
 	             	{// add an entry for this UAV to both maxFrameNumber and lastPointOnTrace
-	             		dataForSeed.maxFrameNumber.put(UAV,-1);dataForSeed.lastPointOnTrace.put(UAV, new ArrayList<Label>());
+	             		dataForSeed.maxFrameNumber.put(UAV,-1);dataForSeed.lastPointOnTrace.put(UAV, new ArrayList<>());
 	             	}
 	            	
 	            	// This is a consistency check which is unnecessary for analysis but could be useful to catch problems with logging.
 	            	if (frameNumber < 0)
 	            		throw new IllegalArgumentException("current frame number "+frameNumber+" is invalid");
+
+					// Here we check that the current frame number is greater than any previously recorded frame number for that UAV -
+					// this is important because we expect to read data for frames in an increasing order.
 	                if (frameNumber < 0 || frameNumber < dataForSeed.maxFrameNumber.get(UAV))
 	            		throw new IllegalArgumentException("current frame number "+frameNumber+", previous one "+dataForSeed.maxFrameNumber.get(UAV));
 
@@ -469,7 +458,7 @@ public class ExperimentPaperUAS2
 	    					}
 	    					else
 	    					{// constructs a negative sequence by appending to the current positive trace. The positive trace itself is preserved because we'll be appending any positive sequence to come to it.  
-	    						List<Label> negativeTrace = new ArrayList<Label>(lastPositiveTrace.size()-1+trace.size());
+	    						List<Label> negativeTrace = new ArrayList<>(lastPositiveTrace.size() - 1 + trace.size());
 	    						Iterator<Label> iterLbl = lastPositiveTrace.iterator();
 	    						for(int i=0;i<lastPositiveTrace.size()-1;++i) negativeTrace.add(iterLbl.next());
 	    						negativeTrace.addAll(trace);
@@ -525,7 +514,7 @@ public class ExperimentPaperUAS2
     protected void constructSequencesForAllUAVandFrame(Map<String,TracesForSeed> data,final Set<Integer> frameNumbers)
     {
   		Configuration config = Configuration.getDefaultConfiguration().copy();
-  		List<Future<String>> results = new LinkedList<Future<String>>();
+  		List<Future<String>> results = new LinkedList<>();
   		
    		config.setGeneralisationThreshold(0);config.setGdFailOnDuplicateNames(false);
 		config.setGdLowToHighRatio(0.75);config.setGdKeyPairThreshold(0.5);
@@ -554,7 +543,7 @@ public class ExperimentPaperUAS2
     			assert !traceDetails.collectionOfNegativeTraces.containsKey(UAVAllSeeds);
     		}
 
-    		newData.tracesForUAVandFrame=new TreeMap<String,Map<Integer,PTASequenceEngine>>();
+    		newData.tracesForUAVandFrame= new TreeMap<>();
     		System.out.println("*** processing seed "+entry.getKey()+", positive entries ***");
     		turnTracesIntoPTAs(newData.tracesForUAVandFrame,traceDetails.collectionOfPositiveTraces,true,frameNumbers, learnerInitConfiguration.config,results);
     		newData.collectionOfPositiveTraces=null;// garbage collect traces, they are now part of PTA
@@ -600,7 +589,7 @@ public class ExperimentPaperUAS2
      */
     public void scanData(Reader []inputData,final HandleOneTrace loader)
     {
-		List<Future<String>> results = new LinkedList<Future<String>>();
+		List<Future<String>> results = new LinkedList<>();
 		/*
     	for(Reader rd:inputData)
     	{
@@ -670,15 +659,9 @@ public class ExperimentPaperUAS2
 	{
     	for(final String uav:traces.keySet())
         {
-        	Map<Integer,PTASequenceEngine> outcomeUAV = whatToUpdate.get(uav);
-        	if (outcomeUAV == null)
-        	{
-        		outcomeUAV = new TreeMap<Integer,PTASequenceEngine>();whatToUpdate.put(uav, outcomeUAV);
-        	}
-        	final Map<Integer,PTASequenceEngine> outcomeUAV_final = outcomeUAV;
+			final Map<Integer,PTASequenceEngine> outcomeUAV_final = whatToUpdate.computeIfAbsent(uav, u -> new TreeMap<>());
         	results.add(runner.submit(new Callable<String>()
 			{
-    			
     			@Override
 				public String call() throws Exception 
     			{
@@ -698,7 +681,7 @@ public class ExperimentPaperUAS2
 	    	        		{
 	    	        			if (GlobalConfiguration.getConfiguration().isAssertEnabled())
 	    	        			{
-	    	        				Set<Integer> usedFrames = new TreeSet<Integer>();usedFrames.addAll(traces.get(uav).keySet());usedFrames.removeAll(frameNumbers);
+	    	        				Set<Integer> usedFrames = new TreeSet<>();usedFrames.addAll(traces.get(uav).keySet());usedFrames.removeAll(frameNumbers);
 	    	        				assert(usedFrames.isEmpty());// ensure that there are no frames that are not going to be iterated through.
 	    	        			}
 	    	        			for(int earlierFrame:frameNumbers)
@@ -709,7 +692,6 @@ public class ExperimentPaperUAS2
 	    	        				Set<List<Label>> traceData = traces.get(uav).get(earlierFrame);
 	    		        			if (traceData != null)
 	    		        			{
-	
 	    			        			SequenceSet initSeq = traceDetailsUAV.new SequenceSet();initSeq.setIdentity();((Automaton)traceDetailsUAV.getFSM()).setAccept(isAccept);
 	    			        			initSeq.cross(traceData);
 	    		        			}
@@ -769,14 +751,14 @@ public class ExperimentPaperUAS2
    {
 	   long total = 0;
 	   
-	   Map<Label,Map<Label,Double>> outcome = new TreeMap<Label,Map<Label,Double>>();
+	   Map<Label,Map<Label,Double>> outcome = new TreeMap<>();
 	   
-	   Map<Label,AtomicInteger> supportForEvent = new TreeMap<Label,AtomicInteger>();
-	   Map<Label,Map<Label,AtomicInteger>> supportForPair = new TreeMap<Label,Map<Label,AtomicInteger>>();// positive number means the number of positive pairs, negative is for negatives. Where there is a clash, a zero is used to mean that the pair is inconclusive
+	   Map<Label,AtomicInteger> supportForEvent = new TreeMap<>();
+	   Map<Label,Map<Label,AtomicInteger>> supportForPair = new TreeMap<>();// positive number means the number of positive pairs, negative is for negatives. Where there is a clash, a zero is used to mean that the pair is inconclusive
 
 	   for(Label lbl:pta.pathroutines.computeAlphabet())
 	   {
-		   supportForEvent.put(lbl, new AtomicInteger(0));supportForPair.put(lbl, new TreeMap<Label,AtomicInteger>());
+		   supportForEvent.put(lbl, new AtomicInteger(0));supportForPair.put(lbl, new TreeMap<>());
 	   }
 	   
 	   for(Entry<CmpVertex, MapWithSearch<Label, Label, CmpVertex>> state:pta.transitionMatrix.entrySet())
@@ -827,7 +809,7 @@ public class ExperimentPaperUAS2
 						   Map<Label,Double> outcomeEntry = outcome.get(lblDetails.getKey());
 						   if (outcomeEntry == null)
 						   {
-							   outcomeEntry = new TreeMap<Label,Double>();outcome.put(lblDetails.getKey(),outcomeEntry);
+							   outcomeEntry = new TreeMap<>();outcome.put(lblDetails.getKey(),outcomeEntry);
 						   }
 						   outcomeEntry.put(entry.getKey(), pairSupport);
 					   }
@@ -841,7 +823,7 @@ public class ExperimentPaperUAS2
    {
 	   long tmStarted = new Date().getTime();
        LearnerGraph initPTA = new LearnerGraph(learnerInitConfiguration.config);initPTA.paths.augmentPTA(collectionOfTraces.get(UAVAllSeeds).tracesForUAVandFrame.get(UAVAllSeeds).get(maxFrameNumber));
-       final LearnerGraph graphReference = LearningAlgorithms.constructLearner(learnerInitConfiguration,initPTA,scoringToUse,scoringForEDSM,null).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+       final LearnerGraph graphReference = LearningAlgorithms.constructLearner(learnerInitConfiguration,initPTA,scoringToUse,scoringForEDSM,null).learnMachine(new LinkedList<>(), new LinkedList<>());
        long tmFinished = new Date().getTime();
        System.out.println("Learning reference complete, "+((tmFinished-tmStarted)/1000)+" sec");tmStarted = tmFinished;
        graphReference.storage.writeGraphML("traceautomaton.xml");
@@ -894,7 +876,7 @@ public class ExperimentPaperUAS2
         }
 		if (QSMTool.isCmdWithArgs(fileString, QSMTool.cmdLTL) || QSMTool.isCmdWithArgs(fileString, QSMTool.cmdIFTHENAUTOMATON)) {
 		            if (learnerInitConfiguration.ifthenSequences == null) {
-		                learnerInitConfiguration.ifthenSequences = new TreeSet<String>();
+		                learnerInitConfiguration.ifthenSequences = new TreeSet<>();
 		            }
 		            learnerInitConfiguration.ifthenSequences.add(fileString);
 		} else if (QSMTool.isCmdWithArgs(fileString, QSMTool.cmdConfig)) {
@@ -1079,7 +1061,7 @@ public class ExperimentPaperUAS2
  			//pta.storage.writeGraphML("resources/"+experimentName+"-initial.xml");
  		    if (par.useIfThen)
  		    {
- 		    	Collection<String> filteredLTLsequences = new TreeSet<String>(learnerInitConfiguration.ifthenSequences);
+ 		    	Collection<String> filteredLTLsequences = new TreeSet<>(learnerInitConfiguration.ifthenSequences);
  		    	for(String str:learnerInitConfiguration.ifthenSequences)
  		    	{
  		    		boolean elemFound = false;
@@ -1109,7 +1091,7 @@ public class ExperimentPaperUAS2
 		@Override
  		public ExperimentResult<PaperUASParameters> runexperiment() throws Exception 
  		{
-			ExperimentResult<PaperUASParameters> outcome = new ExperimentResult<PaperUASParameters>(par);
+			ExperimentResult<PaperUASParameters> outcome = new ExperimentResult<>(par);
  			PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();
  			UASExperiment.BuildPTAInterface ptaWithNegatives = new BuildPTAInterface() {
  				@Override
@@ -1201,7 +1183,7 @@ public class ExperimentPaperUAS2
     	Collection<List<Label>> testSetFull = LearningAlgorithms.buildEvaluationSet(referenceGraph), testSetNoDeprecatesWaypoint = LearningAlgorithms.buildEvaluationSet(referenceWithoutDeprecatesWaypoint);
     	paper.learnerInitConfiguration.testSet = testSetFull;
     	//Visualiser.updateFrame(referenceGraph, null);Visualiser.waitForKey();
- 		RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+ 		RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 
 		System.out.println("transitions from each state: "+((double)referenceGraph.pathroutines.countEdges()/referenceGraph.transitionMatrix.size()));
@@ -1240,7 +1222,7 @@ public class ExperimentPaperUAS2
 			System.out.println("maximal depth: "+depth);
 			System.out.println("Alphabet size: "+initialPTA.pathroutines.computeAlphabet().size());
 		}
-		List<UASCaseStudy> listOfExperiments = new ArrayList<UASCaseStudy>();
+		List<UASCaseStudy> listOfExperiments = new ArrayList<>();
 		final String parametersAllSeeds = "All",parametersAU="AU",parametersAUFrame="AUF";
 		for(boolean posneg:new Boolean[] {false,true})
 		{// process all the traces from all UAVs and seeds in one go - this is 'all data' case.
@@ -1424,7 +1406,7 @@ public class ExperimentPaperUAS2
 	 			}
 		}
 
-		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
+		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<>("", "BCR", new File(outPathPrefix + "BCR_vs_experiment.pdf"));
 
 		BCR_vs_experiment.setRelabelling(DrawGraphs.buildStringMapFromStringPairs(new String[][] {
 			new String[] {"all "+LearningType.CONVENTIONAL,"edsm"}, 
@@ -1444,58 +1426,58 @@ public class ExperimentPaperUAS2
 		
 		//final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
 		
-		final RGraph<String> all_method_bcr = new RBoxPlotP<String>("method","BCR",new File(outPathPrefix+"all-method-bcr.pdf"));
-		final RGraph<String> all_method_diff = new RBoxPlotP<String>("method","DIFF",new File(outPathPrefix+"all-method-diff.pdf"));
-		final RGraph<String> all_method_invalid_extra = new RBoxPlotP<String>("method","Percent invalid/missed mergers",new File(outPathPrefix+"all-method-invalid_extra.pdf"));
-		final RGraph<String> all_posNeg_method_bcr = new RBoxPlotP<String>("method","BCR",new File(outPathPrefix+"all-posneg-method-bcr.pdf"));
-		final RGraph<String> all_posNeg_method_invalid_extra = new RBoxPlotP<String>("method","Percent invalid/missed mergers",new File(outPathPrefix+"all-posneg-method-invalid_extra.pdf"));
-		final RGraph<String> all_pos_method_bcr = new RBoxPlotP<String>("method","BCR",new File(outPathPrefix+"all-pos-method-bcr.pdf"));
-		final RGraph<String> all_pos_method_invalid_extra = new RBoxPlotP<String>("method","Percent invalid/missed mergers",new File(outPathPrefix+"all-pos-method-invalid_extra.pdf"));
+		final RGraph<String> all_method_bcr = new RBoxPlotP<>("method", "BCR", new File(outPathPrefix + "all-method-bcr.pdf"));
+		final RGraph<String> all_method_diff = new RBoxPlotP<>("method", "DIFF", new File(outPathPrefix + "all-method-diff.pdf"));
+		final RGraph<String> all_method_invalid_extra = new RBoxPlotP<>("method", "Percent invalid/missed mergers", new File(outPathPrefix + "all-method-invalid_extra.pdf"));
+		final RGraph<String> all_posNeg_method_bcr = new RBoxPlotP<>("method", "BCR", new File(outPathPrefix + "all-posneg-method-bcr.pdf"));
+		final RGraph<String> all_posNeg_method_invalid_extra = new RBoxPlotP<>("method", "Percent invalid/missed mergers", new File(outPathPrefix + "all-posneg-method-invalid_extra.pdf"));
+		final RGraph<String> all_pos_method_bcr = new RBoxPlotP<>("method", "BCR", new File(outPathPrefix + "all-pos-method-bcr.pdf"));
+		final RGraph<String> all_pos_method_invalid_extra = new RBoxPlotP<>("method", "Percent invalid/missed mergers", new File(outPathPrefix + "all-pos-method-invalid_extra.pdf"));
 
-		final RGraph<String> seeds_con_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_con-bcr.pdf"));
+		final RGraph<String> seeds_con_All_bcr = new RBoxPlotP<>("seed", "BCR", new File(outPathPrefix + "seed_con-bcr.pdf"));
 		seeds_con_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
-		final RGraph<String> seeds_pre_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_pre-bcr.pdf"));
+		final RGraph<String> seeds_pre_All_bcr = new RBoxPlotP<>("seed", "BCR", new File(outPathPrefix + "seed_pre-bcr.pdf"));
 		seeds_pre_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
-		final RGraph<String> seeds_preu_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seed_preu-bcr.pdf"));
+		final RGraph<String> seeds_preu_All_bcr = new RBoxPlotP<>("seed", "BCR", new File(outPathPrefix + "seed_preu-bcr.pdf"));
 		seeds_preu_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
-		final RGraph<String> seeds_con_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seed_con-diff.pdf"));
-		final RGraph<String> seeds_pre_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seed_pre-diff.pdf"));
-		final RGraph<String> seeds_preu_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seed_preu-diff.pdf"));
-		final RGraph<String> seeds_con_All_invalid_extra = new RBoxPlotP<String>("seed","Percent invalid/missed mergers",new File(outPathPrefix+"seed_con-invalid_extra.pdf"));
-		final RGraph<String> seeds_pre_All_invalid_extra = new RBoxPlotP<String>("seed","Percent invalid/missed mergers",new File(outPathPrefix+"seed_pre-invalid_extra.pdf"));
-		final RGraph<String> seeds_preu_All_invalid_extra = new RBoxPlotP<String>("seed","Percent invalid/missed mergers",new File(outPathPrefix+"seed_preu-invalid_extra.pdf"));
+		final RGraph<String> seeds_con_All_diff = new RBoxPlotP<>("seed", "DIFF", new File(outPathPrefix + "seed_con-diff.pdf"));
+		final RGraph<String> seeds_pre_All_diff = new RBoxPlotP<>("seed", "DIFF", new File(outPathPrefix + "seed_pre-diff.pdf"));
+		final RGraph<String> seeds_preu_All_diff = new RBoxPlotP<>("seed", "DIFF", new File(outPathPrefix + "seed_preu-diff.pdf"));
+		final RGraph<String> seeds_con_All_invalid_extra = new RBoxPlotP<>("seed", "Percent invalid/missed mergers", new File(outPathPrefix + "seed_con-invalid_extra.pdf"));
+		final RGraph<String> seeds_pre_All_invalid_extra = new RBoxPlotP<>("seed", "Percent invalid/missed mergers", new File(outPathPrefix + "seed_pre-invalid_extra.pdf"));
+		final RGraph<String> seeds_preu_All_invalid_extra = new RBoxPlotP<>("seed", "Percent invalid/missed mergers", new File(outPathPrefix + "seed_preu-invalid_extra.pdf"));
 
-		final RGraph<String> seedsN_con_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_con-bcr.pdf"));
+		final RGraph<String> seedsN_con_All_bcr = new RBoxPlotP<>("seed", "BCR", new File(outPathPrefix + "seedN_con-bcr.pdf"));
 		seedsN_con_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
-		final RGraph<String> seedsN_pre_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_pre-bcr.pdf"));
+		final RGraph<String> seedsN_pre_All_bcr = new RBoxPlotP<>("seed", "BCR", new File(outPathPrefix + "seedN_pre-bcr.pdf"));
 		seedsN_pre_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
-		final RGraph<String> seedsN_preu_All_bcr = new RBoxPlotP<String>("seed","BCR",new File(outPathPrefix+"seedN_preu-bcr.pdf"));
+		final RGraph<String> seedsN_preu_All_bcr = new RBoxPlotP<>("seed", "BCR", new File(outPathPrefix + "seedN_preu-bcr.pdf"));
 		seedsN_preu_All_bcr.setOtherOptions("ylim = c(0.7, 1.0)");
-		final RGraph<String> seedsN_con_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seedN_con-diff.pdf"));
-		final RGraph<String> seedsN_pre_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seedN_pre-diff.pdf"));
-		final RGraph<String> seedsN_preu_All_diff = new RBoxPlotP<String>("seed","DIFF",new File(outPathPrefix+"seedN_preu-diff.pdf"));
-		final RGraph<String> seedsN_con_All_invalid_extra = new RBoxPlotP<String>("seed","Percent invalid/missed mergers",new File(outPathPrefix+"seedN_con-invalid_extra.pdf"));
-		final RGraph<String> seedsN_pre_All_invalid_extra = new RBoxPlotP<String>("seed","Percent invalid/missed mergers",new File(outPathPrefix+"seedN_pre-invalid_extra.pdf"));
-		final RGraph<String> seedsN_preu_All_invalid_extra = new RBoxPlotP<String>("seed","Percent invalid/missed mergers",new File(outPathPrefix+"seedN_preu-invalid_extra.pdf"));
+		final RGraph<String> seedsN_con_All_diff = new RBoxPlotP<>("seed", "DIFF", new File(outPathPrefix + "seedN_con-diff.pdf"));
+		final RGraph<String> seedsN_pre_All_diff = new RBoxPlotP<>("seed", "DIFF", new File(outPathPrefix + "seedN_pre-diff.pdf"));
+		final RGraph<String> seedsN_preu_All_diff = new RBoxPlotP<>("seed", "DIFF", new File(outPathPrefix + "seedN_preu-diff.pdf"));
+		final RGraph<String> seedsN_con_All_invalid_extra = new RBoxPlotP<>("seed", "Percent invalid/missed mergers", new File(outPathPrefix + "seedN_con-invalid_extra.pdf"));
+		final RGraph<String> seedsN_pre_All_invalid_extra = new RBoxPlotP<>("seed", "Percent invalid/missed mergers", new File(outPathPrefix + "seedN_pre-invalid_extra.pdf"));
+		final RGraph<String> seedsN_preu_All_invalid_extra = new RBoxPlotP<>("seed", "Percent invalid/missed mergers", new File(outPathPrefix + "seedN_preu-invalid_extra.pdf"));
 		
-		final RGraph<String> aufSeeds_con_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_con-bcr.pdf"));
-		final RGraph<String> aufSeeds_pre_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_pre-bcr.pdf"));
-		final RGraph<String> aufSeeds_preu_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"seed_percentage_preu-bcr.pdf"));
-		final RGraph<String> aufSeeds_con_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"seed_percentage_con-diff.pdf"));
-		final RGraph<String> aufSeeds_pre_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"seed_percentage_pre-diff.pdf"));
-		final RGraph<String> aufSeeds_preu_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"seed_percentage_preu-diff.pdf"));
-		final RGraph<String> aufSeeds_con_invalid_extra = new RBoxPlotP<String>("%%","Percent invalid/missed mergers",new File(outPathPrefix+"seed_percentage_con-invalid_extra.pdf"));
-		final RGraph<String> aufSeeds_pre_invalid_extra = new RBoxPlotP<String>("%%","Percent invalid/missed mergers",new File(outPathPrefix+"seed_percentage_pre-invalid_extra.pdf"));
-		final RGraph<String> aufSeeds_preu_invalid_extra = new RBoxPlotP<String>("%%","Percent invalid/missed mergers",new File(outPathPrefix+"seed_percentage_preu-invalid_extra.pdf"));
-		final RGraph<String> auf_con_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"percentage_con-bcr.pdf"));
-		final RGraph<String> auf_pre_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"percentage_pre-bcr.pdf"));
-		final RGraph<String> auf_preu_bcr = new RBoxPlotP<String>("%%","BCR",new File(outPathPrefix+"percentage_preu-bcr.pdf"));
-		final RGraph<String> auf_con_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"percentage_con-diff.pdf"));
-		final RGraph<String> auf_pre_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"percentage_pre-diff.pdf"));
-		final RGraph<String> auf_preu_diff = new RBoxPlotP<String>("%%","DIFF",new File(outPathPrefix+"percentage_preu-diff.pdf"));
-		final RGraph<String> auf_con_invalid_extra = new RBoxPlotP<String>("%%","Percent invalid/missed mergers",new File(outPathPrefix+"percentage_con-invalid_extra.pdf"));
-		final RGraph<String> auf_pre_invalid_extra = new RBoxPlotP<String>("%%","Percent invalid/missed mergers",new File(outPathPrefix+"percentage_pre-invalid_extra.pdf"));
-		final RGraph<String> auf_preu_invalid_extra = new RBoxPlotP<String>("%%","Percent invalid/missed mergers",new File(outPathPrefix+"percentage_preu-invalid_extra.pdf"));
+		final RGraph<String> aufSeeds_con_bcr = new RBoxPlotP<>("%%", "BCR", new File(outPathPrefix + "seed_percentage_con-bcr.pdf"));
+		final RGraph<String> aufSeeds_pre_bcr = new RBoxPlotP<>("%%", "BCR", new File(outPathPrefix + "seed_percentage_pre-bcr.pdf"));
+		final RGraph<String> aufSeeds_preu_bcr = new RBoxPlotP<>("%%", "BCR", new File(outPathPrefix + "seed_percentage_preu-bcr.pdf"));
+		final RGraph<String> aufSeeds_con_diff = new RBoxPlotP<>("%%", "DIFF", new File(outPathPrefix + "seed_percentage_con-diff.pdf"));
+		final RGraph<String> aufSeeds_pre_diff = new RBoxPlotP<>("%%", "DIFF", new File(outPathPrefix + "seed_percentage_pre-diff.pdf"));
+		final RGraph<String> aufSeeds_preu_diff = new RBoxPlotP<>("%%", "DIFF", new File(outPathPrefix + "seed_percentage_preu-diff.pdf"));
+		final RGraph<String> aufSeeds_con_invalid_extra = new RBoxPlotP<>("%%", "Percent invalid/missed mergers", new File(outPathPrefix + "seed_percentage_con-invalid_extra.pdf"));
+		final RGraph<String> aufSeeds_pre_invalid_extra = new RBoxPlotP<>("%%", "Percent invalid/missed mergers", new File(outPathPrefix + "seed_percentage_pre-invalid_extra.pdf"));
+		final RGraph<String> aufSeeds_preu_invalid_extra = new RBoxPlotP<>("%%", "Percent invalid/missed mergers", new File(outPathPrefix + "seed_percentage_preu-invalid_extra.pdf"));
+		final RGraph<String> auf_con_bcr = new RBoxPlotP<>("%%", "BCR", new File(outPathPrefix + "percentage_con-bcr.pdf"));
+		final RGraph<String> auf_pre_bcr = new RBoxPlotP<>("%%", "BCR", new File(outPathPrefix + "percentage_pre-bcr.pdf"));
+		final RGraph<String> auf_preu_bcr = new RBoxPlotP<>("%%", "BCR", new File(outPathPrefix + "percentage_preu-bcr.pdf"));
+		final RGraph<String> auf_con_diff = new RBoxPlotP<>("%%", "DIFF", new File(outPathPrefix + "percentage_con-diff.pdf"));
+		final RGraph<String> auf_pre_diff = new RBoxPlotP<>("%%", "DIFF", new File(outPathPrefix + "percentage_pre-diff.pdf"));
+		final RGraph<String> auf_preu_diff = new RBoxPlotP<>("%%", "DIFF", new File(outPathPrefix + "percentage_preu-diff.pdf"));
+		final RGraph<String> auf_con_invalid_extra = new RBoxPlotP<>("%%", "Percent invalid/missed mergers", new File(outPathPrefix + "percentage_con-invalid_extra.pdf"));
+		final RGraph<String> auf_pre_invalid_extra = new RBoxPlotP<>("%%", "Percent invalid/missed mergers", new File(outPathPrefix + "percentage_pre-invalid_extra.pdf"));
+		final RGraph<String> auf_preu_invalid_extra = new RBoxPlotP<>("%%", "Percent invalid/missed mergers", new File(outPathPrefix + "percentage_preu-invalid_extra.pdf"));
 		
 		final CSVExperimentResult allCSV = new CSVExperimentResult(new File(outPathPrefix+"all-method.csv"));
 		final CSVExperimentResult framesCSV = new CSVExperimentResult(new File(outPathPrefix+"frames-method.csv"));
@@ -1528,10 +1510,10 @@ public class ExperimentPaperUAS2
 
 						String scoring = id.getColumnText()[3];
 						if (scoring.startsWith("KTPTA"))
-							scoring.replaceAll("KTPTA", "KA");
+							scoring = scoring.replaceAll("KTPTA", "KA");
 						else
 							if (scoring.startsWith("KTPTL"))
-								scoring.replaceAll("KTPTL", "KL");
+								scoring = scoring.replaceAll("KTPTL", "KL");
 							else
 								if (scoring.equalsIgnoreCase(ScoringToApply.SCORING_SICCO.toString()))
 									scoring = "SV";
@@ -1545,7 +1527,6 @@ public class ExperimentPaperUAS2
 
 						if (id.getRowID().startsWith("All"))
 						{
-							//if (bcr > 0.55)
 							{
 								all_method_bcr.add(id.getColumnText()[1], bcr);
 								all_method_diff.add(id.getColumnText()[1], diff);

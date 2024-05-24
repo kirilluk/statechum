@@ -173,7 +173,7 @@ public class DrawGraphs {
 	       System.out.print(prompt);
 	        try {
 	            String s=br.readLine();
-	            return (s==null||s.length()==0)?s:s+"\n";
+	            return (s==null|| s.isEmpty())?s:s+"\n";
 	        } catch (Exception e) {
 	            System.out.println("rReadConsole exception: "+e.getMessage());
 	        }
@@ -270,7 +270,7 @@ public class DrawGraphs {
 
 	protected static <ELEM> String vectorToR(List<ELEM> vector, boolean addQuotes)
 	{
-		if (vector.size() == 0) throw new IllegalArgumentException("cannot plot an empty graph");
+		if (vector.isEmpty()) throw new IllegalArgumentException("cannot plot an empty graph");
 		StringBuilder result = new StringBuilder();
 		result.append("c(");
 		boolean startVector = true;
@@ -298,7 +298,7 @@ public class DrawGraphs {
 	 */
 	protected static String boxPlotToString(List<List<Double>> data,List<String> names,List<String> colour, String otherAttrs)
 	{
-		if (data.size() == 0) throw new IllegalArgumentException("cannot plot an empty graph");
+		if (data.isEmpty()) throw new IllegalArgumentException("cannot plot an empty graph");
 		if (data.size() == 1 && names != null) throw new IllegalArgumentException("in a graph with one component, names are not used");
 		if (data.size() > 1 && names != null && names.size() != data.size()) throw new IllegalArgumentException("mismatch between name and data length"); 
 		StringBuilder result = new StringBuilder();
@@ -335,7 +335,7 @@ public class DrawGraphs {
 				result.append(")");
 			}
 		}
-		if (otherAttrs != null && otherAttrs.length() > 0) { result.append(',');result.append(otherAttrs); }
+		if (otherAttrs != null && !otherAttrs.isEmpty()) { result.append(',');result.append(otherAttrs); }
 		result.append(")");
 		return result.toString();
 	}
@@ -350,7 +350,7 @@ public class DrawGraphs {
 	 */
 	protected static String datasetToString(String plotType,List<List<Double>> yData,List<Double> xData, String otherAttrs)
 	{
-		if (yData.size() == 0) throw new IllegalArgumentException("cannot plot an empty graph");
+		if (yData.isEmpty()) throw new IllegalArgumentException("cannot plot an empty graph");
 		if (yData.size() != xData.size()) throw new IllegalArgumentException("mismatch between x and y length"); 
 		StringBuilder result = new StringBuilder();
 		result.append(plotType);result.append("(");
@@ -402,7 +402,7 @@ public class DrawGraphs {
 		try {
 			SwingUtilities.invokeAndWait(
 					() -> {
-						if (RViewer.getGraph(title) == null) {// create new graph
+						if (RViewer.getGraph(title) == null) {// no graph with this name hence create a new graph
 							RViewer.setNewGraphName(title);
 							eval("JavaGD(\"aa\")", "JavaGD() failed");
 							REXP devNum = eval("dev.cur()", "failed to do dev.cur");
@@ -474,9 +474,10 @@ public class DrawGraphs {
 
 	public interface SGEExperimentResult
 	{
-		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output.
-		 * The last argument is set to true if the only purpose is to check that the outcome can be parsed rather than to record result. This is important to check whether an experiment has
-		 * abnormally terminated. 
+		/** When experiment completes, the results are written into a file as text.
+		 * We need to load it into the experiment result file in order to collate across experiments for the final output.
+		 * The last argument is set to true if the only purpose is to check that the outcome can be parsed rather than to
+		 * record result. This is important to check whether an experiment has abnormally terminated.
 		 */
 		void parseTextLoadedFromExperimentResult(String []text, String fileNameForErrorMessages, ThreadResultID parameters, boolean onlyCheckItParses);
 
@@ -492,10 +493,10 @@ public class DrawGraphs {
 
 	public static class CSVExperimentResult implements SGEExperimentResult
 	{
-		protected final Map<String,Map<String,String>> rowColumnText = new TreeMap<String,Map<String,String>>();
-		final Map<String,String []> columnIDToHeader = new TreeMap<String,String []>();// will return column values in an increasing order
+		protected final Map<String,Map<String,String>> rowColumnText = new TreeMap<>();
+		final Map<String,String []> columnIDToHeader = new TreeMap<>();// will return column values in an increasing order
 		int headerRows = -1;
-		final Map<String,String []> columnIDToCellHeader = new TreeMap<String,String []>();
+		final Map<String,String []> columnIDToCellHeader = new TreeMap<>();
 		protected final File file;
 
 		protected String missingValue = "";
@@ -547,7 +548,7 @@ public class DrawGraphs {
 			if (id.headerValuesForEachCell() == null || id.headerValuesForEachCell().length == 0)
 				throw new IllegalArgumentException("spreadsheet "+getFileName()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid header values for cell");
 
-			Map<String, String> columnText = rowColumnText.computeIfAbsent(id.getRowID(), k -> new TreeMap<String, String>());
+			Map<String, String> columnText = rowColumnText.computeIfAbsent(id.getRowID(), k -> new TreeMap<>());
 			if (columnText.containsKey(id.getColumnID()))
 				throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell "+id.getRowID()+","+id.getColumnID());
 			String [] elements = text.split(",");
@@ -567,7 +568,7 @@ public class DrawGraphs {
 				columnIDToCellHeader.put(id.getColumnID(), id.headerValuesForEachCell());
 			}
 			else
-			{
+			{// Now a consistency check: if we collate results from multiple experiments, it is necessary to ensure they have the same number of components otherwise we risk construcing malformed CSV.
 				List<String> oldColumnHeaders = Arrays.asList(columnIDToHeader.get(id.getColumnID())), currColumnHeaders = Arrays.asList(id.getColumnText());
 				List<String> oldCellHeaders = Arrays.asList(columnIDToCellHeader.get(id.getColumnID())), currCellHeaders = Arrays.asList(id.headerValuesForEachCell());
 				if (!oldColumnHeaders.equals(currColumnHeaders))
@@ -798,7 +799,7 @@ public class DrawGraphs {
 	
 	public static Object parseObject(String str)
 	{
-		List<Byte> buffer = new ArrayList<Byte>();
+		List<Byte> buffer = new ArrayList<>();
 		int curByte=0;
 		if (str.length() % 2 != 0)
 			throw new IllegalArgumentException("the length of hex representation should be even");
@@ -1013,18 +1014,18 @@ public class DrawGraphs {
 	
 	public interface AggregateValues
 	{
-		/** Called to handle values in a spreadsheet. */
+		/** Called to handle values in a spreadsheet where we combine values from two columns. A good example is dividing A by B. */
 		void merge(double A, double B);
 	}
 	
 	public interface AggregateStringValues
 	{
-		/** Called to handle values in a spreadsheet. */
+		/** Called to handle values in a spreadsheet where we combine values from two columns. */
 		void merge(String A, String B);
 	}
 	
 	/** Makes it possible to take serialised data from a column of a spreadsheet and merge it into an aggregate. 
-	 * Imaging a map from pair score to true/false counters. By constructing it for each 
+	 * Imagine a map from pair score to true/false counters. By constructing it for each
 	 * learner and dumping into spreadsheet cells via {@link DrawGraphs#objectAsText} and 
 	 * when all experiments are complete, load them back and combine into a single map, subsequently constructing
 	 * a graph.
@@ -1179,8 +1180,10 @@ public class DrawGraphs {
 		}
 	}
 
-	/** Makes it possible to construct a scatterplot of x/y values in a few colours (that it, it is a superimposed collection of two plots). It derives from {@link RExperimentResult} 
-	 * in order to benefit from the possibility of recording results to files. */
+	/** Makes it possible to construct a scatterplot of x/y values in a few colours
+	 * (that it, it is a superimposed collection of two plots).
+	 * It derives from {@link RExperimentResult} in order to benefit from the possibility of recording results to files.
+	 */
 	public static class ScatterPlot extends RExperimentResult<Double>
 	{
 		protected final String xAxis,yAxis;
@@ -1190,7 +1193,8 @@ public class DrawGraphs {
 			super(name);xAxis = x;yAxis = y;
 		}
 
-		protected final Map<String,Collection<DataPoint> > values = new TreeMap<String,Collection<DataPoint> >();
+		/** Maps colour to scatterplot values. */
+		protected final Map<String,Collection<DataPoint> > values = new TreeMap<>();
  
 		/** Adds key-value pair, additionally permitting one to set both colour and a label for this 
 		 * column of data values.
@@ -1213,7 +1217,7 @@ public class DrawGraphs {
 		
 		public synchronized void add(double x, double y, String colour)
 		{
-			Collection<DataPoint> valuesForColour = values.computeIfAbsent(colour, k -> new ArrayList<DataPoint>());
+			Collection<DataPoint> valuesForColour = values.computeIfAbsent(colour, k -> new ArrayList<>());
 			valuesForColour.add(new DataPoint(x,y));
 		}
 		
@@ -1227,7 +1231,7 @@ public class DrawGraphs {
 		@Override
 		public void drawInteractive(DrawGraphs gr)
 		{
-			List<String> drawingCommands = new LinkedList<String>();
+			List<String> drawingCommands = new LinkedList<>();
 			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
 			gr.drawInteractivePlot(drawingCommands, file.getName());
 		}
@@ -1237,9 +1241,9 @@ public class DrawGraphs {
 		@Override
 		public void reportResults(DrawGraphs gr)
 		{
-			if (values.size() > 0)
+			if (!values.isEmpty())
 			{
-				List<String> drawingCommands = new LinkedList<String>();
+				List<String> drawingCommands = new LinkedList<>();
 				drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
 				gr.drawPlot(drawingCommands, plotSize,plotSize,file);
 
@@ -1252,7 +1256,7 @@ public class DrawGraphs {
 		/** Returns a command to draw a graph in R. */
 		public List<String> getDrawingCommand() 
 		{
-			List<String> outcome = new ArrayList<String>();
+			List<String> outcome = new ArrayList<>();
 			if (values.isEmpty()) throw new IllegalArgumentException("cannot plot an empty graph");
 			
 			// plot(as.vector(t[[1]]),as.vector(t[[2]]) , type = "p",col="blue",xlim=range(0,20), ylim=range(0, 20))
@@ -1301,7 +1305,7 @@ public class DrawGraphs {
 			super(name);xAxis = x;yAxis = y;
 		}
 
-		Map<ELEM,DataColumn> collectionOfResults = new TreeMap<ELEM,DataColumn>();
+		Map<ELEM,DataColumn> collectionOfResults = new TreeMap<>();
  
 		/** Additional options for R. */
 		protected String otherOptions = "";
@@ -1312,7 +1316,7 @@ public class DrawGraphs {
 			otherOptions = str;
 		}
 		
-		protected Map<ELEM,String> relabellingOfLabels = new TreeMap<ELEM,String>();
+		protected Map<ELEM,String> relabellingOfLabels = new TreeMap<>();
 		protected List<ELEM> orderingOfLabels = null;
 		
 		/** Permits labels to be altered - currently these labels are based on enums and intended for internal use. 
@@ -1329,7 +1333,7 @@ public class DrawGraphs {
 			if (orderingOfLabels != null)
 				orderingOfLabels.clear();
 			else
-				orderingOfLabels = new ArrayList<ELEM>();
+				orderingOfLabels = new ArrayList<>();
 			
 			orderingOfLabels.addAll(ordering);
 		}
@@ -1338,8 +1342,8 @@ public class DrawGraphs {
 		 * column of data values.
 		 * @param el identifier for the column
 		 * @param value value to be added to it
-		 * @param colour colour with which box plot values are to be shown
-		 * @param label label to show on the horizonal axis, empty string for no label.
+		 * @param colour colour with which box plot values are to be shown. If the current colour was assigned, replaces it with the provided one.
+		 * @param label label to show on the horizonal axis, empty string for no label. If the current label was assigned, replaces it with the provided one.
 		 */
 		@Override
 		public synchronized void add(ELEM el,Double value, String colour, String label)
@@ -1350,9 +1354,8 @@ public class DrawGraphs {
 			if (xMin != null && xMin.compareTo(el) > 0) return;
 			if (xMax != null && xMax.compareTo(el) < 0) return;
 
-			DataColumn column = collectionOfResults.get(el);
-			if (column == null) { column=new DataColumn();collectionOfResults.put(el,column); }
-			column.results.add(value);
+            DataColumn column = collectionOfResults.computeIfAbsent(el, k -> new DataColumn());
+            column.results.add(value);
 			if (colour != null) collectionOfResults.get(el).colour=colour;
 			if (label != null) collectionOfResults.get(el).label=label;
 			++size;
@@ -1393,7 +1396,7 @@ public class DrawGraphs {
 		@Override
 		public void reportResults(DrawGraphs gr)
 		{
-			if (collectionOfResults.size() > 0)
+			if (!collectionOfResults.isEmpty())
 			{
 				double horizSize = xSize;
 				if (horizSize <= 0) horizSize=computeHorizSize();
@@ -1448,7 +1451,7 @@ public class DrawGraphs {
 		@Override
 		public void reportResults(@SuppressWarnings("unused") DrawGraphs gr)
 		{
-			if (valuesA.size() > 0)
+			if (!valuesA.isEmpty())
 			{
 				StatisticalTestResult o=obtainResultFromR();
 				FileWriter writer = null;
@@ -1483,7 +1486,7 @@ public class DrawGraphs {
 
 		public List<String> getDrawingCommand()
 		{
-			if (valuesA.size() == 0 || valuesB.size()==0) throw new IllegalArgumentException("cannot plot an empty graph");
+			if (valuesA.isEmpty() || valuesB.isEmpty()) throw new IllegalArgumentException("cannot plot an empty graph");
 			if (valuesA.size() != valuesB.size()) throw new IllegalArgumentException(" 'x' and 'y' must have the same length");
 
 			StringBuilder result = new StringBuilder();
@@ -1569,7 +1572,7 @@ public class DrawGraphs {
 			
 			if (orderingOfLabels != null)
 			{
-				Set<ELEM> o1 = new TreeSet<ELEM>(orderingOfLabels);o1.addAll(orderingOfLabels);
+				Set<ELEM> o1 = new TreeSet<>(orderingOfLabels);o1.addAll(orderingOfLabels);
 				if (!o1.equals(collectionOfResults.keySet()))
 					throw new IllegalArgumentException("ordering of labels is "+orderingOfLabels+", actual labels are : "+collectionOfResults.keySet());
 			}
@@ -1593,7 +1596,7 @@ public class DrawGraphs {
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-			return Collections.singletonList( (otherOptions.length()>0?otherOptions+",":"")+boxPlotToString(data, names.size()==1?null:names,colours,
+			return Collections.singletonList( (!otherOptions.isEmpty() ?otherOptions+",":"")+boxPlotToString(data, names.size()==1?null:names,colours,
 					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"":""
 					));
 		}
@@ -1619,7 +1622,7 @@ public class DrawGraphs {
 			List<String> names = new LinkedList<>(), colours = new LinkedList<>();
 			if (orderingOfLabels != null)
 			{
-				Set<ELEM> o1 = new TreeSet<ELEM>(orderingOfLabels);o1.addAll(orderingOfLabels);
+				Set<ELEM> o1 = new TreeSet<>(orderingOfLabels);o1.addAll(orderingOfLabels);
 				if (!o1.equals(collectionOfResults.keySet()))
 					throw new IllegalArgumentException("ordering of labels is "+orderingOfLabels+", actual labels are : "+collectionOfResults.keySet());
 			}
@@ -1641,7 +1644,7 @@ public class DrawGraphs {
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\",las=2"+(otherOptions.length()>0?","+otherOptions:"")));
+			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\",las=2"+(!otherOptions.isEmpty() ?","+otherOptions:"")));
 		}
 
 		@Override

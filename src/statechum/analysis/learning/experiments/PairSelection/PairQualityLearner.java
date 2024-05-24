@@ -1733,7 +1733,14 @@ public class PairQualityLearner
 	{
 		public List<SampleData> samples = new LinkedList<>();
 	}
-	
+
+	/** Identifies result of an experiment. The idea is to have a spreadsheet containing cells with internal structure.
+	 * Each such virtual 'cell' is given a row ID and column ID. For presentation purposes, column ID is decomposed into
+	 * elements to make it clear what experiment parameters are {@link ThreadResultID#getColumnText()}.
+	 * Each cell contains values corresponding to {@link ThreadResultID#headerValuesForEachCell()}.
+	 * In a CSV, there will be as many rows as there are values in {@link ThreadResultID#getRowID()} and as many columns as there
+	 * are values in {@link ThreadResultID#getRowID()} times {@link ThreadResultID#headerValuesForEachCell()}.
+	 */
 	public interface ThreadResultID
 	{
 		/** Returns an ID of a row of results in a spreadsheet. Different columns correspond to different values of parameters. */
@@ -1741,7 +1748,7 @@ public class PairQualityLearner
 		/** Header for each column. It is frequently multi-line hence an array of strings is returned. */
 		String []getColumnText();
 		/** Returns an ID of a column of results in a spreadsheet. Where multiple experiments populate the 
-		 * same row in a spreadsheet, we need to tell which entries are to be placed in a single row. 
+		 * same row in a spreadsheet, we need to tell which entries are to be placed in which cell of a spreadsheet.
 		 * This ID makes it possible to do it. 
 		 */
 		String getColumnID();
@@ -1749,8 +1756,10 @@ public class PairQualityLearner
 		String[] headerValuesForEachCell();
 		/** Returns the name of the current experiment. */
 		String getSubExperimentName();
-		/** Returns the position of the "execution time element" among values in a cell (with headings from  {@link ThreadResultID#headerValuesForEachCell()}), 
-		 * starting from zero. Negatives mean no execution time. This element will be scaled based on the factor in the global configuration. 
+		/** Returns the position of the "execution time element" among values in a cell
+		 * (with headings from  {@link ThreadResultID#headerValuesForEachCell()}),
+		 * starting from zero. Negatives mean no execution time.
+		 * This element will be scaled based on the factor in the global configuration.
 		 */
 		int executionTimeInCell();
 	}

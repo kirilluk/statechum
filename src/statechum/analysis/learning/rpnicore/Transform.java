@@ -1169,7 +1169,6 @@ public class Transform
 		{
 			return Collections.singleton(converter == null?label:converter.convertLabelToLabel(label));
 		}
-		
 	}
 	
 	/** This class permits one to intern labels. Any number of instances can be created, one for each group of graphs that should share labels.

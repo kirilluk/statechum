@@ -3,9 +3,9 @@ package statechum.analysis.learning.experiments;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 
@@ -113,15 +113,11 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 				{
 	    			AbstractPersistence.loadGraph(graphFileName, outcome, learnerInitConfiguration.getLabelConverter());
 				} 
-	    		catch (IOException e)
+	    		catch (IOException | IllegalArgumentException e)
 				{
 					System.out.println("ERROR LOADING OUTCOME OF LEARNING \""+graphFileName+"\", exception text: "+e.getMessage());return null;
 				}
-	    		catch (IllegalArgumentException e)
-				{
-					System.out.println("ERROR LOADING OUTCOME OF LEARNING \""+graphFileName+"\", exception text: "+e.getMessage());return null;
-				}
-	    	}
+            }
 		}    	
     	return outcome;
 	}
@@ -134,37 +130,35 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	
 	public static List<ScoringToApply> listOfScoringMethodsToApplyThatDependOnEDSMScoring()
 	{
-		return Arrays.asList(new ScoringToApply[]{ScoringToApply.SCORING_EDSM,
-				//ScoringToApply.SCORING_EDSM_1, // since we are talking of rejecting pairs with a score _less_ than the specified value, value of 0 and 1 are equivalent.
-				//ScoringToApply.SCORING_EDSM_2,
-				//ScoringToApply.SCORING_EDSM_3,
-				ScoringToApply.SCORING_EDSM_4,//ScoringToApply.SCORING_EDSM_5,
-				//ScoringToApply.SCORING_EDSM_6,
-				//ScoringToApply.SCORING_EDSM_7,ScoringToApply.SCORING_EDSM_8
-				ScoringToApply.SCORING_SICCO
-				
-				// SICCO_PTA performs the same as SICCO, RECURSIVE and RED perform very badly.
-				// EDSM does not perform as well as SICCO and in particular, its performance is dependent on the threshold whereas for SICCO it does not.
-				//,ScoringToApply.SCORING_SICCO_PTA,ScoringToApply.SCORING_SICCO_PTARECURSIVE, ScoringToApply.SCORING_SICCO_RED
-				});
+		return Arrays.asList(ScoringToApply.SCORING_EDSM,
+                //ScoringToApply.SCORING_EDSM_1, // since we are talking of rejecting pairs with a score _less_ than the specified value, value of 0 and 1 are equivalent.
+                //ScoringToApply.SCORING_EDSM_2,
+                //ScoringToApply.SCORING_EDSM_3,
+                ScoringToApply.SCORING_EDSM_4,//ScoringToApply.SCORING_EDSM_5,
+                //ScoringToApply.SCORING_EDSM_6,
+                //ScoringToApply.SCORING_EDSM_7,ScoringToApply.SCORING_EDSM_8
+                ScoringToApply.SCORING_SICCO
+
+                // SICCO_PTA performs the same as SICCO, RECURSIVE and RED perform very badly.
+                // EDSM does not perform as well as SICCO and in particular, its performance is dependent on the threshold whereas for SICCO it does not.
+                //,ScoringToApply.SCORING_SICCO_PTA,ScoringToApply.SCORING_SICCO_PTARECURSIVE, ScoringToApply.SCORING_SICCO_RED
+        );
 	}
 
 	public static List<ScoringToApply> listOfScoringMethodsToApplyThatDoNotDependOnEDSMScoring()
 	{
-		return Arrays.asList(new ScoringToApply[]{
-				ScoringToApply.SCORING_PTAK_1,ScoringToApply.SCORING_PTAK_2,ScoringToApply.SCORING_PTAK_3,ScoringToApply.SCORING_PTAK_4,
-				ScoringToApply.SCORING_PTAK_ALL_1,ScoringToApply.SCORING_PTAK_ALL_2,ScoringToApply.SCORING_PTAK_ALL_3,ScoringToApply.SCORING_PTAK_ALL_4
-				});
+		return Arrays.asList(ScoringToApply.SCORING_PTAK_1,ScoringToApply.SCORING_PTAK_2,ScoringToApply.SCORING_PTAK_3,ScoringToApply.SCORING_PTAK_4,
+                ScoringToApply.SCORING_PTAK_ALL_1,ScoringToApply.SCORING_PTAK_ALL_2,ScoringToApply.SCORING_PTAK_ALL_3,ScoringToApply.SCORING_PTAK_ALL_4);
 	}
 
 	public static List<ScoringToApply> listOfTraditionalKTailsMethods()
 	{
-		return Arrays.asList(new ScoringToApply[]{ ScoringToApply.SCORING_KT_1,ScoringToApply.SCORING_KT_2,ScoringToApply.SCORING_KT_3,ScoringToApply.SCORING_KT_4 });
+		return Arrays.asList(ScoringToApply.SCORING_KT_1,ScoringToApply.SCORING_KT_2,ScoringToApply.SCORING_KT_3,ScoringToApply.SCORING_KT_4);
 	}
 	
 	public static LearnerGraph mergePTA(LearnerGraph initialPTA,Label labelToMerge, boolean buildAuxInfo)
 	{
-	   LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+	   LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();
 	   List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMergeForPathsFrom(initialPTA,labelToMerge); 
 			   //LearningSupportRoutines.buildVerticesToMerge(initialPTA,Collections.<Label>emptyList(),Arrays.asList(new Label[]{labelToMerge}));
 		if (initialPTA.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge,buildAuxInfo) < 0)
@@ -222,7 +216,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 			ptaTotalNodes = pta.getStateNumber();ptaTailNodes = pta.getLeafStateNumber();
  			Learner learner = LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod, scoringForEDSM, redReducer);
  			long startTime = LearningSupportRoutines.getThreadTime();
- 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<>(), new LinkedList<>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
  			runTime = LearningSupportRoutines.getThreadTime()-startTime;
  			
@@ -257,7 +251,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 			LearnerGraph smallPta = UASExperiment.mergePTA(ptaToLearnFrom,uniqueLabel,false);
 			Learner learner = new LearningAlgorithms.LearnerWithUniqueFromInitial(LearningAlgorithms.constructLearner(learnerInitConfiguration, smallPta,scoringMethod, scoringForEDSM, redReducer), smallPta, uniqueLabel);
 			ptaTotalNodes = smallPta.getStateNumber();ptaTailNodes = smallPta.getLeafStateNumber();
- 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<>(), new LinkedList<>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
  			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 
@@ -283,7 +277,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	 * turns a PTA into a graph with loops and the proceeds to learn using generalised merger routines.
 	 * 
 	 * @param ptaSource where to get automaton from
-	 * @param useLearnerUnique whether to use a learner taking a unique transition from an initial state into account or not.
+	 * @param useLearnerUnique whether to use a learner taking a unique transition from an initial state into account or not. The difference is that with unique from initial, we do not actually start merging states starting from the initial state, we start merging from the target state of that unique transition and then find a suitable match (in the learnt graph) for the original initial state.
 	 * @param scoringMethod how to compute scores
 	 * @param uniqueLabel label identifying a transition from an initial state
 	 * @return scores comparing the graph against the reference one.
@@ -329,7 +323,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 			else
 				learner = innerlearner;
 
- 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<>(), new LinkedList<>());
  			//Visualiser.updateFrame(learntGraph,referenceGraph);
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
  			runTime = LearningSupportRoutines.getThreadTime()-startTime;
@@ -364,12 +358,13 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	 * @param scoringMethod
 	 * @param scoringForEDSM 
 	 * @param uniqueLabel labels transitions from the initial state
-	 * @return
-	 * @throws AugmentFromIfThenAutomatonException
-	 * @throws IOException
 	 */
 	public ScoresForGraph runExperimentUsingPTAPremerge(UASExperiment.BuildPTAInterface ptaSource, StateMergingStatistics redReducer, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
-	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results. The problem with PTA premerge is that we need EDSM_0 otherwise a lot of edges need to be added to the new state in order to persuade the learner to merge the right states.
+	{
+		// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
+	 	// The problem with PTA premerge is that we need EDSM_0 otherwise a lot of edges need to be added to the new
+	 	// state in order to persuade the learner to merge the right states
+		// (unless EDSM is made to be _0 for pairs of states containing the label of interest).
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
 		int ptaStateNumber = 0;
@@ -384,12 +379,12 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 			ptaStateNumber = reducedPTA.getAcceptStateNumber();
 			ptaTotalNodes = reducedPTA.getStateNumber();ptaTailNodes = reducedPTA.getLeafStateNumber();
 			ReferenceLearner refLearner = (ReferenceLearner)LearningAlgorithms.constructLearner(learnerInitConfiguration, reducedPTA,scoringMethod, scoringForEDSM, redReducer);
-			refLearner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
+			refLearner.setLabelsLeadingFromStatesToBeMerged(Collections.singletonList(uniqueLabel));
 			LearningAlgorithms.LearnerWithUniqueFromInitial learner = //LearningAlgorithms.constructReferenceLearner(learnerInitConfiguration, reducedPTA,scoringMethod);
 					new LearningAlgorithms.LearnerWithUniqueFromInitial(refLearner,reducedPTA,uniqueLabel);
  			learner.setRedReducer(redReducer);
 
- 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+ 			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<>(), new LinkedList<>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
 			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 
@@ -424,10 +419,10 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 			LearnerGraph ptaToLearnFrom = ptaSource.buildPTA();
 			long startTime = LearningSupportRoutines.getThreadTime();
  			ReferenceLearner learner = (ReferenceLearner)LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaToLearnFrom,scoringMethod, scoringForEDSM, redReducer);
- 			learner.setLabelsLeadingFromStatesToBeMerged(Arrays.asList(new Label[]{uniqueLabel}));
+ 			learner.setLabelsLeadingFromStatesToBeMerged(Collections.singletonList(uniqueLabel));
  			learner.setRedReducer(redReducer);
  			ptaTotalNodes = ptaToLearnFrom.getStateNumber();ptaTailNodes = ptaToLearnFrom.getLeafStateNumber();
-			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+			LearnerGraph learntGraph = learner.learnMachine(new LinkedList<>(), new LinkedList<>());
  			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
 			runTime = LearningSupportRoutines.getThreadTime()-startTime;
 

@@ -51,7 +51,7 @@ public interface Learner
 	 * to take the new hard fact into account in order to reduce the amount of questions being asked. 
 	 * </li></ul>
 	 */
-	public enum RestartLearningEnum { restartNONE, restartHARD, restartSOFT,restartRECOMPUTEPAIRS, restartRECOMPUTEQUESTIONS }
+    enum RestartLearningEnum { restartNONE, restartHARD, restartSOFT,restartRECOMPUTEPAIRS, restartRECOMPUTEQUESTIONS }
 	
 	/** Learns the machine. When different learning events occur, the learner
 	 * calls its listeners (which are the decorators); these listeners are given
@@ -59,11 +59,9 @@ public interface Learner
 	 * further or not pass. At the bottom level, there is default processing 
 	 * performed by the learner itself.
 	 * <p>
-	 * For internal use only. 
-	 * 
-	 * @param topLevelDecorator the first listener in a chain of them.
+	 * For internal use only.
 	 */
-	public LearnerGraph learnMachine();
+    LearnerGraph learnMachine();
 	
 	/** Sets the highest listener to receive notification calls; 
 	 * it is expected that listeners will propagate calls down the chain
@@ -71,7 +69,7 @@ public interface Learner
 	 * 
 	 * @param top new top of the stack of listeners.
 	 */
-	public void setTopLevelListener(Learner top);
+    void setTopLevelListener(Learner top);
 	
 	/** Learns the machine.
 	 * 
@@ -80,25 +78,25 @@ public interface Learner
 	 * @param minusSize the number of negatives
 	 * @return the learnt automaton.
 	 */
-	public LearnerGraph learnMachine(PTASequenceEngine engine, int plusSize, int minusSize);
+    LearnerGraph learnMachine(PTASequenceEngine engine, int plusSize, int minusSize);
 
 	/** Learns the machine.
 	 * 
 	 * @param plus positive strings
 	 * @param minus negative strings
 	 */
-	public LearnerGraph learnMachine(Collection<List<Label>> plus, Collection<List<Label>> minus);
+    LearnerGraph learnMachine(Collection<List<Label>> plus, Collection<List<Label>> minus);
 	
 	/** Returns statistics reflecting the learning. 
 	 */
-	public String getResult();
+    String getResult();
 	
 	/** Initialises the learner. Used only for testing.
 	 * 
 	 * @param plus positive strings
 	 * @param minus negative strings
 	 */
-	public LearnerGraph init(Collection<List<Label>> plus, Collection<List<Label>> minus);
+    LearnerGraph init(Collection<List<Label>> plus, Collection<List<Label>> minus);
 	
 	/** Initialises the learner. The value returned is the corresponding graph. 
 	 * 
@@ -106,7 +104,7 @@ public interface Learner
 	 * @param plusSize the number of positive strings in the collection <em>en</em>.
 	 * @param minusSize the number of negative strings in the collection <em>en</em>.
 	 */
-	public LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize);
+    LearnerGraph init(PTASequenceEngine engine, int plusSize, int minusSize);
 
 	/** Initialises the learner.
 	 * 
@@ -115,17 +113,17 @@ public interface Learner
 	 *  
 	 * @return the supplied PTA.
 	 */
-	public LearnerGraph init(LearnerGraph initPta);
+    LearnerGraph init(LearnerGraph initPta);
 	
 	/** Identifies a collection of states to merge, sorted in the order of scores. 
 	 * <p>
 	 * Important: decorators use this one to observe changes to graph. Last time this one
 	 * will be called for a learnt automaton. 
 	 */
-	public Stack<PairScore> ChooseStatePairs(LearnerGraph graph);
+    Stack<PairScore> ChooseStatePairs(LearnerGraph graph);
 	
 	/** Given a graph, merges a pair of states from it and returns the result. */
-	public LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair);
+    LearnerGraph MergeAndDeterminize(LearnerGraph original, StatePair pair);
 	
 	/** Given a pair of graphs, computes the set of questions to validate the merge which 
 	 * resulted in the second graph
@@ -134,7 +132,7 @@ public interface Learner
 	 * @param temp the merged graph
 	 * @param pair the pair of states merged in the original graph
 	 */
-	public List<List<Label>> ComputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp);
+    List<List<Label>> ComputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp);
 	
 	/** Given a pair of graphs, rebuilds a set of questions to validate the merge which 
 	 * resulted in the second graph. This one retains a Pta of questions previously asked
@@ -144,7 +142,7 @@ public interface Learner
 	 * @param temp the merged graph
 	 * @param pair the pair of states merged in the original graph
 	 */
-	public List<List<Label>> RecomputeQuestions(PairScore pair,LearnerGraph original, LearnerGraph temp);
+    List<List<Label>> RecomputeQuestions(PairScore pair, LearnerGraph original, LearnerGraph temp);
 
 	/** Displays a tentative graph and asks user a supplied question. 
 	 * Options are to be shown as choices in addition to yes/element_not_accepted.
@@ -157,7 +155,7 @@ public interface Learner
 	 *  <br/>
 	 *  A value of null means that no check is performed.
 	 */
-	public Pair<Integer,String> CheckWithEndUser(LearnerGraph graph, List<Label> question, int expectedAccept,List<Boolean> acceptedElements,PairScore pairBeingMerged, Object [] options);
+    Pair<Integer,String> CheckWithEndUser(LearnerGraph graph, List<Label> question, int expectedAccept, List<Boolean> acceptedElements, PairScore pairBeingMerged, Object[] options);
 	
 	/** Indicates that a restart has taken place.
 	 * 
@@ -165,7 +163,7 @@ public interface Learner
 	 * LTL learner and can be used to denote the extent to which one needs 
 	 * to reset the learner. 
 	 */
-	public void Restart(RestartLearningEnum mode);
+    void Restart(RestartLearningEnum mode);
 	
 	/** Used to update the data from which a PTA is built.
 	 * 
@@ -173,9 +171,9 @@ public interface Learner
 	 * @param ptaKind reflects the kind of database to update.
 	 * @param sequence what to add to the database.
 	 * @param accepted whether the sequence is accept or reject.
-	 * @param newColour
+	 * @param newColour colour to assign to the added vertices (if any are added), usually this will be null.
 	 */
-	public void AugmentPTA(LearnerGraph pta,RestartLearningEnum ptaKind,List<Label> sequence, boolean accepted, JUConstants newColour);
+    void AugmentPTA(LearnerGraph pta, RestartLearningEnum ptaKind, List<Label> sequence, boolean accepted, JUConstants newColour);
 	
 	/** Given a PTA, this method adds constraints to it, this could be reject states determined
 	 * by Soot or an automaton obtained from LTL.
@@ -187,13 +185,13 @@ public interface Learner
 	 * @param resultHolder the graph to store the result of augmentation.
 	 * @param counterExampleHolder where the counter-example will be stored upon failure.
 	 * @return null if the construction was successful,
-	 */ 
-	public boolean AddConstraints(LearnerGraph graph, LearnerGraph resultHolder, StringBuffer counterExampleHolder);
+	 */
+    boolean AddConstraints(LearnerGraph graph, LearnerGraph resultHolder, StringBuffer counterExampleHolder);
 	
 	/** Just about any experiment with large graphs involves interning strings. This is to be centralised
 	 * at the learner level rather than at graph level, because if-then expects both if-then automata and the
 	 * graphs that are being augmented to work off the same set of labels. It is worth pointing out that GD
 	 * avoids this problem completely by making a copy of the graphs (and it will not work with large graphs anyway).
 	 */
-	public ConvertALabel getLabelConverter();
+    ConvertALabel getLabelConverter();
 }

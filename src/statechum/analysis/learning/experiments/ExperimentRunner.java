@@ -24,6 +24,8 @@ import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -130,17 +132,12 @@ public class ExperimentRunner
 			learnerStages = new int[data.length];System.arraycopy(data, 0, learnerStages, 0, data.length);
 		}
 	}
-	
-	public int [] getLearnerStages()
-	{
-		return learnerStages;
-	}
-	
+
 	/** Many experiments involve supplying the learner with a specific %% of 
 	 * data and looking at how it performs. This could reflect the number of
 	 * %% to split 100% such as with 20%,40%,60%,80%,100%.
 	 */
-	public int [] getStages()
+	public int [] getLearnerStages()
 	{
 		return learnerStages;
 	}
@@ -161,10 +158,6 @@ public class ExperimentRunner
 		/** Learner name. */
 		private String name;
 
-		
-		
-		public enum GENERATORCONFIG{ ELEM_CONFIG, ATTR_NAME, ATTR_CLASS }
-		
 		public GeneratorConfiguration() {
 			generatorConfig = Configuration.getDefaultConfiguration().copy();
 			generatorEvaluator=null;name=null;
@@ -243,7 +236,7 @@ public class ExperimentRunner
 		}
 	}
 	
-	private List<GeneratorConfiguration> generators = new LinkedList<GeneratorConfiguration>();
+	private List<GeneratorConfiguration> generators = new LinkedList<>();
 	
 	/** Given a learner generator configuration, adds it to the internal list. */
 	public void addLearnerEvaluator(GeneratorConfiguration cnf)
@@ -266,7 +259,7 @@ public class ExperimentRunner
 	/** Returns a collection of generators for learners. */
 	public List<LearnerEvaluatorGenerator> getLearnerGenerators()
 	{
-		List<LearnerEvaluatorGenerator> result = new LinkedList<LearnerEvaluatorGenerator>();
+		List<LearnerEvaluatorGenerator> result = new LinkedList<>();
 		for(GeneratorConfiguration gen:generators)
 		{
 			final GeneratorConfiguration g = gen;
@@ -299,8 +292,8 @@ public class ExperimentRunner
 	private void initExecutors()
 	{
 		int ThreadNumber = getCpuNumber();
-		results = new LinkedList<Future<String>>();executorService = Executors.newFixedThreadPool(ThreadNumber);
-		runner = new ExecutorCompletionService<String>(executorService);
+		results = new LinkedList<>();executorService = Executors.newFixedThreadPool(ThreadNumber);
+		runner = new ExecutorCompletionService<>(executorService);
 	}
 	
 	public abstract static class LearnerEvaluatorGenerator 
@@ -322,6 +315,9 @@ public class ExperimentRunner
 
 		protected LearnerGraph graph=null;
 		protected final String inputFileName;
+		/** A single number which can be used to identify this file/percentage/learner_kind combo, that is,
+		 * data point identifier.
+		 */
 		protected final int instanceID;
 		protected final int percent;
 		protected final ExperimentRunner experiment;
@@ -340,7 +336,7 @@ public class ExperimentRunner
 		{
 			inputFileName = inputFile;instanceID = inID;percent=per;experiment=exp;
 			config = cnf.copy();learnerName = name;
-			if (name == null || name.length() == 0 || name.contains(FS))
+			if (name == null || name.isEmpty() || name.contains(FS))
 				throw new IllegalArgumentException("invalid learner name - it cannot contain \""+FS+"\"");
 		}
 
@@ -371,7 +367,7 @@ public class ExperimentRunner
 					reader = new BufferedReader(new FileReader(getFileName(FileType.RESULT)));
 					String line = reader.readLine();
 					if (line != null && line.contains(LearnerEvaluator.OUTCOME.RUNNING.name()))
-						needToProcess = true;// previously incomplete run
+						needToProcess = true;// previously incomplete run. Note that a failed run is a failure of a learner, not the same as an incomplete run.
 				}
 				catch(Exception ex)
 				{
@@ -388,7 +384,7 @@ public class ExperimentRunner
 			}
 			OUTCOME currentOutcome = OUTCOME.RUNNING;
 			String percentValue = "";
-			if (experiment.useStages())
+			if (experiment.useLearnerStages())
 				percentValue = percent+FS;
 			String fileName = new File(inputFileName).getName();
 
@@ -405,11 +401,12 @@ public class ExperimentRunner
 				}
 				catch(Throwable th)
 				{
+					// Dump the stack trace into the output file.
 					currentOutcome = OUTCOME.FAILURE;
 					StringWriter writer = new StringWriter();
 					th.printStackTrace();
 					th.printStackTrace(new PrintWriter(writer));
-					stats = stats+"\nFAILED\nSTACK: "+writer.toString();
+					stats = stats+"\nFAILED\nSTACK: "+ writer;
 				}
 				
 				// now record the result.
@@ -421,7 +418,6 @@ public class ExperimentRunner
 			return fileName+FS+getLearnerName()+FS+percentValue+currentOutcome;
 		}
 
-		@SuppressWarnings("resource")
 		protected void loadGraph()
 		{
 			Configuration cnf = config.copy();cnf.setLearnerCloneGraph(true);cnf.setLearnerUseStrings(true);
@@ -435,8 +431,8 @@ public class ExperimentRunner
 			catch(Exception ex)
 			{
 				
-				IllegalArgumentException e = new IllegalArgumentException("could not load "+inputFileName);
-				e.initCause(ex);throw e;
+				IllegalArgumentException e = new IllegalArgumentException("could not load "+inputFileName, ex);
+                throw e;
 			}
 			finally
 			{
@@ -452,9 +448,8 @@ public class ExperimentRunner
 		/** The first one means successful completion, the second - currently running
 		 * (or crashed JVM) and the last one means a failure. The difference between
 		 * the last two is that we'd like to restart the learning process when a 
-		 * crash is detected, but there is no point doing so upon a failure.
-		 * 
-		 * @author kirill
+		 * crash is detected, but there is no point doing so upon a failure -
+		 * failure reflects a failure of a learner hence restarting means we'll get the same failure .
 		 */
 		enum OUTCOME { SUCCESS, RUNNING, FAILURE }
 
@@ -472,7 +467,7 @@ public class ExperimentRunner
 				assert !getFileName(FileType.RESULT).contains(FS);
 				outputWriter = new BufferedWriter(new FileWriter(getFileName(FileType.RESULT)));
 				String percentValue = "";
-				if (experiment.useStages())
+				if (experiment.useLearnerStages())
 					percentValue = FS+percent;
 
 				outputWriter.write(inputFileName+percentValue+FS+outcome+"\n"+(resultString == null? "":resultString)+"\n");
@@ -482,7 +477,7 @@ public class ExperimentRunner
 			{
 				StringWriter writer = new StringWriter();
 				e.printStackTrace(new PrintWriter(writer));
-				stdOutput = "\nFAILED TO WRITE A REPORT :"+writer.toString();
+				stdOutput = "\nFAILED TO WRITE A REPORT :"+ writer;
 			}
 			finally
 			{
@@ -496,34 +491,33 @@ public class ExperimentRunner
 		protected String getFileName(FileType fileNameType)
 		{
 			String percentValue = "";
-			if (experiment.useStages())
+			if (experiment.useLearnerStages())
 				percentValue = "-"+percent;
-			return fileNameType.getFileName(experiment.getOutputDir()+File.separator+instanceID+"_"+(new File(inputFileName).getName()),percentValue); 
+			return fileNameType.getFileName(experiment.getOutputDir()+File.separator+instanceID+"_"+learnerName+"_"+(new File(inputFileName).getName()),percentValue);
 		}
 	}			
 	
-	protected ArrayList<String> fileName = new ArrayList<String>(100);
+	protected ArrayList<String> namesOfFilesToProcess = new ArrayList<>(100);
 
-	/** Given a name containing a file with file names, this one adds names of those which can be read, to the
-	 * list of them.
+	/** Given a reader with file names, this one adds names of those which can be read, to the
+	 * list of them. The argument is a reader in order to simplify testing where I can supply an instance of a StringReader.
 	 * 
 	 * @param fileNameListReader Reader containing a list of files to load.
-	 * @throws IOException 
 	 */
 	private void loadFileNames(Reader fileNameListReader) throws IOException
 	{
 		BufferedReader reader = null;
 		try
 		{
-			reader = new BufferedReader(fileNameListReader);//new FileReader(inputFiles));
+			reader = new BufferedReader(fileNameListReader);
 			String line = reader.readLine();
 			while(line != null)
 			{
 				line = line.trim();
-				if (line.length() > 0 && !line.startsWith("#"))
+				if (!line.isEmpty() && !line.startsWith("#"))
 				{
 					if (new File(line).canRead())
-						fileName.add(line);
+						namesOfFilesToProcess.add(line);
 					else
 						throw new IOException("cannot load file "+line);
 				}
@@ -535,7 +529,7 @@ public class ExperimentRunner
 			if (reader != null) { try { reader.close();reader=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
 		}
 		
-		if (fileName.isEmpty())
+		if (namesOfFilesToProcess.isEmpty())
 			throw new IllegalArgumentException("no usable files found");
 	}
 	
@@ -543,9 +537,7 @@ public class ExperimentRunner
 	 * of percent divisions.
 	 * 
 	 * @param fileNameListReader Reader containing a list of files to process.
-	 * @param Number the parameter of the array task. negative means "return the highest positive number which can be passed" 
-	 * @return what Java process should return
-	 * @throws IOException 
+	 * @param Number the parameter of the array task. negative means "return the highest positive number which can be passed"
 	 */
 	public void processDataSet(Reader fileNameListReader, int Number) throws IOException
 	{
@@ -561,10 +553,10 @@ public class ExperimentRunner
 	 */
 	private void verifyInstanceNumber(Reader fileNameListReader, int Number) throws IOException
 	{
-		if (fileName.isEmpty()) loadFileNames(fileNameListReader);
+		if (namesOfFilesToProcess.isEmpty()) loadFileNames(fileNameListReader);
 		List<LearnerEvaluatorGenerator> evaluatorGenerators = getLearnerGenerators();
 		final int LearnerNumber = evaluatorGenerators.size();
-		final int NumberMax = fileName.size()*getStageNumber()*LearnerNumber;
+		final int NumberMax = namesOfFilesToProcess.size()*getStageNumber()*LearnerNumber;
 		if (Number < 0 || Number >= NumberMax)
 			throw new IllegalArgumentException("Array task number "+Number+" is out of range, it should be between 0 and "+NumberMax);
 		// the number is valid.
@@ -572,28 +564,28 @@ public class ExperimentRunner
 	
 	private LearnerEvaluator getLearnerEvaluator(Reader fileNameListReader, int Number) throws IOException
 	{
-		if (fileName.isEmpty()) loadFileNames(fileNameListReader);
+		if (namesOfFilesToProcess.isEmpty()) loadFileNames(fileNameListReader);
 		List<LearnerEvaluatorGenerator> evaluatorGenerators = getLearnerGenerators();
 		verifyInstanceNumber(fileNameListReader, Number);
 
-		int learnerStep = fileName.size()*getStageNumber();
+		int learnerStep = namesOfFilesToProcess.size()*getStageNumber();// number of steps per learner
 		int learnerType = Number / learnerStep;
 		int fileNumber = (Number % learnerStep) / getStageNumber();
 		int percentStage = (Number % learnerStep) % getStageNumber();
-		int actualPercent = useStages()? getStages()[percentStage]:100;
+		int actualPercent = useLearnerStages()? getLearnerStages()[percentStage]:100;
 		return 
-			evaluatorGenerators.get(learnerType).getLearnerEvaluator(fileName.get(fileNumber), actualPercent,Number, this);
+			evaluatorGenerators.get(learnerType).getLearnerEvaluator(namesOfFilesToProcess.get(fileNumber), actualPercent,Number, this);
 	}
 	
-	public boolean useStages()
+	public boolean useLearnerStages()
 	{
-		return getStages() != null;
+		return getLearnerStages() != null;
 	}
 	
 	public int getStageNumber()
 	{
-		if (getStages() != null && getStages().length > 0) 
-			return getStages().length;
+		if (getLearnerStages() != null && getLearnerStages().length > 0)
+			return getLearnerStages().length;
 		return 1;
 	}
 	
@@ -603,17 +595,19 @@ public class ExperimentRunner
 	 * start with a line ending on SUCCESS and appends it to a spreadsheet.
 	 * <p/>
 	 * Returns the number of files which could not be processed.
-	 * @throws IOException 
 	 */
 	public int postProcess_noException(Reader fileNameListReader) throws IOException
 	{
-		if (fileName.isEmpty()) loadFileNames(fileNameListReader);
+		if (namesOfFilesToProcess.isEmpty())
+			loadFileNames(fileNameListReader);
 		List<LearnerEvaluatorGenerator> evaluatorGenerators = getLearnerGenerators();
 		final int LearnerNumber = evaluatorGenerators.size();
-		final int NumberMax = fileName.size()*getStageNumber()*LearnerNumber;
+		final int NumberMax = namesOfFilesToProcess.size()*getStageNumber()*LearnerNumber;
 		int failures = 0;
-		File resultFile = new File(getOutputDir(),resultName);resultFile.delete();
-		Map<String,List<String>> resultMap = new TreeMap<String,List<String>>();
+		File resultFile = new File(getOutputDir(),resultName);
+		//noinspection ResultOfMethodCallIgnored
+		resultFile.delete();
+		Map<String,List<String>> resultMap = new TreeMap<>();
 		
 		for(int Number=0;Number < NumberMax;++Number)
 		{
@@ -626,7 +620,7 @@ public class ExperimentRunner
 				line = reader.readLine();
 				if (line != null && line.contains(LearnerEvaluator.OUTCOME.SUCCESS.name()))
 				{// get the next line
-					line = reader.readLine();if (line != null && line.length() == 0) line = null;
+					line = reader.readLine();if (line != null && line.isEmpty()) line = null;
 				}
 				else line = null;
 				
@@ -642,9 +636,8 @@ public class ExperimentRunner
 			
 			if (line != null)
 			{
-				List<String> data = resultMap.get(evaluator.getLearnerName());
-				if (data == null) { data = new LinkedList<String>();resultMap.put(evaluator.getLearnerName(),data); }
-				data.add(line);
+                List<String> data = resultMap.computeIfAbsent(evaluator.getLearnerName(), k -> new LinkedList<>());
+                data.add(line);
 			}
 			else
 				failures++;
@@ -653,7 +646,7 @@ public class ExperimentRunner
 		Writer csvWriter=new FileWriter(resultFile);
 		for(Entry<String,List<String>> entry:resultMap.entrySet())
 			for(String str:entry.getValue())
-			csvWriter.write(str+"\n");
+				csvWriter.write(str+"\n");
 		csvWriter.close();csvWriter=null;
 
 		return failures;
@@ -663,7 +656,6 @@ public class ExperimentRunner
 	 * start with a line ending on SUCCESS and appends it to a spreadsheet.
 	 * <p/>
 	 * Throws an exception if any files could not be processed, but nevertheless builds csv files.
-	 * @throws IOException 
 	 */
 	public void postProcess(Reader fileNameListReader) throws IOException
 	{
@@ -690,15 +682,14 @@ public class ExperimentRunner
 	/** Given a reader returning a list of graphs to process, this 
 	 * method computes the effective number of files to process.
 	 * 
-	 * @param fileNameListReader
-	 * @return
-	 * @throws IOException 
+	 * @param fileNameListReader list of graphs to process
+	 * @return number of graphs to process
 	 */
 	public int computeMaxNumber(Reader fileNameListReader) throws IOException
 	{
 		int NumberMax = 0;
 		loadFileNames(fileNameListReader);
-		NumberMax = fileName.size()*getLearnerGenerators().size()*getStageNumber();
+		NumberMax = namesOfFilesToProcess.size()*getLearnerGenerators().size()*getStageNumber();
 		return NumberMax;
 	}
 	
@@ -709,15 +700,19 @@ public class ExperimentRunner
 	{
 		File graphDir = new File(dirName);
 		if (!graphDir.isDirectory()) throw new IllegalArgumentException("invalid directory");
-        String[] graphFileList = graphDir.list();StringBuffer listOfFileNames = new StringBuffer();int fileNumber = 0;
+        String[] graphFileList = graphDir.list();
+        StringBuilder listOfFileNames = new StringBuilder();int fileNumber = 0;
         String wholePath = graphDir.getAbsolutePath()+File.separator;
-        for(int i=0;i<graphFileList.length;i++)
-        	if(graphFileList[i].endsWith("xml"))
-        	{
-        		listOfFileNames.append(wholePath);listOfFileNames.append(graphFileList[i]);listOfFileNames.append('\n');fileNumber++;
-        	}
+        for (String s : graphFileList)
+            if (s.endsWith("xml"))
+            {
+                listOfFileNames.append(wholePath);
+                listOfFileNames.append(s);
+                listOfFileNames.append('\n');
+                fileNumber++;
+            }
         
-        return new Pair<String,Integer>(listOfFileNames.toString(),fileNumber);
+        return new Pair<>(listOfFileNames.toString(), fileNumber);
 	}
 	
 	/**
@@ -732,8 +727,6 @@ public class ExperimentRunner
 	 * where FILENAMES_FILE contains files to process, OUTPUT_DIR is where to store output and NUMBER1 ... are task numbers
 	 * If <NUMBER1> is -1, returns (and displays on the screen) the number of files to process.
 	 * If <NUMBER1> is -2, post-processes the results.
-	 * @throws NumberFormatException 
-	 * @throws IOException 
 	 */
 	public int runExperiment(String[] args) throws NumberFormatException, IOException
 	{
@@ -759,7 +752,8 @@ public class ExperimentRunner
 		else
 		{// args.length >=2, enter the Grid mode.
 	        outputDir = args[1];
-	        if (args.length < 3) throw new IllegalArgumentException("expected at least three args in grid mode");
+	        if (args.length < 3)
+				throw new IllegalArgumentException("expected at least three args in grid mode");
            	int num = Integer.parseInt(args[2]);
        		Reader reader = null;
 			try
@@ -835,66 +829,62 @@ public class ExperimentRunner
 	 * <em>runExperiment</em> are shifted from those suppiled by one.
 	 * @param args arguments to use.
 	 */
-	public static void main(String args[])
+	public static void main(String[] args)
 	{
 		XMLDecoder decoder = null; 
 		try 
 		{
 			
-			decoder = new XMLDecoder(new FileInputStream(args[0]));
+			decoder = new XMLDecoder(Files.newInputStream(Paths.get(args[0])));
 			final ExperimentRunner exp = (ExperimentRunner) decoder.readObject();decoder.close();
 			String []expArgs = new String[args.length-1];System.arraycopy(args, 1, expArgs, 0, args.length-1);
 			if (exp.isForked())
 			{
-				Thread heartbeatThread = new Thread(new Runnable() {
-					@Override 
-					public void run() 
-					{
-						// after processing has started and did not generate an exception, we need
-						// to keep heartbeat going to ensure that this process will terminate
-						// when the parent process has terminated.
-						
-						final int timeOutTicks = 5;// how many heartbeats to wait before timing out
-						
-						long prevTime = new Date().getTime();// each instance remembers the time it was created on, so I cannot re-use an existing instance.
-						long currentTime = prevTime;
-						try {
-							Thread.sleep(exp.timeBetweenHearbeats*3);// wait for the main thread to start processing
+				Thread heartbeatThread = new Thread(() -> {
+                    // after processing has started and did not generate an exception, we need
+                    // to keep heartbeat going to ensure that this process will terminate
+                    // when the parent process has terminated.
 
-							prevTime = new Date().getTime();// account for the time spent waiting for threads to start.
-							currentTime=prevTime;
-						} catch (InterruptedException e1) {
-							// this means that we've been asked to terminate, in this case we
-							// pretend that the heartbeat time has elapsed and terminate.
+                    final int timeOutTicks = 5;// how many heartbeats to wait before timing out
 
-							currentTime = prevTime + (timeOutTicks+1)*exp.timeBetweenHearbeats;// force the following loop to exit immediately 
-						}
-						
-						try
-						{
-							while (currentTime - timeOutTicks*exp.timeBetweenHearbeats < prevTime)
-							{
-								int avail = System.in.available();
-								if (avail > 0) 
-								{
-									prevTime = currentTime;// reset the timer.
-									while(avail-->0) System.in.read();// drop the chars 
-								} 
-								try {
-									Thread.sleep(exp.timeBetweenHearbeats);// wait for a bit.
-								} catch (InterruptedException e1) {
-									// this means that we've been asked to terminate, in this case we
-									// pretend that the heartbeat time has elapsed and terminate.
-									break;
-								}
-								currentTime = new Date().getTime();
-							}
-						} catch(IOException e)
-						{// failed to read I/O, assume that parent process terminated and abort.
-						}
-						System.exit(-1);// did not receive a heartbeat or were asked to terminate.
-					}
-				},"heartbeat");
+                    long prevTime = new Date().getTime();// each instance remembers the time it was created on, so I cannot re-use an existing instance.
+                    long currentTime = prevTime;
+                    try {
+                        Thread.sleep(exp.timeBetweenHearbeats*3);// wait for the main thread to start processing
+
+                        prevTime = new Date().getTime();// account for the time spent waiting for threads to start.
+                        currentTime=prevTime;
+                    } catch (InterruptedException e1) {
+                        // this means that we've been asked to terminate, in this case we
+                        // pretend that the heartbeat time has elapsed and terminate.
+
+                        currentTime = prevTime + (timeOutTicks+1)*exp.timeBetweenHearbeats;// force the following loop to exit immediately
+                    }
+
+                    try
+                    {
+                        while (currentTime - timeOutTicks*exp.timeBetweenHearbeats < prevTime)
+                        {
+                            int avail = System.in.available();
+                            if (avail > 0)
+                            {
+                                prevTime = currentTime;// reset the timer.
+                                while(avail-->0) System.in.read();// drop the chars
+                            }
+                            try {
+                                Thread.sleep(exp.timeBetweenHearbeats);// wait for a bit.
+                            } catch (InterruptedException e1) {
+                                // this means that we've been asked to terminate, in this case we
+                                // pretend that the heartbeat time has elapsed and terminate.
+                                break;
+                            }
+                            currentTime = new Date().getTime();
+                        }
+                    } catch(IOException e)
+                    {// failed to read I/O, assume that parent process terminated and abort.
+                    }
+                    System.exit(-1);// did not receive a heartbeat or were asked to terminate.
+                },"heartbeat");
 				heartbeatThread.setDaemon(true);
 				heartbeatThread.start();
 			} // if forked
@@ -942,12 +932,12 @@ public class ExperimentRunner
 		/** Called each heartbeat, could be used to prod a process. 
 		 * @throws IOException if something fails. 
 		 */
-		public void OnHeartBeat() throws IOException;
+        void OnHeartBeat() throws IOException;
 		
 		/** Called each time a line is read from the standard output of the monitored process. */
-		public void StdOut(StringBuffer b);
+        void StdOut(StringBuffer b);
 		/** Called each time a line is read from the standard error stream of the monitored process.. */
-		public void StdErr(StringBuffer b);
+        void StdErr(StringBuffer b);
 	}
 	
 	/** Displays output/error streams of the supplied process
@@ -956,14 +946,13 @@ public class ExperimentRunner
 	 * @param p process of interest.
 	 * @param probeInterval how often to check a process for input and/or prod it.
 	 * @param handler object to handle input/output data.
-	 * @throws IOException 
 	 */
 	public static void dumpStreams(Process p, int probeInterval, HandleProcessIO handler)
 	{
 		java.io.InputStream err = p.getErrorStream(),out = p.getInputStream();
 		StringBuffer errBuffer = new StringBuffer(), outBuffer = new StringBuffer();
 		byte []dataBuffer = new byte[100];
-		long prevTime = new Date().getTime()-2*probeInterval;
+		long prevTime = new Date().getTime()- 2L *probeInterval;
 		boolean processRunning = true;
 		
 		try
@@ -1131,7 +1120,7 @@ public class ExperimentRunner
 	public static List<String> extractJavaCommandLineArgs()
 	{
 		List<String> jvmArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
-		List<String> commandLine = new LinkedList<String>();
+		List<String> commandLine = new LinkedList<>();
 		commandLine.add(System.getProperty("java.home")+File.separator+"bin/java");
 		for(String arg:jvmArgs)
 			if (!arg.startsWith(debugArg)) // filter out debug args, this is used in Ant tests.
@@ -1146,8 +1135,8 @@ public class ExperimentRunner
 	 * expects a collection of file names to run on and a path to those files.
 	 * The runner is robust - it will restart running if JVM crashes and will
 	 * also report failures.
-	 * @throws IOException 
-	 * @throws InterruptedException 
+	 * @throws IOException
+	 * @throws InterruptedException
 	 */
 	public void robustRunExperiment(String graphDirName, String outputDirName) throws IOException
 	{
@@ -1197,7 +1186,7 @@ public class ExperimentRunner
 				for(int currentGraph = 0;currentGraph < graphNumber;currentGraph+=graphsPerRunner)
 				{
 					int maxGraph = Math.min(currentGraph+graphsPerRunner,graphNumber);
-					List<String> commandLine = new LinkedList<String>();
+					List<String> commandLine = new LinkedList<>();
 					if (isForked())
 					{// arguments for the JVM to run
 						commandLine.addAll(extractJavaCommandLineArgs());
@@ -1264,7 +1253,7 @@ public class ExperimentRunner
 	
 	/** Takes the result and pulls R-bagplot compatible tables out of it.
 	 * @param numbers whether column headers are numeric (and hence will be sorted as numbers). 
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public void postProcessIntoR(String learnerFilter,int colSort,boolean numbers,int colNumber, File result) throws IOException
 	{
@@ -1324,7 +1313,7 @@ public class ExperimentRunner
 		if (colSort < 0 || colNumber < 0)
 			throw new IllegalArgumentException("invalid column number");
 		
-		Map<Object,List<String>> resultMap = new java.util.LinkedHashMap<Object,List<String>>();
+		Map<Object,List<String>> resultMap = new java.util.LinkedHashMap<>();
 		int maxCol = Math.max(colSort,colNumber);
 		
 		String line = tableReader.readLine();
@@ -1349,7 +1338,7 @@ public class ExperimentRunner
 					}
 				}
 				List<String> col = resultMap.get(colHeader);
-				if (col == null) { col = new LinkedList<String>();resultMap.put(colHeader, col); }
+				if (col == null) { col = new LinkedList<>();resultMap.put(colHeader, col); }
 				col.add(splitResult[colNumber]);
 			}
 			line = tableReader.readLine();
@@ -1358,7 +1347,7 @@ public class ExperimentRunner
 			throw new IllegalArgumentException("no data to dump");
 		
 		StringBuffer outHeading = new StringBuffer();
-		List<Iterator<String>> iterators = new LinkedList<Iterator<String>>();
+		List<Iterator<String>> iterators = new LinkedList<>();
 		boolean isFirst = true;
 		for(Entry<Object,List<String>> entry:resultMap.entrySet()) 
 		{

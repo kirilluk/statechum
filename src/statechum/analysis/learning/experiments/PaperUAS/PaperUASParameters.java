@@ -85,6 +85,7 @@ public class PaperUASParameters implements ThreadResultID
 	}
 
 	@Override
+	/** Position of execution time in the array of cells. */
 	public int executionTimeInCell() 
 	{
 		return 8;

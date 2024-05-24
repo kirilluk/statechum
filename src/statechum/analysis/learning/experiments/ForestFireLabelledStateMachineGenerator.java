@@ -83,20 +83,19 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 	/** Makes it possible for derived classes to use different patterns for selection of plausible labels. */
 	protected Label selectLabel(@SuppressWarnings("unused") DeterministicVertex v, Set<Label> outgoingAlphabet)
 	{
-		Set<Label> possibles = new TreeSet<Label>();
-		possibles.addAll(alphabet);
-		possibles.removeAll(outgoingAlphabet);
-		if(possibles.isEmpty())
+        Set<Label> possibleLabels = new TreeSet<>(alphabet);
+		possibleLabels.removeAll(outgoingAlphabet);
+		if(possibleLabels.isEmpty())
 			return null;
 		
-		Label possiblesArray [] = new Label[possibles.size()];possibles.toArray(possiblesArray);
+		Label possiblesArray [] = new Label[possibleLabels.size()];possibleLabels.toArray(possiblesArray);
 		return possiblesArray[randomInt(possiblesArray.length)];
 	}
 	
 	@SuppressWarnings("unchecked")
 	protected boolean addEdgeInternal(DeterministicVertex v, DeterministicVertex random)
 	{
-		Set<Label> vertexAlphabet = new TreeSet<Label>();
+		Set<Label> vertexAlphabet = new TreeSet<>();
 		DirectedSparseEdge existingEdge = null;
 		
 		for (Object e : v.getOutEdges()) {
@@ -120,7 +119,7 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 		{// new edge needs to be added.
 			try
 			{
-				Set<Label> labelSet = new TreeSet<Label>();
+				Set<Label> labelSet = new TreeSet<>();
 				labelSet.add(label);
 				DeterministicEdge e = AbstractLearnerGraph.generateNewJungEdge(v,random);
 				e.addUserDatum(JUConstants.LABEL, labelSet, UserData.SHARED);
@@ -135,7 +134,7 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 	
 	private Set<Label> generateAlphabet(int number)
 	{
-		Set<Label> generatedAlphabet = new TreeSet<Label>();
+		Set<Label> generatedAlphabet = new TreeSet<>();
 		for (int i=0;i<number;i++)
 			generatedAlphabet.add(AbstractLearnerGraph.generateNewLabel(i, config, converter));
 		return generatedAlphabet;

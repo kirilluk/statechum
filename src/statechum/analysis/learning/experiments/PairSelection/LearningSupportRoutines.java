@@ -206,14 +206,18 @@ public class LearningSupportRoutines
 	/** Whenever a transition is encountered with the supplied label, we replace it with a transition to a new state and record what the original state was. 
 	 * The collection of pairs initial-original is then returned. 
 	 * Important: this method modifies the supplied graph because it needs to add vertices. 
-	 * For instance, A-a->B-b->C-a->D using label "a" as unique is turned into A-a->N1 / N2-a->B-b-C-a->N3 / N4-a->D (with a set of {N2,N4,A} returned). 
-	 * The need to split states accounts for multiple transitions from the same state:
-	 * Init ... A-a->B / A-b->B would turn into A-a->N1 / A-b->B / N2-a->B (with a set of {N2,Init} returned).
-	 * The key advantage is that after merger of the returned vertices, the outcome is a tree, hence can be used as a normal PTA with a non-generalised merger.
-	 * The problem with this is that with long sequences, EDSM has to be used with a threshold greater than 1. In fact, it is the case most of the time and hence this
-	 * idea does not really encourage mergers as much as it should. I could possibly improve on this by adding a new element of an alphabet so that each transition
-	 * with a unique label will be followed by a long sequence of such transitions; after the learning is complete, transitions with the extra element of an alphabet 
-	 * could be removed. This idea is not currently pursued because the generalised learner seems as fast as PTA learner and just about as good.  
+	 * For instance, ... ->A-a->B-b->C-a->D-c->E using label "a" as unique is turned into ... ->A-a->N1 / N2-a->B-b-C-a->N3 / N4-a->D-c->E (with a set of {N2,N4,A} returned).
+	 * This suggests to the learner that C is to be merged with all of {N2,N4,A}
+	 * The need to split states also accounts for multiple transitions from the same state:
+	 * Init ... A-a->B-c->E / A-b->B would turn into A-a->N1 / A-b->B-c->E / N2-a->B-c->E (with a set of {N2,A} returned).
+	 * The key advantage is that where we start with a PTA, after merger of the returned vertices,
+	 * the outcome is a tree, hence can be used as a normal PTA with a non-generalised merger.
+	 * The problem with this is that with long sequences, EDSM has to be used with a threshold greater than 1.
+	 * In fact, it is the case most of the time and hence this idea does not really encourage mergers as much as it should.
+	 * I could possibly improve on this by adding a new element of an alphabet so that each transition with a unique label
+	 * will be followed by a long sequence of such transitions; after the learning is complete, transitions with the extra
+	 * element of an alphabet could be removed. This idea is not currently pursued because the generalised learner seems as
+	 * fast as PTA learner and just about as good.
 	 */
 	public static List<CmpVertex> constructPairsToMergeWithOutgoing(LearnerGraph pta, Label uniqueFromInitial)
 	{
@@ -650,7 +654,6 @@ public class LearningSupportRoutines
  	 * 
  	 * @param graph
  	 * @param ptaWithInitialState
- 	 * @return
  	 */
  	public static CmpVertex findBestMatchForInitialVertexInGraph(LearnerGraph graph, LearnerGraph ptaWithInitialState)
  	{
@@ -669,12 +672,13 @@ public class LearningSupportRoutines
  		}
  		return currBest;
  	}
-	/** PTA is supposed to be built using walks over a reference graph. If these are random walks, it is possible that some transitions will not be covered. 
+	/** PTA is supposed to be built using walks over a reference graph.
+	 * If these are random walks, it is possible that some transitions will not be covered.
 	 * For the learning purposes, this is significant because this could make some states more easily identifiable.
 	 *  
 	 * @param pta walks through the reference graph
-	 * @param reference graph to trim 
-	 * @return trimmed copy of the reference graph.
+	 * @param reference graph the PTA was built from using walks
+	 * @return map from states to sets of uncovered elements of an alphabet.
 	 */
 	public static Map<CmpVertex,Set<Label>> identifyUncoveredTransitions(LearnerGraph pta,LearnerGraph reference)
 	{
@@ -706,7 +710,8 @@ public class LearningSupportRoutines
 	}
 	
 	/** Takes a supplied automaton and removes all transitions that have not been covered by a supplied PTA. 
-	 * Does not remove states that may have become unreachable as a consequence of removal of transitions.
+	 * Does not remove states that may have become unreachable as a consequence of removal of transitions
+	 * and does not attempt to merge equivalent states.
 	 * 
 	 * @param pta contains covered transitions
 	 * @param reference all of the transitions.

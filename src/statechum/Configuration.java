@@ -1450,13 +1450,13 @@ public class Configuration implements Cloneable {
 		transitionMatrixImplType = value;
 	}
 	
-	/** Transition matrices below this size will has a hashmap. This is important: for a big transition matrix, we absolutely have to use an array, otherwise inefficiency of Java Hash collections bites hard. 
-	 *  After a large graph got some mergers completed, things still take time because array access uses state IDs so we need  to have an array with elements with that number. Test mergers from large PTA
+	/** Transition matrices below this size will use a hashmap. This is important: for a big transition matrix, we absolutely have to use an array, otherwise inefficiency of Java Hash collections bites hard.
+	 *  After a large graph got some mergers completed, things still take time because array access uses state IDs so we need to have an array with elements with that number. Test mergers from large PTA
 	 *  eventually spends all its time constructing large arrays only to merge a few vertices - not very efficient.  
-	 *  Renumbering during state merging is a good idea that does has a pitfall: either we change vertex identifiers or we add another field that will originally be set to vertex IDs 
+	 *  Renumbering during state merging is a good idea that has a pitfall: either we change vertex identifiers or we add another field that will originally be set to vertex IDs
 	 *  but then get adjusted to a smaller number due to renaming. The former idea is not very good because pair selection often uses vertex IDs for comparison when scores are equal and hence
 	 *  renaming affects decision-making, making it hard to compare different experiments. The latter means extra 4 bytes per vertex, which is precisely what we aim to avoid with array maps.
-	 *  Solution: start with array maps and then switch to hashmaps, since both share an interface {@link MapWithSearch}. The value below is a threshold below which to switch collection types.  
+	 *  Solution: start with array maps and then switch to hashmaps, since both share an interface {@link MapWithSearch}. The value below is a threshold below which we switch collection types.
 	 */
 	protected int thresholdToGoHash = 100000;
 	

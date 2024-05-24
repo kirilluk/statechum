@@ -109,7 +109,9 @@ public class SGE_ExperimentRunner
 	public static class RunSubExperiment<EXPERIMENT_PARAMETERS extends ThreadResultID,RESULT extends ExperimentResult<EXPERIMENT_PARAMETERS>> 
 	{
 		private PhaseEnum phase;
-		/** We need both taskCounterFromPreviousSubExperiment and taskCounter in order to run multiple series of experiments, where a number of submitTask calls are followed with the same number of processResults. */  
+		/** We need both taskCounterFromPreviousSubExperiment and taskCounter in order to run multiple series of experiments,
+		 * where a number of submitTask calls are followed with the same number of processResults.
+		 */
 		private int taskCounter=0, taskCounterFromPreviousSubExperiment;
 		/** Virtual task to run, each virtual corresponds to a set of actual tasks that have not finished. */
 		private int virtTask = 0, tasksToSplitInto =0;
@@ -159,6 +161,7 @@ public class SGE_ExperimentRunner
 					virtTaskToRealTask = loadVirtTaskToReal(tmpDir);
 					break;
 				case RUN_STANDALONE:
+				case PROGRESS_INDICATOR:
 					if (args.length != 1)
 						throw new IllegalArgumentException("no arguments is permitted for phase "+phase);
 					break;
@@ -167,7 +170,7 @@ public class SGE_ExperimentRunner
 						throw new IllegalArgumentException("the number of tasks per virtual task has to be provided");
 					try
 					{
-						tasksToSplitInto = Integer.valueOf(args[1]);
+						tasksToSplitInto = Integer.parseInt(args[1]);
 					}
 					catch(NumberFormatException e)
 					{
@@ -175,10 +178,6 @@ public class SGE_ExperimentRunner
 					}
 					if (tasksToSplitInto <= 0)
 						throw new IllegalArgumentException("the number of real tasks to run should be positive");
-					break;
-				case PROGRESS_INDICATOR:
-					if (args.length != 1)
-						throw new IllegalArgumentException("no arguments is permitted for phase "+phase);
 					break;
 				case REPORT_TASKPARAMETERS:
 					if (args.length != 1)
@@ -233,8 +232,13 @@ public class SGE_ExperimentRunner
 			return outcome;
 		}
 
+		/** Submits a task for processing. The way runner is to be used is by submitting a number of tasks then collecting
+		 * outcome then submitting more, collecting more outcome etc. Variable <b>taskCounter</b> is the number of the currently
+		 * submitted task. It is important to point out that
+		 */
 		public void submitTask(UASExperiment<EXPERIMENT_PARAMETERS,RESULT> task)
 		{
+			// At the start we check that names do not contain invalid characters.
 			if (task.par.getSubExperimentName().contains(SGE_ExperimentRunner.separator))
 				throw new IllegalArgumentException("experiment name for "+task.par.getSubExperimentName()+" should not contain \""+SGE_ExperimentRunner.separator+"\"");
 			if (task.par.getRowID().contains(SGE_ExperimentRunner.separator))
@@ -283,7 +287,7 @@ public class SGE_ExperimentRunner
 				break;
 			}	
 			case RUN_PARALLEL:
-			{
+			{// Here we are running tasks in parallel rather than on a grid therefore no point creating tasks-started files.
 				Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
 				if (tasksForVirtualTask != null && tasksForVirtualTask.contains(taskCounter))
 				{
@@ -406,7 +410,9 @@ public class SGE_ExperimentRunner
 		
 		Map<String,SGEExperimentResult> nameToGraph = null;
 		StringWriter outputWriter = null;
-		// Plot to pick. If not null, only plots with that name will be handled. If null, all plots will be constructed. Used to avoid plotting graphs that take a long time (which applies to R graphs with a large number of data points).
+		/** Plot to pick. If not null, only plots with that name will be handled. If null, all plots will be constructed.
+		 * Used to avoid plotting graphs that take a long time (which applies to R graphs with a large number of data points).
+		 */
 		String plotName;
 		
 		/** For a given task ID, loads the result and feeds them into R or spreadsheet. 
@@ -614,7 +620,7 @@ public class SGE_ExperimentRunner
 			if (availableTasks == null)
 				availableTasks=new ArrayList<Integer>();
 			for(int task=from;task < to;++task)
-			{
+			{// ensures we only consider tasks that need running.
 				if (!checkExperimentComplete(task))
 					availableTasks.add(task);
 			}
@@ -666,7 +672,18 @@ public class SGE_ExperimentRunner
 			
 			return currentVirtualTask;
 		}
-				
+
+		/** The expected structure of the code is to submit a number of tasks then call
+		 * {@link RunSubExperiment#collectOutcomeOfExperiments(processSubExperimentResult)}
+		 * in order to process results such as plot them or (most likely) store them in relevant files such as CSV.
+		 * This can be done a number of times and we'd better remember what was done before. For this reason, every batch
+		 * of {@link RunSubExperiment#submitTask(UASExperiment)} calls adds a number of tasks and every call to
+		 * {@link RunSubExperiment#collectOutcomeOfExperiments(processSubExperimentResult)} processes the results of those
+		 * tasks. Variable <b>taskCounterFromPreviousSubExperiment</b> stores the starting task number and <b>taskCounter</b>
+		 * is the total number of tasks submitted so far.
+		 *
+		 * @param handlerForExperimentResults handler for results
+		 */
 		public void collectOutcomeOfExperiments(processSubExperimentResult<EXPERIMENT_PARAMETERS,RESULT> handlerForExperimentResults)
 		{
 			nameToGraph = new TreeMap<String,SGEExperimentResult>();for(SGEExperimentResult g:handlerForExperimentResults.getGraphs()) nameToGraph.put(g.getFileName(),g);
@@ -702,8 +719,10 @@ public class SGE_ExperimentRunner
 				{
 					Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
 					for(int rCounter=taskCounterFromPreviousSubExperiment;rCounter < taskCounter;++rCounter)
-						if (tasksForVirtualTask != null && tasksForVirtualTask.contains(rCounter) && taskletWasRun.contains(rCounter)) // only run a task if we do not have a result, without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
-						{// it is worth noting that the only use of rCounter above is to ensure we do the same number of 'get()' as we scheduled the tasks. Tasks complete in any order making it impossible to expect them to complete in a specific order. This is why the name of the file is constructed based on parameters rather than rCounter.
+						if (tasksForVirtualTask != null && tasksForVirtualTask.contains(rCounter) && taskletWasRun.contains(rCounter)) // only run a task if we do not have a result,
+							// without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
+						{// it is worth noting that the only use of rCounter above is to ensure we do the same number of 'get()' as we scheduled the tasks. Tasks complete in any order making it
+							// impossible to expect them to complete in a specific order. This is why the name of the file is constructed based on parameters rather than rCounter.
 							outputWriter = new StringWriter();
 							RESULT result = null;
 							try
@@ -714,7 +733,11 @@ public class SGE_ExperimentRunner
 								{
 									try
 									{
+										// The call to processSubResult below will record results into the file by
+										// adding values to outputWriter via calls to RecordCSV and RecordR with this
+										// experiment runner as a parameter.
 										handlerForExperimentResults.processSubResult(result,this);// we use StringWriter here in order to avoid creating a file if constructing output fails.
+										// At this point outputWriter has all the research data we need and what is left is to record cpu information and CRC value.
 										writer = new BufferedWriter(new FileWriter(constructFileName(tmpDir, result.parameters)));
 										java.util.zip.CRC32 crc = new java.util.zip.CRC32();
 										outputWriter.append(CPUSPEEDFIELD);outputWriter.append(separator);outputWriter.append(getCpuFreq());outputWriter.append('\n');

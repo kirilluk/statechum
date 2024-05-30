@@ -1047,7 +1047,7 @@ public class ExperimentPaperUAS2
 		return tmpOutput.toString();
 	}
 	
-	public final static String directoryNamePrefix = "uaspaper_Apr_2018";
+	public final static String directoryNamePrefix = "uaspaper_2024";
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
  	public static class UASCaseStudy extends UASExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>>
@@ -1176,8 +1176,18 @@ public class ExperimentPaperUAS2
 				"parameters.txt", 
 				"seed1_d.txt", "seed2_d.txt", "seed3_d.txt", "seed4_d.txt", "seed5_d.txt", "seed6_d.txt", "seed7_d.txt", "seed8_d.txt", "seed9_d.txt", "seed10_d.txt", 
 				"seed11_d.txt", "seed12_d.txt", "seed13_d.txt", "seed14_d.txt", "seed15_d.txt", "seed16_d.txt", "seed17_d.txt", "seed18_d.txt", "seed19_d.txt"};
+
+		String expectedOutcomeFileName = "resources/largePTA/outcome_correct".replace("/",File.separator);
+		String xmlExt = ".xml";
+		if (!new File(expectedOutcomeFileName+xmlExt).canRead()) {
+			if (new File(".."+File.separator+expectedOutcomeFileName+xmlExt).canRead())
+				expectedOutcomeFileName = ".."+File.separator+expectedOutcomeFileName;
+			else
+				throw new IllegalArgumentException("File with the expected outcome was not found, it should be visible from the current working directory via \""+(expectedOutcomeFileName + xmlExt)+"\"");
+		}
+
      	ExperimentPaperUAS2 paper = loadTraces(argsForLoading,true);
-    	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
+    	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph(expectedOutcomeFileName, referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
     	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
 		LearnerGraph referenceWithoutDeprecatesWaypoint = removeLabel(referenceGraph, AbstractLearnerGraph.generateNewLabel("Data_Deprecates_Waypoint", referenceGraph.config, paper.learnerInitConfiguration.getLabelConverter()));
     	Collection<List<Label>> testSetFull = LearningAlgorithms.buildEvaluationSet(referenceGraph), testSetNoDeprecatesWaypoint = LearningAlgorithms.buildEvaluationSet(referenceWithoutDeprecatesWaypoint);

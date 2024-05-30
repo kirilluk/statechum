@@ -24,15 +24,8 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
@@ -74,9 +67,7 @@ public class SGE_ExperimentRunner
 	public static final String separator = "|", separatorRegEx="\\|";
 	
 	
-	public static final String passCollectTasks="collectTasks", passRunTask="passRunTask", passCollateResults="passCollate", passStandalone = "passStandalone";
-	
-	public interface processSubExperimentResult<EXPERIMENT_PARAMETERS extends ThreadResultID,RESULT extends ExperimentResult<EXPERIMENT_PARAMETERS>> 
+	public interface processSubExperimentResult<EXPERIMENT_PARAMETERS extends ThreadResultID,RESULT extends ExperimentResult<EXPERIMENT_PARAMETERS>>
 	{
 		/** Called to plot results of the experiment, using the result <i>r</i>. The <i>experimentrunner</i> is what is to be used to perform plotting, via 
 		 * calls to {@link statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment#RecordR(RExperimentResult, Comparable, Double, String, String)}.
@@ -85,10 +76,10 @@ public class SGE_ExperimentRunner
 		 * @param result the outcome of running an experiment.
 		 * @param runSubExperiment
 		 */
-		public void processSubResult(RESULT result,RunSubExperiment<EXPERIMENT_PARAMETERS,RESULT> runSubExperiment)  throws IOException;
+        void processSubResult(RESULT result, RunSubExperiment<EXPERIMENT_PARAMETERS, RESULT> runSubExperiment)  throws IOException;
 		
 		/** Returns all graphs that will be plotted. This is needed because we would rather not store axis names in text files. */
-		public SGEExperimentResult[] getGraphs();
+        SGEExperimentResult[] getGraphs();
 	}
 	
 	
@@ -108,7 +99,7 @@ public class SGE_ExperimentRunner
 	
 	public static class RunSubExperiment<EXPERIMENT_PARAMETERS extends ThreadResultID,RESULT extends ExperimentResult<EXPERIMENT_PARAMETERS>> 
 	{
-		private PhaseEnum phase;
+		private final PhaseEnum phase;
 		/** We need both taskCounterFromPreviousSubExperiment and taskCounter in order to run multiple series of experiments,
 		 * where a number of submitTask calls are followed with the same number of processResults.
 		 */
@@ -116,12 +107,12 @@ public class SGE_ExperimentRunner
 		/** Virtual task to run, each virtual corresponds to a set of actual tasks that have not finished. */
 		private int virtTask = 0, tasksToSplitInto =0;
 		private ExecutorService executorService;
-		private Map<Integer,EXPERIMENT_PARAMETERS> taskIDToParameters = new TreeMap<Integer,EXPERIMENT_PARAMETERS>();
+		private final Map<Integer,EXPERIMENT_PARAMETERS> taskIDToParameters = new TreeMap<>();
 		
 		protected CompletionService<RESULT> runner = null; 
 		
-		protected Set<Integer> taskletWasRun = new TreeSet<Integer>();
-		private DrawGraphs gr = new DrawGraphs();
+		protected Set<Integer> taskletWasRun = new TreeSet<>();
+		private final DrawGraphs gr = new DrawGraphs();
 
 		private final String tmpDir;
 		
@@ -149,7 +140,7 @@ public class SGE_ExperimentRunner
 					int taskValue = 0;
 					try
 					{
-						taskValue = Integer.valueOf(args[1]);
+						taskValue = Integer.parseInt(args[1]);
 					}
 					catch(NumberFormatException e)
 					{
@@ -195,7 +186,7 @@ public class SGE_ExperimentRunner
 				}
 			}
 			executorService = Executors.newFixedThreadPool(phase == PhaseEnum.RUN_TASK?1:cpuNumber);// only create one thread if running on Iceberg on in uni-processor mode.
-			runner = new ExecutorCompletionService<RESULT>(executorService);
+			runner = new ExecutorCompletionService<>(executorService);
 		}
 
 		protected void shutdown()
@@ -321,7 +312,7 @@ public class SGE_ExperimentRunner
 		
 		public static String sanitiseFileName(String name)
 		{
-			return name.replaceAll("[:\\// ]", "_");
+			return name.replaceAll("[:\\\\/ ]", "_");
 		}
 		
 		public static String constructFileName(String dirToUse, String prefix, ThreadResultID par)
@@ -386,7 +377,6 @@ public class SGE_ExperimentRunner
 		
 		/** Returns true if this is run all in the same jvm, permitting one to collect statistics during collection of results and output it via println. 
 		 * This is not possible where run on a grid because collection of results is pulling a subset of data from the disk.
-		 * @return
 		 */
 		public boolean isInteractive()
 		{
@@ -557,11 +547,11 @@ public class SGE_ExperimentRunner
 		
 		public static Map<Integer,Set<Integer>> loadVirtTaskToReal(String tmpDir)
 		{
-			BufferedReader reader = null;Map<Integer,Set<Integer>> virtTaskToRealTask = new TreeMap<Integer,Set<Integer>>();
+			BufferedReader reader = null;Map<Integer,Set<Integer>> virtTaskToRealTask = new TreeMap<>();
 			try
 			{
 				reader = new BufferedReader(new FileReader(tmpDir+GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_MAP_FILENAMEPREFIX)+"-virtToReal.map"));
-				StringBuffer text = new StringBuffer();
+				StringBuilder text = new StringBuilder();
 				String line = reader.readLine();
 				while(line != null)
 				{
@@ -582,7 +572,7 @@ public class SGE_ExperimentRunner
 					if (!(listOfTasksObj instanceof OtpErlangList))
 						throw new IllegalArgumentException("loading virtTaskToRealTask: expected a sequence, got "+listOfTasksObj);
 					OtpErlangList listOfTasks = (OtpErlangList)listOfTasksObj;
-					Set<Integer> outcome = new TreeSet<Integer>();
+					Set<Integer> outcome = new TreeSet<>();
 					for(OtpErlangObject taskNumberObj:listOfTasks)
 					{
 						if (!(taskNumberObj instanceof OtpErlangInt))
@@ -592,11 +582,7 @@ public class SGE_ExperimentRunner
 					virtTaskToRealTask.put(virtTaskID,outcome);
 				}
 			}
-			catch(IOException ex)
-			{
-				Helper.throwUnchecked("failed to load virtToReal.map", ex);
-			}
-			catch(OtpErlangRangeException ex)
+			catch(IOException | OtpErlangRangeException ex)
 			{
 				Helper.throwUnchecked("failed to load virtToReal.map", ex);
 			}
@@ -618,7 +604,7 @@ public class SGE_ExperimentRunner
 		private void updateAvailableTasks(int from, int to)
 		{
 			if (availableTasks == null)
-				availableTasks=new ArrayList<Integer>();
+				availableTasks= new ArrayList<>();
 			for(int task=from;task < to;++task)
 			{// ensures we only consider tasks that need running.
 				if (!checkExperimentComplete(task))
@@ -686,7 +672,7 @@ public class SGE_ExperimentRunner
 		 */
 		public void collectOutcomeOfExperiments(processSubExperimentResult<EXPERIMENT_PARAMETERS,RESULT> handlerForExperimentResults)
 		{
-			nameToGraph = new TreeMap<String,SGEExperimentResult>();for(SGEExperimentResult g:handlerForExperimentResults.getGraphs()) nameToGraph.put(g.getFileName(),g);
+			nameToGraph = new TreeMap<>();for(SGEExperimentResult g:handlerForExperimentResults.getGraphs()) nameToGraph.put(g.getFileName(),g);
 			if (nameToGraph.size() != handlerForExperimentResults.getGraphs().length)
 				throw new IllegalArgumentException("duplicate file names in some graphs");
 			if (plotName != null && !nameToGraph.containsKey(plotName))
@@ -758,7 +744,7 @@ public class SGE_ExperimentRunner
 							}
 							catch(Exception ex)
 							{
-								ex.printStackTrace();// report failure but continue with other tasks. 
+								ex.printStackTrace();// report failure but continue with other tasks.
 							}
 							if (throwOnTaskReturningNull && result == null)
 								throw new RuntimeException("null returned by task, most likely due to exception");
@@ -801,7 +787,6 @@ public class SGE_ExperimentRunner
 		 * @param y position of the dot along the Y axis
 		 * @param colour colour to use, <i>null</i> is a valid value.
 		 * @param label label on the axis, <i>null</i> if not used.
-		 * @throws IOException 
 		 */
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		public void RecordR(RExperimentResult graph, Comparable x, Double y, String colour, String label) throws IOException
@@ -870,7 +855,7 @@ public class SGE_ExperimentRunner
 		String line = null;
 		while((line=reader.readLine()) != null)
 		{
-			String elems[]=line.split(separatorRegEx);
+			String[] elems =line.split(separatorRegEx);
 			if (elems.length != 2)
 				throw new IllegalArgumentException("invalid file format, line \""+line+"\"should have two components");
 			if (cpuString.equals(LearningSupportRoutines.removeSpaces(elems[0])))
@@ -918,7 +903,7 @@ public class SGE_ExperimentRunner
 		return result;
 	}
 	
-	public static final String executionTimeProperties1 = "executionTimeScale.map",executionTimeProperties2 = "iceberg"+File.separator+"executionTimeScale.map";
+	public static final String executionTimeProperties = "executionTimeScale.map";
 	
 	public static String getCpuFreq()
 	{
@@ -945,10 +930,10 @@ public class SGE_ExperimentRunner
 		{// This part is based on http://stackoverflow.com/questions/7348711/recommended-way-to-get-hostname-in-java thread, answer by Malt
 	        String OS = System.getProperty("os.name").toLowerCase();
 
-	        if (OS.indexOf("win") >= 0)
+	        if (OS.contains("win"))
 	        	outcome = System.getenv("COMPUTERNAME");
 	        else
-	            if (OS.indexOf("nix") >= 0 || OS.indexOf("nux") >= 0)
+	            if (OS.contains("nix") || OS.contains("nux"))
 	            	outcome = System.getenv("HOSTNAME");
 		}		
 		return outcome;
@@ -970,13 +955,19 @@ public class SGE_ExperimentRunner
 				
 		try
 		{
-			if (new File(executionTimeProperties1).canRead())
-				propertiesFile = new BufferedReader(new FileReader(executionTimeProperties1));
-			else
-				if (new File(executionTimeProperties2).canRead())
-					propertiesFile = new BufferedReader(new FileReader(executionTimeProperties2));
-				else
-					throw new IllegalArgumentException("Unable to read CPU freq normalisation properties");
+			List<String> candidatePaths = new LinkedList<>();
+			for(String p:new String[]{executionTimeProperties, "iceberg"+File.separator+executionTimeProperties}) {
+				candidatePaths.add(p);candidatePaths.add(".."+File.separator+p);
+			}
+			for(String p:candidatePaths)
+			if (new File(p).canRead())
+			{
+				propertiesFile = new BufferedReader(new FileReader(p));break;
+			}
+
+			if (propertiesFile == null)
+				throw new IllegalArgumentException("Unable to read CPU freq normalisation properties");
+
 			String outcome = getCorrection(propertiesFile,argToLookUp);
 			if (outcome != null)
 				GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING, outcome);

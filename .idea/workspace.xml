@@ -4,30 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Modernised a number of experiments. Commented out part of HandleLowLevelFunction that was both broken and not covered by tests.">
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Minor changes, functionality almost identical but documentation improved.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/Configuration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Configuration.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/GlobalConfiguration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/GlobalConfiguration.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/DrawGraphs.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/DrawGraphs.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/Learner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/Learner.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ComputePathLengthDistribution.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ComputePathLengthDistribution.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ExperimentRunner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ExperimentRunner.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireLabelledNoRepeatStateMachineGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireLabelledNoRepeatStateMachineGenerator.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireLabelledStateMachineGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireLabelledStateMachineGenerator.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningSupportRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningSupportRoutines.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityLearner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityLearner.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/ExperimentPaperUAS.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/ExperimentPaperUAS.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/ExperimentPaperUAS2.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/ExperimentPaperUAS2.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/PaperUASParameters.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/PaperUASParameters.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/SGE_ExperimentRunner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/SGE_ExperimentRunner.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/UASExperiment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/UASExperiment.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/observers/ProgressDecorator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/observers/ProgressDecorator.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AMEquivalenceClass.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AMEquivalenceClass.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractLearnerGraph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractLearnerGraph.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractPathRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractPathRoutines.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
@@ -72,32 +53,34 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;JUnit.FastTests$SmtTests.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OTP 24.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestLabelParser.testTraceParser1.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestLabelParser.testTraceParser5c.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestLearnerFromLargePTA.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestPaperUASLarge.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestRandomPathGenerator.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestSmtLabelRepresentation$TestFeaturesOfAbstractStates.testAddNewPathAndUpdateMap.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestSmtLabelRepresentation.testCreateConjunctionEmpty2.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;1.8&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/experiment/git-statechum&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;editor.preferences.tabs&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.experimentUAS1.executor": "Run",
+    "Application.experimentUAS2.executor": "Run",
+    "JUnit.FastTests$SmtTests.executor": "Run",
+    "JUnit.OTP 24.executor": "Run",
+    "JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23.executor": "Run",
+    "JUnit.TestLabelParser.testTraceParser1.executor": "Run",
+    "JUnit.TestLabelParser.testTraceParser5c.executor": "Run",
+    "JUnit.TestLearnerFromLargePTA.executor": "Run",
+    "JUnit.TestPaperUASLarge.executor": "Run",
+    "JUnit.TestRandomPathGenerator.executor": "Run",
+    "JUnit.TestSmtLabelRepresentation$TestFeaturesOfAbstractStates.testAddNewPathAndUpdateMap.executor": "Run",
+    "JUnit.TestSmtLabelRepresentation.testCreateConjunctionEmpty2.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "master",
+    "ignore.virus.scanning.warn.message": "true",
+    "jdk.selected.JAVA_MODULE": "1.8",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "D:/experiment/git-statechum",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "editor.preferences.tabs"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\experiment\statechum-master\lib\Erlang24\src\statechum\analysis\Erlang" />
@@ -121,10 +104,34 @@
       <recent name="statechum.analysis.learning.rpnicore" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.TestPaperUASLarge">
+  <component name="RunManager" selected="Application.experimentUAS1">
     <configuration name="Unnamed" type="Application" factoryName="Application" nameIsGenerated="true">
       <option name="MAIN_CLASS_NAME" value="generate_fsm_and_traces.Generator" />
       <module name="XMachineTool" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="experimentUAS1" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS" />
+      <module name="XMachineTool" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m -DPATH_EXPERIMENTRESULTS=&quot;d:\\experiment\\benchmark_research_experiments\uas_old&quot; -DPATH_UASPAPER=&quot;D:\\experiment\\research\\xmachine\\ModelInferenceUAS\\traces&quot;" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/__uas1" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="experimentUAS2" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS2" />
+      <module name="XMachineTool" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m -DPATH_EXPERIMENTRESULTS=&quot;d:\\experiment\\benchmark_research_experiments\uas_2&quot; -DPATH_UASPAPER=&quot;D:\\experiment\\research\\xmachine\\ModelInferenceUAS\\traces&quot;" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/__uas2" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -575,6 +582,8 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Application.experimentUAS1" />
+      <item itemvalue="Application.experimentUAS2" />
       <item itemvalue="Application.Unnamed" />
       <item itemvalue="JUnit.OTP 24 - erlangtmp" />
       <item itemvalue="JUnit.OTP 24" />
@@ -766,7 +775,15 @@
       <option name="project" value="LOCAL" />
       <updated>1714167188520</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="Minor changes, functionality almost identical but documentation improved.">
+      <option name="closed" value="true" />
+      <created>1716518469227</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1716518469227</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -827,7 +844,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Migration to newer OTP continuing, a lot of work still pending." />
     <MESSAGE value="Added a simple parser for DOT file format." />
     <MESSAGE value="Early Dec 2022 updates - minor changes plus some OTP migration" />
     <MESSAGE value="Added parser and dumper for Erlang maps" />
@@ -852,7 +868,8 @@
     <MESSAGE value="Corrected a couple of tests - they were failing due to the conversion from string names to vertex numbers. Previously this was not noticable but now I'm using array-based collections in checkM so such things stand out." />
     <MESSAGE value="Builds with new umfpack and passes tests." />
     <MESSAGE value="Modernised a number of experiments. Commented out part of HandleLowLevelFunction that was both broken and not covered by tests." />
-    <option name="LAST_COMMIT_MESSAGE" value="Modernised a number of experiments. Commented out part of HandleLowLevelFunction that was both broken and not covered by tests." />
+    <MESSAGE value="Minor changes, functionality almost identical but documentation improved." />
+    <option name="LAST_COMMIT_MESSAGE" value="Minor changes, functionality almost identical but documentation improved." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -897,7 +914,17 @@
           <line>701</line>
           <option name="timeStamp" value="93" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java</url>
+          <line>1366</line>
+          <option name="timeStamp" value="99" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
+    <watches-manager>
+      <configuration name="Application">
+        <watch expression="trimmedOne" />
+      </configuration>
+    </watches-manager>
   </component>
 </project>

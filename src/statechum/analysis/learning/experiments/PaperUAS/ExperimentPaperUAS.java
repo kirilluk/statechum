@@ -1014,16 +1014,25 @@ public class ExperimentPaperUAS
  	public static void main(String args[]) throws Exception
  	{
  		System.out.println("Started "+new Date());
+		 String expectedOutcomeFileName = "resources/largePTA/outcome_correct".replace("/",File.separator);
+		 String xmlExt = ".xml";
+		 if (!new File(expectedOutcomeFileName+xmlExt).canRead()) {
+			 if (new File(".."+File.separator+expectedOutcomeFileName+xmlExt).canRead())
+				 expectedOutcomeFileName = ".."+File.separator+expectedOutcomeFileName;
+			 else
+				 throw new IllegalArgumentException("File with the expected outcome was not found, it should be visible from the current working directory via \""+(expectedOutcomeFileName + xmlExt)+"\"");
+		 }
 		String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS)+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		String argsForLoading [] = {
 				GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_UASPAPER),
-				"parameters.txt", 
-				"seed1_d.txt", "seed2_d.txt", "seed3_d.txt", "seed4_d.txt", "seed5_d.txt", "seed6_d.txt", "seed7_d.txt", "seed8_d.txt", "seed9_d.txt", "seed10_d.txt", 
+				"parameters.txt",
+				"seed1_d.txt", "seed2_d.txt", "seed3_d.txt", "seed4_d.txt", "seed5_d.txt", "seed6_d.txt", "seed7_d.txt", "seed8_d.txt", "seed9_d.txt", "seed10_d.txt",
 				"seed11_d.txt", "seed12_d.txt", "seed13_d.txt", "seed14_d.txt", "seed15_d.txt", "seed16_d.txt", "seed17_d.txt", "seed18_d.txt", "seed19_d.txt"};
      	ExperimentPaperUAS paper = loadTraces(argsForLoading,true);
-    	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
+
+    	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph(expectedOutcomeFileName, referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
     	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
     	paper.learnerInitConfiguration.testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
 
@@ -1118,7 +1127,10 @@ public class ExperimentPaperUAS
          			if (!new File(ExperimentPaperUAS.fileName(graphName)).canRead())
          			{
          				LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
-	         			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
+	         			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);
+						 System.out.println("Seed: "+seedPadded+" , fraction: "+fraction+" orig state number: "+initialPTA.getStateNumber());
+						initialPTA = initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
+						System.out.println("Trimmed state number: "+initialPTA.getStateNumber());
 	         			//augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,Math.round(paper.maxFrameNumber/fraction));
 	         			initialPTA.storage.writeGraphML(ExperimentPaperUAS.fileName(graphName));
          			}

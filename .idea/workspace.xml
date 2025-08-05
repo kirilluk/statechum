@@ -4,21 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.">
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.&#10;Minor other improvements such as a missing assertion in generatePosNegTestHelper.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/Configuration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Configuration.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/ConstructRandomFSM.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/ConstructRandomFSM.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersForProgressProperty.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersForProgressProperty.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/LabelInputOutput.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/LabelInputOutput.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersParameters.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersParameters.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/SmallVsHuge.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/SmallVsHuge.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/UASExperiment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/UASExperiment.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/mutation/DiffExperiments.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/mutation/DiffExperiments.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/observers/ProgressDecorator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/observers/ProgressDecorator.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/RandomPathGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/RandomPathGenerator.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestRpniLearner.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestRpniLearner.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestRandomPathGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestRandomPathGenerator.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractLearnerGraph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractLearnerGraph.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PathRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PathRoutines.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/WMethod.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/WMethod.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/apps/WMethodBetweenDotAutomata.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/apps/WMethodBetweenDotAutomata.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
@@ -92,6 +88,13 @@
     "JUnit.TestPaperUAS.testLoad3f.executor": "Run",
     "JUnit.TestPaperUAS.testLoadOldPaper.executor": "Debug",
     "JUnit.TestPaperUASLarge.executor": "Run",
+    "JUnit.TestParserDot (1).executor": "Run",
+    "JUnit.TestParserDot.testParse10c.executor": "Run",
+    "JUnit.TestParserDot.testParse2.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel1.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel2.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel2b.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel3.executor": "Debug",
     "JUnit.TestRandomPathGenerator.executor": "Run",
     "JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk1.executor": "Run",
     "JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk2.executor": "Debug",
@@ -146,7 +149,7 @@
       <recent name="statechum.analysis.learning.rpnicore" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.TestAll (using OTP24)">
+  <component name="RunManager" selected="JUnit.TestParserDot (1)">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -489,6 +492,22 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="TestParserDot (1)" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
+      <option name="METHOD_NAME" value="testParseLabel4b" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="TestParserDot" type="JUnit" factoryName="JUnit">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -510,7 +529,7 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestRandomPathGenerator.test_generate_limitedSelfLoopWalk1" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="TestParserDot.testParseLabel3" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
         <pattern>
@@ -519,14 +538,14 @@
         </pattern>
       </extension>
       <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestRandomPathGenerator" />
-      <option name="METHOD_NAME" value="test_generate_limitedSelfLoopWalk1" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
+      <option name="METHOD_NAME" value="testParseLabel3" />
       <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestRandomPathGenerator.test_generate_limitedSelfLoopWalk2" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="TestParserDot.testParseLabel4a" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
         <pattern>
@@ -535,14 +554,14 @@
         </pattern>
       </extension>
       <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestRandomPathGenerator" />
-      <option name="METHOD_NAME" value="test_generate_limitedSelfLoopWalk2" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
+      <option name="METHOD_NAME" value="testParseLabel4a" />
       <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestRandomPathGenerator.test_generate_limitedSelfLoopWalk3" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="TestParserDot.testParseLabel4b" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
         <pattern>
@@ -551,56 +570,25 @@
         </pattern>
       </extension>
       <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestRandomPathGenerator" />
-      <option name="METHOD_NAME" value="test_generate_limitedSelfLoopWalk3" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
+      <option name="METHOD_NAME" value="testParseLabel4b" />
       <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestRpniLearner" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="TestParserDot.testParseLabel5" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.*" />
+          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
-      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.TestRpniLearner" />
-      <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=&quot;d:\experiment\statechum-linear\lib\bin&quot;;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\otp_win64_24.3.4.17&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestRpniLearner.testEvaluateProgressProperty3a" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
-      <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../soft/jdk-18.0.1" />
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.TestRpniLearner" />
-      <option name="METHOD_NAME" value="testEvaluateProgressProperty3a" />
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
+      <option name="METHOD_NAME" value="testParseLabel5" />
       <option name="TEST_OBJECT" value="method" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=&quot;d:\experiment\statechum-linear\lib\bin&quot;;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\otp_win64_24.3.4.17&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <option name="PARAMETERS" value="[0,Jung vertex, clone, STATETREE_LINKEDHASH]" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -635,19 +623,19 @@
       <item itemvalue="JUnit.TestLengthy (using OTP24)" />
       <item itemvalue="JUnit.TestParserDot" />
       <item itemvalue="JUnit.Run All tests with old OTP" />
-      <item itemvalue="JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk1" />
-      <item itemvalue="JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk2" />
-      <item itemvalue="JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk3" />
-      <item itemvalue="JUnit.TestRpniLearner" />
-      <item itemvalue="JUnit.TestRpniLearner.testEvaluateProgressProperty3a" />
+      <item itemvalue="JUnit.TestParserDot (1)" />
+      <item itemvalue="JUnit.TestParserDot.testParseLabel3" />
+      <item itemvalue="JUnit.TestParserDot.testParseLabel4a" />
+      <item itemvalue="JUnit.TestParserDot.testParseLabel4b" />
+      <item itemvalue="JUnit.TestParserDot.testParseLabel5" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk3" />
-        <item itemvalue="JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk2" />
-        <item itemvalue="JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk1" />
-        <item itemvalue="JUnit.TestRpniLearner" />
-        <item itemvalue="JUnit.TestRpniLearner.testEvaluateProgressProperty3a" />
+        <item itemvalue="JUnit.TestParserDot (1)" />
+        <item itemvalue="JUnit.TestParserDot.testParseLabel4b" />
+        <item itemvalue="JUnit.TestParserDot.testParseLabel5" />
+        <item itemvalue="JUnit.TestParserDot.testParseLabel3" />
+        <item itemvalue="JUnit.TestParserDot.testParseLabel4a" />
       </list>
     </recent_temporary>
   </component>
@@ -678,7 +666,12 @@
       <workItem from="1746556707681" duration="24725000" />
       <workItem from="1748299340739" duration="57000" />
       <workItem from="1753167928120" duration="1492000" />
-      <workItem from="1753191799043" duration="5774000" />
+      <workItem from="1753191799043" duration="15577000" />
+      <workItem from="1753913880295" duration="3323000" />
+      <workItem from="1753983694105" duration="9476000" />
+      <workItem from="1754161170545" duration="4020000" />
+      <workItem from="1754180829133" duration="3498000" />
+      <workItem from="1754253307606" duration="7464000" />
     </task>
     <task id="LOCAL-00001" summary="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer).">
       <created>1651266068784</created>
@@ -845,7 +838,15 @@
       <option name="project" value="LOCAL" />
       <updated>1753192678576</updated>
     </task>
-    <option name="localTasksCounter" value="24" />
+    <task id="LOCAL-00024" summary="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.&#10;Minor other improvements such as a missing assertion in generatePosNegTestHelper.">
+      <option name="closed" value="true" />
+      <created>1753209128661</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1753209128661</updated>
+    </task>
+    <option name="localTasksCounter" value="25" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -932,7 +933,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Added parser and dumper for Erlang maps" />
     <MESSAGE value="Initial edition of MapSignature and minor improvements to modified typer." />
     <MESSAGE value="Revised the version of typer so that one of the tests using typer now passes on Erlang 24." />
     <MESSAGE value="Removed unused seekUsages" />
@@ -957,16 +957,12 @@
     <MESSAGE value="Minor changes, functionality almost identical but documentation improved." />
     <MESSAGE value="Minor changes before cleanup - intending to remove redundant ExperimentPaperUAS.java" />
     <MESSAGE value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful." />
-    <option name="LAST_COMMIT_MESSAGE" value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful." />
+    <MESSAGE value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.&#10;Minor other improvements such as a missing assertion in generatePosNegTestHelper." />
+    <option name="LAST_COMMIT_MESSAGE" value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.&#10;Minor other improvements such as a missing assertion in generatePosNegTestHelper." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/WMethod.java</url>
-          <line>786</line>
-          <option name="timeStamp" value="22" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/MarkovClassifier.java</url>
           <line>1058</line>

@@ -31,22 +31,25 @@ class WMethodBetweenDotAutomata {
         }
 
         /** Constructs W test set from the graph loaded from the first file (removing error-transitions on load)
-         * and applies it to the graph loaded from the second file, using
-         * the number of extra state supplied as the third argument.
+         * and applies it to the graph loaded from the second file,
+         * the initial state either pointed at by a transition from the __start state (USE_START0 argument)
+         * or by the first encountered state (FIRST_FOUND argument)
+         * The number of extra states is the fourth argument.
          *
          * For example, running this from the Statechum root directory (the one containing bin and lib directories):
          * (Windows)
-         * java -cp bin;lib/modified_collections;lib/colt.jar;lib/commons-collections-3.1.jar;lib/jung-1.7.6.jar;lib/OtpErlang.jar statechum.apps.WMethodBetweenDotAutomata fileReference.dot fileHypothesis.dot 2
+         * java -cp bin;lib/modified_collections;lib/colt.jar;lib/commons-collections-3.1.jar;lib/jung-1.7.6.jar;lib/OtpErlang.jar statechum.apps.WMethodBetweenDotAutomata fileReference.dot fileHypothesis.dot __start 2
          * (Linux)
-         * java -cp bin:lib/modified_collections:lib/colt.jar:lib/commons-collections-3.1.jar:lib/jung-1.7.6.jar:lib/OtpErlang.jar statechum.apps.WMethodBetweenDotAutomata fileReference.dot fileHypothesis.dot 2
+         * java -cp bin:lib/modified_collections:lib/colt.jar:lib/commons-collections-3.1.jar:lib/jung-1.7.6.jar:lib/OtpErlang.jar statechum.apps.WMethodBetweenDotAutomata fileReference.dot fileHypothesis.dot __start 2
          */
         public static void main(String[] args) throws IOException {
                 String referenceDot = Helper.loadFile(new File(args[0]));
-                LearnerGraph reference = FsmParserDot.buildLearnerGraph(referenceDot, config, converter,true);
+                FsmParserDot.HOW_TO_FIND_INITIAL_STATE whereToFindInitial = FsmParserDot.HOW_TO_FIND_INITIAL_STATE.valueOf(args[2]);
+                LearnerGraph reference = FsmParserDot.buildLearnerGraph(referenceDot, config, converter,true,whereToFindInitial);
 
                 System.out.println("Size of reference graph: "+reference.getAcceptStateNumber()+" states");
                 String hypothesisDot = Helper.loadFile(new File(args[1]));
-                LearnerGraph hyp = FsmParserDot.buildLearnerGraph(hypothesisDot, config, converter, true);
+                LearnerGraph hyp = FsmParserDot.buildLearnerGraph(hypothesisDot, config, converter, true,whereToFindInitial);
                 System.out.println("Size of hypothesis graph: "+hyp.getAcceptStateNumber()+" states");
 
                 int extra_states = Integer.parseInt(args[2]);

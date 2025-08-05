@@ -737,7 +737,7 @@ public class PathRoutines {
 			MapWithSearch<Label,Label,CmpVertex> exitingTrans = coregraph.transitionMatrix.get(current);
 			if (exitingTrans == null || (current = exitingTrans.get(label)) == null) {
 				// cannot make a move
-				result.add(new LabelInputOutput( ((LabelInputOutput) label).input, LabelInputOutput.ERROR));
+				result.add(new LabelInputOutput( ((LabelInputOutput) label).input, LabelInputOutput.ERROR, false,false));
 				return result;
 			}
 			result.add((LabelInputOutput) exitingTrans.findKey(label));

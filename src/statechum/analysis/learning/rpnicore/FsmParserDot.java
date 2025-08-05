@@ -26,11 +26,12 @@ import statechum.Label;
 import statechum.LabelInputOutput;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-
+import static statechum.Configuration.LABELKIND.LABEL_ATOMICPAIRS;
+import static statechum.analysis.learning.rpnicore.FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND;
+import static statechum.analysis.learning.rpnicore.FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0;
 
 public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> {
 
@@ -80,30 +81,35 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	final Configuration config;
 	final ConvertALabel conv;
 
-	final boolean labelsArePairs;
+	final boolean allowPartialAutomata;
 
-	final boolean start0_points_to_initial_state;
+	public enum HOW_TO_FIND_INITIAL_STATE {FIRST_FOUND,USE_START0}
+
+	final HOW_TO_FIND_INITIAL_STATE initial_state_locator;
 	/**
 	 * Given a textual representation of an fsm, builds a corresponding graph. Graph name is extracted from dot graph name.
 	 *
 	 * @param whatToParse     the textual representation of an FSM in the DOT language (<a href="https://www.graphviz.org/doc/info/lang.html">...</a>)
 	 * @param conf            configuration to use for node creation.
 	 * @param converter       label converter, ignored if null.
-	 * @param labels_as_pairs whether to interpret labels as I/O pairs where an 'error' output is supposed to mean that a transition is not defined.
-	 * @param start0          when true, will use start0 to designate the initial state.
+	 * @param allowPartialAutomata whether transitions with specific string can be seen as error-transitions
+	 * @param start0          When USE_FIRST_FOUND_STATE, will be using the first encountered state as an initial state. When USE_START0, will use __start0 to on a transition pointing to the initial state (and __start0 is not a state in our automaton but a placeholder).
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public FsmParserDot(String whatToParse, Configuration conf, final AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> gr, final ConvertALabel converter, boolean labels_as_pairs, boolean start0) {
+	public FsmParserDot(String whatToParse, Configuration conf, final AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> gr, final ConvertALabel converter,
+						boolean allowPartialAutomata, HOW_TO_FIND_INITIAL_STATE start0) {
 		assert conf.getTransitionMatrixImplType() != STATETREE.STATETREE_ARRAY || converter != null : "converter has to be set for an ARRAY transition matrix";
 		text = whatToParse;
 		pos = 0;
 		graph = gr;
 		config = conf;
-		conv = converter;labelsArePairs=labels_as_pairs;start0_points_to_initial_state = start0;
+		conv = converter;
+		this.allowPartialAutomata = allowPartialAutomata;
+		initial_state_locator = start0;
 	}
 
 	/**
-	 * Given a textual representation of an fsm, builds a corresponding graph
+	 * Given a textual representation of a fsm, builds a corresponding graph
 	 *
 	 * @param whatToParse the textual representation of an FSM in the DOT language (<a href="https://www.graphviz.org/doc/info/lang.html">...</a>)
 	 * @param conf        configuration to use for node creation.
@@ -111,10 +117,10 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
 	public FsmParserDot(String whatToParse, Configuration conf, final AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> gr, final ConvertALabel converter) {
-		this(whatToParse, conf,gr,converter,false,false);
+		this(whatToParse, conf,gr,converter,true, FIRST_FOUND);
 	}
 
-		public String parseQuoted() {
+	public String parseQuoted() {
 		StringBuilder result = new StringBuilder();
 		char ch = nextChar();
 		boolean escapeChar = false;
@@ -312,6 +318,16 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 	Map<String,String> id_to_label = new TreeMap<>();
 
+	/** Given a current state, sets it as initial state if we have no initial state and configuration defines
+	 * the first encountered state to be marked as initial state.
+	 *
+	 * @param currentNode current state
+	 */
+	protected void createInitialStateIfNeeded(String currentNode) {
+		if (graph.getInit() == null && initial_state_locator == FIRST_FOUND)
+			graph.setInit(vertexForName(currentNode));
+	}
+
 	public void parseGraph() {
 		skipWhitespace();
 
@@ -338,6 +354,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 					createVertex(currentNode);
 					id_to_label.put(currentNode,currentNode);
 					unget2();// this restarts parsing on the next node.
+					createInitialStateIfNeeded(currentNode);
 				}
 				else {// we have what might be an arrow
 					if (ch_next != '>')
@@ -353,22 +370,29 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 						options = parseOptions();
 					}
 
-					if (currentNode.equals("__start0") && options.isEmpty() && start0_points_to_initial_state) {
+					if (currentNode.equals("__start0") && options.isEmpty() && initial_state_locator == USE_START0) {
+						// This is the special case where __start0 is not an actual state in our automaton but a placeholder
+						// such that a transition from this state leads to an initial state. This is why we remove the original
+						// state (vertexForName(currentNode)) because it is only a placeholder.
 						if (graph.getInit() != null)
 							throwException("multiple initial states declaration");
 						graph.setInit(vertexForName(target));
 						graph.transitionMatrix.remove(vertexForName(currentNode));
 					} else {
 						String lbl = getLabel(options);// will throw exception if label is not provided in options.
-						if (labelsArePairs) {
-							LabelInputOutput label = new LabelInputOutput(lbl);
-							if (!label.isErrorTransition())
-								createTransition(currentNode, target, label);
-							else
-								graph.inputsFilteredOutOnLoad.add(label);
-
-						} else
-							createTransition(currentNode, target, AbstractLearnerGraph.generateNewLabel(lbl, config, conv));
+						switch(config.getLabelKind()) {
+							case LABEL_INPUT_OUTPUT:
+							case LABEL_ATOMICPAIRS:
+								LabelInputOutput label = new LabelInputOutput(lbl,allowPartialAutomata,config.getLabelKind() == LABEL_ATOMICPAIRS);
+								if (!label.isErrorTransition())
+									createTransition(currentNode, target, label);
+								else
+									graph.inputsFilteredOutOnLoad.add(label);
+								break;
+							default:
+								createTransition(currentNode, target, AbstractLearnerGraph.generateNewLabel(lbl, config, conv));
+								break;
+						}
 					}
 				}
 
@@ -378,10 +402,12 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 				String lbl = getLabel(options);
 				createVertex(lbl);
 				id_to_label.put(currentNode,lbl);
+				createInitialStateIfNeeded(currentNode);
 			} else {// this is a state declaration without options
 				unget();
 				createVertex(currentNode);
 				id_to_label.put(currentNode,currentNode);
+				createInitialStateIfNeeded(currentNode);
 			}
 
 			skipSeparatorAndWhitespace();
@@ -397,17 +423,17 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	 * Given a textual representation of an fsm, builds a corresponding deterministic graph
 	 *
 	 * @param fsm  the textual representation of an FSM
+	 * @param config configuration for the automaton, including kind of labels
 	 * @param conv label converter, ignored if null.
-	 * @return LearnerGraph graph for it
+	 * @param allowPartialAutomata whether to permit partial automat to be built
+	 * @param how_to_find_initial_state selects algorithm to identify an initial state
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public static LearnerGraph buildLearnerGraph(String fsm, Configuration config, final ConvertALabel conv, boolean labelsArePairs) {
+	public static LearnerGraph buildLearnerGraph(String fsm, Configuration config, final ConvertALabel conv, boolean allowPartialAutomata,HOW_TO_FIND_INITIAL_STATE how_to_find_initial_state ) {
 		Configuration conf = config.copy();
-		if (labelsArePairs)
-			conf.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
 		LearnerGraph graph = new LearnerGraph(conf);
 		graph.initEmpty();
-		new FsmParserDot<CmpVertex, LearnerGraphCachedData>(fsm, config, graph, conv,labelsArePairs,true).parseGraph();
+        new FsmParserDot<>(fsm, config, graph, conv, allowPartialAutomata, how_to_find_initial_state).parseGraph();
 		return graph;
 	}
 
@@ -415,14 +441,17 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	 * Given a textual representation of an fsm, builds a corresponding non-deterministic learner graph
 	 *
 	 * @param fsm  the textual representation of an FSM
+	 * @param config configuration for the automaton, including kind of labels
 	 * @param conv label converter, ignored if null.
-	 * @return LearnerGraphND graph for it
+	 * @param allowPartialAutomata whether to permit partial automat to be built
+	 * @param how_to_find_initial_state selects algorithm to identify an initial state
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public static LearnerGraphND buildLearnerGraphND(String fsm, Configuration config, final ConvertALabel conv, boolean labelsArePairs) {
-		LearnerGraphND graph = new LearnerGraphND(config);
+	public static LearnerGraphND buildLearnerGraphND(String fsm, Configuration config, final ConvertALabel conv, boolean allowPartialAutomata,HOW_TO_FIND_INITIAL_STATE how_to_find_initial_state) {
+		Configuration conf = config.copy();
+		LearnerGraphND graph = new LearnerGraphND(conf);
 		graph.initEmpty();
-		new FsmParserDot<List<CmpVertex>, LearnerGraphNDCachedData>(fsm, config, graph, conv,labelsArePairs,true).parseGraph();
+        new FsmParserDot<>(fsm, config, graph, conv, allowPartialAutomata, how_to_find_initial_state).parseGraph();
 		return graph;
 	}
 

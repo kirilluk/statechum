@@ -30,13 +30,31 @@ public class LabelInputOutput implements Label {
 	public final String label;
 	public final String input, output;
 	public final boolean errorTransition;
+	public final boolean ioPair;
 
-	public LabelInputOutput(String l)
+	/** Creates an io label.
+	 *
+	 * @param l text to parse into a label
+	 * @param allowPartialAutomata whether transitions with specific string can be seen as error-transitions, corresponding to input that do not exist.
+	 * @param iopair whether the constructed label should have equality defined on both input and output (iopair being true) or on input only.
+	 *               The former is good for learning transition systems where we would like transitions with the same
+	 *               input and multiple different output to sink-states, reflecting what definitely cannot happen from some states.
+	 *               This would be seen as very non-deterministic for input-equivalence only and would be significant
+	 *               for the purpose of test generation.
+	 */
+	public LabelInputOutput(String l, boolean allowPartialAutomata, boolean iopair)
 	{
 		String[] input_output = l.split(" */ *");
 		if (input_output.length != 2)
 			throw new IllegalArgumentException("invalid format of label " + Arrays.toString(input_output));
-		errorTransition =  input_output[1].equalsIgnoreCase("error");
+
+		if (allowPartialAutomata)
+			errorTransition =  input_output[1].equalsIgnoreCase(ERROR);
+		else
+			errorTransition = false;
+
+		ioPair = iopair;
+
 		input = input_output[0];
 		if (errorTransition)
 			output = ERROR;
@@ -49,13 +67,28 @@ public class LabelInputOutput implements Label {
 	}
 
 	public static final String NO_OUTPUT="no_out";
-	public static final String ERROR="error";
+	public static String ERROR="error";
 
-	public LabelInputOutput(String i, String o) {
+	static void setErrorOutput(String errOutput) {
+		ERROR = errOutput;
+	}
+
+	static String getErrorOutput() {
+		return ERROR;
+	}
+
+	public LabelInputOutput(String i, String o, boolean allowPartialAutomata, boolean iopair) {
 		input = i;output = o != null? o:NO_OUTPUT;
-		errorTransition = Objects.equals(o, ERROR);
+
+		if (allowPartialAutomata)
+			errorTransition = Objects.equals(o, ERROR);
+		else
+			errorTransition = false;
+
+		ioPair = iopair;
 		label = input+"/"+output;
 	}
+
 	public boolean isErrorTransition() {
 		return errorTransition;
 	}
@@ -65,7 +98,10 @@ public class LabelInputOutput implements Label {
 	 */
 	@Override
 	public int compareTo(Label o) {
-		return input.compareTo( ((LabelInputOutput)o).input);
+		if (ioPair)
+		  return label.compareTo( ((LabelInputOutput)o).label);
+		else
+		  return input.compareTo( ((LabelInputOutput)o).input );
 	}
 
 	/* (non-Javadoc)
@@ -81,7 +117,10 @@ public class LabelInputOutput implements Label {
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		return obj instanceof LabelInputOutput && input.equals(((LabelInputOutput)obj).input);
+		if (!(obj instanceof LabelInputOutput) || !input.equals(((LabelInputOutput)obj).input))
+			return false;
+
+		return !ioPair || !output.equals(((LabelInputOutput)obj).output);
 	}
 
 	@SuppressWarnings("BooleanMethodIsAlwaysInverted")

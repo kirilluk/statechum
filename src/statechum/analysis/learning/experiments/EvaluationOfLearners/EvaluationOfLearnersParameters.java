@@ -86,7 +86,7 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 	@Override
 	public String getColumnID()
 	{
-		StringBuffer columnIDData = new StringBuffer();
+		StringBuilder columnIDData = new StringBuilder();
 		if (learningType != null) {
 			columnIDData.append(learningType.name);columnIDData.append("-");
 		}
@@ -114,7 +114,7 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 		if (secondScoringMethod != null)
 			columnTextAsList.add(secondScoringMethod.name);
 
-		columnTextAsList.addAll(Arrays.asList(new String[]{ptaMergersToString(ptaMergers),matrixType.name,Integer.toString(traceQuantity),Integer.toString(lengthmult)}));
+		columnTextAsList.addAll(Arrays.asList(ptaMergersToString(ptaMergers),matrixType.name,Integer.toString(traceQuantity),Integer.toString(lengthmult)));
 
 		return columnTextAsList.toArray(new String[columnTextAsList.size()]);
 	}

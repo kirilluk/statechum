@@ -474,7 +474,9 @@ public class Configuration implements Cloneable {
 	 * parsing of them from text.
 	 */
 	public enum LABELKIND {
-		LABEL_STRING, LABEL_ERLANG, LABEL_ABSTRACT, LABEL_INPUT_OUTPUT
+		LABEL_STRING, LABEL_ERLANG, LABEL_ABSTRACT,
+		LABEL_ATOMICPAIRS,// Atomic pairs are i/o pairs that are ordered by inputs/outputs hence different outputs mean different labels
+		LABEL_INPUT_OUTPUT // input/output pairs are i/o pairs are ordered on inputs only, ignoring outputs. This is useful for computing a string of outputs from a Mealy automaton
 	}
 
 	protected LABELKIND labelKind = LABELKIND.LABEL_STRING;

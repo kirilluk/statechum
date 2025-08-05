@@ -359,8 +359,11 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 			case LABEL_ERLANG:
 				result = ErlangLabel.erlangObjectToLabel(ErlangLabel.parseText(label), config);
 				break;
+			case LABEL_ATOMICPAIRS:
+				result = new LabelInputOutput(label,false,true);
+				break;
 			case LABEL_INPUT_OUTPUT:
-				result = new LabelInputOutput(label);
+				result = new LabelInputOutput(label,false,false);
 				break;
 
 // Construction of abstract labels requires a list of low-level labels they are abstracting as well as a low-level label->high level label map. 
@@ -419,8 +422,9 @@ abstract public class AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE extends Cached
 				result = new StringLabel("L" + number);// Prefix L is necessary if I subsequently use these labels in regular expressions, in which case I would not know whether "1" means "anything" or "label 1".
 				break;
 			case LABEL_INPUT_OUTPUT:
+			case LABEL_ATOMICPAIRS:
 				String st = Integer.toString(number);
-				result = new LabelInputOutput(st + "/" + st);
+				result = new LabelInputOutput(st + "/" + st,false,config.getLabelKind() == Configuration.LABELKIND.LABEL_ATOMICPAIRS);
 				break;
 			default:
 				throw new IllegalArgumentException("No parser available for traces of type " + config.getLabelKind());

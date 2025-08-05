@@ -66,11 +66,10 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	{
 		if (path == null || path.isEmpty())
 			return;
-		String outDir = path;
-		mkDir(new java.io.File(outDir).getParent());// create a parent directory
-		if (!new java.io.File(outDir).isDirectory())
+        mkDir(new java.io.File(path).getParent());// create a parent directory
+		if (!new java.io.File(path).isDirectory())
 		{
-			new java.io.File(outDir).mkdir();// we do not check whether creation of a directory was successful because it seems that where multiple threads are creating the same directory, at least one attempt fails. 
+			new java.io.File(path).mkdir();// we do not check whether creation of a directory was successful because it seems that where multiple threads are creating the same directory, at least one attempt fails.
 		}
 	}
 	
@@ -97,7 +96,6 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	public abstract TR runexperiment() throws Exception;
 	
 	/** The outcome of learning might have been stored in a file from the previous run. For this reason, it makes sense to try to load it. 
-	 * @throws IOException if the outcome of learning exists but cannot be loaded
 	 */
 	protected LearnerGraph loadOutcomeOfLearning(String graphPrefix)
 	{

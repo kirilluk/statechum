@@ -201,7 +201,7 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		
 	}
 
-	DeterministicVertex p = AbstractLearnerGraph.generateNewJungVertex("P"), q= AbstractLearnerGraph.generateNewJungVertex("Q");
+//	DeterministicVertex p = AbstractLearnerGraph.generateNewJungVertex("P"), q= AbstractLearnerGraph.generateNewJungVertex("Q");
 	/** Checks that both the old and the new algorithm reports a pair of states as incompatible. */
 	public final void testNewLearnerIncompatible(String fsm, String name)
 	{
@@ -797,8 +797,8 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 			long currentScore = computeScore(g, new OrigStatePair(origBlue,origRed));// This one returns vertices from g, but elem may easily contain StringVertices and such, hence convert elem to Vertex-pair.
 			PairScore elA = constructPairScore(elem.getQ().getStringId(),elem.getR().getStringId(),currentScore, testConfig);
 			PairScore elB = constructPairScore(elem.getR().getStringId(),elem.getQ().getStringId(),currentScore, testConfig);
-			Assert.assertSame(elem.getR().getColour(), JUConstants.RED);
-			Assert.assertSame(elem.getQ().getColour(), JUConstants.BLUE);
+			Assert.assertSame(JUConstants.RED, elem.getR().getColour());
+			Assert.assertSame(JUConstants.BLUE, elem.getQ().getColour());
 			Assert.assertTrue(currentScore >= 0);
 			Assert.assertTrue("unexpected pair returned: "+elem+", score "+currentScore,distribution.containsKey(currentScore));
 			Set<PairScore> ps = distribution.get(currentScore);

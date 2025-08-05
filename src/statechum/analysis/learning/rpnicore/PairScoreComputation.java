@@ -965,7 +965,8 @@ public class PairScoreComputation {
 				throw new IllegalArgumentException("computation algorithm "+coregraph.config.getGdScoreComputationAlgorithm()+" is not currently supported");
 			}
 			
-			pairToScore = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];for(int i=0;i<pairToScore.length;++i) pairToScore[i]=GDLearnerGraph.PAIR_OK;
+			pairToScore = new int[ndGraph.getStateNumber()*(ndGraph.getStateNumber()+1)/2];
+            Arrays.fill(pairToScore, GDLearnerGraph.PAIR_OK);
 			final int pairsNumber = ndGraph.findIncompatiblePairs(pairToScore,threadNumber);
 			solver = ndGraph.buildMatrix_internal(pairToScore, pairsNumber, threadNumber,ddrh);
 			solver.solve(threadNumber);
@@ -986,7 +987,7 @@ public class PairScoreComputation {
 
 			List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
 			@SuppressWarnings("unchecked")
-			final List<PairScore> resultsPerThread [] = new List[threadNumber];
+			final List<PairScore>[] resultsPerThread = new List[threadNumber];
 			for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
 			{
 				resultsPerThread[threadCnt]= new LinkedList<>();
@@ -1068,7 +1069,7 @@ public class PairScoreComputation {
 			{
 				List<HandleRow<TARGET_TYPE>> handlerList = new LinkedList<>();
 				@SuppressWarnings("unchecked")
-				final List<PairScore> resultsPerThread [] = new List[threadNumber];
+				final List<PairScore>[] resultsPerThread = new List[threadNumber];
 				for(int threadCnt=0;threadCnt<threadNumber;++threadCnt)
 				{
 					resultsPerThread[threadCnt]= new LinkedList<>();

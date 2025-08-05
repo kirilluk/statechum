@@ -896,7 +896,7 @@ public class LearningAlgorithms
 								throw new RuntimeException("last merge in the learning process was not possible");
 							LearnerGraph mergedAutomaton = MergeStates.mergeCollectionOfVertices(coregraph, null, mergedVertices,null,false);
 							totalMergers++;
-							if (!coregraph.pairscores.evaluateProgressProperty(mergedAutomaton,ptaWithProgressProperty)) {
+							if (!PairScoreComputation.evaluateProgressProperty(mergedAutomaton,ptaWithProgressProperty)) {
 								score = -1;limitedSelfLoopCount++;
 							}
 						}
@@ -916,7 +916,7 @@ public class LearningAlgorithms
 
 								LearnerGraph mergedAutomaton = MergeStates.mergeCollectionOfVertices(coregraph, null, mergedVertices, null, false);
 								totalMergers++;
-								if (!coregraph.pairscores.evaluateProgressProperty(mergedAutomaton, ptaWithProgressProperty)) {
+								if (!PairScoreComputation.evaluateProgressProperty(mergedAutomaton, ptaWithProgressProperty)) {
 									score = -1;
 									limitedSelfLoopCount++;
 								}
@@ -953,7 +953,7 @@ public class LearningAlgorithms
 								else {
 									LearnerGraph mergedAutomaton = MergeStates.mergeCollectionOfVertices(coregraph, null, mergedVertices, null, false);
 									totalMergers++;
-									if (!coregraph.pairscores.evaluateProgressProperty(mergedAutomaton, ptaWithProgressProperty)) {
+									if (!PairScoreComputation.evaluateProgressProperty(mergedAutomaton, ptaWithProgressProperty)) {
 										score = -1;
 										limitedSelfLoopCount++;
 									}
@@ -988,7 +988,7 @@ public class LearningAlgorithms
 							else {
 								totalMergers++;
 								LearnerGraph mergedAutomaton = MergeStates.mergeCollectionOfVertices(coregraph, null, mergedVertices, null, false);
-								if (!coregraph.pairscores.evaluateProgressProperty(mergedAutomaton, ptaWithProgressProperty)) {
+								if (!PairScoreComputation.evaluateProgressProperty(mergedAutomaton, ptaWithProgressProperty)) {
 									score = -1;limitedSelfLoopCount++;
 								}
 							}
@@ -1488,9 +1488,9 @@ public class LearningAlgorithms
 		if (k < 0)
 			throw new IllegalArgumentException("k has to be 0 or above");
 		Map<Label,CmpVertex> outgoingA = gr.transitionMatrix.get(vA), outgoingB = gr.transitionMatrix.get(vB);
-		if (outgoingA.size() == 0)
+		if (outgoingA.isEmpty())
 			return false;
-		if (outgoingB.size() == 0)
+		if (outgoingB.isEmpty())
 			return false;
 		
 		if (outgoingA.size() != 1)
@@ -1647,7 +1647,7 @@ public class LearningAlgorithms
 		EquivalenceClass<CmpVertex,LearnerGraphCachedData> initialEQ = new AMEquivalenceClass<>(mergingDetails.nextEquivalenceClass++, existingGraph);
 		initialEQ.mergeWith(existingGraph.getInit(),null);
 		stateToEquivalenceClass.put(existingGraph.getInit(), initialEQ);
-		if (!positive && sequence.size() == 0)
+		if (!positive && sequence.isEmpty())
 			throw new IllegalArgumentException("graphs with initial state reject-state are not presently supported");
 	
 		CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(existingGraph.nextID(true),existingGraph.config);
@@ -1764,7 +1764,7 @@ public class LearningAlgorithms
 			}
 			for(List<Label> neg:negative)
 			{
-				if (neg.size() == 0)
+				if (neg.isEmpty())
 				{
 					//CmpVertex startForPath = AbstractLearnerGraph.generateNewCmpVertex(outcome.nextID(false),outcome.config);
 					//outcome.transitionMatrix.put(startForPath,outcome.createNewRow());

@@ -107,9 +107,9 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	@Override
 	public ExperimentResult<SmallVsHugeParameters> runexperiment() throws Exception 
 	{
-		final double density = par.states*par.perStateSquaredDensityMultipliedBy10/10;
+		final double density = par.states*par.perStateSquaredDensityMultipliedBy10/10.;
 		final int alphabet = (int)Math.round(par.states*par.alphabetMultiplier);
-		ExperimentResult<SmallVsHugeParameters> outcome = new ExperimentResult<SmallVsHugeParameters>(par);
+		ExperimentResult<SmallVsHugeParameters> outcome = new ExperimentResult<>(par);
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
 		fsmConstruction.generateFSM(new Random(par.seed*31+par.states), alphabet, par.states, density, par.seed, true, learnerInitConfiguration);// par.pickUniqueFromInitial
 		referenceGraph = fsmConstruction.referenceGraph;
@@ -120,7 +120,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		// In the generation of traces, we generate par.traceQuantity traces, each consisting of par.lengthmult traces concatenated together.
 		final int tracesToGenerate = par.states*par.traceQuantity*par.lengthmult;
 
-		RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,rndFSM,5,referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial})));
+		RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,rndFSM,5,referenceGraph.getVertex(Arrays.asList(fsmConstruction.uniqueFromInitial)));
 		// the number of traces generated is twice the provided number because it is expected that both positive and negative traces are generated.
 		generator.generateRandomPosNeg(2*tracesToGenerate, 1, false, new RandomLengthGenerator() {
 				static final double halfOffset = 0.5;
@@ -140,15 +140,15 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				public int getPrefixLength(int len) {
 					return len;
 				}
-			},true,false,null,Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial}));// this is important: it ensures that traces always start with the supplied label to mimic data from the UAS traces.
+			},true,false,null,Arrays.asList(fsmConstruction.uniqueFromInitial));// this is important: it ensures that traces always start with the supplied label to mimic data from the UAS traces.
 		//assert pta.getStateNumber() == pta.getAcceptStateNumber();// we only expect positives since attemptNegatives argument to generateRandomPosNeg is false.
 
 		
 		LearnerGraphND inverse = new LearnerGraphND(referenceGraph.config);
 		AbstractPathRoutines.buildInverse(referenceGraph,LearnerGraphND.ignoreNone,inverse);
-		Map<CmpVertex,List<Label>> shortestPathsIntoInit = new TreeMap<CmpVertex,List<Label>>();
+		Map<CmpVertex,List<Label>> shortestPathsIntoInit = new TreeMap<>();
 		for(Entry<CmpVertex,List<Label>> path:inverse.pathroutines.computeShortPathsToAllStates().entrySet())
-			if (path.getValue().size() == 0)
+			if (path.getValue().isEmpty())
 				shortestPathsIntoInit.put(path.getKey(),Collections.<Label>emptyList());
 			else
 			{
@@ -161,14 +161,14 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 
 		ComputePathLengthDistribution pld = new ComputePathLengthDistribution(3,2,referenceGraph.getAcceptStateNumber());
 
-		/** For each state, stores inputs not accepted from it, needed for fast computation of random walks. */
-		final Map<CmpVertex,ArrayList<Label>> inputsRejected = new TreeMap<CmpVertex,ArrayList<Label>>();
+		/* For each state, stores inputs not accepted from it, needed for fast computation of random walks. */
+		final Map<CmpVertex,ArrayList<Label>> inputsRejected = new TreeMap<>();
 		Set<Label> alphabetSet = referenceGraph.pathroutines.computeAlphabet();
 		for(Entry<CmpVertex, MapWithSearch<Label, Label, CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet())
 		{
-			Set<Label> negatives = new LinkedHashSet<Label>();
-			negatives.addAll(alphabetSet);negatives.removeAll(entry.getValue().keySet());
-			ArrayList<Label> rejects = new ArrayList<Label>();rejects.addAll(negatives);
+            Set<Label> negatives = new LinkedHashSet<>(alphabetSet);
+            negatives.removeAll(entry.getValue().keySet());
+            ArrayList<Label> rejects = new ArrayList<>(negatives);
 			inputsRejected.put(entry.getKey(), rejects);
 		}
 		
@@ -180,7 +180,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 			generator = null;
 			for(int seq=0;seq<par.states*par.traceQuantity;++seq)
 			{
-				List<Label> traceToAdd = new ArrayList<Label>(par.lengthmult*par.states*3);
+				List<Label> traceToAdd = new ArrayList<>(par.lengthmult * par.states * 3);
 				for(int elem=0;elem<par.lengthmult;++elem)
 					if (traceIter.hasNext())
 					{
@@ -199,7 +199,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 						ArrayList<Label> rejects = inputsRejected.get(current);
 						if (!rejects.isEmpty())
 						{
-							List<Label> negativeTrace = new ArrayList<Label>(i+2);negativeTrace.addAll(traceToAdd.subList(0, i+1));
+							List<Label> negativeTrace = new ArrayList<>(i + 2);negativeTrace.addAll(traceToAdd.subList(0, i+1));
 							negativeTrace.add(rejects.get(rnd.nextInt(rejects.size())));
 							pta.paths.augmentPTA(negativeTrace, false, false, null);
 						}
@@ -339,7 +339,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		mkDir(outPathPrefix+directoryExperimentResult);
-		final RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> experimentRunner = new RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+		final RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
@@ -350,33 +350,33 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		final int attemptsPerFSM = 2;
 		final int stateNumberList[] = new int[]{20};//5,10,20,40};
 		
-		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
-		final RBoxPlotP<String> diff_vs_experiment = new RBoxPlotP<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
+		final RBoxPlotP<String> BCR_vs_experiment = new RBoxPlotP<>("experiment", "BCR", new File(outPathPrefix + "BCR_vs_experiment.pdf"));
+		final RBoxPlotP<String> diff_vs_experiment = new RBoxPlotP<>("experiment", "Structural difference", new File(outPathPrefix + "diff_vs_experiment.pdf"));
 
-		final Map<String,RBoxPlotP<String>> plotsBCR=new TreeMap<String,RBoxPlotP<String>>(),plotsDiff=new TreeMap<String,RBoxPlotP<String>>();
-		final Map<String,RBoxPlot<String>> plotsTraceLength=new TreeMap<String,RBoxPlot<String>>();
-		final Map<String,RBoxPlotP<String>> plotsInvalid=new TreeMap<String,RBoxPlotP<String>>(),plotsMissed=new TreeMap<String,RBoxPlotP<String>>();
-		final Map<String,SquareBagPlot> plotsPreVsUnique = new TreeMap<String,SquareBagPlot>();
-		final Map<String,CSVExperimentResult> tableCSV = new TreeMap<String,CSVExperimentResult>();
+		final Map<String,RBoxPlotP<String>> plotsBCR= new TreeMap<>(),plotsDiff= new TreeMap<>();
+		final Map<String,RBoxPlot<String>> plotsTraceLength= new TreeMap<>();
+		final Map<String,RBoxPlotP<String>> plotsInvalid= new TreeMap<>(),plotsMissed= new TreeMap<>();
+		final Map<String,SquareBagPlot> plotsPreVsUnique = new TreeMap<>();
+		final Map<String,CSVExperimentResult> tableCSV = new TreeMap<>();
 		
 		final String [] traceLenValues = new String[] {"<50%","50..100%",">=100%"};
 		for(int q=0;q<stateNumberList.length;++q)
 		{
 			String stateNum = ExperimentPaperUAS2.sprintf("%02d", stateNumberList[q]);
-			RBoxPlot<String> traceLenGraph = new RBoxPlot<String>("","Trace Length",new File(outPathPrefix+stateNum+"-tracelen.pdf"));traceLenGraph.setOrderingOfLabels(Arrays.asList(traceLenValues));
+			RBoxPlot<String> traceLenGraph = new RBoxPlot<>("", "Trace Length", new File(outPathPrefix + stateNum + "-tracelen.pdf"));traceLenGraph.setOrderingOfLabels(Arrays.asList(traceLenValues));
 			plotsTraceLength.put(stateNum,traceLenGraph);
 			for(String descr:new String[] {"E","P","C","U"})
 			{
 				String fullDescr = ExperimentPaperUAS2.sprintf("%02d-%s", stateNumberList[q],descr);
-				plotsBCR.put(fullDescr,new RBoxPlotP<String>("","BCR",new File(outPathPrefix+fullDescr+"-BCR.pdf")));
-				plotsDiff.put(fullDescr,new RBoxPlotP<String>("","DIFF",new File(outPathPrefix+fullDescr+"-DIFF.pdf")));
-				plotsInvalid.put(fullDescr,new RBoxPlotP<String>("","INVALID",new File(outPathPrefix+fullDescr+"-INVALID.pdf")));
-				plotsMissed.put(fullDescr,new RBoxPlotP<String>("","MISSED",new File(outPathPrefix+fullDescr+"-MISSED.pdf")));
+				plotsBCR.put(fullDescr, new RBoxPlotP<>("", "BCR", new File(outPathPrefix + fullDescr + "-BCR.pdf")));
+				plotsDiff.put(fullDescr, new RBoxPlotP<>("", "DIFF", new File(outPathPrefix + fullDescr + "-DIFF.pdf")));
+				plotsInvalid.put(fullDescr, new RBoxPlotP<>("", "INVALID", new File(outPathPrefix + fullDescr + "-INVALID.pdf")));
+				plotsMissed.put(fullDescr, new RBoxPlotP<>("", "MISSED", new File(outPathPrefix + fullDescr + "-MISSED.pdf")));
 				tableCSV.put(fullDescr,new CSVExperimentResult(new File(outPathPrefix+fullDescr+"-table.csv")));
 			}
 		}
 		
-		final Map<Integer,Map<Object,Double>> uToBCR = new TreeMap<Integer,Map<Object,Double>>(),pToBCR = new TreeMap<Integer,Map<Object,Double>>();
+		final Map<Integer,Map<Object,Double>> uToBCR = new TreeMap<>(),pToBCR = new TreeMap<>();
 		
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"))
 				{
@@ -416,23 +416,15 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 							if (id.getColumnText()[0].equals(LearningType.PREMERGE.toString()))
 							{
 								descr = "P";
-								Map<Object,Double> entry = pToBCR.get(stateNumberList[position]);
-								if (entry == null)
-								{
-									entry = new LinkedHashMap<Object,Double>();pToBCR.put(stateNumberList[position], entry);
-								}
-								entry.put(idArrayAsString, bcr);
+                                Map<Object, Double> entry = pToBCR.computeIfAbsent(stateNumberList[position], k -> new LinkedHashMap<>());
+                                entry.put(idArrayAsString, bcr);
 							}
 							else
 								if (id.getColumnText()[0].equals(LearningType.PREMERGEUNIQUE.toString()))
 								{
 									descr = "U";
-									Map<Object,Double> entry = uToBCR.get(stateNumberList[position]);
-									if (entry == null)
-									{
-										entry = new LinkedHashMap<Object,Double>();uToBCR.put(stateNumberList[position], entry);
-									}
-									entry.put(idArrayAsString, bcr);
+                                    Map<Object, Double> entry = uToBCR.computeIfAbsent(stateNumberList[position], k -> new LinkedHashMap<>());
+                                    entry.put(idArrayAsString, bcr);
 								}
 								else
 									if (id.getColumnText()[0].equals(LearningType.CONSTRAINTS.toString()))
@@ -486,7 +478,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				scoringPairEDSM4 = new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
 				scoringPairSICCO = new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO);
 		
-		List<SmallVsHuge> listOfExperiments = new ArrayList<SmallVsHuge>();
+		List<SmallVsHuge> listOfExperiments = new ArrayList<>();
 		try
 		{
 			for(int states:stateNumberList)
@@ -567,8 +559,8 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	    					Double v = entryOther.get(value.getKey());
 	    					if (v != null)
 	    					{
-	    						plotsPreVsUnique.get(descrComparison).add(v.doubleValue(), value.getValue().doubleValue());
-	    						System.out.println(v.doubleValue()+" "+value.getValue().doubleValue());
+	    						plotsPreVsUnique.get(descrComparison).add(v, value.getValue());
+	    						System.out.println(v +" "+ value.getValue());
 	    					}
 	    				}
 	    				

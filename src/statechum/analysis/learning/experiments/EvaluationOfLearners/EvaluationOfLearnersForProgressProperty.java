@@ -34,7 +34,6 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.UASExperiment;
-import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
@@ -72,8 +71,8 @@ public class EvaluationOfLearnersForProgressProperty extends UASExperiment<Evalu
 		int loopCount = 0;
 		for(Entry<CmpVertex, MapWithSearch<Label, Label, CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet())
 			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
-			if (entry.getKey().equals(transition.getValue()))
-				loopCount++;
+				if (entry.getKey().equals(transition.getValue()))
+					loopCount++;
 		System.out.println(loopCount/(double)referenceGraph.transitionMatrix.size());
 		final LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
 		//final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(attempt*23+seed),5,referenceGraph.getInit());//referenceGraph.getVertex(Arrays.asList(new Label[]{uniqueFromInitial})));

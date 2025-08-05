@@ -21,18 +21,17 @@ import statechum.analysis.learning.experiments.PairSelection.LearningSupportRout
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 public class EvaluationOfLearnersParameters implements ThreadResultID
 {
-	public static enum LearningType
+	public enum LearningType
 	{
 		CONVENTIONAL("con"),PREMERGE("pre"),PREMERGEUNIQUE("preU"),PTAPREMERGE("PTApre"),CONSTRAINTS("conS"),CONVENTIONALUNIQUE("conU");
 		public final String name;
-		private LearningType(String n)
+		LearningType(String n)
 		{
 			name = n;
 		}

@@ -4,11 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Minor changes before cleanup - intending to remove redundant ExperimentPaperUAS.java">
-      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersForProgressProperty.java" afterDir="false" />
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/Configuration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Configuration.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/ConstructRandomFSM.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/ConstructRandomFSM.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersForProgressProperty.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersForProgressProperty.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersParameters.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersParameters.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/SmallVsHuge.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/SmallVsHuge.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" afterDir="false" />
@@ -18,7 +18,6 @@
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/RandomPathGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/RandomPathGenerator.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestRpniLearner.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestRpniLearner.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestPaperUAS.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestPaperUAS.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestRandomPathGenerator.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestRandomPathGenerator.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
@@ -59,7 +58,7 @@
     <option name="stateVersion" value="1" />
   </component>
   <component name="ProblemsViewState">
-    <option name="selectedTabId" value="ProjectErrors" />
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 6
@@ -78,6 +77,7 @@
     "JUnit.FastTests$BasicTests.executor": "Run",
     "JUnit.FastTests$SmtTests.executor": "Run",
     "JUnit.OTP 24.executor": "Run",
+    "JUnit.TestAll (using OTP24).executor": "Run",
     "JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23.executor": "Run",
     "JUnit.TestFSMParser.executor": "Run",
     "JUnit.TestLabelParser.testTraceParser1.executor": "Run",
@@ -146,7 +146,7 @@
       <recent name="statechum.analysis.learning.rpnicore" />
     </key>
   </component>
-  <component name="RunManager" selected="Application.experimentProgressProperty">
+  <component name="RunManager" selected="JUnit.TestAll (using OTP24)">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -352,7 +352,7 @@
       <option name="MAIN_CLASS_NAME" value="statechum.AllTests" />
       <option name="METHOD_NAME" value="" />
       <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\soft\Program Files\erl-24.3.3&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\otp_win64_24.3.4.17&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <envs>
         <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
         <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
@@ -678,7 +678,7 @@
       <workItem from="1746556707681" duration="24725000" />
       <workItem from="1748299340739" duration="57000" />
       <workItem from="1753167928120" duration="1492000" />
-      <workItem from="1753191799043" duration="503000" />
+      <workItem from="1753191799043" duration="5774000" />
     </task>
     <task id="LOCAL-00001" summary="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer).">
       <created>1651266068784</created>
@@ -837,7 +837,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717039422851</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.">
+      <option name="closed" value="true" />
+      <created>1753192678576</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1753192678576</updated>
+    </task>
+    <option name="localTasksCounter" value="24" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -924,7 +932,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Early Dec 2022 updates - minor changes plus some OTP migration" />
     <MESSAGE value="Added parser and dumper for Erlang maps" />
     <MESSAGE value="Initial edition of MapSignature and minor improvements to modified typer." />
     <MESSAGE value="Revised the version of typer so that one of the tests using typer now passes on Erlang 24." />
@@ -949,7 +956,8 @@
     <MESSAGE value="Modernised a number of experiments. Commented out part of HandleLowLevelFunction that was both broken and not covered by tests." />
     <MESSAGE value="Minor changes, functionality almost identical but documentation improved." />
     <MESSAGE value="Minor changes before cleanup - intending to remove redundant ExperimentPaperUAS.java" />
-    <option name="LAST_COMMIT_MESSAGE" value="Minor changes before cleanup - intending to remove redundant ExperimentPaperUAS.java" />
+    <MESSAGE value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful." />
+    <option name="LAST_COMMIT_MESSAGE" value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

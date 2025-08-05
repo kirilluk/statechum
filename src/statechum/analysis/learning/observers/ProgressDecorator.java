@@ -123,9 +123,9 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		String q = elem.getAttribute(StatechumXML.ATTR_Q.name()), r = elem.getAttribute(StatechumXML.ATTR_R.name()),
 			score=elem.getAttribute(StatechumXML.ATTR_SCORE.name()), otherscore = elem.getAttribute(StatechumXML.ATTR_OTHERSCORE.name());
 		int scoreInt = JUConstants.intUNKNOWN, otherScoreInt = JUConstants.intUNKNOWN;
-		if (score != null && score.length() > 0)
+		if (score != null && !score.isEmpty())
 			try { scoreInt = Integer.parseInt(score); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read a score in a pair", ex); }
-		if (otherscore != null && otherscore.length() > 0)
+		if (otherscore != null && !otherscore.isEmpty())
 			try { otherScoreInt = Integer.parseInt(otherscore); } catch(NumberFormatException ex) { statechum.Helper.throwUnchecked("failed to read anotherscore in a pair", ex); }
 		return new PairScore(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(q), graph.config),
 				AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(r), graph.config),
@@ -581,10 +581,10 @@ public abstract class ProgressDecorator extends LearnerDecorator
 				colour = element.getAttribute(StatechumXML.ATTR_COLOUR.name()),
 				kind = element.getAttribute(StatechumXML.ATTR_KIND.name()),
 				sequence = element.getTextContent();
-		if (sequence.length() == 0) throw new IllegalArgumentException("missing sequence");
+		if (sequence.isEmpty()) throw new IllegalArgumentException("missing sequence");
 		result.sequence = labelio.readInputSequence(sequence);
 		result.accept = Boolean.parseBoolean(accept);
-		if (colour.length() > 0)
+		if (!colour.isEmpty())
 			result.colour=Enum.valueOf(JUConstants.class, colour);
 		result.kind=Enum.valueOf(RestartLearningEnum.class, kind);
 		return result;

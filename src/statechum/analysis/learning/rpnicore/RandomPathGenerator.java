@@ -108,7 +108,7 @@ public class RandomPathGenerator {
 	}
 
 	/** If WALKTYPE_LEADS_TO_INITIAL_STATE, every walk should avoid visiting an initial state but all positive ones should terminate at it.*/
-	public enum WALKTYPE {WALKTYPE_GENERAL, WALKTYPE_LEADS_TO_INITIAL_STATE, WALKTYPE_LIMITEDSELFLOOPS};
+	public enum WALKTYPE {WALKTYPE_GENERAL, WALKTYPE_LEADS_TO_INITIAL_STATE, WALKTYPE_LIMITEDSELFLOOPS}
 	protected WALKTYPE walkType = WALKTYPE.WALKTYPE_GENERAL;
 
 	public void setWalksShouldLeadToInitialState()
@@ -355,7 +355,7 @@ public class RandomPathGenerator {
 			AbstractPathRoutines.buildInverse(g,LearnerGraphND.ignoreNone,inverse);
 			shortestPathsIntoInit = new TreeMap<>();
 			for(Entry<CmpVertex,List<Label>> path:inverse.pathroutines.computeShortPathsToAllStates().entrySet())
-				if (path.getValue().size() == 0)
+				if (path.getValue().isEmpty())
 					shortestPathsIntoInit.put(path.getKey(),Collections.emptyList());
 				else
 				{

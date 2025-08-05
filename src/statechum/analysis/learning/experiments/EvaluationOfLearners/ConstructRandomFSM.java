@@ -57,17 +57,17 @@ public class ConstructRandomFSM
 					 // it seems appropriate.  
 						Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("unique", learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter());
 						assert(!existingAlphabet.contains(uniqueLabel));
-						List<CmpVertex> possibleVertices = new ArrayList<CmpVertex>();
+						List<CmpVertex> possibleVertices = new ArrayList<>();
 						for(Entry<CmpVertex, MapWithSearch<Label, Label, CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet())
 							if (entry.getValue().size() < alphabet)
 								possibleVertices.add(entry.getKey());
 						assert(!possibleVertices.isEmpty());
 						uniqueFromInitial = uniqueLabel;
-						List<CmpVertex> possibleTargetsList = new ArrayList<CmpVertex>(alphabet);
+						List<CmpVertex> possibleTargetsList = new ArrayList<>(alphabet);
 						for(CmpVertex v:referenceGraph.transitionMatrix.entrySet().iterator().next().getValue().values())
 							if (v != referenceGraph.getInit())
 								possibleTargetsList.add(v);
-						CmpVertex possibleTargets[]=possibleTargetsList.toArray(new CmpVertex[] {});
+						CmpVertex[] possibleTargets =possibleTargetsList.toArray(new CmpVertex[] {});
 						assert possibleTargets.length > 0;
 						CmpVertex target = possibleTargets[rnd.nextInt(possibleTargets.length)];
 						

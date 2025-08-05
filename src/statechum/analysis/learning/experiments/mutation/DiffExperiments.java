@@ -112,22 +112,22 @@ public class DiffExperiments {
 		Random r = new Random(0);
 
 		RBoxPlot<Integer> 
-			gr_Diff_States = new RBoxPlot<Integer>("States","Diff/Mutations",new File("diff_states.pdf")),
-			gr_W_States = new RBoxPlot<Integer>("States","Language-based f measure, using W",new File("w_states.pdf")),
-			gr_Pairs_States = new RBoxPlot<Integer>("States","Key pairs: mismatched/total",new File("pairs_states.pdf")),
-			gr_TimeDiff_States = new RBoxPlot<Integer>("States","Time taken by PLTSDiff",new File("TimeDiff_states.pdf")),
-			gr_TimeW_States = new RBoxPlot<Integer>("States","Time taken by W",new File("TimeW_states.pdf")),
-			gr_TimeRand_States = new RBoxPlot<Integer>("States","Time taken by Rand",new File("TimeRand_states.pdf")),
-			gr_FMeasure_Level = new RBoxPlot<Integer>("Mutation level","Linear f-measure", new File("f_measure_linear_mutations.pdf"));
+			gr_Diff_States = new RBoxPlot<>("States", "Diff/Mutations", new File("diff_states.pdf")),
+			gr_W_States = new RBoxPlot<>("States", "Language-based f measure, using W", new File("w_states.pdf")),
+			gr_Pairs_States = new RBoxPlot<>("States", "Key pairs: mismatched/total", new File("pairs_states.pdf")),
+			gr_TimeDiff_States = new RBoxPlot<>("States", "Time taken by PLTSDiff", new File("TimeDiff_states.pdf")),
+			gr_TimeW_States = new RBoxPlot<>("States", "Time taken by W", new File("TimeW_states.pdf")),
+			gr_TimeRand_States = new RBoxPlot<>("States", "Time taken by Rand", new File("TimeRand_states.pdf")),
+			gr_FMeasure_Level = new RBoxPlot<>("Mutation level", "Linear f-measure", new File("f_measure_linear_mutations.pdf"));
 		RBoxPlot<Pair<Integer,Integer>> 
-			gr_MutationsToOriginal_StatesLevel = new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Mutations/Original Edges",new File("mutations_states.pdf")),
-			gr_DiffGD_StatesLevel =new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","patch size",new File("diff_statesmutations.pdf")),
-			gr_DiffW_StatesLevel =new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Language-based f measure, using W",new File("w_statesmutations.pdf")),
-			gr_DiffRand_StatesLevel =new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Language-based f measure, using Rand",new File("rand_statesmutations.pdf")),
-			gr_MismatchedPairs =new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Mismatched key pairs",new File("pairs_statesmutations.pdf")),
-			gr_TimeDiff_StatesLevel = new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Time taken by PLTSDiff",new File("TimeDiff_statesmutations.pdf")),
-			gr_TimeW_StatesLevel = new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Time taken by W",new File("TimeW_statesmutations.pdf")),
-			gr_TimeRand_StatesLevel = new RBoxPlot<Pair<Integer,Integer>>("Mutation level,States","Time taken by Random",new File("TimeRand_statesmutations.pdf"));
+			gr_MutationsToOriginal_StatesLevel = new RBoxPlot<>("Mutation level,States", "Mutations/Original Edges", new File("mutations_states.pdf")),
+			gr_DiffGD_StatesLevel = new RBoxPlot<>("Mutation level,States", "patch size", new File("diff_statesmutations.pdf")),
+			gr_DiffW_StatesLevel = new RBoxPlot<>("Mutation level,States", "Language-based f measure, using W", new File("w_statesmutations.pdf")),
+			gr_DiffRand_StatesLevel = new RBoxPlot<>("Mutation level,States", "Language-based f measure, using Rand", new File("rand_statesmutations.pdf")),
+			gr_MismatchedPairs = new RBoxPlot<>("Mutation level,States", "Mismatched key pairs", new File("pairs_statesmutations.pdf")),
+			gr_TimeDiff_StatesLevel = new RBoxPlot<>("Mutation level,States", "Time taken by PLTSDiff", new File("TimeDiff_statesmutations.pdf")),
+			gr_TimeW_StatesLevel = new RBoxPlot<>("Mutation level,States", "Time taken by W", new File("TimeW_statesmutations.pdf")),
+			gr_TimeRand_StatesLevel = new RBoxPlot<>("Mutation level,States", "Time taken by Random", new File("TimeRand_statesmutations.pdf"));
 		RBagPlot gr_Diff_MutationsToOriginal = new RBagPlot("Mutations/Original Edges","patch size",new File("diff_mutations.pdf")),
 			gr_Diff_W = new RBagPlot("W f-measure","patch size",new File("diff_w.pdf")),
 			gr_Diff_MismatchedPairs = new RBagPlot("Mismatched key pairs","Diff/Mutations",new File("diff_pairs.pdf"));
@@ -145,10 +145,10 @@ public class DiffExperiments {
 
 		// Useful values of the threshold
 		double pairThreshold[] = new double[]{0.2,0.4,0.6,0.8,0.95},lowToHigh[] = new double[]{0.2,0.4,0.6,0.8,0.95};
-		RBoxPlot<Double> gr_Diff_threshold = new RBoxPlot<Double>("Threshold values, Low to High ratio = 0.5","ratio of patch size to mutations",new File("diff_threshold.pdf")),
-			gr_Diff_lowtohigh = new RBoxPlot<Double>("Low to High values, threshold ratio = 0.7","ratio of patch size to mutations",new File("diff_lowtohigh.pdf"));
-		RBoxPlot<Pair<Double,Double>> gr_Diff_thresholdslowhigh = new RBoxPlot<Pair<Double,Double>>("Low to High ratio, Threshold","ratio of patch size to mutations",new File("diff_thresholdlowhigh.pdf"));
-		RBoxPlot<Double> gr_Diff_k = new RBoxPlot<Double>("attenuation factor","ratio of patch size to mutations",new File("diff_attenuation.pdf"));
+		RBoxPlot<Double> gr_Diff_threshold = new RBoxPlot<>("Threshold values, Low to High ratio = 0.5", "ratio of patch size to mutations", new File("diff_threshold.pdf")),
+			gr_Diff_lowtohigh = new RBoxPlot<>("Low to High values, threshold ratio = 0.7", "ratio of patch size to mutations", new File("diff_lowtohigh.pdf"));
+		RBoxPlot<Pair<Double,Double>> gr_Diff_thresholdslowhigh = new RBoxPlot<>("Low to High ratio, Threshold", "ratio of patch size to mutations", new File("diff_thresholdlowhigh.pdf"));
+		RBoxPlot<Double> gr_Diff_k = new RBoxPlot<>("attenuation factor", "ratio of patch size to mutations", new File("diff_attenuation.pdf"));
 		
 		for(int graphComplexity=0;graphComplexity < graphComplexityMax;graphComplexity++)
 		{
@@ -168,12 +168,12 @@ public class DiffExperiments {
 					{
 						int mutations = mutationsPerStage * (mutationStage+1);
 						LearnerGraphND origGraph = mg.nextMachine(alphabet, -1.0, experiment,config,converter);
-						GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = new GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData>(origGraph,r);
+						GraphMutator<List<CmpVertex>,LearnerGraphNDCachedData> mutator = new GraphMutator<>(origGraph, r);
 						mutator.mutate(mutations);
 						LearnerGraphND origAfterRenaming = new LearnerGraphND(origGraph.config);
 						Map<CmpVertex,CmpVertex> origToNew = copyStatesAndTransitions(origGraph,origAfterRenaming);
 						LearnerGraphND mutated = (LearnerGraphND)mutator.getMutated();
-						Set<Transition> appliedMutations = new HashSet<Transition>();
+						Set<Transition> appliedMutations = new HashSet<>();
 						for(Transition tr:mutator.getDiff())
 						{
 							CmpVertex renamedFrom = origToNew.get(tr.getFrom());if (renamedFrom == null) renamedFrom = tr.getFrom();
@@ -227,7 +227,7 @@ public class DiffExperiments {
 									config.setGdPropagateDet(false);// this is to ensure that if we removed a transition 0 from to a state and then added one from that state to a different one, det-propagation will not force the two very different states into a key-pair relation. 
 									linearDiff(origAfterRenaming,mutated, appliedMutations,outcome);
 									
-									gr_Diff_thresholdslowhigh.add(new Pair<Double,Double>(ratio,pairThreshold[i]), outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
+									gr_Diff_thresholdslowhigh.add(new Pair<>(ratio, pairThreshold[i]), outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
 								}
 						}
 						config.setAttenuationK(0.5);
@@ -251,8 +251,8 @@ public class DiffExperiments {
 						progress.next();
 						gr_Diff_States.add(states, outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
 						gr_W_States.add(states,outcome.getValue(DOUBLE_V.ACCURACY_W));
-						Pair<Integer,Integer> mutations_states = new Pair<Integer,Integer>(mutationStage+1,states);
-						Pair<Integer,Integer> states_mutations = new Pair<Integer,Integer>(states,mutationStage+1);
+						Pair<Integer,Integer> mutations_states = new Pair<>(mutationStage + 1, states);
+						Pair<Integer,Integer> states_mutations = new Pair<>(states, mutationStage + 1);
 						gr_DiffGD_StatesLevel.add(mutations_states, outcome.getValue(DOUBLE_V.OBTAINED_TO_EXPECTED));
 						gr_DiffW_StatesLevel.add(mutations_states, outcome.getValue(DOUBLE_V.ACCURACY_W));
 						gr_DiffRand_StatesLevel.add(mutations_states, outcome.getValue(DOUBLE_V.ACCURACY_W));
@@ -340,7 +340,7 @@ public class DiffExperiments {
 		}
 		
 		{
-			Collection<List<Label>> sequences =new LinkedHashSet<List<Label>>();
+			Collection<List<Label>> sequences = new LinkedHashSet<>();
 			RandomPathGenerator rpg = new RandomPathGenerator(from, new Random(0),4, from.getInit());// the seed for Random should be the same for each file
 			long startTime = System.nanoTime();
 			rpg.generatePosNeg((graphComplexity+1)*states , 1);
@@ -371,7 +371,7 @@ public class DiffExperiments {
 		final long duration = System.nanoTime() - startTime;
 		double result = matrix.fMeasure();
 		assert !Double.isNaN(result);
-		return new Pair<Double,Long>(result,duration);
+		return new Pair<>(result, duration);
 	}
 
 	public static ConfusionMatrix classify(Collection<List<Label>> sequences,LearnerGraph from, LearnerGraph to) 
@@ -434,8 +434,8 @@ public class DiffExperiments {
 	@SuppressWarnings("unused")
 	private static void displayDiff(LearnerGraphND from, LearnerGraphND to)
 	{
-		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
-			new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
+		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd =
+                new GD<>();
 		DirectedSparseGraph gr = gd.showGD(
 				from,to,
 				ExperimentRunner.getCpuNumber());gr.setUserDatum(JUConstants.TITLE, "diff_"+from.getName(),UserData.SHARED);
@@ -446,8 +446,8 @@ public class DiffExperiments {
 	
 	void linearDiff(LearnerGraphND from, LearnerGraphND to, Set<Transition> expectedMutations, ExperimentResult outcome)
 	{
-		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();
-		ChangesCounter<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>  rec3 = new ChangesCounter<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>(from,to,null);
+		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = new GD<>();
+		ChangesCounter<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>  rec3 = new ChangesCounter<>(from, to, null);
 		ChangesRecorderAsCollectionOfTransitions cd = new ChangesRecorderAsCollectionOfTransitions(rec3,false);
 		final long startTime = System.nanoTime();
 		gd.computeGD(from, to, ExperimentRunner.getCpuNumber(), cd, config);
@@ -529,7 +529,7 @@ public class DiffExperiments {
 	 * @return the map from the original to the converted CmpVertices
 	 */
 	protected Map<CmpVertex,CmpVertex> copyStatesAndTransitions(LearnerGraphND machineFrom, LearnerGraphND graphTo) {
-		Map<CmpVertex,CmpVertex> machineVertexToGraphVertex = new HashMap<CmpVertex,CmpVertex>();
+		Map<CmpVertex,CmpVertex> machineVertexToGraphVertex = new HashMap<>();
 		graphTo.getTransitionMatrix().clear();
 		Set<CmpVertex> machineStates = machineFrom.getTransitionMatrix().keySet();
 		for (CmpVertex cmpVertex : machineStates) { //copy all vertices
@@ -546,7 +546,7 @@ public class DiffExperiments {
 
 	protected static double computeFMeasure(Set<Transition> expected, Set<Transition> detected){
 		int tp,tn,fp,fn;
-		Set<Transition> set = new HashSet<Transition>();
+		Set<Transition> set = new HashSet<>();
 
 		set.clear();
 		set.addAll(expected);
@@ -584,7 +584,7 @@ public class DiffExperiments {
 
 	public static class MachineGenerator {
 		
-		private final List<Integer> sizeSequence = new LinkedList<Integer>(); 
+		private final List<Integer> sizeSequence = new LinkedList<>();
 		private final int actualTargetSize, error, phaseSize;
 		private int artificialTargetSize;
 
@@ -654,8 +654,8 @@ public class DiffExperiments {
 						
 							if (sourceVertex == null || targetVertex == null )
 								break;
-							Set<Label> inputsPossible = new TreeSet<Label>();inputsPossible.addAll(alphabetObtained);inputsPossible.removeAll(machine.transitionMatrix.get(sourceVertex).keySet());
-							Label possibleElementsOfAlphabet[] = inputsPossible.toArray(new Label[]{});
+                            Set<Label> inputsPossible = new TreeSet<>(alphabetObtained);inputsPossible.removeAll(machine.transitionMatrix.get(sourceVertex).keySet());
+							Label[] possibleElementsOfAlphabet = inputsPossible.toArray(new Label[]{});
 							Label possibleLabel = null;
 							if (possibleElementsOfAlphabet.length == 1)
 								possibleLabel = possibleElementsOfAlphabet[0];
@@ -674,17 +674,17 @@ public class DiffExperiments {
 						final Set<Label> alphabetObtained = machine.pathroutines.computeAlphabet();
 						for(CmpVertex v:deadendStates)
 						{
-							Set<CmpVertex> visited = new HashSet<CmpVertex>();visited.addAll(machine.transitionMatrix.keySet());visited.removeAll(machine.transitionMatrix.get(v).values());visited.remove(v);
-							CmpVertex possibleStates [] = visited.toArray(new CmpVertex[]{});
+                            Set<CmpVertex> visited = new HashSet<>(machine.transitionMatrix.keySet());visited.removeAll(machine.transitionMatrix.get(v).values());visited.remove(v);
+							CmpVertex[] possibleStates = visited.toArray(new CmpVertex[]{});
 							CmpVertex chosenState = null;
 							assert possibleStates.length > 0;// at least the initial state is not reachable
 							if (possibleStates.length < 2)
 								chosenState = possibleStates[0];
 							else
 								chosenState = possibleStates[connectTransitions.nextInt(possibleStates.length)];
-							
-							Set<Label> inputsPossible = new TreeSet<Label>();inputsPossible.addAll(alphabetObtained);inputsPossible.removeAll(machine.transitionMatrix.get(v).keySet());
-							Label possibleElementsOfAlphabet[] = inputsPossible.toArray(new Label[]{});
+
+                            Set<Label> inputsPossible = new TreeSet<>(alphabetObtained);inputsPossible.removeAll(machine.transitionMatrix.get(v).keySet());
+							Label[] possibleElementsOfAlphabet = inputsPossible.toArray(new Label[]{});
 							Label possibleLabel = null;
 							if (possibleElementsOfAlphabet.length == 1)
 								possibleLabel = possibleElementsOfAlphabet[0];

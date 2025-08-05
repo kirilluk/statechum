@@ -18,6 +18,7 @@ lack of tracking dependencies between Java files.
   <property name="erlang24_src" location="lib/Erlang24/src"/>
   <property name="erlang24_test" location="lib/Erlang24/test"/>
   <property name="statechum_collections_src" location="lib/modified_collections/src"/>
+  <property name="statechum_collections_test" location="lib/modified_collections/test"/>
   <property name="test_src" location="tests"/>
   <property name="test_dir" location="."/>
   <property name="statechum_bin" location="bin"/>
@@ -82,16 +83,42 @@ lack of tracking dependencies between Java files.
   	
   <target name="compileStatechum" depends="compileJunitStatechum" description="compile Statechum source " >
     <!-- Compile the java code from ${src} into ${bin} -->
-    <javac fork="on" srcdir="${statechum_src}:${erlang24_src}:${statechum_collections_src}" includeantruntime="false" destdir="${statechum_bin}" includes="statechum/**/*.java">
+    <javac fork="on" srcdir="${statechum_src}:${erlang24_src}:${statechum_collections_src}" includeantruntime="false" destdir="${statechum_bin}">
        	<classpath refid="classpath.statechum" />
     	<compilerarg value="-g" />
 	<!-- <compilerarg value="-Xlint:unchecked"/> -->
     </javac>
    </target>
 
+
+	<target name="demo_ktails" depends="compileStatechum" description="run k-tails demo" >
+	<java  fork="on" maxmemory="1024m"  classname="statechum.apps.QSMTool">
+		<assertions>
+	        	<enable/>
+	      	</assertions>
+	      	<arg value="resources/demo_ktails.txt"/>
+           	<jvmarg value="-ea"/>
+        	<jvmarg value="-XX:+UseCompressedOops"/>
+           	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
+	       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
+	       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs"/>
+	       	<sysproperty key="threadnum" value="4"/>
+           	<sysproperty key="ASSERT_ENABLED" value="true"/>
+           	<sysproperty key="SMTWARNINGS" value="true"/>
+           	<sysproperty key="LINEARWARNINGS" value="true"/>
+           	<sysproperty key="FORCEFORK" value="true"/>
+
+	       	<classpath>
+	         	<path refid="classpath.statechum" />
+	         	<pathelement location="${statechum_bin}"/>
+	         </classpath>
+	       </java>
+	       
+	  </target>
+	  
   <target name="compileTests" depends="compileStatechum" description="compile Statechum tests " >
     <!-- Compile the java code from ${src} into ${bin} -->
-    <javac fork="on" srcdir="${test_src}:${erlang24_test}" includeantruntime="false" destdir="${statechum_bin}" includes="statechum/**/*.java">
+    <javac fork="on" srcdir="${test_src}:${erlang24_test}:${statechum_collections_test}" includeantruntime="false" destdir="${statechum_bin}">
        	<classpath refid="classpath.statechum" />
     	<compilerarg value="-g" />
 	<!-- <compilerarg value="-Xlint:unchecked"/> -->
@@ -99,7 +126,7 @@ lack of tracking dependencies between Java files.
    </target>
 
   <target name="test" depends="compileTests" description="run unit tests">
-  	   <echo>This will always fail on Win32 because max memory is set too high, but will work on 64-bit platforms that have at least 32GB of RAM</echo>
+  	   <echo>This will always fail on any 32-bit OS because max memory is set too high, but will work on 64-bit platforms that have at least 32GB of RAM</echo>
   	   <echo>Assumes that R is installed in ${rpath} and jri shared library is in ${rtool_path}</echo>  	   
        <junit  fork="on" maxmemory="20000m" forkmode="once" printsummary="yes" haltonfailure="no" dir="${test_dir}" >
 		<assertions>
@@ -225,7 +252,7 @@ lack of tracking dependencies between Java files.
   </target>
 	
 	 <target name="diag" depends="compileStatechum" description="run unit tests">
-	  	   <echo>This will fail on Win32 because max memory is set too high, but will work on most 64-bit platforms</echo>
+	  	   <echo>This will fail on any 32-bit OS because max memory is set too high, but will work on most 64-bit platforms</echo>
 	        <java  fork="on" maxmemory="8192m"  classname="statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsNDUsingTestSet">
 		<assertions>
 	        	<enable/>

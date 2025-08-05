@@ -1267,5 +1267,81 @@ public class TestRandomPathGenerator {
 		Assert.assertEquals(Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", config, converter),AbstractLearnerGraph.generateNewLabel("b", config, converter)}),listOfDetails.iterator().next());
 	}
 	
-	
+	@Test
+	public void test_generate_limitedSelfLoopWalk1()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->F-b->G-a->H-a->H-b->F","test_generate_limitedSelfLoopWalk1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
+		generator.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_LIMITEDSELFLOOPS);
+		generator.generateRandomPosNeg(2, 1, false, new RandomLengthGenerator() {
+
+			@Override
+			public int getLength() {
+				return 30;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,false,null,null);
+		List<List<Label>> listOfDetails = generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
+		Assert.assertEquals(1,listOfDetails.size());
+		List<Label> expected = new LinkedList<>();
+		for(String st:new String[]{"b", "a", "a", "b", "b", "a", "b", "b", "a", "b", "b", "a", "a", "b", "b", "a", "b", "b", "a", "a", "a", "a", "a", "a", "a", "b", "b", "a", "b", "b"})
+			expected.add(AbstractLearnerGraph.generateNewLabel(st, config, converter));
+		Assert.assertEquals(expected,listOfDetails.iterator().next());
+	}
+
+	@Test
+	public void test_generate_limitedSelfLoopWalk2()
+	{// In this test, we are stuck with label 'a' because switching to 'b' means traversing a different self-loop
+		LearnerGraph graph = buildLearnerGraph("F-a->F-b->G-a->H-a->H-b->H","test_generate_limitedSelfLoopWalk2",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
+		generator.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_LIMITEDSELFLOOPS);
+		generator.generateRandomPosNeg(2, 1, false, new RandomLengthGenerator() {
+
+			@Override
+			public int getLength() {
+				return 8;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,false,null,null);
+		List<List<Label>> listOfDetails = generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
+		Assert.assertEquals(1,listOfDetails.size());
+		List<Label> expected = new LinkedList<>();
+		for(String st:new String[]{"b", "a", "a", "a", "a", "a", "a", "a"})
+			expected.add(AbstractLearnerGraph.generateNewLabel(st, config, converter));
+		Assert.assertEquals(expected,listOfDetails.iterator().next());
+	}
+
+	@Test
+	public void test_generate_limitedSelfLoopWalk3()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->F-b->G-a->H-a->H-b->H-c->F","test_generate_limitedSelfLoopWalk1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),8,null);
+		generator.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_LIMITEDSELFLOOPS);
+		generator.generateRandomPosNeg(2, 1, false, new RandomLengthGenerator() {
+
+			@Override
+			public int getLength() {
+				return 30;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,false,null,null);
+		List<List<Label>> listOfDetails = generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
+		Assert.assertEquals(1,listOfDetails.size());
+		List<Label> expected = new LinkedList<>();
+		for(String st:new String[]{"b", "a", "b", "c", "b", "a", "c", "b", "a", "c", "b", "a", "b", "c", "b", "a", "c", "b", "a", "b", "b", "b", "b", "b", "b", "c", "b", "a", "c", "b"})
+			expected.add(AbstractLearnerGraph.generateNewLabel(st, config, converter));
+		Assert.assertEquals(expected,listOfDetails.iterator().next());
+	}
 }

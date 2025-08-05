@@ -603,7 +603,10 @@ public class DiffExperiments {
 		{
 			generateLabelsNoRepeat = value;
 		}
-		
+		protected double selfloopChance = 0.2;
+		public void setSelfloopChance(double value) {
+			selfloopChance = value;
+		}
 		public MachineGenerator(int target, int phaseArg, int errorArg)
 		{
 			this.phaseSize = phaseArg;
@@ -622,13 +625,16 @@ public class DiffExperiments {
 				for(int i = 0; i< phaseSize; i++){
 					ForestFireLabelledStateMachineGenerator gen = generateLabelsNoRepeat?
 							// a number of experiments were conducted with these set for 0.365,0.3
-							new ForestFireLabelledNoRepeatStateMachineGenerator	(0.31,0.385,0.2,0.2,alphabet,counter ^ i,config,converter):
-							new ForestFireLabelledStateMachineGenerator			(0.31,0.385,0.2,0.2,alphabet,counter ^ i,config,converter);
+							new ForestFireLabelledNoRepeatStateMachineGenerator	(0.31,0.385,selfloopChance,0.2,alphabet,counter ^ i,config,converter):
+							new ForestFireLabelledStateMachineGenerator			(0.31,0.385,selfloopChance,0.2,alphabet,counter ^ i,config,converter);
 					machine = gen.buildMachine(artificialTargetSize);
 					
 					if (perStateMultiplier > 0)
-					{// The purpose of this part is to increase the number of transitions until it matches the specified number of states per multiplier, by randomly adding transitions.
-					// This is done before all other tasks, to ensure that after minimisation and adding transitions to ensure connectivity we get an automaton with expected number of states.
+					{
+						// The purpose of this part is to increase the number of transitions until it matches the
+						// specified number of states per multiplier, by randomly adding transitions.
+						// This is done before all other tasks, to ensure that after minimisation and adding
+						// transitions to ensure connectivity we get an automaton with expected number of states.
 						final Set<Label> alphabetObtained = machine.pathroutines.computeAlphabet();
 						CmpVertex possibleStates [] = machine.transitionMatrix.keySet().toArray(new CmpVertex[]{});
 						

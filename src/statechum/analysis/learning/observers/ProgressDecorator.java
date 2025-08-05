@@ -164,7 +164,9 @@ public abstract class ProgressDecorator extends LearnerDecorator
 		public Configuration config;
 		public Collection<String> ifthenSequences = null;
 		public SmtLabelRepresentation labelDetails = null;
-		
+
+		public Double selfLoopChance = null;
+
 		/** Used to intern labels in an experiment with large graphs. Although not set as final, many things will break if different graphs used together are relying
 		 * on different intern engines because integer IDs of labels could be passed from a graph to a different one where they could mean a completely different label. */
 		private ConvertALabel labelConverter = null; 

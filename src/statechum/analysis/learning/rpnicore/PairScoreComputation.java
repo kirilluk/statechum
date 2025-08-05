@@ -484,6 +484,48 @@ public class PairScoreComputation {
 		
 		return singleton;
 	}
+
+	static class StatesAndSelfLoop {
+		public CmpVertex current, ptaVertex;
+		/** If null, no self-loop around current vertex. If non-null, a self-loop with label selfLoopLabel,
+		 * reflecting a path from the initial state in PTA to the ptaVertex.
+		 */
+		public Label selfLoopLabel;
+
+		public StatesAndSelfLoop(CmpVertex learnerGraphInit, CmpVertex ptaInit, Label argSelfLoopLabel) {
+			current=learnerGraphInit;ptaVertex = ptaInit;selfLoopLabel = argSelfLoopLabel;
+		}
+	}
+
+	/** Checks if the progress property is satisfied using PTA built from traces with progress property against the merged automata.
+	 *
+	 * @param currentGraph merged graph
+	 * @param ptaProgress PTA where each path satisfies a progress property
+	 * @return true if current graph is compatible progress-wise with the progress PTA.
+	 */
+	public static boolean evaluateProgressProperty(LearnerGraph currentGraph, LearnerGraph ptaProgress) {
+		Queue<StatesAndSelfLoop> explorationBoundary = new LinkedList<>();
+		Set<CmpVertex> visitedPTAStates = new HashSet<>();
+		explorationBoundary.add(new StatesAndSelfLoop(currentGraph.getInit(), ptaProgress.getInit(),null));visitedPTAStates.add(ptaProgress.getInit());
+		while(!explorationBoundary.isEmpty()) {
+			StatesAndSelfLoop statesAndSelfLoop = explorationBoundary.remove();
+
+			for(Entry<Label, CmpVertex> entry:ptaProgress.transitionMatrix.get(statesAndSelfLoop.ptaVertex).entrySet()) {
+				CmpVertex target = currentGraph.transitionMatrix.get(statesAndSelfLoop.current).get(entry.getKey());
+				if (null == target)
+					throw new IllegalArgumentException("PTA with progress property is not a subset of the graph being learnt: missing transition from "+statesAndSelfLoop.current+" on "+entry.getKey());
+				Label selfLoop = (target == statesAndSelfLoop.current)?entry.getKey():null;
+				if (selfLoop != null && statesAndSelfLoop.selfLoopLabel != null && !statesAndSelfLoop.selfLoopLabel.equals(selfLoop))
+					return false;// self-loop with a different label to the currently-active selfloop.
+				if (visitedPTAStates.contains(entry.getValue()))
+					throw new IllegalArgumentException("PTA with progress property contains a loop with state "+entry.getValue());
+				explorationBoundary.add(new StatesAndSelfLoop(target, entry.getValue(), selfLoop));visitedPTAStates.add(entry.getValue());
+			}
+		}
+
+		return true;
+	}
+
 	
 	/** Similar to computePairCompatibilityScore_internal but can operate 
 	 * on arbitrary graphs rather than just a graph and a PTA.

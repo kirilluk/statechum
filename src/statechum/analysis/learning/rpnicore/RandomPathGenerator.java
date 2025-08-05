@@ -107,13 +107,21 @@ public class RandomPathGenerator {
 		initAllSequences();
 	}
 
-	/** If true, every walk should avoid visiting an initial state but all positive ones should terminate at it.*/
-	protected boolean walksShouldLeadToInitialState = false;
+	/** If WALKTYPE_LEADS_TO_INITIAL_STATE, every walk should avoid visiting an initial state but all positive ones should terminate at it.*/
+	public enum WALKTYPE {WALKTYPE_GENERAL, WALKTYPE_LEADS_TO_INITIAL_STATE, WALKTYPE_LIMITEDSELFLOOPS};
+	protected WALKTYPE walkType = WALKTYPE.WALKTYPE_GENERAL;
 
 	public void setWalksShouldLeadToInitialState()
 	{
-		walksShouldLeadToInitialState = true;
+		walkType = WALKTYPE.WALKTYPE_LEADS_TO_INITIAL_STATE;
 		constructShortestPathsToInitAndLongestPathsAvoidingInit();
+	}
+
+	public void setWalkType(WALKTYPE type) {
+		if (type == WALKTYPE.WALKTYPE_LEADS_TO_INITIAL_STATE)
+			setWalksShouldLeadToInitialState();
+		else
+			walkType = type;
 	}
 	
 	/** If not null, during construction of paths looping in the initial state, the unique transition will appear at the end of each generated path. */
@@ -211,11 +219,18 @@ public class RandomPathGenerator {
 			throw new IllegalArgumentException("prefix to add to all sequences should be shorter than the length of prefix to check for existence in the list of generated paths");
 
 		List<Label> outcome = null;
-		if (walksShouldLeadToInitialState)
-			outcome = generateRandomWalkLeadingToTheInitialState(walkLength, prefixLen, positive, prefixForAllSequences);
-		else
-			outcome = generateUnrestrictedRandomWalk(walkLength, prefixLen, positive, prefixForAllSequences);
-		
+		switch (walkType)
+		{
+			case WALKTYPE_GENERAL:
+				outcome = generateUnrestrictedRandomWalk(walkLength, prefixLen, positive, prefixForAllSequences);break;
+			case WALKTYPE_LEADS_TO_INITIAL_STATE:
+				outcome = generateRandomWalkLeadingToTheInitialState(walkLength, prefixLen, positive, prefixForAllSequences);break;
+			case WALKTYPE_LIMITEDSELFLOOPS:
+				outcome = generateRandomWalkNoConsecutiveSelfloops(walkLength, prefixLen, positive, prefixForAllSequences);break;
+			default:
+				throw new IllegalArgumentException("unknown walk type");
+		}
+
 		return outcome;
 	}
 	
@@ -263,8 +278,73 @@ public class RandomPathGenerator {
 		while(prefixLen > 0 && (path.size() < prefixForAllSequencesLength+walkLength || allSequences.contains(path.subList(0, prefixForAllSequencesLength+prefixLen))));
 		return path;
 	}
-	
-	/** Constructs the sets necessary to construct walks that avoid an initial state for negative walks and those that terminate at an initial state for positive walks.
+
+	List<Label> generateRandomWalkNoConsecutiveSelfloops(int walkLength, int prefixLen, boolean positive, List<Label> prefixForAllSequences)
+	{
+		int generationAttempt = 0;
+		int prefixForAllSequencesLength = prefixForAllSequences == null?0:prefixForAllSequences.size();
+		List<Label> path = new ArrayList<>(walkLength + prefixForAllSequencesLength);
+
+		do
+		{
+			path.clear();if (prefixForAllSequences != null) path.addAll(prefixForAllSequences);
+			CmpVertex current = initialState;
+			Label selfLoop = null;
+
+			int positiveLength = positive?walkLength:walkLength-1;// this is how many elements to add to what we already have (prefixForAllSequencesLength).
+			if (positiveLength>0)
+			{// if we are asked to generate negative paths of length 1, we cannot start with anything positive.
+				for(int i=0;i<positiveLength;i++)
+				{
+					ArrayList<Entry<Label,CmpVertex>> row = transitions.get(current);
+					if(row.isEmpty())
+						break;// cannot make a transition
+					Entry<Label,CmpVertex> inputState = null;
+					if (selfLoop != null) {// either repeat a self-loop or choose a transition out of the current state
+						ArrayList<Entry<Label,CmpVertex>> revisedRow = new ArrayList<>();
+						for(Entry<Label,CmpVertex> entry:row)
+							if (entry.getKey() == selfLoop || entry.getValue() != current)
+								revisedRow.add(entry);
+						if (revisedRow.isEmpty())
+							break;// cannot make a transition
+						inputState = revisedRow.get(randomNumberGenerator.nextInt(revisedRow.size()));
+					}
+					else
+						inputState = row.get(randomNumberGenerator.nextInt(row.size()));
+
+					if (current == inputState.getValue())
+						selfLoop = inputState.getKey();
+
+					path.add(inputState.getKey());current = inputState.getValue();
+				}
+			}
+
+			if (path.size() == prefixForAllSequencesLength+positiveLength && !positive)
+			{// successfully generated a positive path of the requested length, append a negative transition.
+				// In the situation where we'd like to generate both negatives and
+				// one element shorter positives, we'd have to copy our positive
+				// and then append a negative to the copy. It takes as long to take
+				// all negatives and make copy of all but one elements, given that
+				// they are ArrayLists.
+
+				// When adding a negative, we expect the graph to be prefix-closed hence negative states will have no outgoing transitions
+				ArrayList<Label> rejects = inputsRejected.get(current);
+				if (!rejects.isEmpty())
+					path.add(rejects.get(randomNumberGenerator.nextInt(rejects.size())));
+			}
+
+			generationAttempt++;
+
+			if (generationAttempt > g.config.getRandomPathAttemptThreshold())
+				return null;
+		}
+		while(prefixLen > 0 && (path.size() < prefixForAllSequencesLength+walkLength || allSequences.contains(path.subList(0, prefixForAllSequencesLength+prefixLen))));
+		return path;
+	}
+
+	/** Constructs the sets necessary to construct walks that avoid an
+	 * initial state for negative walks and those that
+	 * terminate at an initial state for positive walks.
 	 * This method rebuilds the <b>transitions</b> map. 
 	 */ 
 	protected Map<CmpVertex,List<Label>> constructShortestPathsToInitAndLongestPathsAvoidingInit()
@@ -819,6 +899,4 @@ public class RandomPathGenerator {
 		}
 		return null;
 	}
-
-	
 }

@@ -29,7 +29,6 @@ import statechum.DeterministicDirectedSparseGraph.VertexID;
 import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.experiments.PairSelection.UASPairQuality;
-import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS;
 import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS2.TracesForSeed;
 import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS2;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;

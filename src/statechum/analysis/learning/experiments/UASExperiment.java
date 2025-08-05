@@ -237,7 +237,61 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		outcome.executionTime = runTime;
 		return outcome;
 	}
-	
+
+	public ScoresForGraph runExperimentUsingConventionalInTwoSteps(UASExperiment.BuildPTAInterface ptaSource, StateMergingStatistics redReducer, ThreadResultID experimentID, ScoringToApply scoringMethodA,ScoringToApply scoringMethodB,Configuration.ScoreMode scoringForEDSM) throws AugmentFromIfThenAutomatonException, IOException
+	{
+		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
+		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
+		int ptaTotalNodes = 0, ptaTailNodes = 0;
+		long runTime = 0;
+		int limitedSelfLoopsUsed = 0,totalMergers = 0;
+		if(actualAutomaton == null)
+		{
+			LearnerGraph pta = ptaSource.buildPTA();
+			ptaTotalNodes = pta.getStateNumber();ptaTailNodes = pta.getLeafStateNumber();
+			Learner learnerStepA = LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethodA, scoringForEDSM, redReducer);
+			long startTime = LearningSupportRoutines.getThreadTime();
+			LearnerGraph learntGraph = learnerStepA.learnMachine(new LinkedList<>(), new LinkedList<>());
+			learntGraph.clearColours();
+			if (learnerStepA instanceof ReferenceLearner) {
+				limitedSelfLoopsUsed += ((ReferenceLearner) learnerStepA).getLimitedSelfLoopCount();
+				totalMergers+=((ReferenceLearner) learnerStepA).getTotalMergers();
+			}
+
+			if (scoringMethodB != null) {
+				Learner learnerStepB = LearningAlgorithms.constructLearner(learnerInitConfiguration, learntGraph, scoringMethodB, scoringForEDSM, redReducer);
+				if (learnerStepB instanceof ReferenceLearner)
+					((ReferenceLearner) learnerStepB).setPtaWithProgressProperty(pta);
+
+				learntGraph = learnerStepB.learnMachine(new LinkedList<>(), new LinkedList<>());
+				if (learnerStepB instanceof ReferenceLearner) {
+					limitedSelfLoopsUsed += ((ReferenceLearner) learnerStepB).getLimitedSelfLoopCount();
+					totalMergers += ((ReferenceLearner) learnerStepB).getTotalMergers();
+				}
+			}
+			actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
+			runTime = LearningSupportRoutines.getThreadTime()-startTime;
+
+			saveGraph(nameOUTCOME,actualAutomaton);
+		}
+		DifferenceToReferenceDiff diffMeasure = DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
+		DifferenceToReferenceLanguageBCR bcrMeasure = DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceGraph, actualAutomaton,learnerInitConfiguration.testSet);
+		actualAutomaton.setName(experimentName);
+		ScoresForGraph outcome = new ScoresForGraph();
+		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
+		outcome.invalidMergers = (double)limitedSelfLoopsUsed/totalMergers;
+//		if (redReducer != null)
+//		{
+//			outcome.invalidMergers = redReducer.reportInvalidMergers();outcome.missedMergers = redReducer.reportMissedMergers();
+//		}
+
+		outcome.whetherLearningSuccessfulOrAborted = actualAutomaton.getLearningAbortedReason();
+		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
+		outcome.ptaTotalNodes=ptaTotalNodes;outcome.ptaTailNodes = ptaTailNodes;
+		outcome.executionTime = runTime;
+		return outcome;
+	}
+
 	public ScoresForGraph runExperimentUsingConventionalWithUniqueLabel(UASExperiment.BuildPTAInterface ptaSource, StateMergingStatistics redReducer, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();

@@ -27,7 +27,8 @@ public class ConstructRandomFSM
 	{
 		
 		MachineGenerator mg = new MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
-		
+		if (learnerInitConfiguration.selfLoopChance != null)
+			mg.setSelfloopChance(learnerInitConfiguration.selfLoopChance);
 		do
 		{
 			try {

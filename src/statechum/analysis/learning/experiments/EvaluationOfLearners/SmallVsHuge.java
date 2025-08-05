@@ -108,7 +108,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	public ExperimentResult<SmallVsHugeParameters> runexperiment() throws Exception 
 	{
 		final double density = par.states*par.perStateSquaredDensityMultipliedBy10/10;
-		final int alphabet = par.states*par.alphabetMultiplier;
+		final int alphabet = (int)Math.round(par.states*par.alphabetMultiplier);
 		ExperimentResult<SmallVsHugeParameters> outcome = new ExperimentResult<SmallVsHugeParameters>(par);
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
 		fsmConstruction.generateFSM(new Random(par.seed*31+par.states), alphabet, par.states, density, par.seed, true, learnerInitConfiguration);// par.pickUniqueFromInitial

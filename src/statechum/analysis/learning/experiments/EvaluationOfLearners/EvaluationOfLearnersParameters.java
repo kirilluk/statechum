@@ -21,6 +21,11 @@ import statechum.analysis.learning.experiments.PairSelection.LearningSupportRout
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
+import java.lang.reflect.Array;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+
 public class EvaluationOfLearnersParameters implements ThreadResultID
 {
 	public static enum LearningType
@@ -41,9 +46,11 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 	public boolean onlyUsePositives = false;
 	public final boolean ptaMergers;
 	public final ScoringToApply scoringMethod;
+	public ScoringToApply secondScoringMethod;
 	public final Configuration.ScoreMode scoringForEDSM;
 	public final Configuration.STATETREE matrixType;
-	public int states, perStateSquaredDensityMultipliedBy10,alphabetMultiplier,fsmSample, attempt, seed, traceQuantity, lengthmult;// here some of the parameters are not really used in row or column values because seed can be used to uniquely determine an FSM.
+	public int states, perStateSquaredDensityMultipliedBy10,fsmSample, attempt, seed, traceQuantity, lengthmult;// here some of the parameters are not really used in row or column values because seed can be used to uniquely determine an FSM.
+	public double alphabetMultiplier;
 	public boolean pickUniqueFromInitial = false;
 	
 	
@@ -62,7 +69,7 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 		onlyUsePositives = value;
 	}
 	
-	public void setParameters(int argStates, int alphabetMult, int density10, int argFsmSample, int argAttempt, int argSeed, int traceQuantity, int lengthmult)
+	public void setParameters(int argStates, double alphabetMult, int density10, int argFsmSample, int argAttempt, int argSeed, int traceQuantity, int lengthmult)
 	{
 		states = argStates;alphabetMultiplier = alphabetMult;perStateSquaredDensityMultipliedBy10 = density10;fsmSample = argFsmSample;attempt = argAttempt;seed = argSeed;this.traceQuantity = traceQuantity;this.lengthmult = lengthmult;
 	}
@@ -80,13 +87,37 @@ public class EvaluationOfLearnersParameters implements ThreadResultID
 	@Override
 	public String getColumnID()
 	{
-		return (learningType == null?"":(learningType.name+"-"))+(scoringForEDSM==null?"none":scoringForEDSM.name)+"-"+scoringMethod.name+"-"+ptaMergersToString(ptaMergers)+"-"+matrixType.name+"-"+traceQuantity+"-"+lengthmult; 
+		StringBuffer columnIDData = new StringBuffer();
+		if (learningType != null) {
+			columnIDData.append(learningType.name);columnIDData.append("-");
+		}
+		columnIDData.append(scoringForEDSM==null?"none":scoringForEDSM.name);
+
+		columnIDData.append("-");columnIDData.append(scoringMethod.name);
+		if (secondScoringMethod != null) {
+			columnIDData.append(secondScoringMethod.name);columnIDData.append("-");
+		}
+		columnIDData.append("-");columnIDData.append(ptaMergersToString(ptaMergers));
+		columnIDData.append("-");columnIDData.append(matrixType.name);
+		columnIDData.append("-");columnIDData.append(traceQuantity);
+		columnIDData.append("-");columnIDData.append(lengthmult);
+		return columnIDData.toString();
 	}
 
 	@Override
 	public String []getColumnText()
 	{
-		return new String[]{ (scoringForEDSM==null?"":scoringForEDSM.name),scoringMethod.name,ptaMergersToString(ptaMergers),matrixType.name,Integer.toString(traceQuantity),Integer.toString(lengthmult)}; 
+		List<String> columnTextAsList = new LinkedList<>();
+		if (scoringForEDSM !=null)
+			columnTextAsList.add(scoringForEDSM.name);
+
+		columnTextAsList.add(scoringMethod.name);
+		if (secondScoringMethod != null)
+			columnTextAsList.add(secondScoringMethod.name);
+
+		columnTextAsList.addAll(Arrays.asList(new String[]{ptaMergersToString(ptaMergers),matrixType.name,Integer.toString(traceQuantity),Integer.toString(lengthmult)}));
+
+		return columnTextAsList.toArray(new String[columnTextAsList.size()]);
 	}
 
 	@Override

@@ -60,6 +60,7 @@ import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 
 import static statechum.TestHelper.checkForCorrectException;
+import static statechum.analysis.learning.rpnicore.PairScoreComputation.evaluateProgressProperty;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildList;
 import static statechum.analysis.learning.rpnicore.TestGraphBasicAlgorithms.constructPairScore;
@@ -2045,6 +2046,127 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Map<Label,Set<Label>> outcome = LearningSupportRoutines.computeInfeasiblePairs(fsm);
 		String outcomeAsText = outcome.toString();
 		Assert.assertEquals("{a=[a], b=[]}",outcomeAsText);// this outcome means that both "a" and "b" cannot follow themselves and b cannot follow a. 
+	}
+
+	@Test
+	public final void testEvaluateProgressProperty1()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F", "testEvaluateProgressProperty1",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F", "testEvaluateProgressProperty1",testConfig,getLabelConverter());
+		Assert.assertTrue(evaluateProgressProperty(fsm,pta));
+	}
+
+	@Test
+	public final void testEvaluateProgressProperty2()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F", "testEvaluateProgressProperty1",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B", "testEvaluateProgressProperty2",testConfig,getLabelConverter());
+		Assert.assertTrue(evaluateProgressProperty(fsm,pta));
+	}
+
+	@Test
+	public final void testEvaluateProgressProperty3()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->E", "testEvaluateProgressProperty3",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F", "testEvaluateProgressProperty2",testConfig,getLabelConverter());
+		Assert.assertTrue(evaluateProgressProperty(fsm,pta));
+	}
+
+	@Test
+	public final void testEvaluateProgressProperty4()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->E-b->E", "testEvaluateProgressProperty4",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F", "testEvaluateProgressProperty2",testConfig,getLabelConverter());
+		Assert.assertTrue(evaluateProgressProperty(fsm,pta));
+	}
+
+	@Test
+	public final void testEvaluateProgressProperty5()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->E-b->E-c->G", "testEvaluateProgressProperty5",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-b->F", "testEvaluateProgressProperty2",testConfig,getLabelConverter());
+		Assert.assertTrue(evaluateProgressProperty(fsm,pta));
+	}
+	@Test
+	public final void testEvaluateProgressProperty6()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->E-b->E-c->G", "testEvaluateProgressProperty6",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F", "testEvaluateProgressProperty2",testConfig,getLabelConverter());
+		Assert.assertTrue(evaluateProgressProperty(fsm,pta));
+	}
+	@Test
+	public final void testEvaluateProgressProperty7()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->E-b->E-c->G", "testEvaluateProgressProperty7",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-b->F-a->G", "testEvaluateProgressProperty2",testConfig,getLabelConverter());
+		Assert.assertFalse(evaluateProgressProperty(fsm,pta));
+	}
+	@Test
+	public final void testEvaluateProgressProperty8()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->E-b->E-c->G", "testEvaluateProgressProperty8a",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F-b->G", "testEvaluateProgressProperty8b",testConfig,getLabelConverter());
+		Assert.assertFalse(evaluateProgressProperty(fsm,pta));
+	}
+	@Test
+	public final void testEvaluateProgressProperty9()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->E-b->E-c->G-b->G", "testEvaluateProgressProperty9a",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F-c->G-b->H-b->I", "testEvaluateProgressProperty9b",testConfig,getLabelConverter());
+		Assert.assertTrue(evaluateProgressProperty(fsm,pta));
+	}
+	@Test
+	public final void testEvaluateProgressProperty10()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->D-a->F", "testEvaluateProgressProperty10",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F", "testEvaluateProgressProperty2",testConfig,getLabelConverter());
+		Assert.assertTrue(evaluateProgressProperty(fsm,pta));
+	}
+
+	@Test
+	public final void testEvaluateProgressProperty11()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->D-b->D-a->E", "testEvaluateProgressProperty11",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F", "testEvaluateProgressProperty2",testConfig,getLabelConverter());
+		Assert.assertTrue(evaluateProgressProperty(fsm,pta));
+	}
+
+	@Test
+	public final void testEvaluateProgressProperty12()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->D-b->D-a->E", "testEvaluateProgressProperty12a",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F", "testEvaluateProgressProperty12b",testConfig,getLabelConverter());
+		Assert.assertTrue(evaluateProgressProperty(fsm,pta));
+	}
+
+	@Test
+	public final void testEvaluateProgressProperty13()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->D-b->D-a->D", "testEvaluateProgressProperty13a",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F", "testEvaluateProgressProperty13b",testConfig,getLabelConverter());
+		Assert.assertFalse(evaluateProgressProperty(fsm,pta));
+	}
+
+	@Test
+	public final void testEvaluateProgressProperty14()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->A-b->A", "testEvaluateProgressProperty14",testConfig,getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F", "testEvaluateProgressProperty2",testConfig,getLabelConverter());
+		Assert.assertFalse(evaluateProgressProperty(fsm,pta));
+	}
+
+	@Test
+	public final void testEvaluateProgressProperty15() {
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E", "testEvaluateProgressProperty15", testConfig, getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E-a->F", "testEvaluateProgressProperty1", testConfig, getLabelConverter());
+		checkForCorrectException(() -> evaluateProgressProperty(fsm,pta), IllegalArgumentException.class, "is not a subset of the graph being learnt");
+	}
+
+	@Test
+	public final void testEvaluateProgressProperty16() {
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->E", "testEvaluateProgressProperty15", testConfig, getLabelConverter());
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-b->D-b->A", "testEvaluateProgressProperty1", testConfig, getLabelConverter());
+		checkForCorrectException(() -> evaluateProgressProperty(fsm,pta), IllegalArgumentException.class, "contains a loop");
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////

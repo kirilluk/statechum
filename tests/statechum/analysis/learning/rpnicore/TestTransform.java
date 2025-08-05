@@ -2114,5 +2114,7 @@ public class TestTransform
 		DifferentFSMException ex= WMethod.checkM_and_colours(graph, outcome, VERTEX_COMPARISON_KIND.NONE);
 		Assert.assertNull(ex==null?"":ex.toString(),ex);
 	}
-	
+
+
+
 }

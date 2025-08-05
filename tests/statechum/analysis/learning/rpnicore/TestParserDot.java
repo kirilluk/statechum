@@ -3,6 +3,7 @@ package statechum.analysis.learning.rpnicore;
 import org.junit.Assert;
 import org.junit.Test;
 import statechum.*;
+import statechum.analysis.learning.Learner;
 
 import java.util.*;
 
@@ -37,22 +38,34 @@ public class TestParserDot {
     public final void testParseID1b() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("a-", configLTS,graph,converter);
-        parser.parseText();
+        parser.parseText(false);
         Assert.assertEquals('-',parser.nextChar());
     }
     @Test
     public final void testParseID1c() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("0", configLTS,graph,converter);
-        TestHelper.checkForCorrectException(parser::parseText,IllegalArgumentException.class,"ID cannot start with a digit");
+        TestHelper.checkForCorrectException(() -> { parser.parseText(false); },IllegalArgumentException.class,"ID cannot start with a digit");
     }
     @Test
     public final void testParseID1d() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("-", configLTS,graph,converter);
-        TestHelper.checkForCorrectException(parser::parseText,IllegalArgumentException.class,"Invalid starting character for ID");
+        TestHelper.checkForCorrectException(() -> { parser.parseText(false); },IllegalArgumentException.class,"Invalid starting character for ID");
     }
-
+    @Test
+    public final void testParseID1e() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("a=b", configLTS,graph,converter);
+        Assert.assertEquals("a",parser.parseText(false));
+        Assert.assertEquals('=',parser.nextChar());
+    }
+    @Test
+    public final void testParseID1f() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("a=b", configLTS,graph,converter);
+        Assert.assertEquals("a=b",parser.parseText(true));
+    }
     @Test
     public final void testParseID2() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
@@ -565,7 +578,6 @@ public class TestParserDot {
         Assert.assertNotEquals(a,b);
     }
 
-
     @Test
     public final void testParse1() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
@@ -880,6 +892,12 @@ public class TestParserDot {
         LearnerGraph gr = buildLearnerGraph("a-lbl->b-u->c","testParse4", configLTS,converter);
         Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
         Assert.assertEquals("1",graph.getInit().getStringId());
+
+        Set<DeterministicDirectedSparseGraph.CmpVertex> expectedStates = new TreeSet<>();
+        expectedStates.add(AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("1"),graph.config));
+        expectedStates.add(AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("b"),graph.config));
+        expectedStates.add(AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("c"),graph.config));
+        Assert.assertEquals(expectedStates,graph.transitionMatrix.keySet());
     }
 
     @Test
@@ -887,7 +905,12 @@ public class TestParserDot {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a[abel=3];b;c;__start0;a->b[label=lbl];b->c[label=u] __start0->a; }",
                 configLTS,graph,converter,false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
-        TestHelper.checkForCorrectException(parser::parseGraph,IllegalArgumentException.class,"Missing label option");
+        parser.parseGraph();
+        Set<DeterministicDirectedSparseGraph.CmpVertex> expectedStates = new TreeSet<>();
+        expectedStates.add(AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("a"),graph.config));
+        expectedStates.add(AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("b"),graph.config));
+        expectedStates.add(AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("c"),graph.config));
+        Assert.assertEquals(expectedStates,graph.transitionMatrix.keySet());
     }
 
     @Test
@@ -1038,5 +1061,60 @@ public class TestParserDot {
         Assert.assertEquals("a",graph.getInit().getStringId());
     }
 
+    @Test
+    public final void testParse12a() {
+        TestHelper.checkForCorrectException(() -> {
+            FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"lbl/k\"];__start0->a; }",
+                    configMealy,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
+        },IllegalArgumentException.class,"non-determinism detected from state a for transition lbl/k to state c");
+    }
+
+    @Test
+    public final void testParse12b() {
+        LearnerGraph gr = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"lbl/k\"];__start0->a; }",
+                configAtomicPairs,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
+        TestHelper.checkForCorrectException(() -> {
+            gr.transform.convertIO();
+        },IllegalArgumentException.class,"non-determinism detected for input lbl/k to state c");
+    }
+
+    @Test
+    public final void testParse13a() {
+        LearnerGraph grM = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"u/k\"];__start0->a; }",
+                configMealy,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
+        LearnerGraph gr = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"u/k\"];__start0->a; }",
+                configAtomicPairs,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
+        LearnerGraph grConf = gr.transform.convertIO();
+        Assert.assertNull(WMethod.checkM(grM, grM.getInit(),grConf,grConf.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+
+    @Test
+    public final void testParse13b() {
+        LearnerGraph grM = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"u/k\"];c->a[label=\"lbl/k\"];__start0->a; }",
+                configMealy,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
+        LearnerGraph gr = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"u/k\"];c->a[label=\"lbl/k\"];__start0->a; }",
+                configAtomicPairs,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
+        LearnerGraph grConf = gr.transform.convertIO();
+        Assert.assertNull(WMethod.checkM(grM, grM.getInit(),grConf,grConf.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+
+    @Test
+    public final void testParse13c() {
+        LearnerGraph grM = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"u/k\"];c->a[label=\"lbl/k\"];__start0->a; }",
+                configMealy,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
+        LearnerGraph gr = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;r;a->b[label=\"lbl/g\"];a->r[label=\"lbl/t\"];a->r[label=\"lbl/p\"];b->c[label=\"u/p\"];a->c[label=\"u/k\"];c->r[label=\"lbl/g\"];c->a[label=\"lbl/k\"];__start0->a; }",
+                configAtomicPairs,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
+        gr.findVertex("r").setAccept(false);// make r the reject state
+        LearnerGraph grConf = gr.transform.convertIO();
+        Assert.assertNull(WMethod.checkM(grM, grM.getInit(),grConf,grConf.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+
+        List<String> outputsA = new ArrayList<>();
+        LearnerGraph grM_int = grM.transform.numberOutputsAndStates(outputsA);
+        List<String> outputsB = new ArrayList<>();
+        LearnerGraph grConf_int = grConf.transform.numberOutputsAndStates(outputsB);
+        Assert.assertEquals(Arrays.asList("g","k","p"), outputsA);
+        Assert.assertEquals(outputsA, outputsB);
+        Assert.assertNull(WMethod.checkM(grM_int, grM_int.getInit(),grConf_int,grConf_int.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
 }
 

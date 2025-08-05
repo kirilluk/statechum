@@ -4,17 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.&#10;Minor other improvements such as a missing assertion in generatePosNegTestHelper.">
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Extended support for dot format, minor other changes.">
+      <change afterPath="$PROJECT_DIR$/src/statechum/apps/DotStructuralDifference.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/apps/DotVisualiser.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/Configuration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Configuration.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/LabelInputOutput.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/LabelInputOutput.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersParameters.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/EvaluationOfLearnersParameters.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractLearnerGraph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractLearnerGraph.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PathRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PathRoutines.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/WMethod.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/WMethod.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/apps/WMethodBetweenDotAutomata.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/apps/WMethodBetweenDotAutomata.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestTransform.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestTransform.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
@@ -66,6 +63,9 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Application.DotComparator.executor": "Run",
+    "Application.DotVisualiser (1).executor": "Run",
+    "Application.DotVisualiser.executor": "Run",
     "Application.experimentProgressProperty.executor": "Run",
     "Application.experimentUAS1.executor": "Run",
     "Application.experimentUAS2.executor": "Run",
@@ -90,11 +90,22 @@
     "JUnit.TestPaperUASLarge.executor": "Run",
     "JUnit.TestParserDot (1).executor": "Run",
     "JUnit.TestParserDot.testParse10c.executor": "Run",
+    "JUnit.TestParserDot.testParse11e.executor": "Run",
+    "JUnit.TestParserDot.testParse12.executor": "Run",
+    "JUnit.TestParserDot.testParse12b.executor": "Run",
+    "JUnit.TestParserDot.testParse13.executor": "Run",
+    "JUnit.TestParserDot.testParse13b.executor": "Run",
+    "JUnit.TestParserDot.testParse13c.executor": "Run",
     "JUnit.TestParserDot.testParse2.executor": "Run",
+    "JUnit.TestParserDot.testParse9b.executor": "Run",
+    "JUnit.TestParserDot.testParse9c.executor": "Run",
     "JUnit.TestParserDot.testParseLabel1.executor": "Run",
     "JUnit.TestParserDot.testParseLabel2.executor": "Run",
     "JUnit.TestParserDot.testParseLabel2b.executor": "Run",
-    "JUnit.TestParserDot.testParseLabel3.executor": "Debug",
+    "JUnit.TestParserDot.testParseLabel3.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel4a.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel4b.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel5.executor": "Run",
     "JUnit.TestRandomPathGenerator.executor": "Run",
     "JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk1.executor": "Run",
     "JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk2.executor": "Debug",
@@ -142,14 +153,14 @@
       <recent name="statechum" />
     </key>
     <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="statechum.apps" />
       <recent name="statechum.analysis.learning.experiments.EvaluationOfLearners" />
       <recent name="org.junit.runners" />
       <recent name="statechum" />
       <recent name="statechum.analysis.Erlang.Signatures" />
-      <recent name="statechum.analysis.learning.rpnicore" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.TestParserDot (1)">
+  <component name="RunManager" selected="Application.DotComparator">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -202,9 +213,29 @@
       <option name="USE_PATTERN" value="false" />
       <method v="2" />
     </configuration>
-    <configuration name="Unnamed" type="Application" factoryName="Application" nameIsGenerated="true">
-      <option name="MAIN_CLASS_NAME" value="generate_fsm_and_traces.Generator" />
+    <configuration name="DotComparator" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.apps.DotStructuralDifference" />
       <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="&quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\Bluetooth_CYW43455.dot&quot; &quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\Bluetooth_CYW43455.dot&quot;" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs -Xmx25500m" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="DotVisualiser (1)" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.apps.DotVisualiser" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="&quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\Bluetooth_CYW43455 - Copy.dot&quot;" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs -Xmx25500m" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="DotVisualiser" type="Application" factoryName="Application" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="statechum.apps.DotVisualiser" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="&quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\Bluetooth_CYW43455.dot&quot;" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs -Xmx25500m" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -492,22 +523,6 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestParserDot (1)" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
-      <option name="METHOD_NAME" value="testParseLabel4b" />
-      <option name="TEST_OBJECT" value="class" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="TestParserDot" type="JUnit" factoryName="JUnit">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -529,7 +544,7 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestParserDot.testParseLabel3" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="TestParserDot" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
         <pattern>
@@ -539,13 +554,29 @@
       </extension>
       <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
-      <option name="METHOD_NAME" value="testParseLabel3" />
+      <option name="METHOD_NAME" value="testParse13c" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestParserDot.testParse13b" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
+      <option name="METHOD_NAME" value="testParse13b" />
       <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestParserDot.testParseLabel4a" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="TestParserDot.testParse13c" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
         <pattern>
@@ -555,13 +586,13 @@
       </extension>
       <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
-      <option name="METHOD_NAME" value="testParseLabel4a" />
+      <option name="METHOD_NAME" value="testParse13c" />
       <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestParserDot.testParseLabel4b" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="TestParserDot.testParse9b" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
         <pattern>
@@ -571,13 +602,13 @@
       </extension>
       <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
-      <option name="METHOD_NAME" value="testParseLabel4b" />
+      <option name="METHOD_NAME" value="testParse9b" />
       <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestParserDot.testParseLabel5" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+    <configuration name="TestParserDot.testParse9c" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
         <pattern>
@@ -587,7 +618,7 @@
       </extension>
       <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
-      <option name="METHOD_NAME" value="testParseLabel5" />
+      <option name="METHOD_NAME" value="testParse9c" />
       <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
@@ -605,10 +636,12 @@
       </method>
     </configuration>
     <list>
+      <item itemvalue="Application.DotComparator" />
       <item itemvalue="Application.experimentUAS1" />
       <item itemvalue="Application.experimentUAS2" />
       <item itemvalue="Application.experimentProgressProperty" />
-      <item itemvalue="Application.Unnamed" />
+      <item itemvalue="Application.DotVisualiser" />
+      <item itemvalue="Application.DotVisualiser (1)" />
       <item itemvalue="JUnit.OTP 24 - erlangtmp" />
       <item itemvalue="JUnit.OTP 24" />
       <item itemvalue="JUnit.Test something" />
@@ -621,21 +654,20 @@
       <item itemvalue="JUnit.TestAutoAnswers - OTP 24 testErlangSomething" />
       <item itemvalue="JUnit.TestAutoAnswers - OTP 24" />
       <item itemvalue="JUnit.TestLengthy (using OTP24)" />
-      <item itemvalue="JUnit.TestParserDot" />
       <item itemvalue="JUnit.Run All tests with old OTP" />
-      <item itemvalue="JUnit.TestParserDot (1)" />
-      <item itemvalue="JUnit.TestParserDot.testParseLabel3" />
-      <item itemvalue="JUnit.TestParserDot.testParseLabel4a" />
-      <item itemvalue="JUnit.TestParserDot.testParseLabel4b" />
-      <item itemvalue="JUnit.TestParserDot.testParseLabel5" />
+      <item itemvalue="JUnit.TestParserDot.testParse9b" />
+      <item itemvalue="JUnit.TestParserDot.testParse9c" />
+      <item itemvalue="JUnit.TestParserDot.testParse13b" />
+      <item itemvalue="JUnit.TestParserDot.testParse13c" />
+      <item itemvalue="JUnit.TestParserDot" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="JUnit.TestParserDot (1)" />
-        <item itemvalue="JUnit.TestParserDot.testParseLabel4b" />
-        <item itemvalue="JUnit.TestParserDot.testParseLabel5" />
-        <item itemvalue="JUnit.TestParserDot.testParseLabel3" />
-        <item itemvalue="JUnit.TestParserDot.testParseLabel4a" />
+        <item itemvalue="JUnit.TestParserDot" />
+        <item itemvalue="JUnit.TestParserDot.testParse9c" />
+        <item itemvalue="JUnit.TestParserDot.testParse9b" />
+        <item itemvalue="JUnit.TestParserDot.testParse13c" />
+        <item itemvalue="JUnit.TestParserDot.testParse13b" />
       </list>
     </recent_temporary>
   </component>
@@ -671,7 +703,8 @@
       <workItem from="1753983694105" duration="9476000" />
       <workItem from="1754161170545" duration="4020000" />
       <workItem from="1754180829133" duration="3498000" />
-      <workItem from="1754253307606" duration="7464000" />
+      <workItem from="1754253307606" duration="7797000" />
+      <workItem from="1754357660225" duration="11286000" />
     </task>
     <task id="LOCAL-00001" summary="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer).">
       <created>1651266068784</created>
@@ -846,7 +879,15 @@
       <option name="project" value="LOCAL" />
       <updated>1753209128661</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="Extended support for dot format, minor other changes.">
+      <option name="closed" value="true" />
+      <created>1754263676283</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1754263676283</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -933,7 +974,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Initial edition of MapSignature and minor improvements to modified typer." />
     <MESSAGE value="Revised the version of typer so that one of the tests using typer now passes on Erlang 24." />
     <MESSAGE value="Removed unused seekUsages" />
     <MESSAGE value="Erlang Module tests now pass in Erlang 24." />
@@ -958,7 +998,8 @@
     <MESSAGE value="Minor changes before cleanup - intending to remove redundant ExperimentPaperUAS.java" />
     <MESSAGE value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful." />
     <MESSAGE value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.&#10;Minor other improvements such as a missing assertion in generatePosNegTestHelper." />
-    <option name="LAST_COMMIT_MESSAGE" value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.&#10;Minor other improvements such as a missing assertion in generatePosNegTestHelper." />
+    <MESSAGE value="Extended support for dot format, minor other changes." />
+    <option name="LAST_COMMIT_MESSAGE" value="Extended support for dot format, minor other changes." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -995,7 +1036,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java</url>
-          <line>1366</line>
+          <line>1482</line>
           <option name="timeStamp" value="99" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
@@ -1013,11 +1054,46 @@
           <line>266</line>
           <option name="timeStamp" value="130" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/Visualiser.java</url>
+          <line>634</line>
+          <option name="timeStamp" value="133" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/Visualiser.java</url>
+          <line>585</line>
+          <option name="timeStamp" value="135" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/Visualiser.java</url>
+          <line>566</line>
+          <option name="timeStamp" value="136" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/GlobalConfiguration.java</url>
+          <line>256</line>
+          <option name="timeStamp" value="137" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java</url>
+          <line>1116</line>
+          <option name="timeStamp" value="139" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java</url>
+          <line>269</line>
+          <option name="timeStamp" value="140" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java</url>
+          <line>475</line>
+          <option name="timeStamp" value="144" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
     <watches-manager>
       <configuration name="Application">
-        <watch expression="trimmedOne" />
+        <watch expression="updatedEx" />
       </configuration>
     </watches-manager>
   </component>

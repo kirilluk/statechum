@@ -39,10 +39,10 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 	protected void throwException(String errMsg) {
 		if (text.length() < pos)
-			throw new IllegalArgumentException(errMsg + " at end of input");
+			throw new IllegalArgumentException(errMsg + " at end of input"+reportLineNumber());
 		if (pos > 0)
-			throw new IllegalArgumentException(errMsg + " starting from " + text.substring(pos - 1));
-		throw new IllegalArgumentException(errMsg);
+			throw new IllegalArgumentException(errMsg + " starting from " + text.substring(pos - 1)+reportLineNumber());
+		throw new IllegalArgumentException(errMsg+reportLineNumber());
 	}
 
 	String text;
@@ -53,6 +53,11 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 	char lastChar;
 	boolean returnLast = false;
+	int lineNumber;
+
+	protected String reportLineNumber() {
+		return " on or around line "+Integer.toString(lineNumber);
+	}
 
 	char nextChar() {
 		if (returnLast) {
@@ -63,6 +68,9 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		if (isFinished())
 			throwException("Premature end of input");
 		lastChar = text.charAt(pos++);
+		if (lastChar == '\n')
+			++lineNumber;
+
 		return lastChar;
 	}
 
@@ -104,6 +112,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		graph = gr;
 		config = conf;
 		conv = converter;
+		lineNumber = 1;
 		this.allowPartialAutomata = allowPartialAutomata;
 		initial_state_locator = start0;
 	}
@@ -153,7 +162,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		return isDigit(ch) || ch == '_' || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
 	}
 
-	public String parseText() {
+	public String parseText(boolean permitEquals) {
 		StringBuilder result = new StringBuilder();
 		char ch = nextChar();
 		if (isDigit(ch))
@@ -163,7 +172,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		result.append(ch);
 		while (!isFinished()) {
 			ch = nextChar();
-			if (isTextChar(ch))
+			if (isTextChar(ch) || (permitEquals && ch == '='))
 				result.append(ch);
 			else {
 				unget();
@@ -240,8 +249,9 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 				}
 		}
 	}
+
 	/**
-	 * Parses an ID tocken.
+	 * Parses an ID token.
 	 */
 	public String parseID() {
 		String result = null;
@@ -255,7 +265,30 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 			result = parseNumber();
 		} else if (isTextChar(ch)) {
 			unget();
-			result = parseText();
+			result = parseText(false);
+		} else
+			throwException("invalid character");
+
+		return result;
+	}
+
+
+	/**
+	 * Parses an ID token.
+	 */
+	public String parseNodeName() {
+		String result = null;
+		skipWhitespace();
+		char ch = nextChar();
+
+		if (ch == '\"')
+			result = parseQuoted();
+		else if (ch == '-' || ch == '.' || isDigit(ch)) {
+			unget();
+			result = parseNumber();
+		} else if (isTextChar(ch)) {
+			unget();
+			result = parseText(true);
 		} else
 			throwException("invalid character");
 
@@ -283,10 +316,14 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		return options;
 	}
 
-	public String getLabel(Map<String, String> options) {
+	public String getLabel(Map<String, String> options, String defaultLabel) {
 		String value = options.get("label");
-		if (value == null)
-			throwException("Missing label option");
+		if (value == null) {
+			if (defaultLabel == null)
+				throwException("Missing label option");
+			else
+				return defaultLabel;
+		}
 		return value;
 	}
 
@@ -303,7 +340,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		if (null == nameOfVertexInGraph)
 			throwException("State " + name + " not defined");
 		if (nameOfVertexInGraph == null)
-			throw new IllegalArgumentException("Graph name cannot be null");
+			throw new IllegalArgumentException("Graph name cannot be null"+reportLineNumber());
 		CmpVertex vertexFound = graph.transitionMatrix.findKey(VertexID.parseID(nameOfVertexInGraph));
 		assert null != vertexFound;
 		return vertexFound;
@@ -312,6 +349,8 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	public void createTransition(String from, String to, Label label) {
 		CmpVertex fromVertex = vertexForName(from);
 		CmpVertex toVertex = vertexForName(to);
+		if (graph.transitionMatrix.get(fromVertex).containsKey(label))
+			throw new IllegalArgumentException("non-determinism detected from state "+fromVertex+" for transition "+label+" to state "+toVertex);
 
 		graph.addTransition(graph.transitionMatrix.get(fromVertex), label, toVertex);
 	}
@@ -331,7 +370,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	public void parseGraph() {
 		skipWhitespace();
 
-		if (!"digraph".equals(parseText()))
+		if (!"digraph".equals(parseText(false)))
 			throwException("The graph should be labelled as directed graph");
 
 		skipWhitespace();
@@ -343,7 +382,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		char ch = nextChar();
 		unget();
 		while (ch != '}') {
-			String currentNode = parseID();
+			String currentNode = parseNodeName();
 			skipWhitespace();
 			Map<String, String> options;
 			ch = nextChar();
@@ -379,15 +418,24 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 						graph.setInit(vertexForName(target));
 						graph.transitionMatrix.remove(vertexForName(currentNode));
 					} else {
-						String lbl = getLabel(options);// will throw exception if label is not provided in options.
+						String lbl = getLabel(options, null);// will throw exception if label is not provided in options.
 						switch(config.getLabelKind()) {
 							case LABEL_INPUT_OUTPUT:
 							case LABEL_ATOMICPAIRS:
-								LabelInputOutput label = new LabelInputOutput(lbl,allowPartialAutomata,config.getLabelKind() == LABEL_ATOMICPAIRS);
-								if (!label.isErrorTransition())
-									createTransition(currentNode, target, label);
-								else
-									graph.inputsFilteredOutOnLoad.add(label);
+								String [] constituentLabels = lbl.split("\n");
+								for(String currentLabel:constituentLabels) {
+									LabelInputOutput label = null;
+									try {
+										label = new LabelInputOutput(currentLabel, allowPartialAutomata, config.getLabelKind() == LABEL_ATOMICPAIRS);
+									} catch (IllegalArgumentException ex) {
+										IllegalArgumentException updatedEx = new IllegalArgumentException(ex.getMessage() + reportLineNumber());
+										throw updatedEx;
+									}
+									if (!label.isErrorTransition())
+										createTransition(currentNode, target, label);
+									else
+										graph.inputsFilteredOutOnLoad.add(label);
+								}
 								break;
 							default:
 								createTransition(currentNode, target, AbstractLearnerGraph.generateNewLabel(lbl, config, conv));
@@ -399,15 +447,19 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 			} else if (ch == '[') {// this is a state declaration, process options
 				unget();
 				options = parseOptions();
-				String lbl = getLabel(options);
-				createVertex(lbl);
-				id_to_label.put(currentNode,lbl);
-				createInitialStateIfNeeded(currentNode);
+				if (controlConstructInDot(currentNode)) {
+					String lbl = getLabel(options, currentNode);
+					createVertex(lbl);
+					id_to_label.put(currentNode, lbl);
+					createInitialStateIfNeeded(currentNode);
+				}
 			} else {// this is a state declaration without options
 				unget();
-				createVertex(currentNode);
-				id_to_label.put(currentNode,currentNode);
-				createInitialStateIfNeeded(currentNode);
+				if (controlConstructInDot(currentNode)) {
+					createVertex(currentNode);
+					id_to_label.put(currentNode, currentNode);
+					createInitialStateIfNeeded(currentNode);
+				}
 			}
 
 			skipSeparatorAndWhitespace();
@@ -417,6 +469,11 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		skipWhitespace();
 		if (!isFinished())
 			throwException("Extra text at the end of graph");
+	}
+
+	/** Returns true if the current node is intended to control processing of dot file */
+	private static boolean controlConstructInDot(String currentNode) {
+		return !currentNode.equalsIgnoreCase("node") && !currentNode.contains("=");
 	}
 
 	/**

@@ -587,9 +587,29 @@ public class TestParserDot {
     }
 
     @Test
-    public final void testParse2() {
+    public final void testParse2a() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a;b;a->b[label=lbl]; }", configLTS,graph,converter);
+        parser.parseGraph();
+        LearnerGraph gr = buildLearnerGraph("a-lbl->b","testParse2", configLTS,converter);
+        Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.findVertex("a"), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+    @Test
+    // Tests both accept and reject-states
+    public final void testParse2b() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a[shape=circle];b[shape=square];a->b[label=lbl]; }", configLTS,graph,converter);
+        parser.parseGraph();
+        LearnerGraph gr = buildLearnerGraph("a-lbl-#b","testParse2", configLTS,converter);
+        Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.findVertex("a"), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+        Assert.assertTrue(gr.transitionMatrix.findKey(DeterministicDirectedSparseGraph.VertexID.parseID("a")).isAccept());
+        Assert.assertFalse(gr.transitionMatrix.findKey(DeterministicDirectedSparseGraph.VertexID.parseID("b")).isAccept());
+    }
+    @Test
+    // Tests elements of dot format that I'm ignoring such as properties at graph level and nodes called 'node'.
+    public final void testParse2c() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { p=q;a;t=r;node[label=unknown];b;a->b[label=lbl]; }", configLTS,graph,converter);
         parser.parseGraph();
         LearnerGraph gr = buildLearnerGraph("a-lbl->b","testParse2", configLTS,converter);
         Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.findVertex("a"), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
@@ -1079,7 +1099,7 @@ public class TestParserDot {
     }
 
     @Test
-    public final void testParse13a() {
+    public final void testParse13a1() {
         LearnerGraph grM = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"u/k\"];__start0->a; }",
                 configMealy,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
         LearnerGraph gr = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"u/k\"];__start0->a; }",
@@ -1087,7 +1107,16 @@ public class TestParserDot {
         LearnerGraph grConf = gr.transform.convertIO();
         Assert.assertNull(WMethod.checkM(grM, grM.getInit(),grConf,grConf.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
     }
-
+    @Test
+    // Tests that transition to reject-state is ignored by the pairs->mealy translation
+    public final void testParse13a2() {
+        LearnerGraph grM = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"u/k\"];__start0->a; }",
+                configMealy,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
+        LearnerGraph gr = FsmParserDot.buildLearnerGraph("digraph a { a;b;r[shape=square];c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];b->r[label=\"u/g\"];a->c[label=\"u/k\"];__start0->a; }",
+                configAtomicPairs,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
+        LearnerGraph grConf = gr.transform.convertIO();
+        Assert.assertNull(WMethod.checkM(grM, grM.getInit(),grConf,grConf.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
     @Test
     public final void testParse13b() {
         LearnerGraph grM = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"u/k\"];c->a[label=\"lbl/k\"];__start0->a; }",

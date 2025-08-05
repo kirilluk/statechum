@@ -447,15 +447,18 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 			} else if (ch == '[') {// this is a state declaration, process options
 				unget();
 				options = parseOptions();
-				if (controlConstructInDot(currentNode)) {
+				if (ignoreControlConstructInDot(currentNode)) {
 					String lbl = getLabel(options, currentNode);
 					createVertex(lbl);
+					String shapeOption = options.get("shape");
+					if ("square".equalsIgnoreCase(shapeOption))
+						graph.transitionMatrix.findKey(VertexID.parseID(lbl)).setAccept(false);
 					id_to_label.put(currentNode, lbl);
 					createInitialStateIfNeeded(currentNode);
 				}
 			} else {// this is a state declaration without options
 				unget();
-				if (controlConstructInDot(currentNode)) {
+				if (ignoreControlConstructInDot(currentNode)) {
 					createVertex(currentNode);
 					id_to_label.put(currentNode, currentNode);
 					createInitialStateIfNeeded(currentNode);
@@ -472,7 +475,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	}
 
 	/** Returns true if the current node is intended to control processing of dot file */
-	private static boolean controlConstructInDot(String currentNode) {
+	private static boolean ignoreControlConstructInDot(String currentNode) {
 		return !currentNode.equalsIgnoreCase("node") && !currentNode.contains("=");
 	}
 

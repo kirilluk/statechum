@@ -17,9 +17,9 @@ public class DotVisualiser {
         GlobalConfiguration.getConfiguration().setProperty(GlobalConfiguration.G_PROPERTIES.CLOSE_TERMINATE, "true");
         GlobalConfiguration.getConfiguration().setProperty(GlobalConfiguration.G_PROPERTIES.ESC_TERMINATE,"false");
         final Configuration configMealy = Configuration.getDefaultConfiguration().copy();
-        configMealy.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
+        configMealy.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
         String referenceDot = Helper.loadFile(new File(args[0]));
-        LearnerGraph graphToPlot = FsmParserDot.buildLearnerGraph(referenceDot, configMealy, null,true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).transform.numberOutputsAndStates(null);
+        LearnerGraph graphToPlot = FsmParserDot.buildLearnerGraph(referenceDot, configMealy, null,true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).transform.convertIO().transform.numberOutputsAndStates(null);
         Visualiser graphVisualiser= new Visualiser(0);
         graphVisualiser.update(null,graphToPlot);Visualiser.waitForKey();
     }

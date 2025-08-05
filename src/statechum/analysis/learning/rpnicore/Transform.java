@@ -1300,6 +1300,7 @@ public class Transform
 			Integer value = stateIdx++;
 			stateDatabase.put(entry.getKey(),value);
 			CmpVertex newState = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("S"+value),result.config);
+			newState.setAccept(entry.getKey().isAccept());
 			oldToNew.put(entry.getKey(), newState);
 			MapWithSearch<Label,Label,CmpVertex> row = result.createNewRow();result.transitionMatrix.put(newState,row);
 		}

@@ -1750,7 +1750,7 @@ public class ExperimentPaperUAS2
 	     			{
      					String uavPadded = LearningSupportRoutines.padString(uav, '_', 2);
      					String graphName = sprintf("%suas-%s-%s-U",outPathPrefix,seedPadded,uavPadded);
-     					if (!new File(ExperimentPaperUAS.fileName(graphName)).canRead())
+     					if (!new File(ExperimentPaperUAS2.fileName(graphName)).canRead())
 	         			{
 		         			LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 		         			framesToTraces = tracesSeed.tracesForUAVandFrame.get(uav);
@@ -1758,7 +1758,7 @@ public class ExperimentPaperUAS2
 		       				for (Label l:initialPTA.pathroutines.computeAlphabet())
 		       					if (l.toString().equals("Data_Deprecates_Waypoint"))
 		       						System.out.println("Data_Deprecates_Waypoint is in uav " + uav +" and seed "+seed);
-		         			initialPTA.storage.writeGraphML(ExperimentPaperUAS.fileName(graphName));
+		         			initialPTA.storage.writeGraphML(ExperimentPaperUAS2.fileName(graphName));
 	         			}
             			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())
              				for(LearningType type:learningTypes)
@@ -1773,12 +1773,12 @@ public class ExperimentPaperUAS2
 	         			for(int fraction:rangeOfValues)
 	         			{
 	         				graphName = sprintf("%suas-%s-%s-U-%02d",outPathPrefix,seedPadded,uavPadded,fraction);
-	         				if (!new File(ExperimentPaperUAS.fileName(graphName)).canRead())
+	         				if (!new File(ExperimentPaperUAS2.fileName(graphName)).canRead())
 		             		{
 		             			LearnerGraph initialPTA = new LearnerGraph(paper.learnerInitConfiguration.config);
 		             			augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,paper.maxFrameNumber);initialPTA.transform.trimGraph(depth/fraction, initialPTA.getInit());
 		             			//augmentPTAWithTracesForFrameRange(initialPTA,framesToTraces,Math.round(paper.maxFrameNumber/fraction));
-		             			initialPTA.storage.writeGraphML(ExperimentPaperUAS.fileName(graphName));
+		             			initialPTA.storage.writeGraphML(ExperimentPaperUAS2.fileName(graphName));
 			             	}
 
 	            			for(LearningAlgorithms.ScoringToApply scoringMethod:UASExperiment.listOfScoringMethodsToApplyThatDependOnEDSMScoring())

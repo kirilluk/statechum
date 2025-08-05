@@ -5,14 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Minor changes before cleanup - intending to remove redundant ExperimentPaperUAS.java">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/XMachineTool.iml" beforeDir="false" afterPath="$PROJECT_DIR$/XMachineTool.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/UASPairQuality.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/UASPairQuality.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/ExperimentPaperUAS.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/ExperimentPaperUAS2.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PaperUAS/ExperimentPaperUAS2.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/LargePTARecordPairs.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/LargePTARecordPairs.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestPaperUAS.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestPaperUAS.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestPaperUASLarge.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestPaperUASLarge.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/RPNIBlueFringeVariability.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/RPNIBlueFringeVariability.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
@@ -57,51 +51,51 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Application.experimentUAS1.executor": "Run",
-    "Application.experimentUAS2.executor": "Run",
-    "JUnit.ErlangTests.executor": "Run",
-    "JUnit.FastTests$BasicTests.executor": "Run",
-    "JUnit.FastTests$SmtTests.executor": "Run",
-    "JUnit.OTP 24.executor": "Run",
-    "JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23.executor": "Run",
-    "JUnit.TestFSMParser.executor": "Run",
-    "JUnit.TestLabelParser.testTraceParser1.executor": "Run",
-    "JUnit.TestLabelParser.testTraceParser5c.executor": "Run",
-    "JUnit.TestLearnerFromLargePTA.executor": "Run",
-    "JUnit.TestPaperUAS.executor": "Run",
-    "JUnit.TestPaperUAS.testLoad1a (1).executor": "Run",
-    "JUnit.TestPaperUAS.testLoad1a.executor": "Debug",
-    "JUnit.TestPaperUAS.testLoad3a1.executor": "Run",
-    "JUnit.TestPaperUAS.testLoad3a1Tmp.executor": "Run",
-    "JUnit.TestPaperUAS.testLoad3f.executor": "Run",
-    "JUnit.TestPaperUAS.testLoadOldPaper.executor": "Debug",
-    "JUnit.TestPaperUASLarge.executor": "Run",
-    "JUnit.TestRandomPathGenerator.executor": "Run",
-    "JUnit.TestSmtLabelRepresentation$TestFeaturesOfAbstractStates.testAddNewPathAndUpdateMap.executor": "Run",
-    "JUnit.TestSmtLabelRepresentation.testCreateConjunctionEmpty2.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "master",
-    "ignore.virus.scanning.warn.message": "true",
-    "jdk.selected.JAVA_MODULE": "1.8",
-    "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "D:/experiment/statechum-master",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "reference.projectsettings.compiler.javacompiler",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Application.experimentUAS1.executor&quot;: &quot;Run&quot;,
+    &quot;Application.experimentUAS2.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.ErlangTests.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.FastTests$BasicTests.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.FastTests$SmtTests.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OTP 24.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestFSMParser.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestLabelParser.testTraceParser1.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestLabelParser.testTraceParser5c.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestLearnerFromLargePTA.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestPaperUAS.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestPaperUAS.testLoad1a (1).executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestPaperUAS.testLoad1a.executor&quot;: &quot;Debug&quot;,
+    &quot;JUnit.TestPaperUAS.testLoad3a1.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestPaperUAS.testLoad3a1Tmp.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestPaperUAS.testLoad3f.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestPaperUAS.testLoadOldPaper.executor&quot;: &quot;Debug&quot;,
+    &quot;JUnit.TestPaperUASLarge.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestRandomPathGenerator.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestSmtLabelRepresentation$TestFeaturesOfAbstractStates.testAddNewPathAndUpdateMap.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.TestSmtLabelRepresentation.testCreateConjunctionEmpty2.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;1.8&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/experiment/statechum-master&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.projectsettings.compiler.javacompiler&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\experiment\statechum-master\lib\Erlang24\src\statechum\analysis\Erlang" />
@@ -639,6 +633,7 @@
       <workItem from="1669261470778" duration="15841000" />
       <workItem from="1746240085815" duration="716000" />
       <workItem from="1746297105788" duration="13236000" />
+      <workItem from="1746372720346" duration="378000" />
     </task>
     <task id="LOCAL-00001" summary="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer).">
       <created>1651266068784</created>
@@ -820,10 +815,36 @@
     <option name="OPEN_GENERIC_TABS">
       <map>
         <entry key="a55dd8ee-9955-42a6-b0bf-88d0e78fad4d" value="TOOL_WINDOW" />
+        <entry key="105d41e1-d730-4e1e-9b57-c229af640a6a" value="TOOL_WINDOW" />
       </map>
     </option>
     <option name="TAB_STATES">
       <map>
+        <entry key="105d41e1-d730-4e1e-9b57-c229af640a6a">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="HEAD" />
+                      </list>
+                    </value>
+                  </entry>
+                  <entry key="roots">
+                    <value>
+                      <list>
+                        <option value="$PROJECT_DIR$" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
+            </State>
+          </value>
+        </entry>
         <entry key="MAIN">
           <value>
             <State />

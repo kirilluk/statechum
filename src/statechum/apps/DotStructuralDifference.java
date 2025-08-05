@@ -3,7 +3,6 @@ package statechum.apps;
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Helper;
-import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.rpnicore.FsmParserDot;
 import statechum.analysis.learning.rpnicore.LearnerGraph;

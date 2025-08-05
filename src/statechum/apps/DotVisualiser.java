@@ -1,6 +1,5 @@
 package statechum.apps;
 
-import soot.util.dot.DotGraph;
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Helper;

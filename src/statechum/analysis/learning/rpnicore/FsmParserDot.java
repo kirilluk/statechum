@@ -56,7 +56,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	int lineNumber;
 
 	protected String reportLineNumber() {
-		return " on or around line "+Integer.toString(lineNumber);
+		return " on or around line "+ lineNumber;
 	}
 
 	char nextChar() {
@@ -95,7 +95,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 	final HOW_TO_FIND_INITIAL_STATE initial_state_locator;
 	/**
-	 * Given a textual representation of an fsm, builds a corresponding graph. Graph name is extracted from dot graph name.
+	 * Given a textual representation of a fsm, builds a corresponding graph. Graph name is extracted from dot graph name.
 	 *
 	 * @param whatToParse     the textual representation of an FSM in the DOT language (<a href="https://www.graphviz.org/doc/info/lang.html">...</a>)
 	 * @param conf            configuration to use for node creation.
@@ -424,12 +424,11 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 							case LABEL_ATOMICPAIRS:
 								String [] constituentLabels = lbl.split("\n");
 								for(String currentLabel:constituentLabels) {
-									LabelInputOutput label = null;
+									LabelInputOutput label;
 									try {
 										label = new LabelInputOutput(currentLabel, allowPartialAutomata, config.getLabelKind() == LABEL_ATOMICPAIRS);
 									} catch (IllegalArgumentException ex) {
-										IllegalArgumentException updatedEx = new IllegalArgumentException(ex.getMessage() + reportLineNumber());
-										throw updatedEx;
+                                        throw new IllegalArgumentException(ex.getMessage() + reportLineNumber());
 									}
 									if (!label.isErrorTransition())
 										createTransition(currentNode, target, label);
@@ -480,7 +479,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	}
 
 	/**
-	 * Given a textual representation of an fsm, builds a corresponding deterministic graph
+	 * Given a textual representation of a fsm, builds a corresponding deterministic graph
 	 *
 	 * @param fsm  the textual representation of an FSM
 	 * @param config configuration for the automaton, including kind of labels
@@ -498,7 +497,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	}
 
 	/**
-	 * Given a textual representation of an fsm, builds a corresponding non-deterministic learner graph
+	 * Given a textual representation of a fsm, builds a corresponding non-deterministic learner graph
 	 *
 	 * @param fsm  the textual representation of an FSM
 	 * @param config configuration for the automaton, including kind of labels

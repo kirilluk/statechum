@@ -58,6 +58,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		public Object getNextState(Object currentState, Label input)
 		{
 			CmpVertex result = null;
+			@SuppressWarnings("SuspiciousMethodCalls")
 			MapWithSearch<Label,Label,CmpVertex> row = transitionMatrix.get(currentState);
 			if (row != null)
 				result = row.get(input);
@@ -98,7 +99,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 	 * graph.transitionMatrix.putAll(newpaths.getNonExistingTransitionMatrix());
 	 * </pre>
 	 */
-	class NonExistingPaths implements FSMAbstraction
+	public class NonExistingPaths implements FSMAbstraction
 	{
 		private final CmpVertex red = getInit();
 		
@@ -144,10 +145,12 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		public Object getNextState(Object currentState, Label input)
 		{
 			CmpVertex result;
+			@SuppressWarnings("SuspiciousMethodCalls")
 			MapWithSearch<Label,Label,CmpVertex> transitions = NonExistingTransitions.get(currentState);
 			if (transitions == null)
 			{// the current state is not one of the non-existing/semi-non-existing ones. Semi non-existing states are those
 			 // which replace existing states in order to make it possible to add transitions leading to non-existing states.
+				@SuppressWarnings("SuspiciousMethodCalls")
 				MapWithSearch<Label,Label,CmpVertex> row = transitionMatrix.get(currentState);
 				assert row != null;// a transition matrix is always total (unless current state is (semi)non-existing but then we'll not get here in this case). 
 				result = row.get(input);
@@ -182,6 +185,7 @@ public class LearnerGraph extends AbstractLearnerGraph<CmpVertex,LearnerGraphCac
 		}
 
 		@Override
+		@SuppressWarnings("SuspiciousMethodCalls")
 		public boolean shouldBeReturned(Object elem) 
 		{
 			return nonExistingVertices.contains(elem);

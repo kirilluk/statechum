@@ -3,7 +3,6 @@ package statechum.analysis.learning.rpnicore;
 import org.junit.Assert;
 import org.junit.Test;
 import statechum.*;
-import statechum.analysis.learning.Learner;
 
 import java.util.*;
 
@@ -45,13 +44,13 @@ public class TestParserDot {
     public final void testParseID1c() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("0", configLTS,graph,converter);
-        TestHelper.checkForCorrectException(() -> { parser.parseText(false); },IllegalArgumentException.class,"ID cannot start with a digit");
+        TestHelper.checkForCorrectException(() -> parser.parseText(false),IllegalArgumentException.class,"ID cannot start with a digit");
     }
     @Test
     public final void testParseID1d() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("-", configLTS,graph,converter);
-        TestHelper.checkForCorrectException(() -> { parser.parseText(false); },IllegalArgumentException.class,"Invalid starting character for ID");
+        TestHelper.checkForCorrectException(() -> parser.parseText(false),IllegalArgumentException.class,"Invalid starting character for ID");
     }
     @Test
     public final void testParseID1e() {
@@ -528,16 +527,12 @@ public class TestParserDot {
 
     @Test
     public final void testParseLabel4a() {
-        TestHelper.checkForCorrectException(()->{
-            new LabelInputOutput("in1",true,false);
-        },IllegalArgumentException.class,"invalid format of label ");
+        TestHelper.checkForCorrectException(()-> new LabelInputOutput("in1",true,false),IllegalArgumentException.class,"invalid format of label ");
     }
 
     @Test
     public final void testParseLabel4b() {
-        TestHelper.checkForCorrectException(()->{
-            new LabelInputOutput("in1/b/c",true,false);
-        },IllegalArgumentException.class,"invalid format of label ");
+        TestHelper.checkForCorrectException(()-> new LabelInputOutput("in1/b/c",true,false),IllegalArgumentException.class,"invalid format of label ");
     }
 
     @Test
@@ -548,30 +543,35 @@ public class TestParserDot {
         Assert.assertFalse(a.errorTransition);
     }
 
+    @Test
     public final void testIOLabel1() {
         LabelInputOutput a=new LabelInputOutput("in1/out",true,false);
         LabelInputOutput b=new LabelInputOutput("in2/out",true,false);
         Assert.assertNotEquals(a,b);
     }
 
+    @Test
     public final void testIOLabel2() {
         LabelInputOutput a=new LabelInputOutput("in1/out1",true,false);
         LabelInputOutput b=new LabelInputOutput("in1/out2",true,false);
         Assert.assertEquals(a,b);
     }
 
+    @Test
     public final void testIOLabel3() {
         LabelInputOutput a=new LabelInputOutput("in1/out",true,true);
         LabelInputOutput b=new LabelInputOutput("in2/out",true,true);
         Assert.assertNotEquals(a,b);
     }
 
+    @Test
     public final void testIOLabel4() {
         LabelInputOutput a=new LabelInputOutput("in1/out1",true,true);
         LabelInputOutput b=new LabelInputOutput("in1/out1",true,true);
         Assert.assertEquals(a,b);
     }
 
+    @Test
     public final void testIOLabel5() {
         LabelInputOutput a=new LabelInputOutput("in1/out1",true,true);
         LabelInputOutput b=new LabelInputOutput("in1/out2",true,true);
@@ -1083,19 +1083,15 @@ public class TestParserDot {
 
     @Test
     public final void testParse12a() {
-        TestHelper.checkForCorrectException(() -> {
-            FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"lbl/k\"];__start0->a; }",
-                    configMealy,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
-        },IllegalArgumentException.class,"non-determinism detected from state a for transition lbl/k to state c");
+        TestHelper.checkForCorrectException(() -> FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"lbl/k\"];__start0->a; }",
+                configMealy,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0),IllegalArgumentException.class,"non-determinism detected from state a for transition lbl/k to state c");
     }
 
     @Test
     public final void testParse12b() {
         LearnerGraph gr = FsmParserDot.buildLearnerGraph("digraph a { a;b;c;__start0;a->b[label=\"lbl/g\"];b->c[label=\"u/p\"];a->c[label=\"lbl/k\"];__start0->a; }",
                 configAtomicPairs,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
-        TestHelper.checkForCorrectException(() -> {
-            gr.transform.convertIO();
-        },IllegalArgumentException.class,"non-determinism detected for input lbl/k to state c");
+        TestHelper.checkForCorrectException(gr.transform::convertIO,IllegalArgumentException.class,"non-determinism detected for input lbl/k to state c");
     }
 
     @Test

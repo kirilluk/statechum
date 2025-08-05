@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Further extension of support for dot format, added apps to visualise dot and to numerically evaluate the difference between dot files.">
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Revised dot support to handle reject-states">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/LearnerGraph.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/LearnerGraph.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/apps/DotVisualiser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/apps/DotVisualiser.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" afterDir="false" />
     </list>
@@ -88,15 +88,18 @@
     "JUnit.TestPaperUAS.testLoadOldPaper.executor": "Debug",
     "JUnit.TestPaperUASLarge.executor": "Run",
     "JUnit.TestParserDot (1).executor": "Run",
+    "JUnit.TestParserDot.testIOLabel4.executor": "Debug",
     "JUnit.TestParserDot.testParse10c.executor": "Run",
     "JUnit.TestParserDot.testParse11e.executor": "Run",
     "JUnit.TestParserDot.testParse12.executor": "Run",
     "JUnit.TestParserDot.testParse12b.executor": "Run",
     "JUnit.TestParserDot.testParse13.executor": "Run",
+    "JUnit.TestParserDot.testParse13a2.executor": "Run",
     "JUnit.TestParserDot.testParse13b.executor": "Run",
     "JUnit.TestParserDot.testParse13c.executor": "Run",
     "JUnit.TestParserDot.testParse2.executor": "Run",
     "JUnit.TestParserDot.testParse2b.executor": "Run",
+    "JUnit.TestParserDot.testParse2c.executor": "Run",
     "JUnit.TestParserDot.testParse9b.executor": "Run",
     "JUnit.TestParserDot.testParse9c.executor": "Run",
     "JUnit.TestParserDot.testParseLabel1.executor": "Run",
@@ -160,7 +163,7 @@
       <recent name="statechum.analysis.Erlang.Signatures" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.TestParserDot.testParse13a2">
+  <component name="RunManager" selected="JUnit.TestParserDot (1)">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -532,6 +535,22 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="TestParserDot (1)" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
+      <option name="METHOD_NAME" value="testParse13a2" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="TestParserDot" type="JUnit" factoryName="JUnit">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -569,6 +588,22 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="TestParserDot.testIOLabel4" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
+      <option name="METHOD_NAME" value="testIOLabel4" />
+      <option name="TEST_OBJECT" value="method" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="TestParserDot.testParse13a2" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -580,22 +615,6 @@
       <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
       <option name="METHOD_NAME" value="testParse13a2" />
-      <option name="TEST_OBJECT" value="method" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestParserDot.testParse13c" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
-      <option name="METHOD_NAME" value="testParse13c" />
       <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
@@ -628,22 +647,6 @@
       <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
       <option name="METHOD_NAME" value="testParse2c" />
-      <option name="TEST_OBJECT" value="method" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestParserDot.testParse9c" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
-      <option name="METHOD_NAME" value="testParse9c" />
       <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
@@ -682,19 +685,19 @@
       <item itemvalue="JUnit.TestLengthy (using OTP24)" />
       <item itemvalue="JUnit.Run All tests with old OTP" />
       <item itemvalue="JUnit.TestParserDot" />
+      <item itemvalue="JUnit.TestParserDot (1)" />
+      <item itemvalue="JUnit.TestParserDot.testIOLabel4" />
       <item itemvalue="JUnit.TestParserDot.testParse13a2" />
       <item itemvalue="JUnit.TestParserDot.testParse2b" />
       <item itemvalue="JUnit.TestParserDot.testParse2c" />
-      <item itemvalue="JUnit.TestParserDot.testParse9c" />
-      <item itemvalue="JUnit.TestParserDot.testParse13c" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="JUnit.TestParserDot (1)" />
+        <item itemvalue="JUnit.TestParserDot.testIOLabel4" />
         <item itemvalue="JUnit.TestParserDot.testParse13a2" />
         <item itemvalue="JUnit.TestParserDot.testParse2c" />
         <item itemvalue="JUnit.TestParserDot.testParse2b" />
-        <item itemvalue="JUnit.TestParserDot" />
-        <item itemvalue="JUnit.TestParserDot.testParse9c" />
       </list>
     </recent_temporary>
   </component>
@@ -732,7 +735,7 @@
       <workItem from="1754180829133" duration="3498000" />
       <workItem from="1754253307606" duration="7797000" />
       <workItem from="1754357660225" duration="11586000" />
-      <workItem from="1754422537072" duration="4008000" />
+      <workItem from="1754422537072" duration="4761000" />
     </task>
     <task id="LOCAL-00001" summary="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer).">
       <created>1651266068784</created>
@@ -923,7 +926,15 @@
       <option name="project" value="LOCAL" />
       <updated>1754374369803</updated>
     </task>
-    <option name="localTasksCounter" value="27" />
+    <task id="LOCAL-00027" summary="Revised dot support to handle reject-states">
+      <option name="closed" value="true" />
+      <created>1754431659703</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1754431659703</updated>
+    </task>
+    <option name="localTasksCounter" value="28" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1010,7 +1021,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Removed unused seekUsages" />
     <MESSAGE value="Erlang Module tests now pass in Erlang 24." />
     <MESSAGE value="Erlang Module tests now pass in Erlang Otp 24." />
     <MESSAGE value="More Erlang tests pass, many Synapse tests still fail." />
@@ -1035,7 +1045,8 @@
     <MESSAGE value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.&#10;Minor other improvements such as a missing assertion in generatePosNegTestHelper." />
     <MESSAGE value="Extended support for dot format, minor other changes." />
     <MESSAGE value="Further extension of support for dot format, added apps to visualise dot and to numerically evaluate the difference between dot files." />
-    <option name="LAST_COMMIT_MESSAGE" value="Further extension of support for dot format, added apps to visualise dot and to numerically evaluate the difference between dot files." />
+    <MESSAGE value="Revised dot support to handle reject-states" />
+    <option name="LAST_COMMIT_MESSAGE" value="Revised dot support to handle reject-states" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1111,14 +1122,14 @@
           <option name="timeStamp" value="137" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java</url>
-          <line>1134</line>
-          <option name="timeStamp" value="139" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java</url>
           <line>269</line>
           <option name="timeStamp" value="140" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/LabelInputOutput.java</url>
+          <line>119</line>
+          <option name="timeStamp" value="146" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

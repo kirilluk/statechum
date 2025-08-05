@@ -120,7 +120,7 @@ public class LabelInputOutput implements Label {
 		if (!(obj instanceof LabelInputOutput) || !input.equals(((LabelInputOutput)obj).input))
 			return false;
 
-		return !ioPair || !output.equals(((LabelInputOutput)obj).output);
+		return !ioPair || output.equals(((LabelInputOutput)obj).output);
 	}
 
 	@SuppressWarnings("BooleanMethodIsAlwaysInverted")

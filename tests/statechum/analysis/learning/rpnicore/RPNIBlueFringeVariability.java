@@ -23,7 +23,7 @@ import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.RPNIUniversalLearner;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS.TracesForSeed.Automaton;
+import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS2.TracesForSeed.Automaton;
 import statechum.analysis.learning.observers.DummyLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.SiccoGeneralScoring;

@@ -64,7 +64,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceFMeasure;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.TrueFalseCounter;
-import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS;
+import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS2;
 import statechum.analysis.learning.linear.GD;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -82,7 +82,7 @@ import weka.classifiers.Classifier;
 import weka.core.Instances;
 
 /** This was an experiment to see how different choices affect the outcome of learning of the UAS automaton. */
-public class UASPairQuality extends ExperimentPaperUAS
+public class UASPairQuality extends ExperimentPaperUAS2
 {
     public static final int pairchoiceMIN=-2, pairchoiceMAX=-1, pairchoiceORIG=-3;
 
@@ -602,10 +602,10 @@ public class UASPairQuality extends ExperimentPaperUAS
          
  		final int offset=1;
      	Reader []inputFiles = new Reader[args.length-offset];for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(args[i]); 
-     	int maxFrame = paper.getMaxFrame(inputFiles);
+     	int maxFrame = paper.getMaxFrame(inputFiles, true);
      	paper.divisor = (maxFrame+1)/10;// the +1 ensures that the last class of frames includes the last point.
      	for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(args[i]);// refill the input (it was drained by the computation of maxFrame).
-     	paper.loadDataByConcatenation(inputFiles);
+     	paper.loadDataByConcatenation(inputFiles, true);
         	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
         	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
 
@@ -638,10 +638,10 @@ public class UASPairQuality extends ExperimentPaperUAS
          
  		final int offset=1;
      	Reader []inputFiles = new Reader[args.length-offset];for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(args[i]); 
-     	int maxFrame = paper.getMaxFrame(inputFiles);
+     	int maxFrame = paper.getMaxFrame(inputFiles, true);
      	paper.divisor = (maxFrame+1)/10;// the +1 ensures that the last class of frames includes the last point.
      	for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(args[i]);// refill the input (it was drained by the computation of maxFrame).
-     	paper.loadData(inputFiles);
+     	paper.loadData(inputFiles, true);
         	LearnerGraph referenceGraphWithNeg = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPersistence.loadGraph("resources/largePTA/outcome_correct", referenceGraphWithNeg, paper.learnerInitConfiguration.getLabelConverter());
         	LearnerGraph referenceGraph = new LearnerGraph(paper.learnerInitConfiguration.config);AbstractPathRoutines.removeRejectStates(referenceGraphWithNeg,referenceGraph);
      	

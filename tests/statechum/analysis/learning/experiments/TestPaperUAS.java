@@ -30,7 +30,8 @@ import statechum.analysis.learning.PairOfPaths;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.experiments.PairSelection.UASPairQuality;
 import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS;
-import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS.TracesForSeed;
+import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS2.TracesForSeed;
+import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS2;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -44,7 +45,7 @@ import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 public class TestPaperUAS extends TestWithMultipleConfigurations 
 {
 
-	protected ExperimentPaperUAS paper;
+	protected ExperimentPaperUAS2 paper;
 	
 	@Parameterized.Parameters
 	public static Collection<Object[]> data() 
@@ -65,7 +66,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	@Before
 	public void BeforeTests()
 	{
-		paper = new ExperimentPaperUAS();paper.learnerInitConfiguration.config = mainConfiguration;
+		paper = new ExperimentPaperUAS2();paper.learnerInitConfiguration.config = mainConfiguration;
 		paper.learnerInitConfiguration.setLabelConverter( paper.learnerInitConfiguration.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null );
 	}
 	
@@ -77,8 +78,8 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		paper.loadData(new StringReader(""));
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		
-		Assert.assertEquals(-1,paper.getMaxFrame(new Reader[]{}));
-		Assert.assertEquals(-1,paper.getMaxFrame(new Reader[]{new StringReader("")}));
+		Assert.assertEquals(-1,paper.getMaxFrame(new Reader[]{}, true));
+		Assert.assertEquals(-1,paper.getMaxFrame(new Reader[]{new StringReader("")}, true));
 	}
 
 	/** Empty line */
@@ -128,7 +129,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		statechum.TestHelper.checkForCorrectException(() -> paper.loadData(new StringReader("-1,UAV3,4, + [[aa]]")),IllegalArgumentException.class,"failed to lex");
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 	}
-	
+
 	/** A single trace, with non-zero initial timestamp. */
 	@Test
 	public void testLoad3a2()
@@ -185,7 +186,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		statechum.TestHelper.checkForCorrectException(
-				() -> paper.loadData(new StringReader("0,"+ExperimentPaperUAS.UAVAll+",4, + [[aa]]")),IllegalArgumentException.class,"UAV name");
+				() -> paper.loadData(new StringReader("0,"+ ExperimentPaperUAS2.UAVAll+",4, + [[aa]]")),IllegalArgumentException.class,"UAV name");
 	}
 	
 	/** A single trace, invalid UAV name. */
@@ -194,7 +195,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		statechum.TestHelper.checkForCorrectException(
-				() -> paper.loadData(new StringReader("0,"+ExperimentPaperUAS.UAVAllSeeds+",4, + [[aa]]")),IllegalArgumentException.class,"UAV name");
+				() -> paper.loadData(new StringReader("0,"+ExperimentPaperUAS2.UAVAllSeeds+",4, + [[aa]]")),IllegalArgumentException.class,"UAV name");
 	}
 	
 	/** A single trace, invalid seed name. */
@@ -203,7 +204,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	{
 		Assert.assertTrue(paper.collectionOfTraces.isEmpty());
 		statechum.TestHelper.checkForCorrectException(
-				() -> paper.loadData(new StringReader("0,valid,"+ExperimentPaperUAS.UAVAllSeeds+", + [[aa]]")),IllegalArgumentException.class,"seed name");
+				() -> paper.loadData(new StringReader("0,valid,"+ExperimentPaperUAS2.UAVAllSeeds+", + [[aa]]")),IllegalArgumentException.class,"seed name");
 	}
 
 	/** A single trace, cannot parse. */
@@ -257,10 +258,10 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		Map<Integer,Set<List<Label>>> uav3Negative= constructCollectionOfTraces(tr.tracesForUAVandFrame.get("UAV3"),false);
 		Assert.assertEquals(1,uav3Negative.size());
 		Assert.assertTrue(uav3Negative.get(0).isEmpty());
-		Map<Integer,Set<List<Label>>> uav3PositiveAll = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(ExperimentPaperUAS.UAVAll),true);
+		Map<Integer,Set<List<Label>>> uav3PositiveAll = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(ExperimentPaperUAS2.UAVAll),true);
 		Assert.assertEquals(1,uav3PositiveAll.size());
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}}, mainConfiguration, converter), uav3PositiveAll.get(0));
-		Map<Integer,Set<List<Label>>> uav3NegativeAll = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(ExperimentPaperUAS.UAVAll),false);
+		Map<Integer,Set<List<Label>>> uav3NegativeAll = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(ExperimentPaperUAS2.UAVAll),false);
 		Assert.assertEquals(1,uav3NegativeAll.size());
 		Assert.assertTrue(uav3NegativeAll.get(0).isEmpty());
 	}
@@ -326,11 +327,11 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb", "Fcc"}}, mainConfiguration, converter), uav55Negative.get(0));
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb", "Fcc"}}, mainConfiguration, converter), uav55Negative.get(1));
 
-		Map<Integer,Set<List<Label>>> uavAllPositive = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(ExperimentPaperUAS.UAVAll),true);
+		Map<Integer,Set<List<Label>>> uavAllPositive = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(ExperimentPaperUAS2.UAVAll),true);
 		Assert.assertEquals(2,uavAllPositive.size());
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}, new String[]{"qq"}, new String[]{"bb", "cc"}}, mainConfiguration, converter), uavAllPositive.get(0));
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}, new String[]{"qq"}, new String[]{"Taa"}, new String[]{"bb", "cc"}}, mainConfiguration, converter), uavAllPositive.get(1));
-		Map<Integer,Set<List<Label>>> uavAllNegative = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(ExperimentPaperUAS.UAVAll),false);
+		Map<Integer,Set<List<Label>>> uavAllNegative = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(ExperimentPaperUAS2.UAVAll),false);
 		Assert.assertEquals(2,uavAllNegative.size());
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb", "Fcc"},
 				new String[]{"zz"}}, mainConfiguration, converter), uavAllNegative.get(0));
@@ -360,12 +361,12 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb", "Fcc"}}, mainConfiguration, converter), uav55Negative.get(1));
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb", "Fcc"}}, mainConfiguration, converter), uav55Negative.get(2));
 
-		Map<Integer,Set<List<Label>>> uavAllPositive = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(ExperimentPaperUAS.UAVAll),true);
+		Map<Integer,Set<List<Label>>> uavAllPositive = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(ExperimentPaperUAS2.UAVAll),true);
 		Assert.assertEquals(3,uavAllPositive.size());
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}, new String[]{"qq"}, new String[]{"bb", "cc"}}, mainConfiguration, converter), uavAllPositive.get(0));
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}, new String[]{"qq"}, new String[]{"Taa"}, new String[]{"bb", "cc"}}, mainConfiguration, converter), uavAllPositive.get(1));
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"anotherOne"}, new String[]{"aa"}, new String[]{"qq"}, new String[]{"Taa"}, new String[]{"bb", "cc"}}, mainConfiguration, converter), uavAllPositive.get(2));
-		Map<Integer,Set<List<Label>>> uavAllNegative = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(ExperimentPaperUAS.UAVAll),false);
+		Map<Integer,Set<List<Label>>> uavAllNegative = constructCollectionOfTraces(tr.tracesForUAVandFrame.get(ExperimentPaperUAS2.UAVAll),false);
 		Assert.assertEquals(3,uavAllNegative.size());
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb", "Fcc"},
 				new String[]{"zz"}}, mainConfiguration, converter), uavAllNegative.get(0));
@@ -409,10 +410,10 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		
 		Assert.assertFalse(tr2.tracesForUAVandFrame.containsKey("UAV55"));
 		
-		TracesForSeed trAll = paper.collectionOfTraces.get(ExperimentPaperUAS.UAVAllSeeds);
+		TracesForSeed trAll = paper.collectionOfTraces.get(ExperimentPaperUAS2.UAVAllSeeds);
 		Assert.assertEquals(1,trAll.tracesForUAVandFrame.size());
-		Map<Integer,Set<List<Label>>> uavAllPositiveAll = constructCollectionOfTraces(trAll.tracesForUAVandFrame.get(ExperimentPaperUAS.UAVAllSeeds),true);
-		Map<Integer,Set<List<Label>>> uavAllNegativeAll = constructCollectionOfTraces(trAll.tracesForUAVandFrame.get(ExperimentPaperUAS.UAVAllSeeds),false);
+		Map<Integer,Set<List<Label>>> uavAllPositiveAll = constructCollectionOfTraces(trAll.tracesForUAVandFrame.get(ExperimentPaperUAS2.UAVAllSeeds),true);
+		Map<Integer,Set<List<Label>>> uavAllNegativeAll = constructCollectionOfTraces(trAll.tracesForUAVandFrame.get(ExperimentPaperUAS2.UAVAllSeeds),false);
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}, new String[]{"Taa"}}, mainConfiguration, converter), uavAllPositiveAll.get(0));
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa"}, new String[]{"Taa"}, new String[]{"qq"}, new String[]{"anotherOne"}}, mainConfiguration, converter), uavAllPositiveAll.get(1));
 		Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"Faa"}, new String[]{"bb"}}, mainConfiguration, converter), uavAllNegativeAll.get(0));
@@ -423,9 +424,9 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	@Test
 	public void testGetMaxFrame()
 	{
-		Assert.assertEquals(0,paper.getMaxFrame(new Reader[]{new StringReader("0,UAV3,4, + [[aa]]")}));
-		Assert.assertEquals(10,paper.getMaxFrame(new Reader[]{new StringReader("10,UAV3,4, + [[aa]]")}));
-		Assert.assertEquals(10,paper.getMaxFrame(new Reader[]{new StringReader("10,UAV3,40, + [[aa]]\n" + "0,UAV3,4, + [[aa]]")}));		
+		Assert.assertEquals(0,paper.getMaxFrame(new Reader[]{new StringReader("0,UAV3,4, + [[aa]]")}, true));
+		Assert.assertEquals(10,paper.getMaxFrame(new Reader[]{new StringReader("10,UAV3,4, + [[aa]]")}, true));
+		Assert.assertEquals(10,paper.getMaxFrame(new Reader[]{new StringReader("10,UAV3,40, + [[aa]]\n" + "0,UAV3,4, + [[aa]]")}, true));
 	}
 	
 	@Test
@@ -433,7 +434,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	{
 		statechum.TestHelper.checkForCorrectException(
 				() -> paper.loadDataByConcatenation(new Reader[]{new StringReader("0,UAV3,4, + [[aa]]\n"
-		)}),IllegalArgumentException.class,"should contain at least two");
+		)}, true),IllegalArgumentException.class,"should contain at least two");
 	}
 	
 	/** not same as the starting element of a the same trace */
@@ -442,7 +443,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	{
 		statechum.TestHelper.checkForCorrectException(
 				() -> paper.loadDataByConcatenation(new Reader[]{new StringReader("0,UAV3,4, + [[aa,bb]]\n"
-		)}),IllegalArgumentException.class,"each positive trace");
+		)}, true),IllegalArgumentException.class,"each positive trace");
 	}
 	
 	/** not same as the starting element of a the same trace */
@@ -451,7 +452,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	{
 		statechum.TestHelper.checkForCorrectException(
 				() -> paper.loadDataByConcatenation(new Reader[]{new StringReader("0,UAV3,4, + [[aa,cc,bb]]\n"
-		)}),IllegalArgumentException.class,"each positive trace");
+		)}, true),IllegalArgumentException.class,"each positive trace");
 	}
 	
 	/** not same as the starting element of an existing positive trace */
@@ -460,7 +461,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	{
 		statechum.TestHelper.checkForCorrectException(
 				() -> paper.loadDataByConcatenation(new Reader[]{new StringReader("0,UAV3,4, + [[aa,cc,aa]]\n"+"0,UAV3,4, + [[bb,cc,bb]]\n"
-		)}),IllegalArgumentException.class,"last positive trace");
+		)}, true),IllegalArgumentException.class,"last positive trace");
 	}
 	
 	/** not same as the starting element of a the same trace */
@@ -468,7 +469,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	public void testLoadByConcatenationFail5()
 	{
 		paper.loadDataByConcatenation(new Reader[]{new StringReader("0,UAV55,4, - [[Faa],[bb]]\n"
-			)});
+			)}, true);
 		TracesForSeed tr4 = paper.collectionOfTraces.get("4");
 		Map<Integer,Set<List<Label>>> uav55Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV55"),true);
 		Map<Integer,Set<List<Label>>> uav55Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV55"),false);
@@ -484,7 +485,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 				"0,UAV3,SEED2, + [[aa,bb,cc,aa]]\n"+
 				"1,UAV55,4, + [[qq,aa,qq]]\n"+
 				"1,UAV3,SEED2, + [[aa,gg,aa]]"
-		)});
+		)}, true);
 		TracesForSeed tr4 = paper.collectionOfTraces.get("4");
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
@@ -527,7 +528,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 				"0,UAV3,4, - [[nn,rr]]\n"+
 				"1,UAV3,4, + [[aa,gg,aa]]\n"+
 				"1,UAV3,4, - [[Rnn,Rrr]]\n"
-		)});
+		)}, true);
 		TracesForSeed tr4 = paper.collectionOfTraces.get("4");
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
@@ -548,7 +549,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 				"0,UAV3,4, - [[nn,rr]]\n"+
 				"1,UAV3,4, + [[aa,gg,aa]]\n"+
 				"1,UAV3,4, - [[Rnn,Rrr]]\n"
-		)});
+		)}, true);
 		TracesForSeed tr4 = paper.collectionOfTraces.get("4");
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
@@ -569,7 +570,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 				"0,UAV3,4, + [[aa,bb,cc,aa]]\n"+
 				"0,UAV3,4, - [[nn,rr]]\n"+
 				"1,UAV3,4, + [[aa,gg,aa]]\n"
-		)});
+		)}, true);
 		TracesForSeed tr4 = paper.collectionOfTraces.get("4");
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
@@ -933,19 +934,19 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	@Test
 	public void testLearnIfThen1()
 	{
-		Assert.assertTrue(ExperimentPaperUAS.learnIfThen(new LearnerGraph(mainConfiguration), 0,0).isEmpty());
+		Assert.assertTrue(ExperimentPaperUAS2.learnIfThen(new LearnerGraph(mainConfiguration), 0,0).isEmpty());
 	}
 	
 	@Test
 	public void testLearnIfThen2()
 	{
-		Assert.assertTrue(ExperimentPaperUAS.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 0,0.5).isEmpty());
+		Assert.assertTrue(ExperimentPaperUAS2.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 0,0.5).isEmpty());
 	}
 
 	@Test
 	public void testLearnIfThen3()
 	{
-		Map<Label,Map<Label,Double>> outcome = ExperimentPaperUAS.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 0,0);
+		Map<Label,Map<Label,Double>> outcome = ExperimentPaperUAS2.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
 		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter);
 		Map<Label,Double> entry = outcome.get(a);Assert.assertEquals(0.5, entry.get(a),Configuration.fpAccuracy);
@@ -954,7 +955,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	@Test
 	public void testLearnIfThen4()
 	{
-		Map<Label,Map<Label,Double>> outcome = ExperimentPaperUAS.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a->E", "testLearnIfThen4", mainConfiguration,converter), 0,0);
+		Map<Label,Map<Label,Double>> outcome = ExperimentPaperUAS2.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a->E", "testLearnIfThen4", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
 		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter);
 		Map<Label,Double> entry = outcome.get(a);Assert.assertEquals(0.75, entry.get(a),Configuration.fpAccuracy);
@@ -963,19 +964,19 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	@Test
 	public void testLearnIfThen5()
 	{
-		Assert.assertTrue(ExperimentPaperUAS.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 1,0).isEmpty());
+		Assert.assertTrue(ExperimentPaperUAS2.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-b->D", "testLearnIfThen2", mainConfiguration,converter), 1,0).isEmpty());
 	}
 
 	@Test
 	public void testLearnIfThen6()
 	{
-		Assert.assertTrue(ExperimentPaperUAS.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter), 0,0).isEmpty());
+		Assert.assertTrue(ExperimentPaperUAS2.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a-#E", "testLearnIfThen5", mainConfiguration,converter), 0,0).isEmpty());
 	}
 
 	@Test
 	public void testLearnIfThen7()
 	{
-		Map<Label,Map<Label,Double>> outcome = ExperimentPaperUAS.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a->E-a->A-b-#F", "testLearnIfThen6", mainConfiguration,converter), 0,0);
+		Map<Label,Map<Label,Double>> outcome = ExperimentPaperUAS2.learnIfThen(FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-a->E-a->A-b-#F", "testLearnIfThen6", mainConfiguration,converter), 0,0);
 		Assert.assertEquals(1,outcome.size());
 		Label a= AbstractLearnerGraph.generateNewLabel("a", mainConfiguration,converter),b= AbstractLearnerGraph.generateNewLabel("b", mainConfiguration,converter);
 		Map<Label,Double> entryA = outcome.get(a);Assert.assertEquals(1, entryA.get(a),Configuration.fpAccuracy);Assert.assertEquals(-0.2, entryA.get(b),Configuration.fpAccuracy);

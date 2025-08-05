@@ -232,14 +232,16 @@ public class ExperimentPaperUAS2
     
     private static final String lexerRegexp = "(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(\\w+)\\s*,\\s*(.*)";
 
-    /** Loads traces from the file and returns the maximal frame number.
-     *  
-     * @param inputData
-     */
-    public int getMaxFrame(final Reader []inputData)
+    /**
+	 * Loads traces from the file and returns the maximal frame number.
+	 *
+	 * @param inputData data to load
+	 * @param reportExceptions whether to throw an exception if data loading failed. Normally true but it helps for it to be false when we run experiment on a grid.
+	 */
+    public int getMaxFrame(final Reader []inputData, boolean reportExceptions)
     {
     	final AtomicInteger maxFrame=new AtomicInteger(-1);
-        scanData(inputData, new HandleOneTrace() {
+        scanData(inputData, reportExceptions, new HandleOneTrace() {
 			
 			@Override
 			public void process(final int frame, @SuppressWarnings("unused") final String UAV, @SuppressWarnings("unused") final String seed, @SuppressWarnings("unused") final String traceToLoad) {
@@ -260,22 +262,23 @@ public class ExperimentPaperUAS2
     
     public void loadData(final Reader inputData)
     {
-    	loadData(new Reader[]{inputData});
+    	loadData(new Reader[]{inputData}, true);
     }
     
-    /** Loads traces from the file into the pair of positive/negative maps,
-     * parameterised by UAV and timeframe.
-     *  
-     * @param inputData data to load
-     */
-    public void loadData(final Reader []inputData)
+    /**
+	 * Loads traces from the file into the pair of positive/negative maps,
+	 * parameterised by UAV and timeframe.
+	 *
+	 * @param inputData        data to load
+	 * @param reportExceptions whether to throw an exception if data loading failed. Normally true but it helps for it to be false when we run experiment on a grid.
+	 */
+    public void loadData(final Reader []inputData, boolean reportExceptions)
     {
         final Map<String,TracesForSeed> data = new TreeMap<>();
         final Set<String> UAVs = new TreeSet<>();UAVs.add(UAVAll);UAVs.add(UAVAllSeeds);
         final Set<Integer> frameNumbers = new TreeSet<>();
-		data.computeIfAbsent(UAVAllSeeds,s -> new TracesForSeed());
 
-        scanData(inputData, new HandleOneTrace() {
+        scanData(inputData, reportExceptions, new HandleOneTrace() {
 			
 			@Override
 			public void process(final int frame, final String UAV, final String seed, final String traceToLoad) {
@@ -284,8 +287,8 @@ public class ExperimentPaperUAS2
 
              	synchronized(data)
              	{// synchronized permits running a different input file in a separate thread, speeding-up the loading process
+					data.computeIfAbsent(UAVAllSeeds,s -> new TracesForSeed());
 	             	dataForSeedTmp = data.computeIfAbsent(seed, s -> new TracesForSeed());
-
 				}
              	final TracesForSeed dataForSeed = dataForSeedTmp;
              	synchronized(dataForSeed)
@@ -357,14 +360,16 @@ public class ExperimentPaperUAS2
    
    Map<Integer,AtomicInteger> statisticsOfLength = null;//new LinkedHashMap<Integer,AtomicInteger>(); 
    
-    /** Loads traces from the file into the pair of positive/negative maps,
-     * parameterised by UAV and timeframe. The process is to assume a specific starting point and concatenate the following 
-     * negative traces with it, until we meet a positive trace. After concatenation of that positive trace, we have a revised starting point.
-     * Every time a new timeframe is encountered, record the old starting point trace and start appending new traces to it. 
-     *  
-     * @param inputData data to load
-     */
-    public void loadDataByConcatenation(final Reader []inputData)
+    /**
+	 * Loads traces from the file into the pair of positive/negative maps,
+	 * parameterised by UAV and timeframe. The process is to assume a specific starting point and concatenate the following
+	 * negative traces with it, until we meet a positive trace. After concatenation of that positive trace, we have a revised starting point.
+	 * Every time a new timeframe is encountered, record the old starting point trace and start appending new traces to it.
+	 *
+	 * @param inputData        data to load
+	 * @param reportExceptions whether to throw an exception if data loading failed. Normally true but it helps for it to be false when we run experiment on a grid.
+	 */
+    public void loadDataByConcatenation(final Reader []inputData, boolean reportExceptions)
     {
         final Map<String,TracesForSeed> data = new TreeMap<>();
         final Set<String> UAVs = new TreeSet<>();UAVs.add(UAVAll);UAVs.add(UAVAllSeeds);
@@ -375,7 +380,7 @@ public class ExperimentPaperUAS2
     		TracesForSeed dataForSeedTmp = new TracesForSeed();data.put(UAVAllSeeds,dataForSeedTmp);dataForSeedTmp.lastPointOnTrace= new TreeMap<>();
     	}
         
-        scanData(inputData, new HandleOneTrace() {
+        scanData(inputData, reportExceptions, new HandleOneTrace() {
 			
 			@Override
 			public void process(final int frame, final String UAV, final String seed, final String traceToLoad) {
@@ -384,7 +389,7 @@ public class ExperimentPaperUAS2
             	TracesForSeed dataForSeedTmp = null;
             	
             	synchronized(data)
-            	{// synchronized permits running a different input file in a separate thread, speeding-up the loading process
+            	{// synchronized permits running a different input file (hence different seed) in a separate thread, speeding-up the loading process
             		dataForSeedTmp = data.get(seed);
                  	if (dataForSeedTmp == null)
                  	{
@@ -415,7 +420,7 @@ public class ExperimentPaperUAS2
 
 	            	final List<Label> lastPositiveTrace = dataForSeed.lastPointOnTrace.get(UAV);
 	            	if (frameNumber > dataForSeed.maxFrameNumber.get(UAV) && dataForSeed.maxFrameNumber.get(UAV) >=0)
-	            	// new frame started, dump the last positive sequence
+	            	// new frame started (and is not the first frame), dump the last positive sequence
 	            		AddLastPositiveTrace(seed, UAV, data);
 	            	
 	              	dataForSeed.maxFrameNumber.put(UAV, frameNumber);
@@ -506,7 +511,10 @@ public class ExperimentPaperUAS2
 			{
 				System.out.println("UAV: "+uavToMaxFrame.getKey()+" maxFrame: "+uavToMaxFrame.getValue());
 				Set<List<Label>> traces=traceEntry.getValue().collectionOfPositiveTraces.get(uavToMaxFrame.getKey()).get(maxFrameNumber);
-				System.out.println("positive traces for this UAV: "+traces.size());
+				if (null != traces)
+					System.out.println("positive traces for this UAV: "+traces.size());
+				else
+					System.out.println("No positive traces for this UAV");
 			}
     	}
    }
@@ -582,12 +590,14 @@ public class ExperimentPaperUAS2
     	System.out.println("constructSequencesForAllUAVandFrame finished "+new Date());
     }
 
-    /** Loads traces from the file, calling the user-supplied observer for every line.
-     *  
-     * @param inputData data to load
-     * @param loader called for each line
+    /**
+     * Loads traces from the file, calling the user-supplied observer for every line.
+     *
+     * @param inputData        data to load
+     * @param reportExceptions
+     * @param loader           called for each line
      */
-    public void scanData(Reader []inputData,final HandleOneTrace loader)
+    public void scanData(Reader []inputData, boolean reportExceptions, final HandleOneTrace loader)
     {
 		List<Future<String>> results = new LinkedList<>();
 		/*
@@ -637,7 +647,19 @@ public class ExperimentPaperUAS2
 	        for(Future<String> computationOutcome:results)
 	        	computationOutcome.get();
 			//System.out.println("RESULT: "+computationOutcome.get());
-		} catch (Exception e) {// here we ignore the exceptions, since a failure in a learner will manifest itself as a failure recorded in a file. In a grid environment, this (reading a file) is the only way we can learn about a failure, hence let post-processor handle this case. 
+		}
+		catch(java.util.concurrent.ExecutionException e) {
+			Throwable cause = e.getCause();
+			if (cause instanceof RuntimeException)
+				throw (RuntimeException) cause;
+			statechum.Helper.throwUnchecked("Failed to load traces",cause);// no idea what to do with this exception, re-throwing it.
+		}
+		catch(NumberFormatException e) {
+			throw e;// this is a parse failure that we are best report unchanged (rather than wrapping into IllegalArgumentException below).
+		}
+		catch (Exception e) {// here we ignore the exceptions, since a failure in a learner will manifest itself as a failure recorded in a file. In a grid environment, this (reading a file) is the only way we can learn about a failure, hence let post-processor handle this case.
+            if (reportExceptions)
+                statechum.Helper.throwUnchecked("Failed to load traces",e);
 			//System.out.println("FAILED");
 			//e.printStackTrace();
 		}
@@ -1028,14 +1050,14 @@ public class ExperimentPaperUAS2
         paper.learnerInitConfiguration.config.setUseConstraints(false);
  		final int offset=2;
      	Reader []inputFiles = new Reader[args.length-offset];for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(path+File.separator+args[i]); 
-     	int maxFrame = paper.getMaxFrame(inputFiles);
+     	int maxFrame = paper.getMaxFrame(inputFiles, true);
      	paper.divisor = (maxFrame+1)/20;// the +1 ensures that the last class of frames includes the last point.
      	for(int i=offset;i<args.length;++i) inputFiles[i-offset]=new FileReader(path+File.separator+args[i]);// refill the input (it was drained by the computation of maxFrame).
      	
      	if (concatenateTraces)
-     		paper.loadDataByConcatenation(inputFiles);
+     		paper.loadDataByConcatenation(inputFiles, false);
      	else
-     		paper.loadData(inputFiles);
+     		paper.loadData(inputFiles, false);
  		
      	return paper;
  	}

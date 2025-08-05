@@ -17,7 +17,7 @@ import statechum.Configuration.STATETREE;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.InitialConfigurationAndData;
-import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS;
+import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS2;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.TestWithMultipleConfigurations;
@@ -30,7 +30,7 @@ import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 public class TestPaperUASLarge extends TestWithMultipleConfigurations
 {
 
-	protected ExperimentPaperUAS paper;
+	protected ExperimentPaperUAS2 paper;
 	
 	@Parameters
 	public static Collection<Object[]> data() 
@@ -51,7 +51,7 @@ public class TestPaperUASLarge extends TestWithMultipleConfigurations
 	@Before
 	public void BeforeTests()
 	{
-		paper = new ExperimentPaperUAS();paper.learnerInitConfiguration.config = mainConfiguration;
+		paper = new ExperimentPaperUAS2();paper.learnerInitConfiguration.config = mainConfiguration;
 		paper.learnerInitConfiguration.setLabelConverter( paper.learnerInitConfiguration.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null );
 	}
 	

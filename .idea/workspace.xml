@@ -4,14 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Extended support for dot format, minor other changes.">
-      <change afterPath="$PROJECT_DIR$/src/statechum/apps/DotStructuralDifference.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/statechum/apps/DotVisualiser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestTransform.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestTransform.java" afterDir="false" />
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Further extension of support for dot format, added apps to visualise dot and to numerically evaluate the difference between dot files.">
+      <change beforePath="$PROJECT_DIR$/src/statechum/apps/WMethodBetweenDotAutomata.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/apps/WMethodBetweenDotAutomata.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
@@ -704,7 +698,7 @@
       <workItem from="1754161170545" duration="4020000" />
       <workItem from="1754180829133" duration="3498000" />
       <workItem from="1754253307606" duration="7797000" />
-      <workItem from="1754357660225" duration="11286000" />
+      <workItem from="1754357660225" duration="11586000" />
     </task>
     <task id="LOCAL-00001" summary="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer).">
       <created>1651266068784</created>
@@ -887,7 +881,15 @@
       <option name="project" value="LOCAL" />
       <updated>1754263676283</updated>
     </task>
-    <option name="localTasksCounter" value="26" />
+    <task id="LOCAL-00026" summary="Further extension of support for dot format, added apps to visualise dot and to numerically evaluate the difference between dot files.">
+      <option name="closed" value="true" />
+      <created>1754374369803</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1754374369803</updated>
+    </task>
+    <option name="localTasksCounter" value="27" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -974,7 +976,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Revised the version of typer so that one of the tests using typer now passes on Erlang 24." />
     <MESSAGE value="Removed unused seekUsages" />
     <MESSAGE value="Erlang Module tests now pass in Erlang 24." />
     <MESSAGE value="Erlang Module tests now pass in Erlang Otp 24." />
@@ -999,7 +1000,8 @@
     <MESSAGE value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful." />
     <MESSAGE value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.&#10;Minor other improvements such as a missing assertion in generatePosNegTestHelper." />
     <MESSAGE value="Extended support for dot format, minor other changes." />
-    <option name="LAST_COMMIT_MESSAGE" value="Extended support for dot format, minor other changes." />
+    <MESSAGE value="Further extension of support for dot format, added apps to visualise dot and to numerically evaluate the difference between dot files." />
+    <option name="LAST_COMMIT_MESSAGE" value="Further extension of support for dot format, added apps to visualise dot and to numerically evaluate the difference between dot files." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

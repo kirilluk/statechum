@@ -38,9 +38,9 @@ class WMethodBetweenDotAutomata {
          *
          * For example, running this from the Statechum root directory (the one containing bin and lib directories):
          * (Windows)
-         * java -cp bin;lib/modified_collections;lib/colt.jar;lib/commons-collections-3.1.jar;lib/jung-1.7.6.jar;lib/OtpErlang.jar statechum.apps.WMethodBetweenDotAutomata fileReference.dot fileHypothesis.dot __start 2
+         * java -cp bin;lib/modified_collections;lib/colt.jar;lib/commons-collections-3.1.jar;lib/jung-1.7.6.jar;lib/OtpErlang/24/OtpErlang.jar statechum.apps.WMethodBetweenDotAutomata fileReference.dot fileHypothesis.dot __start 2
          * (Linux)
-         * java -cp bin:lib/modified_collections:lib/colt.jar:lib/commons-collections-3.1.jar:lib/jung-1.7.6.jar:lib/OtpErlang.jar statechum.apps.WMethodBetweenDotAutomata fileReference.dot fileHypothesis.dot __start 2
+         * java -cp bin:lib/modified_collections:lib/colt.jar:lib/commons-collections-3.1.jar:lib/jung-1.7.6.jar:lib/OtpErlang/24/OtpErlang.jar statechum.apps.WMethodBetweenDotAutomata fileReference.dot fileHypothesis.dot __start 2
          */
         public static void main(String[] args) throws IOException {
                 String referenceDot = Helper.loadFile(new File(args[0]));

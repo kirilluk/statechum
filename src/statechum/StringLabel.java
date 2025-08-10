@@ -18,6 +18,8 @@
  */
 package statechum;
 
+import statechum.analysis.Erlang.ErlangLabel;
+
 /**
  * @author kirill
  *
@@ -35,8 +37,12 @@ public class StringLabel implements Label {
 	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 */
 	@Override
-	public int compareTo(Label o) {
-		return toErlangTerm().compareTo(((StringLabel)o).toErlangTerm());
+	public int compareTo(Label other) {
+		if (!(other instanceof StringLabel))
+			throw new IllegalArgumentException(
+				"Comparing an StringLabel to "+other.getClass().toString()+" that not a StringLabel");
+
+		return toErlangTerm().compareTo(((StringLabel)other).toErlangTerm());
 	}
 
 	/* (non-Javadoc)
@@ -52,6 +58,12 @@ public class StringLabel implements Label {
 	 */
 	@Override
 	public boolean equals(Object obj) {
+		if (obj == null)
+			return false;
+
+		if (!(obj instanceof StringLabel))
+			throw new IllegalArgumentException("Cannot compare StringLabel to "+obj.getClass().getName());
+
 		return label.equals(((StringLabel)obj).label);
 	}
 

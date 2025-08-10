@@ -1219,6 +1219,50 @@ public class Transform
 		return outcome;
 	}
 
+	/** Converts a Mealy automaton to iopair-automaton. This means that every label will now be an io pair.
+	 *
+	 * @return converted automaton
+	 */
+	public LearnerGraph convertToIOPairs() {
+		if (coregraph.config.getLabelKind() != Configuration.LABELKIND.LABEL_ATOMICPAIRS && coregraph.config.getLabelKind() != Configuration.LABELKIND.LABEL_INPUT_OUTPUT)
+			throw new IllegalArgumentException("Can only convert i/o automata");
+
+		Configuration cnf = coregraph.config.copy();cnf.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+		LearnerGraph result = new LearnerGraph(cnf);
+
+		Map<CmpVertex,CmpVertex> oldToNew = constructMap(result.config,coregraph);
+		result.initEmpty();
+		int idx = 0;
+		Map<LabelInputOutput,LabelInputOutput> labelToNumber = new HashMap<>();
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+		{// here we are replacing existing rows without creating new states.
+			// This is why associations (such as THENs) remain valid.
+			MapWithSearch<Label,Label,CmpVertex> row = result.createNewRow();result.transitionMatrix.put(entry.getKey(),row);
+			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet()) {
+				if (! (transition.getKey() instanceof LabelInputOutput))
+					throw new IllegalArgumentException("Can only convert io labels");
+				LabelInputOutput lbl = (LabelInputOutput)transition.getKey();
+
+				if (transition.getValue().isAccept()) {
+					LabelInputOutput newLabel = new LabelInputOutput(lbl.input,lbl.output,true,true);
+					LabelInputOutput l = labelToNumber.get(newLabel);
+					if (l == null) {
+						newLabel.setIdx(idx++);
+						labelToNumber.put(newLabel,newLabel);
+						l=newLabel;
+					}
+
+					result.addTransition(row,l, transition.getValue());
+				}
+			}
+
+			oldToNew.put(entry.getKey(), entry.getKey());// an identity map
+		}
+
+		finishConstructingLearnerGraphFromOldToNewMap(result, oldToNew);
+		return result;
+	}
+
 	/** Assuming that the current graph is an i/o automaton (each label is an i/o pair and from each state there
 	 * could be many transitions with the same input so long there is only one transition with the same i/o and
 	 * only one i/o transition for a given i leads to an accept-state), converts its labels to mealy automata,
@@ -1275,20 +1319,25 @@ public class Transform
 		result.learnerCache.invalidate();
 	}
 
-	/** Given a graph with potentially length output strings, replaces them with numbers and returns both the
+	/** Given a graph with potentially lengthy output strings, replaces them with numbers and returns both the
 	 * outcome of conversion and the map of new outputs to the original ones.
 	 *
 	 * @param numberingOfOutputs map of numbers to outputs. Will be populated with values if not empty.
+	 * @param useExistingNumbering if not null, will use the provided numbering to number outputs, updating it with new outputs
+	 * @param labelToNumber number of labels. If not null, will be used to provide number of labels.
+	 *                         Where two graphs are compared, it is necessary for them to have the same
+	 *                         number of labels otherwise a/b might be number 1 in one graph and 2 in another one,
+	 *                         making them appear different without being actually different
  	 * @return outcome of conversion
 	 */
-	public LearnerGraph numberOutputsAndStates(List<String> numberingOfOutputs) {
+	public LearnerGraph numberOutputsAndStates(boolean numberStates,List<String> numberingOfOutputs, MapWithSearch<String,String,Integer> useExistingNumbering, Map<LabelInputOutput,Integer> labelToNumber) {
 		if (coregraph.config.getLabelKind() != Configuration.LABELKIND.LABEL_INPUT_OUTPUT &&
 				coregraph.config.getLabelKind() != Configuration.LABELKIND.LABEL_ATOMICPAIRS
 		)
 			throw new IllegalArgumentException("Can only convert mealy or io automata");
 
 		int outputIdx=1, stateIdx = 1;
-		MapWithSearch<String,String,Integer> outputDatabase = new HashMapWithSearch<>(20);
+		MapWithSearch<String,String,Integer> outputDatabase = useExistingNumbering == null? new HashMapWithSearch<>(20):useExistingNumbering;
 		MapWithSearch<CmpVertex,CmpVertex,Integer> stateDatabase = new HashMapWithSearch<>(20);
 		if (numberingOfOutputs != null)
 			numberingOfOutputs.clear();
@@ -1297,13 +1346,18 @@ public class Transform
 		result.initEmpty();
 		Map<CmpVertex,CmpVertex> oldToNew = constructMap(result.config,coregraph);
 		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet()) {
-			Integer value = stateIdx++;
-			stateDatabase.put(entry.getKey(),value);
-			CmpVertex newState = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("S"+value),result.config);
-			newState.setAccept(entry.getKey().isAccept());
+			CmpVertex newState = entry.getKey();
+			if (numberStates) {
+				Integer value = stateIdx++;
+				stateDatabase.put(entry.getKey(), value);
+				newState = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("S" + value), result.config);
+				newState.setAccept(entry.getKey().isAccept());
+			}
 			oldToNew.put(entry.getKey(), newState);
 			MapWithSearch<Label,Label,CmpVertex> row = result.createNewRow();result.transitionMatrix.put(newState,row);
 		}
+
+		Map<LabelInputOutput,Integer> ioToNumber = labelToNumber == null? new TreeMap<>():labelToNumber;
 
 		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
 		{// here we are replacing existing rows without creating new states.
@@ -1321,8 +1375,11 @@ public class Transform
 					if (numberingOfOutputs != null)
 						numberingOfOutputs.add(lbl.output);
 				}
+				LabelInputOutput newLabel = new LabelInputOutput(lbl.input,value.toString(),true,lbl.ioPair);
+				int idx = ioToNumber.computeIfAbsent(newLabel,l -> ioToNumber.size());
+				newLabel.setIdx(idx);
 				result.addTransition(result.transitionMatrix.get(oldToNew.get(entry.getKey())),
-						new LabelInputOutput(lbl.input,value.toString(),true,lbl.ioPair),
+						newLabel,
 						oldToNew.get(transition.getValue()));
 			}
 

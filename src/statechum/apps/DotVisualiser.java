@@ -19,7 +19,8 @@ public class DotVisualiser {
         final Configuration configMealy = Configuration.getDefaultConfiguration().copy();
         configMealy.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
         String referenceDot = Helper.loadFile(new File(args[0]));
-        LearnerGraph graphToPlot = FsmParserDot.buildLearnerGraph(referenceDot, configMealy, null,true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).transform.convertIO().transform.numberOutputsAndStates(null);
+        LearnerGraph graphToPlot = FsmParserDot.buildLearnerGraph(referenceDot, configMealy, null,true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).
+                transform.convertIO().transform.numberOutputsAndStates(true,null,null, null);
         Visualiser graphVisualiser= new Visualiser(0);
         graphVisualiser.update(null,graphToPlot);Visualiser.waitForKey();
     }

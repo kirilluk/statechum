@@ -208,7 +208,8 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		{
 			targets = new LinkedList<>();row.put(input, targets);
 		}
-		else if (targets.contains(target)) throw new IllegalArgumentException("duplicate transition with input "+input+" to "+target);
+		else if (targets.contains(target))
+			throw new IllegalArgumentException("duplicate transition with label "+input+" to "+target+", existing transition has label "+row.findKey(input));
 		targets.add(target);
 	}
 

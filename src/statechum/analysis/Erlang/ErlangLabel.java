@@ -21,6 +21,7 @@ import com.ericsson.otp.erlang.*;
 import statechum.Configuration;
 import statechum.Helper;
 import statechum.Label;
+import statechum.LabelInputOutput;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 import statechum.analysis.Erlang.Signatures.Signature;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
@@ -142,10 +143,9 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 
 	@Override
 	public int compareTo(Label other) {
-		if (!(other instanceof ErlangLabel)) {
+		if (!(other instanceof ErlangLabel))
 			throw new IllegalArgumentException(
-					"Comparing an ErlangLabel to something thats not an ErlangLabel");
-		}
+					"Comparing an ErlangLabel to "+other.getClass().toString()+" that not an ErlangLabel");
 
 		return toErlangTerm().compareTo(other.toErlangTerm());
 	}
@@ -175,8 +175,12 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		if (!(obj instanceof  Label))
+		if (obj == null)
 			return false;
+
+		if (!(obj instanceof ErlangLabel))
+			throw new IllegalArgumentException("Cannot compare ErlangLabel to "+obj.getClass().getName());
+
 		return toErlangTerm().equals(((Label) obj).toErlangTerm());
 	}
 

@@ -1102,6 +1102,8 @@ public class TestParserDot {
                 configAtomicPairs,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
         LearnerGraph grConf = gr.transform.convertIO();
         Assert.assertNull(WMethod.checkM(grM, grM.getInit(),grConf,grConf.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+        LearnerGraph grBackToPairs = grConf.transform.convertToIOPairs();
+        Assert.assertNull(WMethod.checkM(grBackToPairs, grBackToPairs.getInit(),gr,gr.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
     }
     @Test
     // Tests that transition to reject-state is ignored by the pairs->mealy translation
@@ -1112,6 +1114,13 @@ public class TestParserDot {
                 configAtomicPairs,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
         LearnerGraph grConf = gr.transform.convertIO();
         Assert.assertNull(WMethod.checkM(grM, grM.getInit(),grConf,grConf.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+        LearnerGraph grBackToPairs = grConf.transform.convertToIOPairs();
+        // grBackToPairs will not have a reject-state thus we add it.
+        DeterministicDirectedSparseGraph.CmpVertex rejectState = AbstractLearnerGraph.generateNewCmpVertex(grBackToPairs.nextID(false), grBackToPairs.config);rejectState.setAccept(false);
+        grBackToPairs.transitionMatrix.put(rejectState,grBackToPairs.createNewRow());
+        grBackToPairs.addTransition(grBackToPairs.transitionMatrix.get(DeterministicDirectedSparseGraph.VertexID.parseID("b")),
+            AbstractLearnerGraph.generateNewLabel("u/g",grBackToPairs.config,null),rejectState);
+        Assert.assertNull(WMethod.checkM(grBackToPairs, grBackToPairs.getInit(),gr,gr.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
     }
     @Test
     public final void testParse13b() {
@@ -1121,6 +1130,8 @@ public class TestParserDot {
                 configAtomicPairs,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0);
         LearnerGraph grConf = gr.transform.convertIO();
         Assert.assertNull(WMethod.checkM(grM, grM.getInit(),grConf,grConf.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+        LearnerGraph grBackToPairs = grConf.transform.convertToIOPairs();
+        Assert.assertNull(WMethod.checkM(grBackToPairs, grBackToPairs.getInit(),gr,gr.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
     }
 
     @Test
@@ -1132,11 +1143,23 @@ public class TestParserDot {
         gr.findVertex("r").setAccept(false);// make r the reject state
         LearnerGraph grConf = gr.transform.convertIO();
         Assert.assertNull(WMethod.checkM(grM, grM.getInit(),grConf,grConf.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+        LearnerGraph grBackToPairs = grConf.transform.convertToIOPairs();
+        // grBackToPairs will not have a reject-state thus we add it.
+        DeterministicDirectedSparseGraph.CmpVertex rejectState = AbstractLearnerGraph.generateNewCmpVertex(grBackToPairs.nextID(false), grBackToPairs.config);rejectState.setAccept(false);
+        grBackToPairs.transitionMatrix.put(rejectState,grBackToPairs.createNewRow());
+        grBackToPairs.addTransition(grBackToPairs.transitionMatrix.get(DeterministicDirectedSparseGraph.VertexID.parseID("a")),
+                AbstractLearnerGraph.generateNewLabel("lbl/p",grBackToPairs.config,null),rejectState);
+        grBackToPairs.addTransition(grBackToPairs.transitionMatrix.get(DeterministicDirectedSparseGraph.VertexID.parseID("a")),
+                AbstractLearnerGraph.generateNewLabel("lbl/t",grBackToPairs.config,null),rejectState);
+        grBackToPairs.addTransition(grBackToPairs.transitionMatrix.get(DeterministicDirectedSparseGraph.VertexID.parseID("c")),
+                AbstractLearnerGraph.generateNewLabel("lbl/g",grBackToPairs.config,null),rejectState);
+
+        Assert.assertNull(WMethod.checkM(grBackToPairs, grBackToPairs.getInit(),gr,gr.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
 
         List<String> outputsA = new ArrayList<>();
-        LearnerGraph grM_int = grM.transform.numberOutputsAndStates(outputsA);
+        LearnerGraph grM_int = grM.transform.numberOutputsAndStates(true,outputsA,null);
         List<String> outputsB = new ArrayList<>();
-        LearnerGraph grConf_int = grConf.transform.numberOutputsAndStates(outputsB);
+        LearnerGraph grConf_int = grConf.transform.numberOutputsAndStates(true,outputsB,null);
         Assert.assertEquals(Arrays.asList("g","k","p"), outputsA);
         Assert.assertEquals(outputsA, outputsB);
         Assert.assertNull(WMethod.checkM(grM_int, grM_int.getInit(),grConf_int,grConf_int.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));

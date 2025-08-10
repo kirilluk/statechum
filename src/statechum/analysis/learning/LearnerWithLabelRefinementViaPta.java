@@ -36,6 +36,7 @@ import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.StringLabel;
+import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.StateMergingStatistics;
@@ -157,8 +158,11 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 		@Override
 		public boolean equals(Object obj) 
 		{
+			if (obj == null)
+				return false;
 			if (!(obj instanceof AbstractLabel))
 				throw new IllegalArgumentException("Cannot compare an abstract label with a non-abstract label");
+
 			return super.equals(obj) && labelsThisoneabstracts.equals(((AbstractLabel)obj).labelsThisoneabstracts);
 		}
 		

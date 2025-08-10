@@ -99,7 +99,9 @@ public class Configuration implements Cloneable {
 		// GENERAL_PLUS_NOFULLMERGE means two things:
 		// 1. scoring is based only on positive vertices, so if a number of negatives are merged, we do not count this towards a score. This gives a similar score to 'compatible' mergers and much better learning results.
 		// 2. that during a merger, we should not construct a full partition of vertices - those are left out are in singleton clusters. This is much faster but may fail where questions are generated.
-		CONVENTIONAL("CONV"), COMPATIBILITY("COMP"), KTAILS("KT"), KTAILS_ANY("KANY"), GENERAL("GEN"), GENERAL_NOFULLMERGE("GENN"), GENERAL_PLUS_NOFULLMERGE("GPLS"), ONLYOVERRIDE("OVR");
+		CONVENTIONAL("CONV"), COMPATIBILITY("COMP"), KTAILS("KT"), KTAILS_ANY("KANY"),
+		GENERAL("GEN"), GENERAL_NOFULLMERGE("GENN"),
+		GENERAL_PLUS_NOFULLMERGE("GPLS"), GENERAL_NOFULLMERGE_MEALY("MEALY"), ONLYOVERRIDE("OVR");
 
 		public final String name;
 		ScoreMode(String nameText)

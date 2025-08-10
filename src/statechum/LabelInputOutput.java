@@ -32,6 +32,8 @@ public class LabelInputOutput implements Label {
 	public final boolean errorTransition;
 	public final boolean ioPair;
 
+	int idx = -1;
+
 	/** Creates an io label.
 	 *
 	 * @param l text to parse into a label
@@ -97,11 +99,17 @@ public class LabelInputOutput implements Label {
 	 * @see java.lang.Comparable#compareTo(java.lang.Object)
 	 */
 	@Override
-	public int compareTo(Label o) {
+	public int compareTo(Label other) {
+		if (!(other instanceof LabelInputOutput))
+			throw new IllegalArgumentException(
+					"Comparing a LabelInputOutput to "+other.getClass()+" that not a LabelInputOutput");
+		if (((LabelInputOutput)other).ioPair != ioPair)
+			throw new IllegalArgumentException(
+					"Comparing a LabelInputOutput (ioPair="+ioPair+") to LabelInputOutput (ioPair="+((LabelInputOutput)other).ioPair+")");
 		if (ioPair)
-		  return label.compareTo( ((LabelInputOutput)o).label);
+		  return label.compareTo( ((LabelInputOutput)other).label);
 		else
-		  return input.compareTo( ((LabelInputOutput)o).input );
+		  return input.compareTo( ((LabelInputOutput)other).input );
 	}
 
 	/* (non-Javadoc)
@@ -109,6 +117,8 @@ public class LabelInputOutput implements Label {
 	 */
 	@Override
 	public int hashCode() {
+		if (ioPair)
+			return label.hashCode();
 		return input.hashCode();
 	}
 
@@ -117,7 +127,12 @@ public class LabelInputOutput implements Label {
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		if (!(obj instanceof LabelInputOutput) || !input.equals(((LabelInputOutput)obj).input))
+		if (obj == null)
+			return false;
+
+		if (!(obj instanceof LabelInputOutput))
+			throw new IllegalArgumentException("Cannot compare LabelInputOutput to "+obj.getClass().getName());
+		if (!input.equals(((LabelInputOutput)obj).input))
 			return false;
 
 		return !ioPair || output.equals(((LabelInputOutput)obj).output);
@@ -174,8 +189,14 @@ public class LabelInputOutput implements Label {
 		return label;
 	}
 
+	public void setIdx(int value) {
+		idx = value;
+	}
+
 	@Override
 	public int toInt() {
-		throw new UnsupportedOperationException("pairlabels do are not numbered by default, this label is "+label);
+		if (idx < 0)
+			throw new UnsupportedOperationException("pairlabels do are not numbered by default, this label is "+label);
+		return idx;
 	}
 }

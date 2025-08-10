@@ -407,6 +407,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			if (grCombined.config.getGdFailOnDuplicateNames()) throw new IllegalArgumentException("names of states "+duplicates+" are shared between A and B");
 		}
 		
+//		Configuration config = grCombined.config.copy();config.setLearnerCloneGraph(false);
 		Configuration config = Configuration.getDefaultConfiguration().copy();config.setLearnerCloneGraph(false);
 		final LearnerGraphND added = new LearnerGraphND(config),removed = new LearnerGraphND(config);
 		added.initEmpty();removed.initEmpty();// to make sure we can handle an assignment of a reject-state to an initial state
@@ -597,7 +598,9 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				{// There could be states of B that have the same name as states of A. In a number of cases these can be re-used (KEPT).
 				 // In a similar way to the above, we make sure attributes of both are the same so that when transitions are removed or added,
 				 // correct attributes will be entered. 
-				 // It is important to point out that we ignore both vertices where there is no corresponding vertex in B and those where the corresponding B vertex is part of any key pair (because key pairs are "paired" and unpaired elements of A are removed completely). 
+				 // It is important to point out that we ignore both vertices where there is no corresponding
+				// vertex in B and those where the corresponding B vertex is part of any key pair
+				// (because key pairs are "paired" and unpaired elements of A are removed completely).
 					if (origToNewB.containsKey(vertex) && !aTOb.containsValue(origToNewB.get(vertex)) && !DeterministicDirectedSparseGraph.nonIDAttributesEquals(vertex, origToNewB.get(vertex)))
 					{
 						addVertex(vertex);
@@ -1454,6 +1457,16 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	protected void init(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> a,AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> b,
 			int threads, Configuration argConfig)
 	{
+		Set<Label> alphabetA = a.pathroutines.computeAlphabet(), alphabetB = b.pathroutines.computeAlphabet();
+		assert alphabetA.getClass() == LinkedHashSet.class : "we expect to iterate over labels in terms of their hashcode/identity rather than toInt values hence the set should not be ArrayMapWithSearch or derived";
+		assert alphabetB.getClass() == LinkedHashSet.class : "we expect to iterate over labels in terms of their hashcode/identity rather than toInt values hence the set should not be ArrayMapWithSearch or derived";
+		for(Label lbl:alphabetA)
+			for(Label l:alphabetB) {
+				if (lbl.equals(l) && (0 != lbl.compareTo(l) || lbl.toInt() != l.toInt()))
+					throw new IllegalArgumentException("Incompatible equality behaviour for label " + l + " between two graphs to compare");
+				if (!lbl.equals(l) && (0 == lbl.compareTo(l) || lbl.toInt() == l.toInt()))
+					throw new IllegalArgumentException("Incompatible inequality behaviour for label " + l + " between two graphs to compare");
+			}
 		a.pathroutines.checkConsistency(a);
 		b.pathroutines.checkConsistency(b);
 

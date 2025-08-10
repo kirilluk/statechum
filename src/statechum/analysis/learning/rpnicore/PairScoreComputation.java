@@ -227,6 +227,51 @@ public class PairScoreComputation {
 				}
 				break;
 			}
+			case GENERAL_NOFULLMERGE_MEALY:
+			{
+				if (coregraph.config.getLabelKind() != Configuration.LABELKIND.LABEL_ATOMICPAIRS)
+					throw new IllegalArgumentException("GENERAL_NOFULLMERGE_MEALY can only be used with ATOMICPAIRS");
+
+				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
+				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);compatibilityScore=computedScore;
+				if (computedScore >= 0) {
+					// Build a map from old vertices to the corresponding equivalence classes
+					Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToEqClass =
+							new HashMap<>(2 * (coregraph.vertPositiveID + coregraph.vertNegativeID));
+
+					for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:collectionOfVerticesToMerge)
+						for(CmpVertex v:eqClass.getStates())
+							origToEqClass.put(v, eqClass);
+
+					for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:collectionOfVerticesToMerge) {
+						// maps states to either equivalence classes or other states (that are not part of an equivalence class because they are not being merged).
+						Map<String,Object> inputsToTargetVerticesOrEqClasses = new HashMap<>();
+						for (Entry<Label, Object> entry : eqClass.getOutgoing().entrySet()) {
+							Object targetsSlot = entry.getValue();
+							CmpVertex targetState;
+							if (targetsSlot instanceof CmpVertex)
+								targetState = (CmpVertex) targetsSlot;
+							else
+								targetState = ((List<CmpVertex>) targetsSlot).get(0);
+
+							if (targetState.isAccept()) {
+								Object targetStateOrEqClass = origToEqClass.get(targetState);
+								if (targetStateOrEqClass == null)
+									targetStateOrEqClass = targetState;
+								Object prevVertexOrEqClass = inputsToTargetVerticesOrEqClasses.put(((LabelInputOutput) entry.getKey()).input,targetStateOrEqClass);
+								if (prevVertexOrEqClass != null && prevVertexOrEqClass != targetStateOrEqClass) {
+									computedScore = -1;
+									break;
+								}
+							}
+						}
+
+						if (computedScore < 0)
+							break;
+					}
+				}
+				break;
+			}
 			case KTAILS:
 			{// computeStateScore cannot be used here because it will see that we want to do KTails and will not evaluate whether a merge is feasible,
 			 // that is, whether k-tail-equivalent states cause subsequent merge of a positive with a negative. In such a case

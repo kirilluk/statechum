@@ -138,7 +138,7 @@ public class LearnerGraphND extends AbstractLearnerGraph<List<CmpVertex>,Learner
 		
 		@Override
 		public boolean stateToConsider(CmpVertex vert) {
-			return graph.transitionMatrix.get(vert).size() > 0;
+			return !graph.transitionMatrix.get(vert).isEmpty();
 		}
 	}
 	

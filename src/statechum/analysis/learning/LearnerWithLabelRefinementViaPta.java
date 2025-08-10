@@ -18,6 +18,7 @@
 
 package statechum.analysis.learning;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -36,7 +37,6 @@ import statechum.Label;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.StringLabel;
-import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.StateMergingStatistics;
@@ -62,8 +62,7 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 	protected Map<Label,AbstractLabel> initialLabelToAbstractLabel = null;
 	
 	/** Describes an abstract version of a label that has a string representation appearing like a real label and methods to manipulate abstract labels. */
-	public static class AbstractLabel extends StringLabel
-	{
+	public static class AbstractLabel extends StringLabel implements Serializable {
 		/**
 		 * ID for serialisation.
 		 */
@@ -87,7 +86,7 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 			super(l);
 			abstractionInstance = 0;// the parent of all possible abstractions.
 			labelThisOneWasSplitFrom = null;// the top-level label
-			labelsThisoneabstracts = new TreeSet<Label>(ptaLabels);// creates a copy.
+			labelsThisoneabstracts = new TreeSet<>(ptaLabels);// creates a copy.
 			initialLabelToAbstractLabel = initialLabelToAbstract;
 			updateInitialToAbstract();
 		}
@@ -110,7 +109,7 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 			AbstractLabel outcome = new AbstractLabel(initialLabelToAbstractLabel,this,nextID);
 			
 			assert labelsThisoneabstracts.containsAll(labels);
-			outcome.labelsThisoneabstracts = new TreeSet<Label>(labelsThisoneabstracts);
+			outcome.labelsThisoneabstracts = new TreeSet<>(labelsThisoneabstracts);
 			outcome.labelsThisoneabstracts.removeAll(labels);// we do not change labels of the current abstract label, relabelling will be done when core graph is rebuilt following splitting of states.
 			outcome.updateInitialToAbstract();// redirect changed labels to the outcome of splitting.
 			return outcome;
@@ -179,13 +178,7 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 		{
 			final LearnerGraph outcome = new LearnerGraph(orig.config);
 			AbstractLearnerGraph.interpretLabelsOnGraph(orig,outcome,
-					new Transform.ConvertLabel(new Transform.ConvertALabel() {
-	
-					@Override
-					public Label convertLabelToLabel(Label label) {
-						return new StringLabel( ((AbstractLabel)label).label );
-					}
-				}));
+					new Transform.ConvertLabel(label -> new StringLabel( ((AbstractLabel)label).label )));
 			return outcome;
 		}
 		
@@ -206,8 +199,11 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 			if (incompatibleLabelsForAbstractLabel == null)
 				return null;
 			
-			final Map<Label,Set<Label>> labelToNeighbours = new TreeMap<Label,Set<Label>>();
-			for(Label l:labelsThisoneabstracts) { Set<Label> compatibleLabels = new TreeSet<Label>();compatibleLabels.addAll(labelsThisoneabstracts);compatibleLabels.remove(l);labelToNeighbours.put(l, compatibleLabels); }
+			final Map<Label,Set<Label>> labelToNeighbours = new TreeMap<>();
+			for(Label l:labelsThisoneabstracts) {
+                Set<Label> compatibleLabels = new TreeSet<>(labelsThisoneabstracts);
+                compatibleLabels.remove(l);labelToNeighbours.put(l, compatibleLabels);
+			}
 			for(IncompatiblePTALabels l:incompatibleLabelsForAbstractLabel)
 			{
 				labelToNeighbours.get(l.a).remove(l.b);labelToNeighbours.get(l.b).remove(l.a);
@@ -228,11 +224,11 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 		public void recordLabelsAsIncompatible(Label label1, Label label2) 
 		{
 			if (!labelsThisoneabstracts.contains(label1))
-				throw new IllegalArgumentException("Label "+label1+" does not belong to "+toString());
+				throw new IllegalArgumentException("Label "+label1+" does not belong to "+ this);
 			if (!labelsThisoneabstracts.contains(label2))
-				throw new IllegalArgumentException("Label "+label2+" does not belong to "+toString());
+				throw new IllegalArgumentException("Label "+label2+" does not belong to "+ this);
 			if (incompatibleLabelsForAbstractLabel == null)
-				incompatibleLabelsForAbstractLabel = new ArrayList<IncompatiblePTALabels>();
+				incompatibleLabelsForAbstractLabel = new ArrayList<>();
 			incompatibleLabelsForAbstractLabel.add(new IncompatiblePTALabels(label1,label2));
 		}
 	}
@@ -277,13 +273,11 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 					return false;
 			} else if (!label.equals(other.label))
 				return false;
-			if (prev == null) {
-				if (other.prev != null)
-					return false;
-			} else if (!prev.equals(other.prev))
-				return false;
-			return true;
-		}
+			if (prev == null)
+                return other.prev == null;
+			else
+				return prev.equals(other.prev);
+        }
 		
 		@Override
 		public String toString()
@@ -298,9 +292,9 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 	protected static Set<VertID> createSetOfVertID(Collection<VertID> verticesToInclude)
 	{
 		if (verticesToInclude == null)
-			return new TreeSet<VertID>();
+			return new TreeSet<>();
 		
-		return new TreeSet<VertID>(verticesToInclude);
+		return new TreeSet<>(verticesToInclude);
 	}
 	
 	/** Given a collection of negatives traces, marks states in the core graph as conflict ones where the same abstract state contains both positive and negative PTA (low-level) states. */ 
@@ -349,12 +343,10 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 			} else if (!a.equals(other.a))
 				return false;
 			if (b == null) {
-				if (other.b != null)
-					return false;
-			} else if (!b.equals(other.b))
-				return false;
-			return true;
-		}
+                return other.b == null;
+			} else
+				return b.equals(other.b);
+        }
 		
 		@Override
 		public String toString()
@@ -396,12 +388,10 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 			} else if (!a.equals(other.a))
 				return false;
 			if (b == null) {
-				if (other.b != null)
-					return false;
-			} else if (!b.equals(other.b))
-				return false;
-			return true;
-		}
+                return other.b == null;
+			} else
+				return b.equals(other.b);
+        }
 		
 		@Override
 		public String toString()
@@ -483,13 +473,13 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 	/** Constructs an inverse of the supplied PTA. */
 	public static Map<VertID,PrevAndLabel> constructInitialInverse(LearnerGraph graph)
 	{
-		Map<VertID,PrevAndLabel> outcome = new TreeMap<VertID,PrevAndLabel>();
+		Map<VertID,PrevAndLabel> outcome = new TreeMap<>();
 		for(Entry<CmpVertex, MapWithSearch<Label,Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 		{
 			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet())
 			{
 				if (outcome.get(transition.getValue()) != null)
-					throw new IllegalArgumentException("graph "+graph.toString()+" is not a PTA: state "+transition.getValue()+" has more than one incoming transition, one with label "+transition.getKey()+", another with label "+outcome.get(transition.getValue()).label);
+					throw new IllegalArgumentException("graph "+ graph +" is not a PTA: state "+transition.getValue()+" has more than one incoming transition, one with label "+transition.getKey()+", another with label "+outcome.get(transition.getValue()).label);
 				outcome.put(transition.getValue(),new PrevAndLabel(entry.getKey(), transition.getKey()));
 			}
 		}
@@ -523,7 +513,7 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 		PartitioningOfvertices p = ptaMergers.get(abstractVert);
 		if (p == null)
 		{
-			p = new PartitioningOfvertices();ptaMergers.put(abstractVert,p);p.stateCompatibility = new TreeMap<VertID,Set<VertID>>();
+			p = new PartitioningOfvertices();ptaMergers.put(abstractVert,p);p.stateCompatibility = new TreeMap<>();
 			Collection<VertID> ptaStates = coregraph.getCache().getMergedToHardFacts().get(abstractVert);
 			for(VertID v:ptaStates)
 			{
@@ -558,10 +548,10 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 	/** Starting with a global set of incompatible vertices, extends it recursively where the high-level graph has transitions to the conflicting states from the same state. */ 
 	public void splitIncompatibleStates()
 	{
-		Collection<VertIDPair> newIncompatibleVertices = new ArrayList<VertIDPair>(incompatibleVertices),currentIncompatibleVertices = null;
+		Collection<VertIDPair> newIncompatibleVertices = new ArrayList<>(incompatibleVertices),currentIncompatibleVertices;
 		do
 		{
-			currentIncompatibleVertices = newIncompatibleVertices;newIncompatibleVertices = new ArrayList<VertIDPair>();
+			currentIncompatibleVertices = newIncompatibleVertices;newIncompatibleVertices = new ArrayList<>();
 			for(VertIDPair ab:currentIncompatibleVertices)
 			{
 				PrevAndLabel lblToA = initialInverse.get(ab.a);
@@ -648,8 +638,8 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 			VertID target = forcedMergersForPTAstate.get(lbl);
 			if (target != transition.getValue())
 			{// targets and the current target are to be forcefully merged.
-				List<VertID> vertsToMerge = forcedMergers.get(target);if (vertsToMerge == null) { vertsToMerge = new ArrayList<VertID>();forcedMergers.put(target,vertsToMerge); }
-				vertsToMerge.add(transition.getValue());
+                List<VertID> vertsToMerge = forcedMergers.computeIfAbsent(target, k -> new ArrayList<>());
+                vertsToMerge.add(transition.getValue());
 				if (ptaStatesForCheckOfNondeterminism.contains(transition.getValue()) && verticesToEliminate != null)
 					// this is where we are merging multiple compatible states, which is why they should not appear in the list of compatible ones - if they stay there, they may get clustered with different states.
 					verticesToEliminate.add(transition.getValue());
@@ -660,9 +650,9 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 	/** Non-determinism is resolved by merging target states, identified here. */
 	protected void identifyForcedMergers()
 	{
-		List<VertID> verticesToEliminate = new LinkedList<VertID>();
+		List<VertID> verticesToEliminate = new LinkedList<>();
 		
-		Map<AbstractLabel,VertID> forcedMergersForPTAstate = new TreeMap<AbstractLabel,VertID>();
+		Map<AbstractLabel,VertID> forcedMergersForPTAstate = new TreeMap<>();
 		for(VertID vert:ptaStatesForCheckOfNondeterminism)
 		{// check for the outgoing transitions with the same label, record one of them as a force merge (if any is ptaStatesWithForCheckOfNondeterminism, this needs to be noted in order to avoid merging such a state into an incompatible one). 
 			forcedMergersForPTAstate.clear();
@@ -707,9 +697,9 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 	{
 		final Configuration shallowCopy = getTentativeAutomaton().config.copy();shallowCopy.setLearnerCloneGraph(false);// since we are not going to change acceptance conditions of states.
 		LearnerGraph outcome = new LearnerGraph(shallowCopy);AbstractLearnerGraph.copyGraphs(coregraph, outcome);
-		Map<VertID,CmpVertex> ptaToNewState = new TreeMap<VertID,CmpVertex>();
-		List<CmpVertex> newStates = new ArrayList<CmpVertex>();
-		Map<VertID,Collection<VertID>> mergedToPta = new TreeMap<VertID,Collection<VertID>>();//outcome.getCache().getMergedToHardFacts();
+		Map<VertID,CmpVertex> ptaToNewState = new TreeMap<>();
+		List<CmpVertex> newStates = new ArrayList<>();
+		Map<VertID,Collection<VertID>> mergedToPta = new TreeMap<>();//outcome.getCache().getMergedToHardFacts();
 		
 		for(Entry<CmpVertex,PartitioningOfvertices> entry:ptaMergers.entrySet())
 		{
@@ -717,7 +707,7 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 			Map<VertID,Set<VertID>> vertToNeighbours = entry.getValue().stateCompatibility;
 			while(!vertToNeighbours.isEmpty())
 			{
-				List<VertID> maxPartition = BronKerbosch(vertToNeighbours, new LinkedList<VertID>(), new LinkedList<VertID>(vertToNeighbours.keySet()), new LinkedList<VertID>());
+				List<VertID> maxPartition = BronKerbosch(vertToNeighbours, new LinkedList<>(), new LinkedList<>(vertToNeighbours.keySet()), new LinkedList<>());
 				assert maxPartition != null;
 				assert !maxPartition.isEmpty();
 				
@@ -817,14 +807,14 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 			
 			assert maxLabel != null;
 			// we'll use maxLabel as a pivot vertex.
-			Set<T> adjacentToPivot = new TreeSet<T>(adjacencyMap.get(maxLabel));
+			Set<T> adjacentToPivot = new TreeSet<>(adjacencyMap.get(maxLabel));
 			
 			for(T l:P)
 				if (!adjacentToPivot.contains(l))
 				{
-					List<T> newR = new LinkedList<T>(R);newR.add(l);
-					List<T> newP = new LinkedList<T>(P);newP.retainAll(adjacencyMap.get(l));
-					List<T> newX = new LinkedList<T>(X);newP.retainAll(adjacencyMap.get(l));
+					List<T> newR = new LinkedList<>(R);newR.add(l);
+					List<T> newP = new LinkedList<>(P);newP.retainAll(adjacencyMap.get(l));
+					List<T> newX = new LinkedList<>(X);newP.retainAll(adjacencyMap.get(l));
 					List<T> tentativeResponse = BronKerbosch(adjacencyMap,newR,newP,newX);
 					if (null != tentativeResponse && (outcome == null || outcome.size() < tentativeResponse.size()))
 						outcome = tentativeResponse;
@@ -861,7 +851,7 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 				// Iterate through the list of labels, with the intention of finding groups of compatible ones.
 				while(!labelToNeighbours.isEmpty())
 				{
-					List<Label> maxPartition = BronKerbosch(labelToNeighbours, new LinkedList<Label>(), new LinkedList<Label>(labelToNeighbours.keySet()), new LinkedList<Label>());
+					List<Label> maxPartition = BronKerbosch(labelToNeighbours, new LinkedList<>(), new LinkedList<>(labelToNeighbours.keySet()), new LinkedList<>());
 					assert maxPartition != null;
 					assert !maxPartition.isEmpty();
 					((AbstractLabel)lbl).splitLabel(maxPartition); // populates initialLabelToAbstractLabel 
@@ -877,17 +867,17 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 	/** Initialisation of all the data structures used in splitting states. Useful if the process of splitting is re-run. */
 	public void init()
 	{
-		ptaStatesForCheckOfNondeterminism = new TreeSet<VertID>();
-		initialLabelToAbstractLabel = new TreeMap<Label,AbstractLabel>();
-		incompatibleVertices = new LinkedHashSet<VertIDPair>();
-		coreStateDetailsAddedToPtaStateToCoreState = new TreeSet<CmpVertex>();
-		ptaStateToCoreState = new TreeMap<VertID,CmpVertex>();
-		forcedMergers = new TreeMap<VertID,List<VertID>>();
+		ptaStatesForCheckOfNondeterminism = new TreeSet<>();
+		initialLabelToAbstractLabel = new TreeMap<>();
+		incompatibleVertices = new LinkedHashSet<>();
+		coreStateDetailsAddedToPtaStateToCoreState = new TreeSet<>();
+		ptaStateToCoreState = new TreeMap<>();
+		forcedMergers = new TreeMap<>();
 		coreInverse = null;
 		
 		if (coregraph  != null)
 			for(Label lbl:coregraph.learnerCache.getAlphabet()) ((AbstractLabel)lbl).reset();
-		ptaMergers = new TreeMap<CmpVertex,PartitioningOfvertices>();
+		ptaMergers = new TreeMap<>();
 		
 		initialInverse = constructInitialInverse(initialPTA);	
 	}
@@ -899,13 +889,13 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 	@SuppressWarnings("unused")
 	public void constructAbstractLabelsForInitialPta(char whereToSplit)
 	{
-		Map<String,List<Label>> abstractToConcrete = new TreeMap<String,List<Label>>();
+		Map<String,List<Label>> abstractToConcrete = new TreeMap<>();
 		for(Label l:initialPTA.learnerCache.getAlphabet())
 		{
 			String origLabel = l.toErlangTerm();int splitPosition = origLabel.indexOf(whereToSplit);if (splitPosition <= 0) throw new IllegalArgumentException("label "+origLabel+" cannot be abstracted using '"+whereToSplit+"'");
 			String abstractText = origLabel.substring(0, splitPosition);
-			List<Label> concrete = abstractToConcrete.get(abstractText);if (concrete == null) { concrete = new ArrayList<Label>();abstractToConcrete.put(abstractText, concrete); }
-			concrete.add(l); 
+            List<Label> concrete = abstractToConcrete.computeIfAbsent(abstractText, k -> new ArrayList<>());
+            concrete.add(l);
 		}
 		for(Entry<String,List<Label>> entry:abstractToConcrete.entrySet())
 			new AbstractLabel(initialLabelToAbstractLabel, entry.getKey(), entry.getValue());// I do not need to store it anywhere because construction of such a label adds appropriate entries to the initialLabelToAbstractLabel map.
@@ -916,23 +906,23 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 	{
 		init();
 		constructAbstractLabelsForInitialPta(whereToSplit);
-		LearnerGraph outcome = new LearnerGraph(initialPTA.config);AbstractLearnerGraph.copyGraphs(initialPTA, outcome);outcome.getCache().setMergedToHardFacts(new TreeMap<VertID,Collection<VertID>>());
-		Queue<CmpVertex> statesWhereTransitionsNeedAbstracting = new LinkedList<CmpVertex>();
+		LearnerGraph outcome = new LearnerGraph(initialPTA.config);AbstractLearnerGraph.copyGraphs(initialPTA, outcome);outcome.getCache().setMergedToHardFacts(new TreeMap<>());
+		Queue<CmpVertex> statesWhereTransitionsNeedAbstracting = new LinkedList<>();
 		statesWhereTransitionsNeedAbstracting.add(outcome.getInit());
-		Collection<VertID> initToHardFact = new ArrayList<VertID>();initToHardFact.add(initialPTA.getInit());
+		Collection<VertID> initToHardFact = new ArrayList<>();initToHardFact.add(initialPTA.getInit());
 		outcome.getCache().getMergedToHardFacts().put(outcome.getInit(),initToHardFact);
 		
 		while(!statesWhereTransitionsNeedAbstracting.isEmpty())
 		{
 			CmpVertex currentState = statesWhereTransitionsNeedAbstracting.remove();
 			Map<Label,CmpVertex> transitions = outcome.transitionMatrix.get(currentState);transitions.clear();
-			Map<AbstractLabel,VertID> forcedMergersForPTAstate = new TreeMap<AbstractLabel,VertID>();
+			Map<AbstractLabel,VertID> forcedMergersForPTAstate = new TreeMap<>();
 			for(VertID v: outcome.getCache().getMergedToHardFacts().get(currentState))
 				constructVerticesThatNeedMergingForAbstractState(v,forcedMergersForPTAstate,null);
 			for(Entry<AbstractLabel,VertID> merger:forcedMergersForPTAstate.entrySet())
 			{
 				CmpVertex target = outcome.findVertex(merger.getValue());
-				Collection<VertID> mergedToHardFacts = new ArrayList<VertID>();outcome.getCache().getMergedToHardFacts().put(target,mergedToHardFacts);
+				Collection<VertID> mergedToHardFacts = new ArrayList<>();outcome.getCache().getMergedToHardFacts().put(target,mergedToHardFacts);
 				mergedToHardFacts.add(merger.getValue());
 				List<VertID> otherVerts = forcedMergers.get(merger.getValue());
 				if (otherVerts != null)

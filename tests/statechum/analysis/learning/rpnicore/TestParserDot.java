@@ -1157,9 +1157,9 @@ public class TestParserDot {
         Assert.assertNull(WMethod.checkM(grBackToPairs, grBackToPairs.getInit(),gr,gr.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
 
         List<String> outputsA = new ArrayList<>();
-        LearnerGraph grM_int = grM.transform.numberOutputsAndStates(true,outputsA,null);
+        LearnerGraph grM_int = grM.transform.numberOutputsAndStates(true,outputsA,null, null);
         List<String> outputsB = new ArrayList<>();
-        LearnerGraph grConf_int = grConf.transform.numberOutputsAndStates(true,outputsB,null);
+        LearnerGraph grConf_int = grConf.transform.numberOutputsAndStates(true,outputsB,null,null);
         Assert.assertEquals(Arrays.asList("g","k","p"), outputsA);
         Assert.assertEquals(outputsA, outputsB);
         Assert.assertNull(WMethod.checkM(grM_int, grM_int.getInit(),grConf_int,grConf_int.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));

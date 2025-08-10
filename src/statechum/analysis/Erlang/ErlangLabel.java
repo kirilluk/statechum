@@ -21,7 +21,6 @@ import com.ericsson.otp.erlang.*;
 import statechum.Configuration;
 import statechum.Helper;
 import statechum.Label;
-import statechum.LabelInputOutput;
 import statechum.analysis.Erlang.Signatures.FuncSignature;
 import statechum.analysis.Erlang.Signatures.Signature;
 import statechum.analysis.learning.rpnicore.LTL_to_ba.Lexer;
@@ -145,7 +144,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 	public int compareTo(Label other) {
 		if (!(other instanceof ErlangLabel))
 			throw new IllegalArgumentException(
-					"Comparing an ErlangLabel to "+other.getClass().toString()+" that not an ErlangLabel");
+					"Comparing an ErlangLabel to "+ other.getClass() +" that not an ErlangLabel");
 
 		return toErlangTerm().compareTo(other.toErlangTerm());
 	}
@@ -334,7 +333,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 			List<OtpErlangObject> listComponents = new LinkedList<>();
 			OtpErlangObject tail = null;
 			
-			OtpErlangObject nextElement = null;// temporary variable.
+			OtpErlangObject nextElement;// temporary variable.
 			// Parser state.
 			boolean expectComma = false, pullNextToken = true, parsingTail = false;
 			int currentMatch = lexer.getMatchType();
@@ -646,7 +645,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 			}
 			assert atomText.length() > 0;
 
-			OtpErlangObject outcome = null;
+			OtpErlangObject outcome;
 			if (atomText.toString().equals(ErlangBoolean.True))
 				outcome = new OtpErlangBoolean(true);
 			else if (atomText.toString().equals(ErlangBoolean.False))
@@ -1236,7 +1235,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 										+ lexer.getMatch()+ " in "+lexer.getText());
 					}
 			}
-			OtpErlangObject result = null;
+			OtpErlangObject result;
 			if (partB == null && partExp == null) {// integer/long
 				if (partA.startsWith("+"))
 					partA = partA.substring(1);
@@ -1453,7 +1452,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 		if (currentMatch < 0)
 			throw new IllegalArgumentException("empty term");
 
-		OtpErlangObject result = null;
+		OtpErlangObject result;
 		switch (currentMatch) {
 		case erlMapBegin:
 		case erlTupleBegin:
@@ -1586,7 +1585,7 @@ public class ErlangLabel extends OtpErlangTuple implements Label {
 			throw new IllegalArgumentException("expected a tuple, parsed "+ obj);
 		OtpErlangTuple tuple = (OtpErlangTuple) obj;
 
-		ErlangLabel outcome = null;
+		ErlangLabel outcome;
 		switch (tuple.arity()) {
 		case 2:
 			if (!(tuple.elementAt(0) instanceof OtpErlangAtom))

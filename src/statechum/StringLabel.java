@@ -18,8 +18,6 @@
  */
 package statechum;
 
-import statechum.analysis.Erlang.ErlangLabel;
-
 /**
  * @author kirill
  *
@@ -40,9 +38,9 @@ public class StringLabel implements Label {
 	public int compareTo(Label other) {
 		if (!(other instanceof StringLabel))
 			throw new IllegalArgumentException(
-				"Comparing an StringLabel to "+other.getClass().toString()+" that not a StringLabel");
+				"Comparing an StringLabel to "+other.getClass()+" that not a StringLabel");
 
-		return toErlangTerm().compareTo(((StringLabel)other).toErlangTerm());
+		return toErlangTerm().compareTo(other.toErlangTerm());
 	}
 
 	/* (non-Javadoc)

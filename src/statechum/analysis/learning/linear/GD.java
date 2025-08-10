@@ -43,6 +43,7 @@ import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.PathRoutines.EdgeAnnotation;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
+import statechum.collections.ConvertibleToInt;
 import statechum.collections.MapWithSearch;
 
 import java.awt.*;
@@ -1457,16 +1458,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 	protected void init(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> a,AbstractLearnerGraph<TARGET_B_TYPE,CACHE_B_TYPE> b,
 			int threads, Configuration argConfig)
 	{
-		Set<Label> alphabetA = a.pathroutines.computeAlphabet(), alphabetB = b.pathroutines.computeAlphabet();
-		assert alphabetA.getClass() == LinkedHashSet.class : "we expect to iterate over labels in terms of their hashcode/identity rather than toInt values hence the set should not be ArrayMapWithSearch or derived";
-		assert alphabetB.getClass() == LinkedHashSet.class : "we expect to iterate over labels in terms of their hashcode/identity rather than toInt values hence the set should not be ArrayMapWithSearch or derived";
-		for(Label lbl:alphabetA)
-			for(Label l:alphabetB) {
-				if (lbl.equals(l) && (0 != lbl.compareTo(l) || lbl.toInt() != l.toInt()))
-					throw new IllegalArgumentException("Incompatible equality behaviour for label " + l + " between two graphs to compare");
-				if (!lbl.equals(l) && (0 == lbl.compareTo(l) || lbl.toInt() == l.toInt()))
-					throw new IllegalArgumentException("Incompatible inequality behaviour for label " + l + " between two graphs to compare");
-			}
+		validateConsistencyOfToIntBetweenAlphabetsOfTheTwoGraphs(a, b);
 		a.pathroutines.checkConsistency(a);
 		b.pathroutines.checkConsistency(b);
 
@@ -1474,7 +1466,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		Configuration cloneConfig = argConfig.copy();cloneConfig.setLearnerCloneGraph(true);// we need to clone attributes here because after key pair identification, attributes from graph B will be copied into vertices of A, otherwise these attributes may not make it into the patch.
 		grCombined = new LearnerGraphND(a,cloneConfig);// I cannot simply do Transform.addToGraph here because patch has to be relative to graph A.
 		grCombined.config.setLearnerCloneGraph(false);//reset the clone attribute
-		grCombined.vertNegativeID=Math.max(grCombined.vertNegativeID, b.vertNegativeID);// we aim for new vertices in grCombined to have ids different from all vertices in B. 
+		grCombined.vertNegativeID=Math.max(grCombined.vertNegativeID, b.vertNegativeID);// we aim for new vertices in grCombined to have ids different from all vertices in B.
 		grCombined.vertPositiveID=Math.max(grCombined.vertPositiveID, b.vertPositiveID);
 		combined_initA = grCombined.getInit();
 		origToNewB = new TreeMap<>();
@@ -1485,7 +1477,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		combined_initB = AbstractPathRoutines.addToGraph(grCombined, b,origToNewB);
 		grCombined.pathroutines.checkConsistency(grCombined);
 		grCombined.learnerCache.invalidate();
-		
+
 		statesOfB = new TreeSet<>();statesOfB.addAll(origToNewB.values());
 		assert statesOfA.size() == a.getStateNumber();
 		assert statesOfB.size() == origToNewB.size();assert statesOfB.size() == b.getStateNumber();
@@ -1496,7 +1488,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		forward = new GDLearnerGraph(grCombined,LearnerGraphND.ignoreNone,false);
 		inverse = new GDLearnerGraph(grCombined,LearnerGraphND.ignoreNone,true);
 
-		if (grCombined.config.getGdMaxNumberOfStatesInCrossProduct() == 0 || 
+		if (grCombined.config.getGdMaxNumberOfStatesInCrossProduct() == 0 ||
 					forward.getStateNumber() > grCombined.config.getGdMaxNumberOfStatesInCrossProduct())
 				fallbackToInitialPair = true;
 
@@ -1505,7 +1497,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		{
 		case SCORE_RANDOMPATHS:
 		case SCORE_TESTSET:
-			// build (1) deterministic machines for each state and (2) walks from each state. 
+			// build (1) deterministic machines for each state and (2) walks from each state.
 			int seed = 80;
 			JConsole_Diagnostics.getDiagnostics().setStatus("started on walk forward "+DateFormat.getTimeInstance().format(new Date()));
 			forward.computeWalkSequences(new StateBasedRandom(seed), threads);
@@ -1535,7 +1527,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			pairScores = new int[forward.getPairNumber()];Arrays.fill(pairScores, GDLearnerGraph.PAIR_INCOMPATIBLE);
 			// states to be ignored are those where each element of a pair belongs to a different automaton, we fill in the rest.
 			List<HandleRow<List<CmpVertex>>> handlerList = new LinkedList<>();
-			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones. 
+			for(int threadCnt=0;threadCnt<ThreadNumber;++threadCnt)// this is not doing workload balancing because it should iterate over currently-used left-hand sides, not just all possible ones.
 				handlerList.add(new HandleRow<List<CmpVertex>>() {
 					@Override
 					public void init(@SuppressWarnings("unused") int threadNo) {
@@ -1564,7 +1556,7 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			assert numberOfPairs == statesOfA.size()*statesOfB.size();
 			JConsole_Diagnostics.getDiagnostics().setStatus("started building matrix forward "+DateFormat.getTimeInstance().format(new Date()));
 
-			// Now the system of equations will be built and solved. The only exception is where 
+			// Now the system of equations will be built and solved. The only exception is where
 			// argConfig.getGdScoreComputation() == GDScoreComputationEnum.GD_DIRECT in which case
 			// the solver returned will be a dummy with b[] part copied to the x one.
 			{
@@ -1591,7 +1583,44 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		}
 
 	}
-	
+
+	private static <TARGET_A_TYPE, TARGET_B_TYPE, CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>, CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>> void validateConsistencyOfToIntBetweenAlphabetsOfTheTwoGraphs(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> a, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> b) {
+		Set<Label> alphabetA = a.pathroutines.computeAlphabet(), alphabetB = b.pathroutines.computeAlphabet();
+		assert alphabetA.getClass() == LinkedHashSet.class : "we expect to iterate over labels in terms of their hashcode/identity rather than toInt values hence the set should not be ArrayMapWithSearch or derived";
+		assert alphabetB.getClass() == LinkedHashSet.class : "we expect to iterate over labels in terms of their hashcode/identity rather than toInt values hence the set should not be ArrayMapWithSearch or derived";
+		Set<Label> charConvertibleToIntA = new HashSet<>(),charConvertibleToIntB = new HashSet<>();
+		setOfLabelsToIntConvertibleLabels(alphabetA, charConvertibleToIntA);
+		setOfLabelsToIntConvertibleLabels(alphabetB, charConvertibleToIntB);
+
+		for(Label lbl:alphabetA)
+			for(Label l:alphabetB) {
+				if (lbl == l)
+					break;// process a triangular subset
+				if (charConvertibleToIntA.contains(lbl) != charConvertibleToIntB.contains(l))
+					throw new IllegalArgumentException("Incompatible ConvertibleToInt behaviour for label " + l + " between two graphs to compare");
+				if (charConvertibleToIntA.contains(lbl) && charConvertibleToIntB.contains(l)) {
+					if (lbl.equals(l) && (0 != lbl.compareTo(l) || lbl.toInt() != l.toInt()))
+						throw new IllegalArgumentException("Incompatible equality behaviour for label " + l + " between two graphs to compare");
+					if (!lbl.equals(l) && (0 == lbl.compareTo(l) || lbl.toInt() == l.toInt()))
+						throw new IllegalArgumentException("Incompatible inequality behaviour for label " + l + " between two graphs to compare");
+				}
+			}
+	}
+
+	private static void setOfLabelsToIntConvertibleLabels(Set<Label> alphabet, Set<Label> charConvertibleToInt) {
+		for(Label lbl: alphabet) {
+			if (lbl instanceof ConvertibleToInt) {
+				try
+				{
+					lbl.toInt();
+					charConvertibleToInt.add(lbl);
+				}
+				catch(UnsupportedOperationException e) {
+				}
+			}
+		}
+	}
+
 	/** Goes through the result of linear and identifies candidates for key state pairs.
 	 * @return true if everything is ok, false if no perfect set of candidates was found.
 	 */
@@ -1919,12 +1948,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			for(Entry<Label,TARGET_A_TYPE> transition:entry.getValue().entrySet())
 				for(CmpVertex target:a.getTargets(transition.getValue()))
 				{
-					TransitionChanges changes = pairToNumberOfChanges.get(new StatePair(entry.getKey(), target));
-					if (changes == null)
-					{
-						changes = new TransitionChanges();pairToNumberOfChanges.put(new StatePair(entry.getKey(), target),changes);
-					}
-					changes.orig++;// we populate our map with the existing transitions
+                    TransitionChanges changes = pairToNumberOfChanges.computeIfAbsent(new StatePair(entry.getKey(), target), k -> new TransitionChanges());
+                    changes.orig++;// we populate our map with the existing transitions
 					
 				}
 		makeSteps();
@@ -1952,12 +1977,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 			{
 				Label label = copyVertexWithPrefix("ADD_",origLabel);
 				mutator.addTransition(from, label, to);
-				TransitionChanges changes = pairToNumberOfChanges.get(new StatePair(from,to));
-				if (changes == null)
-				{
-					changes = new TransitionChanges();pairToNumberOfChanges.put(new StatePair(from,to),changes);
-				}
-				changes.added++;
+                TransitionChanges changes = pairToNumberOfChanges.computeIfAbsent(new StatePair(from, to), k -> new TransitionChanges());
+                changes.added++;
 			}
 
 			@Override
@@ -1966,12 +1987,8 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 				Label label = copyVertexWithPrefix("REM_",origLabel);
 				mutator.removeTransition(from, origLabel, to);// remove the original transition
 				mutator.addTransition(from, label, to);// and add the renamed one
-				TransitionChanges changes = pairToNumberOfChanges.get(new StatePair(from,to));
-				if (changes == null)
-				{
-					changes = new TransitionChanges();pairToNumberOfChanges.put(new StatePair(from,to),changes);
-				}
-				changes.removed++;
+                TransitionChanges changes = pairToNumberOfChanges.computeIfAbsent(new StatePair(from, to), k -> new TransitionChanges());
+                changes.removed++;
 			}
 
 			@Override

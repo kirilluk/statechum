@@ -802,18 +802,21 @@ public class WMethod
 				if (!stateA_entry.getValue().equals(stateB_entry.getValue())) {
 					for (Entry<Label, CmpVertex> enA : fsm.transitionMatrix.get(stateA).entrySet()) {
 						LabelInputOutput keyA = (LabelInputOutput) enA.getKey();
-						LabelInputOutput keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
+						LabelInputOutput keyB = null;
+						if (mapB != null)
+							keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
 						if (keyB == null || !Objects.equals(keyA.output, keyB.output)) // either no defined transition or different outputs
 							distinguishingLabels.computeIfAbsent(keyA.input, k -> new AtomicInteger(0)).addAndGet(1);
 					}
 
-					for (Entry<Label, CmpVertex> enB : mapB.entrySet()) {
-						LabelInputOutput keyB = (LabelInputOutput) enB.getKey();
-						MapWithSearch<Label, Label, CmpVertex> mapA = fsm.transitionMatrix.get(stateA);
-						LabelInputOutput keyA = (LabelInputOutput) mapA.findKey(enB.getKey());
-						if (keyA == null) // no defined transition
-							distinguishingLabels.computeIfAbsent(keyB.input, k -> new AtomicInteger(0)).addAndGet(1);
-					}
+					if (mapB != null)
+						for (Entry<Label, CmpVertex> enB : mapB.entrySet()) {
+							LabelInputOutput keyB = (LabelInputOutput) enB.getKey();
+							MapWithSearch<Label, Label, CmpVertex> mapA = fsm.transitionMatrix.get(stateA);
+							LabelInputOutput keyA = (LabelInputOutput) mapA.findKey(enB.getKey());
+							if (keyA == null) // no defined transition
+								distinguishingLabels.computeIfAbsent(keyB.input, k -> new AtomicInteger(0)).addAndGet(1);
+						}
 				}
 			}
 		}
@@ -849,7 +852,9 @@ public class WMethod
 					for (Entry<Label, CmpVertex> enA : fsm.transitionMatrix.get(stateA).entrySet()) {
 						LabelInputOutput keyA = (LabelInputOutput) enA.getKey();
 						MapWithSearch<Label, Label, CmpVertex> mapB = fsm.transitionMatrix.get(stateB);
-						LabelInputOutput keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
+						LabelInputOutput keyB = null;
+						if (mapB != null)
+							keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
 						if (keyB == null || !Objects.equals(keyA.output, keyB.output)) // either no defined transition or different outputs
 							distLabels.add(keyA.input);
 					}
@@ -903,18 +908,21 @@ public class WMethod
 					distLabels.clear();
 					for (Entry<Label, CmpVertex> enA : fsm.transitionMatrix.get(stateA).entrySet()) {
 						LabelInputOutput keyA = (LabelInputOutput) enA.getKey();
-						LabelInputOutput keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
+						LabelInputOutput keyB = null;
+						if (mapB != null)
+							keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
 						if (keyB == null || !Objects.equals(keyA.output, keyB.output)) // either no defined transition or different outputs
 							distLabels.add(keyA.input);
 					}
 
-					for (Entry<Label, CmpVertex> enB : mapB.entrySet()) {
-						LabelInputOutput keyB = (LabelInputOutput) enB.getKey();
-						MapWithSearch<Label, Label, CmpVertex> mapA = fsm.transitionMatrix.get(stateA);
-						LabelInputOutput keyA = (LabelInputOutput) mapA.findKey(enB.getKey());
-						if (keyA == null) // no defined transition
-							distLabels.add(keyB.input);
-					}
+					if (mapB != null)
+						for (Entry<Label, CmpVertex> enB : mapB.entrySet()) {
+							LabelInputOutput keyB = (LabelInputOutput) enB.getKey();
+							MapWithSearch<Label, Label, CmpVertex> mapA = fsm.transitionMatrix.get(stateA);
+							LabelInputOutput keyA = (LabelInputOutput) mapA.findKey(enB.getKey());
+							if (keyA == null) // no defined transition
+								distLabels.add(keyB.input);
+						}
 
 					// now we have both the ordering of labels in labelList and the list of labels that can be distinguish stateA from stateB in distLabels.
 					String topInput = null;

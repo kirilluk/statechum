@@ -693,7 +693,7 @@ public class PairScoreComputation {
 		} catch (IncompatibleStatesException e) {				
 			compatible = false;// encountered incompatible states
 		}
-		assert !compatible || stateToEquivalenceClass.size() > 0 || (pairToMerge == null && (pairsToMerge == null || pairsToMerge.isEmpty()));
+		assert !compatible || !stateToEquivalenceClass.isEmpty() || (pairToMerge == null && (pairsToMerge == null || pairsToMerge.isEmpty()));
 		if (compatible)
 		{// merge successful - collect vertices from the equivalence classes
 			mergedVertices.clear();
@@ -1047,25 +1047,20 @@ public class PairScoreComputation {
 					public void handleEntry(Entry<CmpVertex, MapWithSearch<Label,Label, List<CmpVertex>>> entryA, int threadNo) 
 					{
 						// Now iterate through states
-						Iterator<Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>>> stateB_It = ndGraph.matrixForward.transitionMatrix.entrySet().iterator();
-						while(stateB_It.hasNext())
-						{
-							Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
-							int currentStatePair = pairToScore[ndGraph.vertexToIntNR(stateB.getKey(), entryA.getKey())];
-							if (currentStatePair >= 0)
-							{
-								double score = solver.j_x[currentStatePair];
+                        // stateB should not have been filtered out by construction of matrixInverse
+                        for (Entry<CmpVertex, MapWithSearch<Label, Label, List<CmpVertex>>> stateB : ndGraph.matrixForward.transitionMatrix.entrySet()) {
+                            int currentStatePair = pairToScore[ndGraph.vertexToIntNR(stateB.getKey(), entryA.getKey())];
+                            if (currentStatePair >= 0) {
+                                double score = solver.j_x[currentStatePair];
 
-								if (score > threshold)
-									resultsPerThread[threadNo].add(new PairScore(entryA.getKey(), stateB.getKey(), (int) (scale * score), 0));
+                                if (score > threshold)
+                                    resultsPerThread[threadNo].add(new PairScore(entryA.getKey(), stateB.getKey(), (int) (scale * score), 0));
 
-							}
-							else
-								if (GDLearnerGraph.PAIR_INCOMPATIBLE > threshold)
-									resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*GDLearnerGraph.PAIR_INCOMPATIBLE),0));
-							
-							if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
-						}// B-loop
+                            } else if (GDLearnerGraph.PAIR_INCOMPATIBLE > threshold)
+                                resultsPerThread[threadNo].add(new PairScore(entryA.getKey(), stateB.getKey(), (int) (scale * GDLearnerGraph.PAIR_INCOMPATIBLE), 0));
+
+                            if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
+                        }// B-loop
 					}
 				});
 			}
@@ -1129,23 +1124,22 @@ public class PairScoreComputation {
 						public void handleEntry(Entry<CmpVertex, MapWithSearch<Label,Label, TARGET_TYPE>> entryA, int threadNo)
 						{
 							// Now iterate through states
-							Iterator<Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>>> stateB_It = coregraph.transitionMatrix.entrySet().iterator();
-							while(stateB_It.hasNext())
-							{
-								Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> stateB = stateB_It.next();// stateB should not have been filtered out by construction of matrixInverse
-								if (!filter.stateToConsider(entryA.getKey()) ||
-										!filter.stateToConsider(stateB.getKey()))
-								{// the above condition picks vertices that have previously been ignored.
-									int score = 0;
+                            // stateB should not have been filtered out by construction of matrixInverse
+                            for (Entry<CmpVertex, MapWithSearch<Label, Label, TARGET_TYPE>> stateB : coregraph.transitionMatrix.entrySet()) {
+                                if (!filter.stateToConsider(entryA.getKey()) ||
+                                        !filter.stateToConsider(stateB.getKey())) {// the above condition picks vertices that have previously been ignored.
+                                    int score = 0;
 
-									if (!AbstractLearnerGraph.checkCompatible(stateB.getKey(),entryA.getKey(),coregraph.pairCompatibility)) score=GDLearnerGraph.PAIR_INCOMPATIBLE;
+                                    if (!AbstractLearnerGraph.checkCompatible(stateB.getKey(), entryA.getKey(), coregraph.pairCompatibility))
+                                        score = GDLearnerGraph.PAIR_INCOMPATIBLE;
 
-									if (score>threshold) // note that we only get here if threshold <= 0 (as per condition at the top of chooseStatePairs)
-										resultsPerThread[threadNo].add(new PairScore(entryA.getKey(),stateB.getKey(),(int)(scale*score),0));
+                                    if (score > threshold) // note that we only get here if threshold <= 0 (as per condition at the top of chooseStatePairs)
+                                        resultsPerThread[threadNo].add(new PairScore(entryA.getKey(), stateB.getKey(), (int) (scale * score), 0));
 
-									if (stateB.getKey().equals(entryA.getKey())) break; // we only process a triangular subset.
-								}
-							}// B-loop
+                                    if (stateB.getKey().equals(entryA.getKey()))
+                                        break; // we only process a triangular subset.
+                                }
+                            }// B-loop
 						}
 					});
 				}

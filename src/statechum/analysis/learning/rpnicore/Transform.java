@@ -132,7 +132,6 @@ public class Transform
 		for(int i=0;i< stateToBitVector.length;++i)
 			for(int j=i+1;j<stateToBitVector.length;++j)
 			{
-				@SuppressWarnings("unchecked")
 				Entry<CmpVertex,List<Boolean>> vecI = (Entry<CmpVertex,List<Boolean>>) stateToBitVector[i],vecJ = (Entry<CmpVertex,List<Boolean>>)stateToBitVector[j];
 				int h = HammingDistance(vecI.getValue(), vecJ.getValue());
 				average+=h;
@@ -636,8 +635,7 @@ public class Transform
 	
 	/** Similar to AugmentPTA on a non-existing matrix but generally expects the path corresponding to the question to 
 	 * already exist. Where it does not, null is returned instead of a true/false. 
-	 * 
-	 * Whenever a user confirms a question, this method is used to add this question to a 
+	 * Whenever a user confirms a question, this method is used to add this question to a
 	 * tentative automaton, thus making sure that
 	 * <ul>
 	 * <li>when we re-generate a collection of questions from a PTA of questions, 
@@ -1275,11 +1273,9 @@ public class Transform
 			throw new IllegalArgumentException("Can only convert i/o automata");
 
 		Set<Label> alphabet = coregraph.pathroutines.computeAlphabet();
-		Set<String> outputs = new TreeSet<>();
 		for(Label l:alphabet) {
 			if (!(l instanceof LabelInputOutput))
 				throw new IllegalArgumentException("Can only convert input/output labels");
-			outputs.add( ((LabelInputOutput)l).output );
 		}
 
 		Configuration cnf = coregraph.config.copy();cnf.setLabelKind(Configuration.LABELKIND.LABEL_INPUT_OUTPUT);
@@ -1338,7 +1334,6 @@ public class Transform
 
 		int outputIdx=1, stateIdx = 1;
 		MapWithSearch<String,String,Integer> outputDatabase = useExistingNumbering == null? new HashMapWithSearch<>(20):useExistingNumbering;
-		MapWithSearch<CmpVertex,CmpVertex,Integer> stateDatabase = new HashMapWithSearch<>(20);
 		if (numberingOfOutputs != null)
 			numberingOfOutputs.clear();
 
@@ -1349,7 +1344,6 @@ public class Transform
 			CmpVertex newState = entry.getKey();
 			if (numberStates) {
 				Integer value = stateIdx++;
-				stateDatabase.put(entry.getKey(), value);
 				newState = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("S" + value), result.config);
 				newState.setAccept(entry.getKey().isAccept());
 			}

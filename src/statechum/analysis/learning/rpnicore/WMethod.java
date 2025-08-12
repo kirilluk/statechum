@@ -803,6 +803,7 @@ public class WMethod
 					for (Entry<Label, CmpVertex> enA : fsm.transitionMatrix.get(stateA).entrySet()) {
 						LabelInputOutput keyA = (LabelInputOutput) enA.getKey();
 						LabelInputOutput keyB = null;
+						// mapB can be null because we add a reject-state to the automaton
 						if (mapB != null)
 							keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
 						if (keyB == null || !Objects.equals(keyA.output, keyB.output)) // either no defined transition or different outputs
@@ -853,6 +854,7 @@ public class WMethod
 						LabelInputOutput keyA = (LabelInputOutput) enA.getKey();
 						MapWithSearch<Label, Label, CmpVertex> mapB = fsm.transitionMatrix.get(stateB);
 						LabelInputOutput keyB = null;
+						// mapB can be null because we add a reject-state to the automaton
 						if (mapB != null)
 							keyB = (LabelInputOutput) mapB.findKey(enA.getKey());
 						if (keyB == null || !Objects.equals(keyA.output, keyB.output)) // either no defined transition or different outputs

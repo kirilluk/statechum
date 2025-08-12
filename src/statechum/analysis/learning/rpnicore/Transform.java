@@ -1343,7 +1343,7 @@ public class Transform
 		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet()) {
 			CmpVertex newState = entry.getKey();
 			if (numberStates) {
-				Integer value = stateIdx++;
+				int value = stateIdx++;
 				newState = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("S" + value), result.config);
 				newState.setAccept(entry.getKey().isAccept());
 			}

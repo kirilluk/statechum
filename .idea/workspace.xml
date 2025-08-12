@@ -4,9 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Revised LabelInputOutput handling in relation to comparing graphs. Minor other corrections.">
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Documented why mapB can be null in WMethod.java, very minor change to Transform">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/GlobalConfiguration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/GlobalConfiguration.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/Visualiser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/Visualiser.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/LearnMealy.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/LearnMealy.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
@@ -56,95 +59,96 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Application.DotComparator.executor&quot;: &quot;Run&quot;,
-    &quot;Application.DotVisualiser (1).executor&quot;: &quot;Run&quot;,
-    &quot;Application.DotVisualiser Bluetooth outcome.executor&quot;: &quot;Run&quot;,
-    &quot;Application.DotVisualiser.executor&quot;: &quot;Run&quot;,
-    &quot;Application.RunDotExperiment.executor&quot;: &quot;Run&quot;,
-    &quot;Application.experimentProgressProperty.executor&quot;: &quot;Run&quot;,
-    &quot;Application.experimentUAS1.executor&quot;: &quot;Run&quot;,
-    &quot;Application.experimentUAS2.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.ErlangTests.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.FastTests$BasicTests.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.FastTests$SmtTests.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OTP 24.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestAll (using OTP24).executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestFSMParser.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestGraphSeries.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestLabelParser.testTraceParser1.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestLabelParser.testTraceParser5c.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestLearnerFromLargePTA.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestPaperUAS (1).executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestPaperUAS.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestPaperUAS.testLoad1a (1).executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestPaperUAS.testLoad1a.executor&quot;: &quot;Debug&quot;,
-    &quot;JUnit.TestPaperUAS.testLoad3a1.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestPaperUAS.testLoad3a1Tmp.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestPaperUAS.testLoad3f.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestPaperUAS.testLoadOldPaper.executor&quot;: &quot;Debug&quot;,
-    &quot;JUnit.TestPaperUASLarge.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot (1).executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testIOLabel4.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse10c.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse11e.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse12.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse12b.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse13.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse13a2 (1).executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse13a2.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse13b.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse13c.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse2.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse2b.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse2c.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse9b.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParse9c.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParseLabel1.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParseLabel2.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParseLabel2b.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParseLabel3.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParseLabel4a.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParseLabel4b.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestParserDot.testParseLabel5.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestRandomPathGenerator.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk1.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk2.executor&quot;: &quot;Debug&quot;,
-    &quot;JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk3.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestRecorderIntegration.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestRpniLearner.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestRpniLearner.testEvaluateProgressProperty1.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestRpniLearner.testEvaluateProgressProperty3a.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestSmtLabelRepresentation$TestFeaturesOfAbstractStates.testAddNewPathAndUpdateMap.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestSmtLabelRepresentation.testCreateConjunctionEmpty2.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestTransform.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestTransform.testQuanteKoschke2.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestWMethod.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.TestWMethod.testW_Mealy_3.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;broken__local/tmp__learning__experiments&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;jdk.selected.JAVA_MODULE&quot;: &quot;1.8&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/experiment/statechum-master&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;reference.projectsettings.compiler.javacompiler&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.DotComparator.executor": "Run",
+    "Application.DotVisualiser (1).executor": "Run",
+    "Application.DotVisualiser Bluetooth outcome.executor": "Run",
+    "Application.DotVisualiser.executor": "Run",
+    "Application.RunDotExperiment (1).executor": "Run",
+    "Application.RunDotExperiment.executor": "Run",
+    "Application.experimentProgressProperty.executor": "Run",
+    "Application.experimentUAS1.executor": "Run",
+    "Application.experimentUAS2.executor": "Run",
+    "JUnit.ErlangTests.executor": "Run",
+    "JUnit.FastTests$BasicTests.executor": "Run",
+    "JUnit.FastTests$SmtTests.executor": "Run",
+    "JUnit.OTP 24.executor": "Run",
+    "JUnit.TestAll (using OTP24).executor": "Run",
+    "JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23.executor": "Run",
+    "JUnit.TestFSMParser.executor": "Run",
+    "JUnit.TestGraphSeries.executor": "Run",
+    "JUnit.TestLabelParser.testTraceParser1.executor": "Run",
+    "JUnit.TestLabelParser.testTraceParser5c.executor": "Run",
+    "JUnit.TestLearnerFromLargePTA.executor": "Run",
+    "JUnit.TestPaperUAS (1).executor": "Run",
+    "JUnit.TestPaperUAS.executor": "Run",
+    "JUnit.TestPaperUAS.testLoad1a (1).executor": "Run",
+    "JUnit.TestPaperUAS.testLoad1a.executor": "Debug",
+    "JUnit.TestPaperUAS.testLoad3a1.executor": "Run",
+    "JUnit.TestPaperUAS.testLoad3a1Tmp.executor": "Run",
+    "JUnit.TestPaperUAS.testLoad3f.executor": "Run",
+    "JUnit.TestPaperUAS.testLoadOldPaper.executor": "Debug",
+    "JUnit.TestPaperUASLarge.executor": "Run",
+    "JUnit.TestParserDot (1).executor": "Run",
+    "JUnit.TestParserDot.executor": "Run",
+    "JUnit.TestParserDot.testIOLabel4.executor": "Run",
+    "JUnit.TestParserDot.testParse10c.executor": "Run",
+    "JUnit.TestParserDot.testParse11e.executor": "Run",
+    "JUnit.TestParserDot.testParse12.executor": "Run",
+    "JUnit.TestParserDot.testParse12b.executor": "Run",
+    "JUnit.TestParserDot.testParse13.executor": "Run",
+    "JUnit.TestParserDot.testParse13a2 (1).executor": "Run",
+    "JUnit.TestParserDot.testParse13a2.executor": "Run",
+    "JUnit.TestParserDot.testParse13b.executor": "Run",
+    "JUnit.TestParserDot.testParse13c.executor": "Run",
+    "JUnit.TestParserDot.testParse2.executor": "Run",
+    "JUnit.TestParserDot.testParse2b.executor": "Run",
+    "JUnit.TestParserDot.testParse2c.executor": "Run",
+    "JUnit.TestParserDot.testParse9b.executor": "Run",
+    "JUnit.TestParserDot.testParse9c.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel1.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel2.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel2b.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel3.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel4a.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel4b.executor": "Run",
+    "JUnit.TestParserDot.testParseLabel5.executor": "Run",
+    "JUnit.TestRandomPathGenerator.executor": "Run",
+    "JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk1.executor": "Run",
+    "JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk2.executor": "Debug",
+    "JUnit.TestRandomPathGenerator.test_generate_limitedSelfLoopWalk3.executor": "Run",
+    "JUnit.TestRecorderIntegration.executor": "Run",
+    "JUnit.TestRpniLearner.executor": "Run",
+    "JUnit.TestRpniLearner.testEvaluateProgressProperty1.executor": "Run",
+    "JUnit.TestRpniLearner.testEvaluateProgressProperty3a.executor": "Run",
+    "JUnit.TestSmtLabelRepresentation$TestFeaturesOfAbstractStates.testAddNewPathAndUpdateMap.executor": "Run",
+    "JUnit.TestSmtLabelRepresentation.testCreateConjunctionEmpty2.executor": "Run",
+    "JUnit.TestTransform.executor": "Run",
+    "JUnit.TestTransform.testQuanteKoschke2.executor": "Run",
+    "JUnit.TestWMethod.executor": "Run",
+    "JUnit.TestWMethod.testW_Mealy_3.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "broken__local/tmp__learning__experiments",
+    "ignore.virus.scanning.warn.message": "true",
+    "jdk.selected.JAVA_MODULE": "1.8",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "D:/experiment/statechum-master",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "reference.projectsettings.compiler.javacompiler",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\experiment\statechum-master\lib\Erlang24\src\statechum\analysis\Erlang" />
@@ -169,7 +173,7 @@
       <recent name="statechum.analysis.Erlang.Signatures" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.TestAll (using OTP24)">
+  <component name="RunManager" selected="Application.RunDotExperiment">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -253,6 +257,15 @@
       <option name="MAIN_CLASS_NAME" value="statechum.apps.DotVisualiser" />
       <module name="XMachineTool" />
       <option name="PROGRAM_PARAMETERS" value="&quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\Bluetooth_CYW43455.dot&quot;" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs -Xmx25500m" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunDotExperiment (1)" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.EvaluationOfLearners.LearnMealy" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="&quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\Bluetooth_CYW43455.dot&quot; &quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\APTA_size_3196_States\Bluetooth_APTA2.dot&quot;" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs -Xmx25500m" />
       <method v="2">
         <option name="Make" enabled="true" />
@@ -713,6 +726,7 @@
       <item itemvalue="Application.DotVisualiser Bluetooth outcome" />
       <item itemvalue="Application.DotVisualiser (1)" />
       <item itemvalue="Application.RunDotExperiment" />
+      <item itemvalue="Application.RunDotExperiment (1)" />
       <item itemvalue="JUnit.OTP 24 - erlangtmp" />
       <item itemvalue="JUnit.OTP 24" />
       <item itemvalue="JUnit.Test something" />
@@ -781,6 +795,7 @@
       <workItem from="1754582246253" duration="8939000" />
       <workItem from="1754667710936" duration="16314000" />
       <workItem from="1754770503640" duration="12532000" />
+      <workItem from="1755015145427" duration="11702000" />
     </task>
     <task id="LOCAL-00001" summary="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer).">
       <created>1651266068784</created>
@@ -1011,7 +1026,15 @@
       <option name="project" value="LOCAL" />
       <updated>1754789730041</updated>
     </task>
-    <option name="localTasksCounter" value="32" />
+    <task id="LOCAL-00032" summary="Documented why mapB can be null in WMethod.java, very minor change to Transform">
+      <option name="closed" value="true" />
+      <created>1755015905698</created>
+      <option name="number" value="00032" />
+      <option name="presentableId" value="LOCAL-00032" />
+      <option name="project" value="LOCAL" />
+      <updated>1755015905698</updated>
+    </task>
+    <option name="localTasksCounter" value="33" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1035,6 +1058,7 @@
       <map>
         <entry key="a55dd8ee-9955-42a6-b0bf-88d0e78fad4d" value="TOOL_WINDOW" />
         <entry key="105d41e1-d730-4e1e-9b57-c229af640a6a" value="TOOL_WINDOW" />
+        <entry key="efc6efe8-7bd3-474b-a5f2-236dafc0ecc0" value="TOOL_WINDOW" />
       </map>
     </option>
     <option name="TAB_STATES">
@@ -1094,11 +1118,35 @@
             </State>
           </value>
         </entry>
+        <entry key="efc6efe8-7bd3-474b-a5f2-236dafc0ecc0">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="HEAD" />
+                      </list>
+                    </value>
+                  </entry>
+                  <entry key="roots">
+                    <value>
+                      <list>
+                        <option value="$PROJECT_DIR$" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
+            </State>
+          </value>
+        </entry>
       </map>
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="More Erlang tests pass, many Synapse tests still fail." />
     <MESSAGE value="All current Erlang tests pass with OpenJDK and OTP 24." />
     <MESSAGE value="Added tests for typer's handling of map types and another test for record type (which is the same as a tuple)." />
     <MESSAGE value="Merged experimental branch into main and resolved conflicts. Running tests is next task." />
@@ -1123,7 +1171,8 @@
     <MESSAGE value="Revised dot support to handle reject-states" />
     <MESSAGE value="Revised LabelInputOutput handling in relation to comparing graphs." />
     <MESSAGE value="Revised LabelInputOutput handling in relation to comparing graphs. Minor other corrections." />
-    <option name="LAST_COMMIT_MESSAGE" value="Revised LabelInputOutput handling in relation to comparing graphs. Minor other corrections." />
+    <MESSAGE value="Documented why mapB can be null in WMethod.java, very minor change to Transform" />
+    <option name="LAST_COMMIT_MESSAGE" value="Documented why mapB can be null in WMethod.java, very minor change to Transform" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1175,7 +1224,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/LearnMealy.java</url>
-          <line>78</line>
+          <line>82</line>
           <option name="timeStamp" value="146" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
@@ -1189,14 +1238,9 @@
           <option name="timeStamp" value="155" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/statechum/LabelInputOutput.java</url>
-          <line>106</line>
-          <option name="timeStamp" value="157" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/WMethod.java</url>
-          <line>801</line>
-          <option name="timeStamp" value="158" />
+          <url>file://$PROJECT_DIR$/lib/jung-1.7.6/src/edu/uci/ics/jung/visualization/GraphZoomScrollPane.java</url>
+          <line>280</line>
+          <option name="timeStamp" value="178" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

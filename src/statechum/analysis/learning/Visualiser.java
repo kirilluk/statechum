@@ -565,10 +565,10 @@ public class Visualiser extends JFrame implements Observer, Runnable, MouseListe
         updatePopupMenu(popupMenu,keyToActionMap);
         //getContentPane().removeAll();
         WindowPosition framePosition = globalConfig.loadFrame(propName);
-
+        setSize(new Dimension(framePosition.getRect().width-50,framePosition.getRect().height-70));
         viewer = new VisualizationViewer(new DefaultVisualizationModel(new XMLPersistingLayout(
                 propName >= 0 ? new FRLayout(g) : new KKLayout(g))), constructRenderer(g,options));
-
+        viewer.getGraphLayout().resize(getSize());
         viewer.setBackground(Color.WHITE);
         final DefaultModalGraphMouse graphMouse = new XMLModalGraphMouse();
         graphMouse.setMode(ModalGraphMouse.Mode.PICKING);

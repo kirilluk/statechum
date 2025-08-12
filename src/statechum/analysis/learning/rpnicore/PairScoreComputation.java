@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import ext_lib.collections.HashMapWithSearch;
+import ext_lib.collections.TreeMapWithSearch;
 import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
@@ -33,6 +34,7 @@ import statechum.analysis.learning.linear.GDLearnerGraph;
 import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRightHandSideInterface;
 import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
+import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.ArrayMapWithSearchPos;
 import statechum.collections.MapWithSearch;
 
@@ -234,42 +236,9 @@ public class PairScoreComputation {
 
 				Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 				computedScore = computePairCompatibilityScore_general(pairToComputeFrom,null,collectionOfVerticesToMerge, false);compatibilityScore=computedScore;
-				if (computedScore >= 0) {
-					// Build a map from old vertices to the corresponding equivalence classes
-					Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToEqClass =
-							new HashMap<>(2 * (coregraph.vertPositiveID + coregraph.vertNegativeID));
+				if (computedScore >= 0 && !mergePossibleForDeterministicMealyAutomaton(collectionOfVerticesToMerge))
+					computedScore = -1;
 
-					for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:collectionOfVerticesToMerge)
-						for(CmpVertex v:eqClass.getStates())
-							origToEqClass.put(v, eqClass);
-
-					for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass:collectionOfVerticesToMerge) {
-						// maps states to either equivalence classes or other states (that are not part of an equivalence class because they are not being merged).
-						Map<String,Object> inputsToTargetVerticesOrEqClasses = new HashMap<>();
-						for (Entry<Label, Object> entry : eqClass.getOutgoing().entrySet()) {
-							Object targetsSlot = entry.getValue();
-							CmpVertex targetState;
-							if (targetsSlot instanceof CmpVertex)
-								targetState = (CmpVertex) targetsSlot;
-							else
-								targetState = ((List<CmpVertex>) targetsSlot).get(0);
-
-							if (targetState.isAccept()) {
-								Object targetStateOrEqClass = origToEqClass.get(targetState);
-								if (targetStateOrEqClass == null)
-									targetStateOrEqClass = targetState;
-								Object prevVertexOrEqClass = inputsToTargetVerticesOrEqClasses.put(((LabelInputOutput) entry.getKey()).input,targetStateOrEqClass);
-								if (prevVertexOrEqClass != null && prevVertexOrEqClass != targetStateOrEqClass) {
-									computedScore = -1;
-									break;
-								}
-							}
-						}
-
-						if (computedScore < 0)
-							break;
-					}
-				}
 				break;
 			}
 			case KTAILS:
@@ -315,6 +284,51 @@ public class PairScoreComputation {
 		if (computedScore >= 0 && scoreComputationOverride != null)
 			computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,computedScore, compatibilityScore));
 		return new PairScore(blue,red,computedScore, compatibilityScore);
+	}
+
+	public boolean mergePossibleForDeterministicMealyAutomaton(Collection<EquivalenceClass<CmpVertex, LearnerGraphCachedData>> collectionOfVerticesToMerge) {
+		// Implementation-related note: both origToEqClass and inputsToTargetVerticesOrEqClasses need to be TreeMaps,
+		// not hashmaps or ArrayMapWithSearch because the method is called many times and it seems that allocation
+		// time for the array or hashmap takes its toll. The performance gap is huge.
+		boolean mergePossible = true;
+		// Build a map from old vertices to the corresponding equivalence classes
+		Map<CmpVertex,EquivalenceClass<CmpVertex,LearnerGraphCachedData>> origToEqClass =
+//				new ArrayMapWithSearch<>(coregraph.vertPositiveID, coregraph.vertNegativeID);
+				new TreeMap<>();
+		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass: collectionOfVerticesToMerge)
+			for(CmpVertex v:eqClass.getStates())
+				origToEqClass.put(v, eqClass);
+
+		for(EquivalenceClass<CmpVertex,LearnerGraphCachedData> eqClass: collectionOfVerticesToMerge) {
+			// maps states to either equivalence classes or other states (that are not part of an equivalence class because they are not being merged).
+			Map<String,Object> inputsToTargetVerticesOrEqClasses = new TreeMap<>();
+
+			for (Entry<Label, Object> entry : eqClass.getOutgoing().entrySet()) {
+				Object targetsSlot = entry.getValue();
+				CmpVertex targetState;
+				if (targetsSlot instanceof CmpVertex)
+					targetState = (CmpVertex) targetsSlot;
+				else
+					targetState = ((List<CmpVertex>) targetsSlot).get(0);// it is reasonable to do this because all states will belong to the same equivalence class.
+
+				if (targetState.isAccept()) {
+					Object targetStateOrEqClass = origToEqClass.get(targetState);
+					if (targetStateOrEqClass == null) // next state is not part of an equivalence class containing multiple states that were merged.
+						targetStateOrEqClass = targetState;
+					// add or replace the target and check that the old value was either null (no value) or the same as
+					// the new one, otherwise we have non-determinism
+					Object nextVertexOfEquivalenceClass = inputsToTargetVerticesOrEqClasses.put(((LabelInputOutput) entry.getKey()).input,targetStateOrEqClass);
+					if (nextVertexOfEquivalenceClass != null && nextVertexOfEquivalenceClass != targetStateOrEqClass) {
+						mergePossible = false;
+						break;
+					}
+				}
+			}
+
+			if (!mergePossible)
+				break;
+		}
+		return mergePossible;
 	}
 
 	public int computePairCompatibilityScore(StatePair origPair)

@@ -1,13 +1,16 @@
 package statechum.analysis.learning.experiments.EvaluationOfLearners;
 
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import ext_lib.collections.HashMapWithSearch;
 import statechum.*;
+import statechum.analysis.Erlang.Synapse;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.UASExperiment;
+import statechum.analysis.learning.linear.DifferenceVisualiser;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.FsmParserDot;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -72,9 +75,10 @@ public class LearnMealy {
 //        PairQualityLearner.DifferenceToReferenceLanguageBCR bcrMeasure = PairQualityLearner.DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceAsIOPairs, actualAutomaton,learnerInitConfiguration.testSet);
         System.out.println(diffMeasure.getValue());
 
-//        DirectedSparseGraph gr = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(Synapse.StatechumProcess.constructFSM(referenceAsIOPairs),
-//                DifferenceVisualiser.ChangesToGraph.computeGD(referenceAsIOPairs, actualAutomaton,configAtomicPairs));
-//        graphVisualiser.update(null,gr);
+        DirectedSparseGraph gr = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(Synapse.StatechumProcess.constructFSM(referenceAsIOPairs),
+                DifferenceVisualiser.ChangesToGraph.computeGD(referenceAsIOPairs, actualAutomaton,configAtomicPairs));
+        graphVisualiser.update(null,gr);
+        Visualiser.waitForKey();
 //        LearnerGraph lowerGraph = actualAutomaton.transform.trimGraph(3, actualAutomaton.config);
         Visualiser.updateFrame(referenceAsIOPairs, actualAutomaton);
         Visualiser.waitForKey();

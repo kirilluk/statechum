@@ -21,7 +21,6 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import ext_lib.collections.HashMapWithSearch;
-import ext_lib.collections.TreeMapWithSearch;
 import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
@@ -34,7 +33,6 @@ import statechum.analysis.learning.linear.GDLearnerGraph;
 import statechum.analysis.learning.linear.GDLearnerGraph.DetermineDiagonalAndRightHandSideInterface;
 import statechum.analysis.learning.linear.GDLearnerGraph.HandleRow;
 import statechum.analysis.learning.linear.GDLearnerGraph.StateBasedRandom;
-import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.ArrayMapWithSearchPos;
 import statechum.collections.MapWithSearch;
 

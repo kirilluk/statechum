@@ -79,7 +79,6 @@ public class GlobalConfiguration {
 		,SGE_DISABLEGRAPHSAVE // to avoid filling the filesystem, we do not save PTAs or final graphs.
 		,PATH_UASPAPER // the location of files for the UAS paper, has to be a global configuration because command-line options have to match SGE ones and leave no space for this path.
 		,PATH_EXPERIMENTRESULTS // where to store the outcome of SGE-runner experiments
-		;
 	}
 
 	/**
@@ -90,7 +89,7 @@ public class GlobalConfiguration {
 	/**
 	 * Default values of Statechum-wide attributes. 
 	 */
-	protected static final Map<G_PROPERTIES, String> defaultValues = new TreeMap<G_PROPERTIES, String>();
+	protected static final Map<G_PROPERTIES, String> defaultValues = new TreeMap<>();
 	
 	private static boolean assertionsEnabled = false;// this has to be executed above the static block which assigns a new value if appropriate.
 	
@@ -136,7 +135,7 @@ public class GlobalConfiguration {
 	
 	public boolean isAssertEnabled()
 	{
-		return assertionsEnabled || Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ASSERT_ENABLED));
+		return assertionsEnabled || Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.ASSERT_ENABLED));
 	}
 	
 	protected GlobalConfiguration() {
@@ -156,10 +155,10 @@ public class GlobalConfiguration {
 	/** This one is used to ensure that path names and various configuration values are set correctly
 	 * when Statechum is used as an Eclipse plugin.
 	 */
-	public static interface WorkbenchResources
+	public interface WorkbenchResources
 	{
 		/** Loads values of resources from Eclipse. */
-		public void setResources(Map<G_PROPERTIES, String> resources);
+        void setResources(Map<G_PROPERTIES, String> resources);
 	}
 
 	/** Retrieves the name of the property from the property file.
@@ -183,30 +182,30 @@ public class GlobalConfiguration {
 		
 		XMLDecoder decoder = null;
 		if (configFileName != null && new File(configFileName).canRead())
-		try 
-		{
-			if (debugGlobalConfiguration) System.out.println("Loaded configuration file "+configFileName);
-			decoder = new XMLDecoder(new FileInputStream(configFileName));
-			properties = (Properties) decoder.readObject();
-			windowCoords = (HashMap<Integer, WindowPosition>) decoder.readObject();
-			decoder.close();
-		} catch (Exception e) 
-		{// failed loading, (almost) ignore this.
-			System.err.println("Failed to load "+configFileName);
-			e.printStackTrace();
-			if (debugGlobalConfiguration) 
+			try
 			{
+				if (debugGlobalConfiguration) System.out.println("Loaded configuration file "+configFileName);
+				decoder = new XMLDecoder(new FileInputStream(configFileName));
+				properties = (Properties) decoder.readObject();
+				windowCoords = (HashMap<Integer, WindowPosition>) decoder.readObject();
+				decoder.close();
+			} catch (Exception e)
+			{// failed loading, (almost) ignore this.
 				System.err.println("Failed to load "+configFileName);
 				e.printStackTrace();
+				if (debugGlobalConfiguration)
+				{
+					System.err.println("Failed to load "+configFileName);
+					e.printStackTrace();
+				}
 			}
-		}
-		finally
-		{
-			if (decoder != null)
-				decoder.close();
-		}
+			finally
+			{
+				if (decoder != null)
+					decoder.close();
+			}
 		if (windowCoords == null)
-			windowCoords = new HashMap<Integer, WindowPosition>();
+			windowCoords = new HashMap<>();
 		if (properties == null)
 			properties = new Properties();
 		boolean valuesSet = false,firstValue=true;
@@ -236,7 +235,7 @@ public class GlobalConfiguration {
 		// Above, I have to directly access defaultValues because this method is used to load a configuration hence "properties" are not available and getProperty() will lead to an infinite loop 
 		 		String file = System.getProperty(G_PROPERTIES.VIZ_CONFIG.name());
 		if (file == null) file = defaultValues.get(G_PROPERTIES.VIZ_CONFIG);
-		if (file != null && file.trim().length() == 0) file = null;
+		if (file != null && file.trim().isEmpty()) file = null;
 
 		String result = null;
 		if (file != null)
@@ -261,7 +260,7 @@ public class GlobalConfiguration {
 
 			GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
 			GraphicsDevice[] gs = ge.getScreenDevices();
-			int deviceToUse = Integer.valueOf(getProperty(G_PROPERTIES.GRAPHICS_MONITOR));
+			int deviceToUse = Integer.parseInt(getProperty(G_PROPERTIES.GRAPHICS_MONITOR));
 			if (deviceToUse >= gs.length) deviceToUse =statechum.GlobalConfiguration.DEFAULT_SCREEN;// use the first one if cannot use the requested one.
 			GraphicsConfiguration gc = gs[deviceToUse].getDefaultConfiguration();
 			
@@ -333,7 +332,7 @@ public class GlobalConfiguration {
 	{
 		String configFileName = getConfigurationFileName();
 		if (windowCoords == null)
-			windowCoords = new HashMap<Integer, WindowPosition>();
+			windowCoords = new HashMap<>();
 		if (properties == null)
 			properties = new Properties();
 
@@ -365,7 +364,7 @@ public class GlobalConfiguration {
 	public boolean isGraphTransformationDebug(DirectedSparseGraph graph)
 	{
 		String name = graph == null? null:(String)graph.getUserDatum(JUConstants.TITLE);
-		return name != null && name.length()>0 && 
+		return name != null && !name.isEmpty() &&
 			getProperty(G_PROPERTIES.STOP).equals(name);
 	}
 

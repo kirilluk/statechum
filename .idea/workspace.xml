@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Documented why mapB can be null in WMethod.java, very minor change to Transform">
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Cleaned up some IdeaJ warnings.">
+      <change afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestMealyScoring.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/GlobalConfiguration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/GlobalConfiguration.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/Visualiser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/Visualiser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/LearnMealy.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/LearnMealy.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/FastTests.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/FastTests.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
@@ -81,6 +79,7 @@
     "JUnit.TestLabelParser.testTraceParser1.executor": "Run",
     "JUnit.TestLabelParser.testTraceParser5c.executor": "Run",
     "JUnit.TestLearnerFromLargePTA.executor": "Run",
+    "JUnit.TestMealyScoring.executor": "Run",
     "JUnit.TestPaperUAS (1).executor": "Run",
     "JUnit.TestPaperUAS.executor": "Run",
     "JUnit.TestPaperUAS.testLoad1a (1).executor": "Run",
@@ -173,7 +172,7 @@
       <recent name="statechum.analysis.Erlang.Signatures" />
     </key>
   </component>
-  <component name="RunManager" selected="Application.RunDotExperiment">
+  <component name="RunManager" selected="JUnit.TestMealyScoring">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -584,6 +583,21 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="TestMealyScoring" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.TestMealyScoring" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="TestParserDot" type="JUnit" factoryName="JUnit">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -634,28 +648,6 @@
       <option name="METHOD_NAME" value="" />
       <option name="TEST_OBJECT" value="class" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\otp_win64_24.3.4.17&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <envs>
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
-        <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestTransform" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestTransform" />
-      <option name="METHOD_NAME" value="testQuanteKoschke2" />
-      <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\soft\Program Files\R\R-4.2.0\library\rJava\jri\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\otp_win64_24.3.4.17&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <option name="PARAMETERS" value="[0,Jung vertex, clone, STATETREE_LINKEDHASH]" />
       <envs>
         <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\Subversion\bin;d:\soft\yices-1.0.40\lib;C:\Program Files\PuTTY\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\dotnet\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\TortoiseGit\bin;C:\Users\Kirill\AppData\Local\Microsoft\WindowsApps;D:\soft\Program Files\R\R-4.2.0\bin\x64" />
         <env name="R_HOME" value="D:\soft\Program Files\R\R-4.2.0" />
@@ -741,19 +733,19 @@
       <item itemvalue="JUnit.TestLengthy (using OTP24)" />
       <item itemvalue="JUnit.Run All tests with old OTP" />
       <item itemvalue="JUnit.TestParserDot" />
+      <item itemvalue="JUnit.TestMealyScoring" />
       <item itemvalue="JUnit.TestGraphSeries" />
       <item itemvalue="JUnit.TestRecorderIntegration" />
-      <item itemvalue="JUnit.TestTransform" />
       <item itemvalue="JUnit.TestWMethod" />
       <item itemvalue="JUnit.TestWMethod.testW_Mealy_3" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="JUnit.TestMealyScoring" />
         <item itemvalue="JUnit.TestWMethod" />
         <item itemvalue="JUnit.TestWMethod.testW_Mealy_3" />
         <item itemvalue="JUnit.TestGraphSeries" />
         <item itemvalue="JUnit.TestRecorderIntegration" />
-        <item itemvalue="JUnit.TestTransform" />
       </list>
     </recent_temporary>
   </component>
@@ -795,7 +787,7 @@
       <workItem from="1754582246253" duration="8939000" />
       <workItem from="1754667710936" duration="16314000" />
       <workItem from="1754770503640" duration="12532000" />
-      <workItem from="1755015145427" duration="11702000" />
+      <workItem from="1755015145427" duration="12987000" />
     </task>
     <task id="LOCAL-00001" summary="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer).">
       <created>1651266068784</created>
@@ -1034,7 +1026,23 @@
       <option name="project" value="LOCAL" />
       <updated>1755015905698</updated>
     </task>
-    <option name="localTasksCounter" value="33" />
+    <task id="LOCAL-00033" summary="Mealy score computation is now much faster.&#10;Minor tweaks to Jung-based ui.">
+      <option name="closed" value="true" />
+      <created>1755037799427</created>
+      <option name="number" value="00033" />
+      <option name="presentableId" value="LOCAL-00033" />
+      <option name="project" value="LOCAL" />
+      <updated>1755037799427</updated>
+    </task>
+    <task id="LOCAL-00034" summary="Cleaned up some IdeaJ warnings.">
+      <option name="closed" value="true" />
+      <created>1755037971726</created>
+      <option name="number" value="00034" />
+      <option name="presentableId" value="LOCAL-00034" />
+      <option name="project" value="LOCAL" />
+      <updated>1755037971726</updated>
+    </task>
+    <option name="localTasksCounter" value="35" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1147,8 +1155,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="All current Erlang tests pass with OpenJDK and OTP 24." />
-    <MESSAGE value="Added tests for typer's handling of map types and another test for record type (which is the same as a tuple)." />
     <MESSAGE value="Merged experimental branch into main and resolved conflicts. Running tests is next task." />
     <MESSAGE value="Merged experimental branch into main and resolved conflicts to make sure that the outcome builds. Running tests is next task." />
     <MESSAGE value="Fast tests pass." />
@@ -1172,7 +1178,9 @@
     <MESSAGE value="Revised LabelInputOutput handling in relation to comparing graphs." />
     <MESSAGE value="Revised LabelInputOutput handling in relation to comparing graphs. Minor other corrections." />
     <MESSAGE value="Documented why mapB can be null in WMethod.java, very minor change to Transform" />
-    <option name="LAST_COMMIT_MESSAGE" value="Documented why mapB can be null in WMethod.java, very minor change to Transform" />
+    <MESSAGE value="Mealy score computation is now much faster.&#10;Minor tweaks to Jung-based ui." />
+    <MESSAGE value="Cleaned up some IdeaJ warnings." />
+    <option name="LAST_COMMIT_MESSAGE" value="Cleaned up some IdeaJ warnings." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

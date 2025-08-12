@@ -46,6 +46,7 @@ public class FastTests {
     @Suite.SuiteClasses({
         statechum.analysis.learning.TestPTAConstruction.class,
         statechum.analysis.learning.TestRpniLearner.class,
+        statechum.analysis.learning.TestMealyScoring.class,
         statechum.analysis.learning.rpnicore.TestLTLToBa.class,
         statechum.analysis.learning.rpnicore.TestAugmentUsingIFTHEN.class,
         statechum.analysis.learning.rpnicore.TestAugmentUsingIFTHEN.TestQuestionPTA.class,

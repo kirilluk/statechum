@@ -3,6 +3,7 @@ package statechum.analysis.learning.rpnicore;
 import org.junit.Assert;
 import org.junit.Test;
 import statechum.*;
+import statechum.analysis.learning.util.OutputUtil;
 
 import java.util.*;
 
@@ -1163,6 +1164,187 @@ public class TestParserDot {
         Assert.assertEquals(Arrays.asList("g","k","p"), outputsA);
         Assert.assertEquals(outputsA, outputsB);
         Assert.assertNull(WMethod.checkM(grM_int, grM_int.getInit(),grConf_int,grConf_int.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+
+    @Test
+    public final void testConvertToIOPairsAndComplete0() {
+        final LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs();
+
+        final LearnerGraph expected = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
+        expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        Assert.assertNull(WMethod.checkM(expected,expected.getInit(),completed, completed.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+
+    @Test
+    public final void testConvertToIOPairsAndComplete1() {
+        Transform.ConvertALabel converter = new Transform.StringToMealyLabelConverter();
+        final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->A", "testConvertToIOPairsAndComplete1a", Configuration.getDefaultConfiguration().copy(), converter);
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs();
+
+        final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-{a,b}->A", "testConvertToIOPairsAndComplete1b", Configuration.getDefaultConfiguration().copy(), converter);
+        expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        Assert.assertNull(WMethod.checkM(expected,expected.getInit(),completed, completed.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+
+    @Test
+    public final void testConvertToIOPairsAndComplete2() {
+        Transform.ConvertALabel converter = new Transform.StringToMealyLabelConverter();
+        final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C", "testConvertToIOPairsAndComplete2a", Configuration.getDefaultConfiguration().copy(), converter);
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs();
+
+        final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / A-{a,c}-#R / B-{q,b}-#P", "testConvertToIOPairsAndComplete2b", Configuration.getDefaultConfiguration().copy(), converter);
+        expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        Assert.assertNull(WMethod.checkM(expected,expected.getInit(),completed, completed.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+
+    @Test
+    public final void testConvertToIOPairsAndComplete3() {
+        Transform.ConvertALabel converter = new Transform.StringToMealyLabelConverter();
+        final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / A-{a,c}-#R / B-{q,b}-#R", "testConvertToIOPairsAndComplete3a", Configuration.getDefaultConfiguration().copy(), converter);
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs();
+
+        final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / A-{a,c}-#R / B-{q,b}-#P", "testConvertToIOPairsAndComplete3b", Configuration.getDefaultConfiguration().copy(), converter);
+        expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        Assert.assertNull(WMethod.checkM(expected,expected.getInit(),completed, completed.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+
+    @Test
+    public final void testConvertToIOPairsAndComplete4() {
+        Transform.ConvertALabel converter = new Transform.StringToMealyLabelConverter();
+        final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / B-{q,e}->C / A-{a,c}-#R / B-{q,b}-#R / A-{a,e}-#T", "testConvertToIOPairsAndComplete4a", Configuration.getDefaultConfiguration().copy(), converter);
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs();
+
+        final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / A-{a,c}-#R / B-{q,b}-#P / A-{a,e}-#R / B-{q,e}->C", "testConvertToIOPairsAndComplete4b", Configuration.getDefaultConfiguration().copy(), converter);
+        expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        Assert.assertNull(WMethod.checkM(expected,expected.getInit(),completed, completed.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+
+    @Test
+    public final void testConvertToIOPairsAndComplete5() {
+        Transform.ConvertALabel converter = new Transform.StringToMealyLabelConverter();
+        final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / B-{q,e}->C / A-{a,c}-#R / B-{q,b}-#R / A-{a,e}-#T / A-{q,b}->A", "testConvertToIOPairsAndComplete5a", Configuration.getDefaultConfiguration().copy(), converter);
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs();
+
+        final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / A-{q,b}->A / B-{q,c}->C / A-{a,c}-#R / B-{q,b}-#P / A-{a,e}-#R / B-{q,e}->C / A-{q,c}-#R / A-{q,e}-#R", "testConvertToIOPairsAndComplete5b", Configuration.getDefaultConfiguration().copy(), converter);
+        expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        Assert.assertNull(WMethod.checkM(expected,expected.getInit(),completed, completed.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+
+    @Test
+    public final void testExportDot1() {
+        Transform.ConvertALabel converter = new Transform.StringToMealyLabelConverter();
+        final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / B-{q,e}->C / A-{a,c}-#R / B-{q,b}-#R / A-{a,e}-#T / A-{q,b}->A", "testConvertToIOPairsAndComplete5a", Configuration.getDefaultConfiguration().copy(), converter);
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        Assert.assertEquals("digraph testConvertToIOPairsAndComplete5a {\n" +
+                "\trankdir=LR;\n" +
+                "\tnode [shape=circle, style=filled, fillcolor=white];\n" +
+                "\t\"A\" [shape=doublecircle];\n" +
+                "\t\"B\" [shape=doublecircle];\n" +
+                "\t\"C\" [shape=doublecircle];\n" +
+                "\t\"R\" [shape=square];\n" +
+                "\t\"T\" [shape=square];\n" +
+                "\t\"A\"->\"B\" [label=\"a/b\"];\n" +
+                "\t\"A\"->\"R\" [label=\"a/c\"];\n" +
+                "\t\"A\"->\"T\" [label=\"a/e\"];\n" +
+                "\t\"A\"->\"A\" [label=\"q/b\"];\n" +
+                "\t\"B\"->\"R\" [label=\"q/b\"];\n" +
+                "\t\"B\"->\"C\" [label=\"q/c\"];\n" +
+                "\t\"B\"->\"C\" [label=\"q/e\"];\n" +
+                "}\n",OutputUtil.dotGraphMealy(fsm).toString());
+    }
+
+    @Test
+    public final void testExportDot2() {
+        Transform.ConvertALabel converter = new Transform.StringToMealyLabelConverter();
+        final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{a,c}->C", "testExportDot2", Configuration.getDefaultConfiguration().copy(), converter);
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        fsm.findVertex("B").setColour(JUConstants.RED);fsm.findVertex("A").setColour(JUConstants.BLUE);fsm.findVertex("C").setColour(JUConstants.AMBER);
+        Assert.assertEquals("digraph testExportDot2 {\n" +
+                "\trankdir=LR;\n" +
+                "\tnode [shape=circle, style=filled, fillcolor=white];\n" +
+                "\t\"A\" [shape=doublecircle,fillcolor=blue];\n" +
+                "\t\"B\" [shape=doublecircle,fillcolor=red];\n" +
+                "\t\"C\" [shape=doublecircle];\n" +
+                "\t\"A\"->\"B\" [label=\"a/b\"];\n" +
+                "\t\"B\"->\"C\" [label=\"a/c\"];\n" +
+                "}\n",OutputUtil.dotGraphMealy(fsm).toString());
+    }
+
+    @Test
+    public final void testExportDot3a() {
+        final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B / B-b->C", "testExportDot3a", Configuration.getDefaultConfiguration().copy(), null);
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        fsm.findVertex("B").setColour(JUConstants.RED);fsm.findVertex("A").setColour(JUConstants.BLUE);fsm.findVertex("C").setColour(JUConstants.AMBER);
+        Assert.assertEquals("digraph testExportDot3a {\n" +
+                "\trankdir=LR;\n" +
+                "\tnode [shape=circle, style=filled, fillcolor=white];\n" +
+                "\t\"A\" [shape=doublecircle,fillcolor=blue];\n" +
+                "\t\"B\" [shape=doublecircle,fillcolor=red];\n" +
+                "\t\"C\" [shape=doublecircle];\n" +
+                "\t\"A\"->\"B\" [label=\"a\"];\n" +
+                "\t\"B\"->\"C\" [label=\"b\"];\n" +
+                "}\n",OutputUtil.dotGraphMealy(fsm).toString());
+    }
+
+    @Test
+    public final void testExportDot3b() {
+        final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B / B-b->C", "testExportDot3b", Configuration.getDefaultConfiguration().copy(), null);
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        fsm.setInit(fsm.findVertex("B"));
+        fsm.findVertex("B").setColour(JUConstants.RED);fsm.findVertex("A").setColour(JUConstants.BLUE);fsm.findVertex("C").setColour(JUConstants.AMBER);
+        Assert.assertEquals("digraph testExportDot3b {\n" +
+                "\trankdir=LR;\n" +
+                "\tnode [shape=circle, style=filled, fillcolor=white];\n" +
+                "\t\"B\" [shape=doublecircle,fillcolor=red];\n" +
+                "\t\"A\" [shape=doublecircle,fillcolor=blue];\n" +
+                "\t\"C\" [shape=doublecircle];\n" +
+                "\t\"A\"->\"B\" [label=\"a\"];\n" +
+                "\t\"B\"->\"C\" [label=\"b\"];\n" +
+                "}\n",OutputUtil.dotGraphMealy(fsm).toString());
+    }
+
+    @Test
+    public final void testExportDot3c() {
+        final LearnerGraphND fsm = FsmParserStatechum.buildLearnerGraphND("A-a->B / A-a->C", "testExportDot3c", Configuration.getDefaultConfiguration().copy(), null);
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        fsm.setInit(fsm.findVertex("B"));
+        fsm.findVertex("B").setColour(JUConstants.RED);fsm.findVertex("A").setColour(JUConstants.BLUE);fsm.findVertex("C").setColour(JUConstants.AMBER);
+        Assert.assertEquals("digraph testExportDot3c {\n" +
+                "\trankdir=LR;\n" +
+                "\tnode [shape=circle, style=filled, fillcolor=white];\n" +
+                "\t\"B\" [shape=doublecircle,fillcolor=red];\n" +
+                "\t\"A\" [shape=doublecircle,fillcolor=blue];\n" +
+                "\t\"C\" [shape=doublecircle];\n" +
+                "\t\"A\"->\"B\" [label=\"a\"];\n" +
+                "\t\"A\"->\"C\" [label=\"a\"];\n" +
+                "}\n",OutputUtil.dotGraphMealy(fsm).toString());
+    }
+
+    @Test
+    public final void testExportDot4() {
+        final LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
+        fsm.initEmpty();
+        Assert.assertEquals("digraph graph {\n" +
+                "\trankdir=LR;\n" +
+                "\tnode [shape=circle, style=filled, fillcolor=white];\n" +
+                "}\n",OutputUtil.dotGraphMealy(fsm).toString());
+    }
+
+    @Test
+    public final void testExportDot5() {
+        final LearnerGraph referenceGraph = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / A-{a,c}-#R / B-{q,b}-#P / A-{a,e}-#R / B-{q,e}->C", "testConvertToIOPairsAndComplete4b", Configuration.getDefaultConfiguration().copy(), converter);
+        referenceGraph.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+
+        LearnerGraph graph = FsmParserDot.buildLearnerGraph(OutputUtil.dotGraphMealy(referenceGraph).toString(),
+                configLTS,null, false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND);
+        Assert.assertNull(WMethod.checkM(referenceGraph,referenceGraph.getInit(),graph, graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
     }
 }
 

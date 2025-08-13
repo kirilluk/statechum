@@ -513,5 +513,4 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
         new FsmParserDot<>(fsm, config, graph, conv, allowPartialAutomata, how_to_find_initial_state).parseGraph();
 		return graph;
 	}
-
 }

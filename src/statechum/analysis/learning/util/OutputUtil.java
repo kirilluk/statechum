@@ -3,16 +3,20 @@ package statechum.analysis.learning.util;
 import edu.uci.ics.jung.graph.*;
 import edu.uci.ics.jung.graph.impl.*;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Set;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.DeterministicEdge;
 import statechum.DeterministicDirectedSparseGraph.DeterministicVertex;
 import statechum.JUConstants;
 import statechum.Label;
+import statechum.LabelInputOutput;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphND;
+import statechum.collections.MapWithSearch;
 
 public class OutputUtil {
 	
@@ -53,7 +57,7 @@ public class OutputUtil {
 			f.getParentFile().mkdirs();
 		f.createNewFile();
 		FileOutputStream fos = new FileOutputStream(f);
-		OutputStreamWriter out = new OutputStreamWriter(fos, "UTF-8");
+		OutputStreamWriter out = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
 		out.write(string);
 		out.close();
 		fos.close();
@@ -64,16 +68,15 @@ public class OutputUtil {
 		StringWriter graphout = new StringWriter(); 
 		for (DirectedSparseEdge e : (Iterable<DirectedSparseEdge>)g.getEdges()) {
 			Vertex dest = e.getDest();
-			if(!((Boolean)dest.getUserDatum(JUConstants.ACCEPTED)).booleanValue())
+			if(!(Boolean) dest.getUserDatum(JUConstants.ACCEPTED))
 				continue;
 			String from = e.getSource().toString();
 			String to = e.getDest().toString();
 			if(e.containsUserDatumKey(JUConstants.LABEL)){
 				Set<Label> labels = (Set<Label>)e.getUserDatum(JUConstants.LABEL);
-        		Iterator<Label> labelIt = labels.iterator();
-        		while(labelIt.hasNext()){
-        			graphout.write("\n"+from+" "+labelIt.next().toErlangTerm()+" "+to);
-        		}
+                for (Label label : labels) {
+                    graphout.write("\n" + from + " " + label.toErlangTerm() + " " + to);
+                }
         	}
 		}
 		return graphout;
@@ -83,19 +86,19 @@ public class OutputUtil {
 	protected static StringWriter dotGraph(DirectedSparseGraph g){
 		StringWriter graphout = new StringWriter(); 
 		graphout.write("digraph dotMachine{");
-		ArrayList<DeterministicVertex> vertexList = new ArrayList<DeterministicVertex>();
+		ArrayList<DeterministicVertex> vertexList = new ArrayList<>();
 		for(DeterministicVertex v: (Iterable<DeterministicVertex>)g.getVertices()){
 				vertexList.add(v);
 		}
 		for(Vertex v: (Iterable<DeterministicVertex>)g.getVertices()){
 			Boolean accepted = (Boolean)v.getUserDatum(JUConstants.ACCEPTED);
-			if(!v.toString().equals("Init") && accepted.booleanValue())
+			if(!v.toString().equals("Init") && accepted)
 				graphout.write("\n"+vertexList.indexOf(v)+"[label=\"\" shape=\"circle\"]");
 		}
 		
 		for (DeterministicEdge e : (Iterable<DeterministicEdge>)g.getEdges()) {
 			DeterministicVertex dest = (DeterministicVertex) e.getDest();
-			if(!((Boolean)dest.getUserDatum(JUConstants.ACCEPTED)).booleanValue())
+			if(!(Boolean) dest.getUserDatum(JUConstants.ACCEPTED))
 				continue;
 			String from = String.valueOf(vertexList.indexOf(e.getSource()));
 			String to = String.valueOf(vertexList.indexOf(e.getDest()));
@@ -112,19 +115,78 @@ public class OutputUtil {
 		graphout.write("\n}");
 		return graphout;
 	}
-	
+
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> StringWriter dotGraphMealy(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph) {
+		StringWriter graphout = new StringWriter();
+		String name = graph.getName() == null?"graph":graph.getName();
+		graphout.write("digraph ");graphout.write(name);graphout.write(" {\n");
+		graphout.write("\trankdir=LR;\n" +
+				"\tnode [shape=circle, style=filled, fillcolor=white];\n");
+		if (!graph.transitionMatrix.isEmpty()) {
+			if (graph.getInit() == null)
+				throw new IllegalArgumentException("Graph has no init");
+			writeOutDefinitionOfVertex(graph.getInit(), graphout);
+		}
+
+		for(DeterministicDirectedSparseGraph.CmpVertex vert:graph.transitionMatrix.keySet())
+			if (vert != graph.getInit())
+				writeOutDefinitionOfVertex(vert, graphout);
+
+		for(Map.Entry<DeterministicDirectedSparseGraph.CmpVertex, MapWithSearch<Label, Label, TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
+			for(Map.Entry<Label, TARGET_TYPE> transition:entry.getValue().entrySet())
+				for(DeterministicDirectedSparseGraph.CmpVertex v:graph.getTargets(transition.getValue()))
+				{
+					graphout.write("\t\"");
+					graphout.write(entry.getKey().getStringId());
+					graphout.write('\"');
+					graphout.write("->");
+					graphout.write('\"');
+					graphout.write(v.getID().getStringId());
+					graphout.write('\"');
+					graphout.write(" [label=\"");
+					if (transition.getKey() instanceof LabelInputOutput) {
+						LabelInputOutput io = (LabelInputOutput) transition.getKey();
+						graphout.write(io.input);graphout.write('/');graphout.write(io.output);
+					}
+					else
+						graphout.write(transition.getKey().toString());
+					graphout.write("\"];\n");
+				}
+
+		graphout.write("}\n");
+		return graphout;
+	}
+
+	private static void writeOutDefinitionOfVertex(DeterministicDirectedSparseGraph.CmpVertex vert, StringWriter graphout) {
+		graphout.write("\t\"");
+		graphout.write(vert.getID().getStringId());
+		graphout.write('\"');
+		graphout.write(" [shape=");
+		graphout.write(vert.isAccept()?"doublecircle":"square");
+		if (vert.getColour() != null)
+			switch(vert.getColour()) {
+				case RED:
+					graphout.write(",fillcolor=red");break;
+				case BLUE:
+					graphout.write(",fillcolor=blue");break;
+				default:
+					break;
+			}
+		graphout.write("];\n");
+	}
+
 	@SuppressWarnings("unchecked")
 	protected static StringWriter pajekGraph(DirectedSparseGraph g){
 		StringWriter graphout = new StringWriter(); 
 		graphout.write("*Network\n*Vertices "+g.numVertices());
-		ArrayList<DeterministicVertex> vertexList = new ArrayList<DeterministicVertex>();
+		ArrayList<DeterministicVertex> vertexList = new ArrayList<>();
 		for(DeterministicVertex v: (Iterable<DeterministicVertex>)g.getVertices()){
 				vertexList.add(v);
 		}
 		for(DeterministicVertex v: (Iterable<DeterministicVertex>)g.getVertices()){
 			//Boolean accepted = (Boolean)v.getUserDatum(JUConstants.ACCEPTED);
 			//if(!v.toString().equals("Init") && accepted.booleanValue())
-			String labelAsString = null;	
+			String labelAsString = null;
 			if(v.getUserDatum(JUConstants.INITIAL)!=null)
 				labelAsString = "init";
 			else

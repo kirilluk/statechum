@@ -501,7 +501,7 @@ public class LearningAlgorithms
 	}
 
 	/** An enumeration of a number of scoring methods that can be used for learning. Its main use is to iterate through a subset of it, permitting the experiment to run with a range of different scoring methods. */
-	public enum ScoringToApply { SCORING_EDSM("E0"), SCORING_EDSM_2("E2"), SCORING_EDSM_3("E3"), SCORING_EDSM_4("E4"), SCORING_EDSM_5("E5"), 
+	public enum ScoringToApply { SCORING_EDSM("E0"), SCORING_EDSM_1("E1"), SCORING_EDSM_2("E2"), SCORING_EDSM_3("E3"), SCORING_EDSM_4("E4"), SCORING_EDSM_5("E5"),
 		SCORING_EDSM_6("E6"), SCORING_EDSM_7("E7"), SCORING_EDSM_8("E8"), SCORING_EDSM_9("E9"), SCORING_EDSM_10("E10"), SCORING_EDSM_11("E11"), SCORING_EDSM_12("E12"), 
 		SCORING_SICCO("SICCO"),SCORING_SICCO_3("SICCO_3"), SCORING_SICCO_PTA("SICPTA"),SCORING_SICCO_PTARECURSIVE("SICREC"), SCORING_SICCO_NIS("SICNIS"), SCORING_SICCO_RED("SICRED"),
 		SCORING_PTAK_1("KTPTA1"),SCORING_PTAK_2("KTPTA2"),SCORING_PTAK_3("KTPTA3"),SCORING_PTAK_4("KTPTA4"),
@@ -535,6 +535,8 @@ public class LearningAlgorithms
 		{
 		case SCORING_EDSM:
 			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 0, redReducer);break;
+		case SCORING_EDSM_1:
+			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 1, redReducer);break;
 		case SCORING_EDSM_2:
 			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, scoringForEDSM, 2, redReducer);break;
 		case SCORING_EDSM_3:

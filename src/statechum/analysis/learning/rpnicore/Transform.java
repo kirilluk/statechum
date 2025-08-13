@@ -35,11 +35,14 @@ import java.util.TreeSet;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.ericsson.otp.erlang.OtpErlangObject;
+import com.ericsson.otp.erlang.OtpErlangTuple;
 import ext_lib.collections.HashMapWithSearch;
 import statechum.*;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID.VertKind;
 import statechum.JUConstants.PAIRCOMPATIBILITY;
+import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.AbstractOracle;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.StatePair;
@@ -50,6 +53,7 @@ import statechum.apps.QSMTool;
 import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine;
 
+import static java.lang.Integer.max;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.constructMap;
 
 /** Miscellaneous graph transformation routines. */
@@ -453,7 +457,7 @@ public class Transform
 		 * are only compared with those from the same IF automaton, hence property graph number is going to be the
 		 * same.
 		 * 
-		 * @see java.lang.Object#hashCode()
+		 * @see Object#hashCode()
 		 */
 		@Override
 		public int hashCode() {
@@ -477,7 +481,7 @@ public class Transform
 		 * are only compared with those from the same IF automaton, hence property graph number is going to be the
 		 * same.
 		 * 
-		 * @see java.lang.Object#equals(java.lang.Object)
+		 * @see Object#equals(Object)
 		 */
 		@Override
 		public boolean equals(Object obj) {
@@ -811,13 +815,13 @@ public class Transform
 			
 			if (explorationElement.IFState != null && explorationElement.IFState.isAccept() == explorationElement.graphState.isAccept())
 			{// Consider matched states.
-				Map<CmpVertex,JUConstants.PAIRCOMPATIBILITY> compatibility = ifthenGraph.pairCompatibility.compatibility.get(explorationElement.IFState);
+				Map<CmpVertex, PAIRCOMPATIBILITY> compatibility = ifthenGraph.pairCompatibility.compatibility.get(explorationElement.IFState);
 				if (compatibility != null)
-					for(Entry<CmpVertex,JUConstants.PAIRCOMPATIBILITY> entry:compatibility.entrySet())
-						if (entry.getValue() == JUConstants.PAIRCOMPATIBILITY.THEN)
+					for(Entry<CmpVertex, PAIRCOMPATIBILITY> entry:compatibility.entrySet())
+						if (entry.getValue() == PAIRCOMPATIBILITY.THEN)
 						{// we hit a match-state, add next states
 							ExplorationElement nextExplorationElement = new ExplorationElement(explorationElement.graphState,ifthenGraph,entry.getKey(),
-									explorationElement.propertyGraph,explorationElement.IFState, explorationElement.depth,JUConstants.PAIRCOMPATIBILITY.THEN, explorationElement);
+									explorationElement.propertyGraph,explorationElement.IFState, explorationElement.depth, PAIRCOMPATIBILITY.THEN, explorationElement);
 							if (!hasBeenVisited(visited,nextExplorationElement))
 							{// not seen this triple already
 								//System.out.println("THEN: from "+explorationElement+" to "+nextExplorationElement);
@@ -1218,6 +1222,7 @@ public class Transform
 	}
 
 	/** Converts a Mealy automaton to iopair-automaton. This means that every label will now be an io pair.
+	 * Does not make any other alterations to the graph.
 	 *
 	 * @return converted automaton
 	 */
@@ -1261,6 +1266,96 @@ public class Transform
 		return result;
 	}
 
+	public static class StringToMealyLabelConverter implements Transform.ConvertALabel {
+		protected Map<LabelInputOutput,LabelInputOutput> labelToNumber = new HashMap<>();
+		@Override
+		public Label convertLabelToLabel (Label label) {
+			// Erlang-isation of Statechum is due to the use Erlang in the same way Json would normally be used:
+			// for serialisation. Given that Statechum includes both parser and dumper for Erlang, it makes sense to do this.
+			OtpErlangObject lbl = ErlangLabel.parseText(label.toErlangTerm());
+			if (!(lbl instanceof OtpErlangTuple) || ((OtpErlangTuple) lbl).arity() != 2)
+				throw new IllegalArgumentException("Invalid label, should contain input and output pair in curly brackets separated with a comma");
+			OtpErlangTuple tuple = (OtpErlangTuple) lbl;
+
+			LabelInputOutput l = new LabelInputOutput(tuple.elementAt(0).toString(), tuple.elementAt(1).toString(), true, true);
+			return labelToNumber.computeIfAbsent(l,ll -> {
+				l.setIdx(labelToNumber.size());
+				return l;
+			});
+		}
+	}
+
+	/** Converts an automaton to i/o pairs, adding transitions corresponding to outputs that are not present to a sink-state.
+	 * Preserves existing numbering of labels. Does not make the graph input-complete.
+	 *
+	 * @return converted automaton
+	 */
+	public LearnerGraph convertToIOPairsAndCompleteOutputs() {
+		if (coregraph.config.getLabelKind() != Configuration.LABELKIND.LABEL_ATOMICPAIRS && coregraph.config.getLabelKind() != Configuration.LABELKIND.LABEL_INPUT_OUTPUT)
+			throw new IllegalArgumentException("Can only convert i/o automata");
+		Set<String> allOutputs = new TreeSet<>();
+		Set<Label> alphabet = coregraph.pathroutines.computeAlphabet();
+		for(Label l:alphabet) {
+			if (!(l instanceof LabelInputOutput))
+				throw new IllegalArgumentException("Can only convert input/output labels");
+			allOutputs.add(((LabelInputOutput)l).output);
+		}
+		Configuration cnf = coregraph.config.copy();cnf.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+		LearnerGraph result = new LearnerGraph(cnf);
+		Map<CmpVertex,CmpVertex> oldToNew = constructMap(result.config,coregraph);
+		result.initEmpty();
+		int idx = 0;
+		CmpVertex sinkState = null;
+
+		Map<LabelInputOutput,LabelInputOutput> labelToNumber = new HashMap<>();
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+		{// here we are replacing existing rows without creating new states.
+			// This is why associations (such as THENs) remain valid.
+			MapWithSearch<Label,Label,CmpVertex> row = result.createNewRow();result.transitionMatrix.put(entry.getKey(),row);
+			Map<String,Set<String>> outputsUsed = new HashMap<>();
+			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet()) {
+				if (! (transition.getKey() instanceof LabelInputOutput))
+					throw new IllegalArgumentException("Can only convert io labels");
+				LabelInputOutput lbl = (LabelInputOutput)transition.getKey();
+				outputsUsed.computeIfAbsent(lbl.input,k->new TreeSet<>()).add(lbl.output);
+
+				LabelInputOutput newLabel = new LabelInputOutput(lbl.input,lbl.output,true,true);
+				LabelInputOutput l = labelToNumber.get(newLabel);
+				if (l == null) {// this means it is the first time we observe this label, hence create a mapping, preserving the original idx.
+					newLabel.setIdx(lbl.toInt());
+					labelToNumber.put(newLabel,newLabel);
+					l=newLabel;
+					idx = max(idx,1+l.toInt());
+				}
+
+				result.addTransition(row,l, transition.getValue());
+			}
+
+			for(Entry<String,Set<String>> input_outputs:outputsUsed.entrySet())
+				for(String output:allOutputs)
+					if (!input_outputs.getValue().contains(output))
+					{
+						LabelInputOutput newLabel = new LabelInputOutput(input_outputs.getKey(),output,true,true);
+						LabelInputOutput l = labelToNumber.get(newLabel);
+						if (l == null) {
+							newLabel.setIdx(idx++);
+							labelToNumber.put(newLabel,newLabel);
+							l=newLabel;
+						}
+
+						if (sinkState == null) {
+							sinkState = WMethod.generateSinkState(result);
+							result.transitionMatrix.put(sinkState,result.createNewRow());
+						}
+						result.addTransition(row,l, sinkState);
+					}
+
+			oldToNew.put(entry.getKey(), entry.getKey());// an identity map
+		}
+
+		finishConstructingLearnerGraphFromOldToNewMap(result, oldToNew);
+		return result;
+	}
 	/** Assuming that the current graph is an i/o automaton (each label is an i/o pair and from each state there
 	 * could be many transitions with the same input so long there is only one transition with the same i/o and
 	 * only one i/o transition for a given i leads to an accept-state), converts its labels to mealy automata,

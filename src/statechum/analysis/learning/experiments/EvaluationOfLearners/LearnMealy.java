@@ -48,6 +48,8 @@ public class LearnMealy {
         Map<LabelInputOutput,Integer> labelToNumber = new TreeMap<>();
         LearnerGraph referenceGraph = FsmParserDot.buildLearnerGraph(referenceDot, configAtomicPairs, null, true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).
                 transform.numberOutputsAndStates(false,null,useExistingNumbering,labelToNumber);
+        LearnerGraph a = FsmParserDot.buildLearnerGraph(Helper.loadFile(new File(args[2])), configAtomicPairs, null, true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).
+                transform.numberOutputsAndStates(false,null,useExistingNumbering,labelToNumber);
         LearnerGraph pta = FsmParserDot.buildLearnerGraph(ptaDot, configAtomicPairs, null, true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).
                 transform.numberOutputsAndStates(false,null,useExistingNumbering,labelToNumber);
         System.out.println("pta size: "+pta.transitionMatrix.size());
@@ -66,21 +68,25 @@ public class LearnMealy {
         Learner learner = LearningAlgorithms.constructLearner(learnerInitConfiguration, pta,scoringMethod.scoringMethod, scoringMethod.scoringForEDSM, redReducer);
         LearnerGraph learntGraph = learner.learnMachine(new LinkedList<>(), new LinkedList<>());
         LearnerGraph actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
-        LearnerGraph referenceAsIOPairs = referenceGraph.transform.convertToIOPairs();
+
+//        actualAutomaton = a;
 
         System.out.println("learnt size: "+actualAutomaton.transitionMatrix.size());
         System.out.println("missed: "+redReducer.reportMissedMergers());
         System.out.println("invalid : "+redReducer.reportInvalidMergers());
-        PairQualityLearner.DifferenceToReferenceDiff diffMeasure = PairQualityLearner.DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceAsIOPairs, actualAutomaton, learnerInitConfiguration.config, 1);
+        PairQualityLearner.DifferenceToReferenceDiff diffMeasure = PairQualityLearner.DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
 //        PairQualityLearner.DifferenceToReferenceLanguageBCR bcrMeasure = PairQualityLearner.DifferenceToReferenceLanguageBCR.estimationOfDifference(referenceAsIOPairs, actualAutomaton,learnerInitConfiguration.testSet);
-        System.out.println(diffMeasure.getValue());
-
-        DirectedSparseGraph gr = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(Synapse.StatechumProcess.constructFSM(referenceAsIOPairs),
-                DifferenceVisualiser.ChangesToGraph.computeGD(referenceAsIOPairs, actualAutomaton,configAtomicPairs));
+        System.out.println("Learnt against reference : "+diffMeasure.getValue());
+        {
+            PairQualityLearner.DifferenceToReferenceDiff diffAgainstA = PairQualityLearner.DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, a, learnerInitConfiguration.config, 1);
+            System.out.println("A against reference :"+diffAgainstA.getValue());
+        }
+        DirectedSparseGraph gr = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(Synapse.StatechumProcess.constructFSM(referenceGraph),
+                DifferenceVisualiser.ChangesToGraph.computeGD(referenceGraph, actualAutomaton,configAtomicPairs));
         graphVisualiser.update(null,gr);
         Visualiser.waitForKey();
 //        LearnerGraph lowerGraph = actualAutomaton.transform.trimGraph(3, actualAutomaton.config);
-        Visualiser.updateFrame(referenceAsIOPairs, actualAutomaton);
+        Visualiser.updateFrame(referenceGraph, actualAutomaton);
         Visualiser.waitForKey();
     }
 }

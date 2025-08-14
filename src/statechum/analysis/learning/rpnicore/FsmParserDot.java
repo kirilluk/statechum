@@ -374,7 +374,11 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 			throwException("The graph should be labelled as directed graph");
 
 		skipWhitespace();
-		graph.setName(parseID());graph.inputsFilteredOutOnLoad.clear();
+		char next = nextChar();unget();
+		if (next != '{')
+			graph.setName(parseID());
+
+		graph.inputsFilteredOutOnLoad.clear();
 		skipWhitespace();
 		if (nextChar() != '{')
 			throwException("The graph description should be enclosed in curly braces");

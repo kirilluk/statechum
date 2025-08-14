@@ -4,14 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Added Mealy scorer tests.">
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Added methods to output-complete graph and export automata as dot files, accounting for Mealy, non-determinism and colouring of states">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/LearnMealy.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/LearnMealy.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/util/OutputUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/util/OutputUtil.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestMealyScoring.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/TestMealyScoring.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
@@ -71,6 +67,7 @@
     "Application.RunDotExperiment (1).executor": "Run",
     "Application.RunDotExperiment Large (1).executor": "Run",
     "Application.RunDotExperiment against known.executor": "Run",
+    "Application.RunDotExperiment using Task List.executor": "Run",
     "Application.RunDotExperiment.executor": "Run",
     "Application.experimentProgressProperty.executor": "Run",
     "Application.experimentUAS1.executor": "Run",
@@ -102,6 +99,7 @@
     "JUnit.TestParserDot.testConvertToIOPairsAndComplete3.executor": "Run",
     "JUnit.TestParserDot.testExportDot.executor": "Run",
     "JUnit.TestParserDot.testExportDot2.executor": "Run",
+    "JUnit.TestParserDot.testExportDot3c.executor": "Run",
     "JUnit.TestParserDot.testExportDot5.executor": "Run",
     "JUnit.TestParserDot.testIOLabel4.executor": "Run",
     "JUnit.TestParserDot.testMealyScoring1.executor": "Run",
@@ -114,6 +112,7 @@
     "JUnit.TestParserDot.testParse13a2.executor": "Run",
     "JUnit.TestParserDot.testParse13b.executor": "Run",
     "JUnit.TestParserDot.testParse13c.executor": "Run",
+    "JUnit.TestParserDot.testParse1a.executor": "Run",
     "JUnit.TestParserDot.testParse2.executor": "Run",
     "JUnit.TestParserDot.testParse2b.executor": "Run",
     "JUnit.TestParserDot.testParse2c.executor": "Run",
@@ -185,7 +184,7 @@
       <recent name="statechum.analysis.Erlang.Signatures" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.TestParserDot (1)">
+  <component name="RunManager" selected="Application.RunDotExperiment using Task List">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -287,6 +286,15 @@
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.EvaluationOfLearners.LearnMealy" />
       <module name="XMachineTool" />
       <option name="PROGRAM_PARAMETERS" value="&quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\Bluetooth_CYW43455.dot&quot; &quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\APTA_size_3196_States\Bluetooth_APTA2.dot&quot;" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs -Xmx25500m" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunDotExperiment using Task List" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.EvaluationOfLearners.LearnMealy" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="&quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\tasklist.txt&quot;" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs -Xmx25500m" />
       <method v="2">
         <option name="Make" enabled="true" />
@@ -636,22 +644,6 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestParserDot.testExportDot" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
-      <option name="METHOD_NAME" value="testExportDot" />
-      <option name="TEST_OBJECT" value="method" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="TestParserDot.testExportDot2" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -700,6 +692,22 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="TestParserDot.testParse1a" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
+      <option name="METHOD_NAME" value="testParse1a" />
+      <option name="TEST_OBJECT" value="method" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration default="true" type="JetRunConfigurationType">
       <method v="2">
         <option name="Make" enabled="true" />
@@ -720,6 +728,7 @@
       <item itemvalue="Application.DotVisualiser Bluetooth outcome" />
       <item itemvalue="Application.DotVisualiser (1)" />
       <item itemvalue="Application.RunDotExperiment" />
+      <item itemvalue="Application.RunDotExperiment using Task List" />
       <item itemvalue="Application.RunDotExperiment Large" />
       <item itemvalue="Application.RunDotExperiment Large (1)" />
       <item itemvalue="JUnit.OTP 24 - erlangtmp" />
@@ -736,8 +745,8 @@
       <item itemvalue="JUnit.TestLengthy (using OTP24)" />
       <item itemvalue="JUnit.Run All tests with old OTP" />
       <item itemvalue="JUnit.TestParserDot" />
+      <item itemvalue="JUnit.TestParserDot.testParse1a" />
       <item itemvalue="JUnit.TestParserDot (1)" />
-      <item itemvalue="JUnit.TestParserDot.testExportDot" />
       <item itemvalue="JUnit.TestParserDot.testExportDot2" />
       <item itemvalue="JUnit.TestParserDot.testExportDot3c" />
       <item itemvalue="JUnit.TestParserDot.testExportDot5" />
@@ -745,10 +754,10 @@
     <recent_temporary>
       <list>
         <item itemvalue="JUnit.TestParserDot (1)" />
+        <item itemvalue="JUnit.TestParserDot.testParse1a" />
         <item itemvalue="JUnit.TestParserDot.testExportDot3c" />
         <item itemvalue="JUnit.TestParserDot.testExportDot5" />
         <item itemvalue="JUnit.TestParserDot.testExportDot2" />
-        <item itemvalue="JUnit.TestParserDot.testExportDot" />
       </list>
     </recent_temporary>
   </component>
@@ -791,7 +800,7 @@
       <workItem from="1754667710936" duration="16314000" />
       <workItem from="1754770503640" duration="12532000" />
       <workItem from="1755015145427" duration="16405000" />
-      <workItem from="1755102462486" duration="12610000" />
+      <workItem from="1755102462486" duration="19117000" />
     </task>
     <task id="LOCAL-00001" summary="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer).">
       <created>1651266068784</created>
@@ -1054,7 +1063,15 @@
       <option name="project" value="LOCAL" />
       <updated>1755039246960</updated>
     </task>
-    <option name="localTasksCounter" value="36" />
+    <task id="LOCAL-00036" summary="Added methods to output-complete graph and export automata as dot files, accounting for Mealy, non-determinism and colouring of states">
+      <option name="closed" value="true" />
+      <created>1755124124728</created>
+      <option name="number" value="00036" />
+      <option name="presentableId" value="LOCAL-00036" />
+      <option name="project" value="LOCAL" />
+      <updated>1755124124728</updated>
+    </task>
+    <option name="localTasksCounter" value="37" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1079,6 +1096,7 @@
         <entry key="a55dd8ee-9955-42a6-b0bf-88d0e78fad4d" value="TOOL_WINDOW" />
         <entry key="105d41e1-d730-4e1e-9b57-c229af640a6a" value="TOOL_WINDOW" />
         <entry key="efc6efe8-7bd3-474b-a5f2-236dafc0ecc0" value="TOOL_WINDOW" />
+        <entry key="e80241f0-93d5-4a3e-979a-a65cd2e14f99" value="TOOL_WINDOW" />
       </map>
     </option>
     <option name="TAB_STATES">
@@ -1138,6 +1156,31 @@
             </State>
           </value>
         </entry>
+        <entry key="e80241f0-93d5-4a3e-979a-a65cd2e14f99">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="HEAD" />
+                      </list>
+                    </value>
+                  </entry>
+                  <entry key="roots">
+                    <value>
+                      <list>
+                        <option value="$PROJECT_DIR$" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
+            </State>
+          </value>
+        </entry>
         <entry key="efc6efe8-7bd3-474b-a5f2-236dafc0ecc0">
           <value>
             <State>
@@ -1167,7 +1210,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Merged experimental branch into main and resolved conflicts to make sure that the outcome builds. Running tests is next task." />
     <MESSAGE value="Fast tests pass." />
     <MESSAGE value="Updated to run on JDK 8. Fast tests pass." />
     <MESSAGE value="Erlang tests now run with both new and old OTP which required separating parts of Statechum into a separate library." />
@@ -1192,7 +1234,8 @@
     <MESSAGE value="Mealy score computation is now much faster.&#10;Minor tweaks to Jung-based ui." />
     <MESSAGE value="Cleaned up some IdeaJ warnings." />
     <MESSAGE value="Added Mealy scorer tests." />
-    <option name="LAST_COMMIT_MESSAGE" value="Added Mealy scorer tests." />
+    <MESSAGE value="Added methods to output-complete graph and export automata as dot files, accounting for Mealy, non-determinism and colouring of states" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added methods to output-complete graph and export automata as dot files, accounting for Mealy, non-determinism and colouring of states" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1236,11 +1279,6 @@
           <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java</url>
           <line>269</line>
           <option name="timeStamp" value="140" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/LearnMealy.java</url>
-          <line>88</line>
-          <option name="timeStamp" value="146" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java</url>

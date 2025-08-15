@@ -1286,20 +1286,23 @@ public class Transform
 	}
 
 	/** Converts an automaton to i/o pairs, adding transitions corresponding to outputs that are not present to a sink-state.
-	 * Preserves existing numbering of labels. Does not make the graph input-complete.
+	 * Preserves existing numbering of labels. Does not make the graph input-complete unless asked to.
 	 *
+	 * @param makeInputComplete true to make the graph input-complete
 	 * @return converted automaton
 	 */
-	public LearnerGraph convertToIOPairsAndCompleteOutputs() {
+	public LearnerGraph convertToIOPairsAndCompleteOutputs(boolean makeInputComplete) {
 		if (coregraph.config.getLabelKind() != Configuration.LABELKIND.LABEL_ATOMICPAIRS && coregraph.config.getLabelKind() != Configuration.LABELKIND.LABEL_INPUT_OUTPUT)
 			throw new IllegalArgumentException("Can only convert i/o automata");
-		Set<String> allOutputs = new TreeSet<>();
+		Set<String> allOutputs = new TreeSet<>(), allInputs = new TreeSet<>();
 		Set<Label> alphabet = coregraph.pathroutines.computeAlphabet();
 		for(Label l:alphabet) {
 			if (!(l instanceof LabelInputOutput))
 				throw new IllegalArgumentException("Can only convert input/output labels");
 			allOutputs.add(((LabelInputOutput)l).output);
+			allInputs.add(((LabelInputOutput)l).input);
 		}
+
 		Configuration cnf = coregraph.config.copy();cnf.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
 		LearnerGraph result = new LearnerGraph(cnf);
 		Map<CmpVertex,CmpVertex> oldToNew = constructMap(result.config,coregraph);
@@ -1313,6 +1316,10 @@ public class Transform
 			// This is why associations (such as THENs) remain valid.
 			MapWithSearch<Label,Label,CmpVertex> row = result.createNewRow();result.transitionMatrix.put(entry.getKey(),row);
 			Map<String,Set<String>> outputsUsed = new HashMap<>();
+			if (makeInputComplete)
+				for(String input:allInputs)
+					outputsUsed.put(input,new TreeSet<>());
+
 			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet()) {
 				if (! (transition.getKey() instanceof LabelInputOutput))
 					throw new IllegalArgumentException("Can only convert io labels");
@@ -1477,9 +1484,60 @@ public class Transform
 
 		finishConstructingLearnerGraphFromOldToNewMap(result, oldToNew);
 
+		return result;
+	}
+	/** Given a graph with potentially lengthy output strings, replaces them with numbers and returns both the
+	 * outcome of conversion and the map of new outputs to the original ones.
+	 *
+	 * @param labelToNumber number of labels. If not null, will be used to provide number of labels.
+	 *                         Where two graphs are compared, it is necessary for them to have the same
+	 *                         number of labels otherwise a/b might be number 1 in one graph and 2 in another one,
+	 *                         making them appear different without being actually different
+	 * @return outcome of conversion
+	 */
+	public LearnerGraph numberLabels(Map<LabelInputOutput,Integer> labelToNumber) {
+		if (coregraph.config.getLabelKind() != Configuration.LABELKIND.LABEL_INPUT_OUTPUT &&
+				coregraph.config.getLabelKind() != Configuration.LABELKIND.LABEL_ATOMICPAIRS
+		)
+			throw new IllegalArgumentException("Can only convert mealy or io automata");
+
+		int outputIdx=1, stateIdx = 1;
+
+		LearnerGraph result = new LearnerGraph(coregraph.config.copy());
+		result.initEmpty();
+		Map<CmpVertex,CmpVertex> oldToNew = constructMap(result.config,coregraph);
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet()) {
+			CmpVertex newState = entry.getKey();
+			oldToNew.put(entry.getKey(), newState);
+			MapWithSearch<Label,Label,CmpVertex> row = result.createNewRow();result.transitionMatrix.put(newState,row);
+		}
+
+		Map<LabelInputOutput,Integer> ioToNumber = labelToNumber == null? new TreeMap<>():labelToNumber;
+
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:coregraph.transitionMatrix.entrySet())
+		{// here we are replacing existing rows without creating new states.
+			// This is why associations (such as THENs) remain valid.
+
+			for(Entry<Label,CmpVertex> transition:entry.getValue().entrySet()) {
+				if (! (transition.getKey() instanceof LabelInputOutput))
+					throw new IllegalArgumentException("Can only convert io labels");
+				LabelInputOutput lbl = (LabelInputOutput)transition.getKey();
+				LabelInputOutput newLabel = new LabelInputOutput(lbl.input,lbl.output,true,lbl.ioPair);
+				int idx = ioToNumber.computeIfAbsent(newLabel,l -> ioToNumber.size());
+				newLabel.setIdx(idx);
+				result.addTransition(result.transitionMatrix.get(oldToNew.get(entry.getKey())),
+						newLabel,
+						oldToNew.get(transition.getValue()));
+			}
+
+
+		}
+
+		finishConstructingLearnerGraphFromOldToNewMap(result, oldToNew);
 
 		return result;
 	}
+
 	public static class TraversalStatistics
 	{
 		public final int Nx,Tx,matched;

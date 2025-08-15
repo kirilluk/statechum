@@ -1176,34 +1176,53 @@ public class TestParserDot {
     }
 
     @Test
-    public final void testConvertToIOPairsAndComplete0() {
+    public final void testConvertToIOPairsAndComplete0a() {
         final LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
         fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
-        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs();
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs(false);
 
         final LearnerGraph expected = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
         expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
         Assert.assertNull(WMethod.checkM(expected,expected.getInit(),completed, completed.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
     }
-
     @Test
-    public final void testConvertToIOPairsAndComplete1() {
+    public final void testConvertToIOPairsAndComplete0b() {
+        final LearnerGraph fsm = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs(true);
+
+        final LearnerGraph expected = new LearnerGraph(Configuration.getDefaultConfiguration().copy());
+        expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        Assert.assertNull(WMethod.checkM(expected,expected.getInit(),completed, completed.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+    @Test
+    public final void testConvertToIOPairsAndComplete1a() {
         Transform.ConvertALabel converterIOPairs = new Transform.StringToMealyLabelConverter();
         final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->A", "testConvertToIOPairsAndComplete1a", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
         fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
-        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs();
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs(false);
 
         final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-{a,b}->A", "testConvertToIOPairsAndComplete1b", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
         expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
         Assert.assertNull(WMethod.checkM(expected,expected.getInit(),completed, completed.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
     }
+    @Test
+    public final void testConvertToIOPairsAndComplete1b() {
+        Transform.ConvertALabel converterIOPairs = new Transform.StringToMealyLabelConverter();
+        final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->A", "testConvertToIOPairsAndComplete1a", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs(true);
 
+        final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-{a,b}->A", "testConvertToIOPairsAndComplete1b", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
+        expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        Assert.assertNull(WMethod.checkM(expected,expected.getInit(),completed, completed.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
     @Test
     public final void testConvertToIOPairsAndComplete2() {
         Transform.ConvertALabel converterIOPairs = new Transform.StringToMealyLabelConverter();
         final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C", "testConvertToIOPairsAndComplete2a", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
         fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
-        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs();
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs(false);
 
         final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / A-{a,c}-#R / B-{q,b}-#P", "testConvertToIOPairsAndComplete2b", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
         expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
@@ -1215,7 +1234,7 @@ public class TestParserDot {
         Transform.ConvertALabel converterIOPairs = new Transform.StringToMealyLabelConverter();
         final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / A-{a,c}-#R / B-{q,b}-#R", "testConvertToIOPairsAndComplete3a", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
         fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
-        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs();
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs(false);
 
         final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / A-{a,c}-#R / B-{q,b}-#P", "testConvertToIOPairsAndComplete3b", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
         expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
@@ -1227,7 +1246,7 @@ public class TestParserDot {
         Transform.ConvertALabel converterIOPairs = new Transform.StringToMealyLabelConverter();
         final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / B-{q,e}->C / A-{a,c}-#R / B-{q,b}-#R / A-{a,e}-#T", "testConvertToIOPairsAndComplete4a", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
         fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
-        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs();
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs(false);
 
         final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / A-{a,c}-#R / B-{q,b}-#P / A-{a,e}-#R / B-{q,e}->C", "testConvertToIOPairsAndComplete4b", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
         expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
@@ -1239,13 +1258,35 @@ public class TestParserDot {
         Transform.ConvertALabel converterIOPairs = new Transform.StringToMealyLabelConverter();
         final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C / B-{q,e}->C / A-{a,c}-#R / B-{q,b}-#R / A-{a,e}-#T / A-{q,b}->A", "testConvertToIOPairsAndComplete5a", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
         fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
-        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs();
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs(false);
 
         final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / A-{q,b}->A / B-{q,c}->C / A-{a,c}-#R / B-{q,b}-#P / A-{a,e}-#R / B-{q,e}->C / A-{q,c}-#R / A-{q,e}-#R", "testConvertToIOPairsAndComplete5b", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
         expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
         Assert.assertNull(WMethod.checkM(expected,expected.getInit(),completed, completed.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
     }
 
+    @Test
+    public final void testConvertToIOPairsAndComplete6() {
+        Transform.ConvertALabel converterIOPairs = new Transform.StringToMealyLabelConverter();
+        final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->B", "testConvertToIOPairsAndComplete6", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs(true);
+
+        final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / A-{q,b}-#R / A-{q,c}-#R / A-{a,c}-#R / B-{q,c}->B / B-{a,b}-#R / B-{a,c}-#R / B-{q,b}-#R", "testConvertToIOPairsAndComplete5b", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
+        expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        Assert.assertNull(WMethod.checkM(expected,expected.getInit(),completed, completed.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
+    @Test
+    public final void testConvertToIOPairsAndComplete7() {
+        Transform.ConvertALabel converterIOPairs = new Transform.StringToMealyLabelConverter();
+        final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / B-{q,c}->C", "testConvertToIOPairsAndComplete6", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
+        fsm.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        LearnerGraph completed = fsm.transform.convertToIOPairsAndCompleteOutputs(true);
+
+        final LearnerGraph expected = FsmParserStatechum.buildLearnerGraph("A-{a,b}->B / A-{q,b}-#R / A-{q,c}-#R / A-{a,c}-#R / B-{q,c}->C / B-{a,b}-#R / B-{a,c}-#R / B-{q,b}-#R / C-{q,c}-#R / C-{a,b}-#R / C-{a,c}-#R / C-{q,b}-#R", "testConvertToIOPairsAndComplete5b", Configuration.getDefaultConfiguration().copy(), converterIOPairs);
+        expected.config.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        Assert.assertNull(WMethod.checkM(expected,expected.getInit(),completed, completed.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+    }
     @Test
     public final void testExportDot1a() {
         Transform.ConvertALabel converterIOPairs = new Transform.StringToMealyLabelConverter();

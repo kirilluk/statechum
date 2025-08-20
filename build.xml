@@ -17,12 +17,11 @@ lack of tracking dependencies between Java files.
   <property name="statechum_src" location="src"/>
   <property name="erlang24_src" location="lib/Erlang24/src"/>
   <property name="erlang24_test" location="lib/Erlang24/test"/>
-  <property name="statechum_collections_src" location="lib/modified_collections/src"/>
-  <property name="statechum_collections_test" location="lib/modified_collections/test"/>
+  <property name="statechum_collections_src" location="lib/modified_collections_old_jdk/src"/>
   <property name="test_src" location="tests"/>
   <property name="test_dir" location="."/>
   <property name="statechum_bin" location="bin"/>
-  <property name="ant.build.javac.source" value="8"/>
+<!--  <property name="ant.build.javac.source" value="8"/> -->
   <property name="rtool_path" value="/usr/local/lib/R/site-library/rJava/jri"/>
   <property name="rpath" value="/usr/lib/R"/>
   <property name="LTL2BA" value="lib/ltl2ba-1.1/ltl2ba"/>
@@ -72,6 +71,15 @@ lack of tracking dependencies between Java files.
 		</javac>
 	</target>
 
+	<target name="jung" depends="init" description="compile Jung from source " >
+		<javac fork="on" srcdir="lib/jung-1.7.6/src" includeantruntime="false" destdir="${statechum_bin}">
+			<classpath>
+				<path refid="classpath.lib"/>
+			</classpath>
+			<compilerarg value="-g" />
+		</javac>
+	</target>
+
 	<target name="compileJunitStatechum" depends="junit" description="compile JUnit-statechum source " >
  	<javac fork="on" srcdir="${junit_statechum_src}" includeantruntime="false" destdir="${statechum_bin}">
 		<classpath>
@@ -81,7 +89,7 @@ lack of tracking dependencies between Java files.
     	</javac>
   </target>  	
   	
-  <target name="compileStatechum" depends="compileJunitStatechum" description="compile Statechum source " >
+  <target name="compileStatechum" depends="compileJunitStatechum,jung" description="compile Statechum source " >
     <!-- Compile the java code from ${src} into ${bin} -->
     <javac fork="on" srcdir="${statechum_src}:${erlang24_src}:${statechum_collections_src}" includeantruntime="false" destdir="${statechum_bin}">
        	<classpath refid="classpath.statechum" />
@@ -118,7 +126,7 @@ lack of tracking dependencies between Java files.
 	  
   <target name="compileTests" depends="compileStatechum" description="compile Statechum tests " >
     <!-- Compile the java code from ${src} into ${bin} -->
-    <javac fork="on" srcdir="${test_src}:${erlang24_test}:${statechum_collections_test}" includeantruntime="false" destdir="${statechum_bin}">
+    <javac fork="on" srcdir="${test_src}:${erlang24_test}" includeantruntime="false" destdir="${statechum_bin}">
        	<classpath refid="classpath.statechum" />
     	<compilerarg value="-g" />
 	<!-- <compilerarg value="-Xlint:unchecked"/> -->
@@ -181,6 +189,7 @@ lack of tracking dependencies between Java files.
   </target>
 
    <target name="erlang-build" depends="compileTests" description="build Statechum Erlang bridge">
+    <mkdir dir="tmp/beam" />
    	<java classname="statechum.analysis.Erlang.ErlangRuntime" fork="on" maxmemory="1500m">
    			<assertions>
    	        	<enable/>
@@ -280,10 +289,16 @@ lack of tracking dependencies between Java files.
 
   <target name="clean" description="clean up" >
     <delete dir="${statechum_bin}/statechum"/>
+    <delete dir="${statechum_bin}/edu"/>
+    <delete dir="${statechum_bin}/org"/>
+    <delete dir="${statechum_bin}/collections"/>
+    <delete dir="${statechum_bin}/ext_lib"/>
+    <delete dir="${statechum_bin}/junit"/>
+    <delete dir="${statechum_bin}/junit_runners"/>
     <delete>
     	<fileset dir="." includes="**/*.beam"/>
     	<fileset dir="." includes="**/*.plt"/>
-	<fileset dir="ErlangOracle" includes="*.dump"/>
+			<fileset dir="ErlangOracle" includes="*.dump"/>
     </delete>
 
   </target>

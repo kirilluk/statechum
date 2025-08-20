@@ -116,7 +116,13 @@ public class OutputUtil {
 		return graphout;
 	}
 
-	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> StringWriter dotGraphMealy(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph) {
+	/** Turns a graph into a .dot file, accounting for both i/o and LTS and supporting non-deterministic graphs.
+	 *
+	 * @param graph graph to convert
+	 * @param collate_source_target_pairs whether to collate multiple transitions into a single label, where elements are separated with newlines.
+	 * @return converted graph
+	 */
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> StringWriter dotGraphMealy(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, boolean collate_source_target_pairs) {
 		StringWriter graphout = new StringWriter();
 		String name = graph.getName() == null?"graph":graph.getName();
 		graphout.write("digraph ");graphout.write(name);graphout.write(" {\n");
@@ -133,9 +139,38 @@ public class OutputUtil {
 				writeOutDefinitionOfVertex(vert, graphout);
 
 		for(Map.Entry<DeterministicDirectedSparseGraph.CmpVertex, MapWithSearch<Label, Label, TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
-			for(Map.Entry<Label, TARGET_TYPE> transition:entry.getValue().entrySet())
-				for(DeterministicDirectedSparseGraph.CmpVertex v:graph.getTargets(transition.getValue()))
-				{
+		if (collate_source_target_pairs) {
+			Map<DeterministicDirectedSparseGraph.CmpVertex,StringWriter> targetToLabel = new TreeMap<>();
+			for (Map.Entry<Label, TARGET_TYPE> transition : entry.getValue().entrySet())
+				for (DeterministicDirectedSparseGraph.CmpVertex v : graph.getTargets(transition.getValue())) {
+					StringWriter writer = targetToLabel.get(v);
+					if (writer == null) {
+						writer = new StringWriter();TransitionLabelToText(transition.getKey(),writer);
+						targetToLabel.put(v, writer);
+					}
+					else {
+						writer.write("\\n");
+						TransitionLabelToText(transition.getKey(), writer);
+					}
+				}
+
+			for(Map.Entry<DeterministicDirectedSparseGraph.CmpVertex,StringWriter> targetToTransitions:targetToLabel.entrySet()) {
+				graphout.write("\t\"");
+				graphout.write(entry.getKey().getStringId());
+				graphout.write('\"');
+				graphout.write("->");
+				graphout.write('\"');
+				graphout.write(targetToTransitions.getKey().getID().getStringId());
+				graphout.write('\"');
+				graphout.write(" [label=\"");
+				graphout.write(targetToTransitions.getValue().toString());
+				graphout.write("\"];\n");
+			}
+		}
+		else
+		{
+			for (Map.Entry<Label, TARGET_TYPE> transition : entry.getValue().entrySet())
+				for (DeterministicDirectedSparseGraph.CmpVertex v : graph.getTargets(transition.getValue())) {
 					graphout.write("\t\"");
 					graphout.write(entry.getKey().getStringId());
 					graphout.write('\"');
@@ -144,17 +179,22 @@ public class OutputUtil {
 					graphout.write(v.getID().getStringId());
 					graphout.write('\"');
 					graphout.write(" [label=\"");
-					if (transition.getKey() instanceof LabelInputOutput) {
-						LabelInputOutput io = (LabelInputOutput) transition.getKey();
-						graphout.write(io.input);graphout.write('/');graphout.write(io.output);
-					}
-					else
-						graphout.write(transition.getKey().toString());
+					TransitionLabelToText(transition.getKey(), graphout);
 					graphout.write("\"];\n");
 				}
-
+		}
 		graphout.write("}\n");
 		return graphout;
+	}
+
+	private static void TransitionLabelToText(Label label, StringWriter graphout) {
+		if (label instanceof LabelInputOutput) {
+			LabelInputOutput io = (LabelInputOutput) label;
+			graphout.write(io.input);
+			graphout.write('/');
+			graphout.write(io.output);
+		} else
+			graphout.write(label.toString());
 	}
 
 	private static void writeOutDefinitionOfVertex(DeterministicDirectedSparseGraph.CmpVertex vert, StringWriter graphout) {

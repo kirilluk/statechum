@@ -91,7 +91,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 	final boolean allowPartialAutomata;
 
-	public enum HOW_TO_FIND_INITIAL_STATE {FIRST_FOUND,USE_START0}
+	public enum HOW_TO_FIND_INITIAL_STATE {FIRST_FOUND,FIRST_ACCEPT_FOUND,USE_START0}
 
 	final HOW_TO_FIND_INITIAL_STATE initial_state_locator;
 	/**
@@ -101,7 +101,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	 * @param conf            configuration to use for node creation.
 	 * @param converter       label converter, ignored if null.
 	 * @param allowPartialAutomata whether transitions with specific string can be seen as error-transitions
-	 * @param start0          When USE_FIRST_FOUND_STATE, will be using the first encountered state as an initial state. When USE_START0, will use __start0 to on a transition pointing to the initial state (and __start0 is not a state in our automaton but a placeholder).
+	 * @param start0          When FIRST_FOUND, will be using the first encountered state as an initial state. When FIRST_ACCEPT_FOUND, chooses first non-reject state as the initial state (if any). When USE_START0, will use __start0 to on a transition pointing to the initial state (and __start0 is not a state in our automaton but a placeholder).
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
 	public FsmParserDot(String whatToParse, Configuration conf, final AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> gr, final ConvertALabel converter,
@@ -357,14 +357,25 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 	Map<String,String> id_to_label = new TreeMap<>();
 
-	/** Given a current state, sets it as initial state if we have no initial state and configuration defines
-	 * the first encountered state to be marked as initial state.
+	/** Given a current state, sets it as initial state if
+	 * * we have no initial state and configuration defines the first encountered state to be marked as initial state.
+	 * * state is accept, we have no initial state and configuration defines the first encountered accept-state state to be marked as initial state.
 	 *
-	 * @param currentNode current state
+	 * @param currentNode name of the current state
+	 * @param isAccepted whether the state is accept-state
 	 */
-	protected void createInitialStateIfNeeded(String currentNode) {
-		if (graph.getInit() == null && initial_state_locator == FIRST_FOUND)
-			graph.setInit(vertexForName(currentNode));
+	protected void createInitialStateIfNeeded(String currentNode, boolean isAccepted) {
+		if (graph.getInit() == null) {
+			switch (initial_state_locator) {
+				case FIRST_FOUND:
+					graph.setInit(vertexForName(currentNode));
+					break;
+				case FIRST_ACCEPT_FOUND:
+					if (isAccepted)
+						graph.setInit(vertexForName(currentNode));
+					break;
+			}
+		}
 	}
 
 	public void parseGraph() {
@@ -397,7 +408,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 					createVertex(currentNode);
 					id_to_label.put(currentNode,currentNode);
 					unget2();// this restarts parsing on the next node.
-					createInitialStateIfNeeded(currentNode);
+					createInitialStateIfNeeded(currentNode,true);
 				}
 				else {// we have what might be an arrow
 					if (ch_next != '>')
@@ -454,17 +465,20 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 					String lbl = getLabel(options, currentNode);
 					createVertex(lbl);
 					String shapeOption = options.get("shape");
-					if ("square".equalsIgnoreCase(shapeOption))
+					boolean accept = true;
+					if ("square".equalsIgnoreCase(shapeOption)) {
+						accept = false;
 						graph.transitionMatrix.findKey(VertexID.parseID(lbl)).setAccept(false);
+					}
 					id_to_label.put(currentNode, lbl);
-					createInitialStateIfNeeded(currentNode);
+					createInitialStateIfNeeded(currentNode,accept);
 				}
 			} else {// this is a state declaration without options
 				unget();
 				if (ignoreControlConstructInDot(currentNode)) {
 					createVertex(currentNode);
 					id_to_label.put(currentNode, currentNode);
-					createInitialStateIfNeeded(currentNode);
+					createInitialStateIfNeeded(currentNode,true);
 				}
 			}
 

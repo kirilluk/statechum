@@ -1967,7 +1967,10 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 							oErl.input, oErl.expectedOutput);
 				}
 				else
-					assert false;
+					if (origLabel instanceof LabelInputOutput)
+						result = new LabelInputOutput(prefix+((LabelInputOutput) origLabel).input, ((LabelInputOutput) origLabel).output,true,true);
+					else
+						assert false;
 				
 				return result;
 			}

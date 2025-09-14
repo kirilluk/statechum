@@ -1421,6 +1421,7 @@ public class Transform
 	 * outcome of conversion and the map of new outputs to the original ones.
 	 *
 	 * @param numberingOfOutputs map of numbers to outputs. Will be populated with values if not empty.
+	 * @param stateNumPrefix prefix for names of states (if numbered). "S" will be used if this is null.
 	 * @param useExistingNumbering if not null, will use the provided numbering to number outputs, updating it with new outputs
 	 * @param labelToNumber number of labels. If not null, will be used to provide number of labels.
 	 *                         Where two graphs are compared, it is necessary for them to have the same
@@ -1428,7 +1429,7 @@ public class Transform
 	 *                         making them appear different without being actually different
  	 * @return outcome of conversion
 	 */
-	public LearnerGraph numberOutputsAndStates(boolean numberStates,List<String> numberingOfOutputs, MapWithSearch<String,String,Integer> useExistingNumbering, Map<LabelInputOutput,Integer> labelToNumber) {
+	public LearnerGraph numberOutputsAndStates(boolean numberStates,String stateNumPrefix,List<String> numberingOfOutputs, MapWithSearch<String,String,Integer> useExistingNumbering, Map<LabelInputOutput,Integer> labelToNumber) {
 		if (coregraph.config.getLabelKind() != Configuration.LABELKIND.LABEL_INPUT_OUTPUT &&
 				coregraph.config.getLabelKind() != Configuration.LABELKIND.LABEL_ATOMICPAIRS
 		)
@@ -1446,7 +1447,7 @@ public class Transform
 			CmpVertex newState = entry.getKey();
 			if (numberStates) {
 				int value = stateIdx++;
-				newState = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID("S" + value), result.config);
+				newState = AbstractLearnerGraph.generateNewCmpVertex(DeterministicDirectedSparseGraph.VertexID.parseID((stateNumPrefix == null?"S":stateNumPrefix) + value), result.config);
 				newState.setAccept(entry.getKey().isAccept());
 			}
 			oldToNew.put(entry.getKey(), newState);

@@ -914,6 +914,58 @@ public class TestParserDot {
     }
 
     @Test
+    public final void testParse9a4() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a[label=1];b;c;a->b[label=lbl];b->c[label=u]; }",
+                configLTS,graph,converter,false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_ACCEPT_FOUND);
+        parser.parseGraph();
+        LearnerGraph gr = buildLearnerGraph("a-lbl->b-u->c","testParse4", configLTS,converter);
+        Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+        Assert.assertEquals("1",graph.getInit().getStringId());
+    }
+
+    @Test
+    public final void testParse9a5() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a[label=1,shape=square];b;c;a->b[label=lbl];b->c[label=u]; }",
+                configLTS,graph,converter,false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_ACCEPT_FOUND);
+        parser.parseGraph();
+        LearnerGraph gr = buildLearnerGraph("b-u->c","testParse4", configLTS,converter);
+        Assert.assertNull(WMethod.checkM(gr, gr.findVertex("b"),graph,graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+        Assert.assertEquals("b",graph.getInit().getStringId());
+    }
+
+    @Test
+    public final void testParse9a6() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a[label=1,shape=square];b[shape=square];c;a->b[label=lbl];b->c[label=u]; }",
+                configLTS,graph,converter,false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_ACCEPT_FOUND);
+        parser.parseGraph();
+        LearnerGraph gr = new LearnerGraph(configLTS);
+        Assert.assertNull(WMethod.checkM(gr, gr.getInit(),graph,graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+        Assert.assertEquals("c",graph.getInit().getStringId());
+    }
+
+    @Test
+    public final void testParse9a7() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a[label=1,shape=square];b[shape=square];c[shape=square];a->b[label=lbl];b->c[label=u]; }",
+                configLTS,graph,converter,false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_ACCEPT_FOUND);
+        parser.parseGraph();
+
+        Assert.assertNull(graph.getInit());
+    }
+
+    @Test
+    public final void testParse9a8() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a {  }",
+                configLTS,graph,converter,false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND);
+        parser.parseGraph();
+
+        Assert.assertNull(graph.getInit());
+    }
+    @Test
     public final void testParse9b() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
         FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a[label=1];b;c;__start0[label=no_point_labelling_start0];a->b[label=lbl];b->c[label=u] __start0->a; }",
@@ -1167,9 +1219,9 @@ public class TestParserDot {
         Assert.assertNull(WMethod.checkM(grBackToPairs, grBackToPairs.getInit(),gr,gr.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
 
         List<String> outputsA = new ArrayList<>();
-        LearnerGraph grM_int = grM.transform.numberOutputsAndStates(true,outputsA,null, null);
+        LearnerGraph grM_int = grM.transform.numberOutputsAndStates(true,null,outputsA,null, null);
         List<String> outputsB = new ArrayList<>();
-        LearnerGraph grConf_int = grConf.transform.numberOutputsAndStates(true,outputsB,null,null);
+        LearnerGraph grConf_int = grConf.transform.numberOutputsAndStates(true,null,outputsB,null,null);
         Assert.assertEquals(Arrays.asList("g","k","p"), outputsA);
         Assert.assertEquals(outputsA, outputsB);
         Assert.assertNull(WMethod.checkM(grM_int, grM_int.getInit(),grConf_int,grConf_int.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));

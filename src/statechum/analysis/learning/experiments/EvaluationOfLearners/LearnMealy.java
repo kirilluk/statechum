@@ -56,11 +56,11 @@ public class LearnMealy {
         MapWithSearch<String, String, Integer> useExistingNumbering = new HashMapWithSearch<>(20);
         Map<LabelInputOutput, Integer> labelToNumber = new TreeMap<>();
         LearnerGraph referenceGraph = FsmParserDot.buildLearnerGraph(referenceDot, configAtomicPairs, null, true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).
-                transform.numberOutputsAndStates(false, null, useExistingNumbering, labelToNumber);
+                transform.numberOutputsAndStates(false, null,null, useExistingNumbering, labelToNumber);
         LearnerGraph a = FsmParserDot.buildLearnerGraph(Helper.loadFile(new File(args[2])), configAtomicPairs, null, true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).
-                transform.numberOutputsAndStates(false, null, useExistingNumbering, labelToNumber);
+                transform.numberOutputsAndStates(false, null, null,useExistingNumbering, labelToNumber);
         LearnerGraph pta = FsmParserDot.buildLearnerGraph(ptaDot, configAtomicPairs, null, true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).
-                transform.numberOutputsAndStates(false, null, useExistingNumbering, labelToNumber);
+                transform.numberOutputsAndStates(false, null, null,useExistingNumbering, labelToNumber);
         System.out.println("pta size: " + pta.transitionMatrix.size());
         ProgressDecorator.LearnerEvaluationConfiguration learnerInitConfiguration = constructLearnerInitConfiguration();
 
@@ -109,7 +109,7 @@ public class LearnMealy {
         MapWithSearch<String, String, Integer> useExistingNumbering = new HashMapWithSearch<>(20);
         Map<LabelInputOutput, Integer> labelToNumber = new TreeMap<>();
         LearnerGraph referenceGraph = FsmParserDot.buildLearnerGraph(referenceDot, configAtomicPairs, null, true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).
-                transform.numberOutputsAndStates(false, null, useExistingNumbering, labelToNumber);
+                transform.numberOutputsAndStates(false, null, null,useExistingNumbering, labelToNumber);
 
         final LearnerGraph pta = new LearnerGraph(configAtomicPairs);
         int traceQuantity = 50;
@@ -183,11 +183,11 @@ public class LearnMealy {
             MapWithSearch<String, String, Integer> useExistingNumbering = new HashMapWithSearch<>(20);
             Map<LabelInputOutput, Integer> labelToNumber = new TreeMap<>();
             LearnerGraph referenceGraph = FsmParserDot.buildLearnerGraph(referenceDot, configAtomicPairs, null, true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).
-                    transform.numberOutputsAndStates(false, null, useExistingNumbering, labelToNumber);
+                    transform.numberOutputsAndStates(false, null, null,useExistingNumbering, labelToNumber);
             LearnerGraph learntAutomatonFromPta = FsmParserDot.buildLearnerGraph(ptaLearntFromPta, configAtomicPairs, null, true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).
-                    transform.numberOutputsAndStates(false, null, useExistingNumbering, labelToNumber);
+                    transform.numberOutputsAndStates(false, null, null,useExistingNumbering, labelToNumber);
             LearnerGraph pta = FsmParserDot.buildLearnerGraph(ptaDot, configAtomicPairs, null, true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).
-                    transform.numberOutputsAndStates(false, null, useExistingNumbering, labelToNumber);
+                    transform.numberOutputsAndStates(false, null, null,useExistingNumbering, labelToNumber);
             System.out.println("pta size: " + pta.transitionMatrix.size());
             ProgressDecorator.LearnerEvaluationConfiguration learnerInitConfiguration = constructLearnerInitConfiguration();
 
@@ -241,7 +241,7 @@ public class LearnMealy {
             MapWithSearch<String, String, Integer> useExistingNumbering = new HashMapWithSearch<>(20);
             Map<LabelInputOutput, Integer> labelToNumber = new TreeMap<>();
             LearnerGraph referenceGraph = FsmParserDot.buildLearnerGraph(referenceDot, configAtomicPairs, null, true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).
-                    transform.numberOutputsAndStates(false, null, useExistingNumbering, labelToNumber);
+                    transform.numberOutputsAndStates(false, null, null,useExistingNumbering, labelToNumber);
 
             final LearnerGraph pta = new LearnerGraph(configAtomicPairs);
             int maxTraceQuantity = 5000;

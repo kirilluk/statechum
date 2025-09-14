@@ -16,13 +16,19 @@ public class DotVisualiser {
     public static void main(String[] args) throws IOException {// -ea -Xmx1600m -Xms800m -XX:NewRatio=1 -XX:+UseParallelGC -Dthreadnum=2 -DVIZ_CONFIG=kirill_tmp
         GlobalConfiguration.getConfiguration().setProperty(GlobalConfiguration.G_PROPERTIES.CLOSE_TERMINATE, "true");
         GlobalConfiguration.getConfiguration().setProperty(GlobalConfiguration.G_PROPERTIES.ESC_TERMINATE,"false");
-        final Configuration configMealy = Configuration.getDefaultConfiguration().copy();
-        configMealy.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
+        final Configuration configAtomicPairs = Configuration.getDefaultConfiguration().copy();
+        configAtomicPairs.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
         String referenceDot = Helper.loadFile(new File(args[0]));
-        LearnerGraph graphToPlot = FsmParserDot.buildLearnerGraph(referenceDot, configMealy, null,true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND).
-                transform.convertIO().transform.numberOutputsAndStates(true,null,null, null);
-        Visualiser graphVisualiser= new Visualiser(0);
-        graphVisualiser.update(null,graphToPlot);Visualiser.waitForKey();
+        LearnerGraph graphAToPlot = FsmParserDot.buildLearnerGraph(referenceDot, configAtomicPairs, null,true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_ACCEPT_FOUND).
+                transform.convertIO().transform.numberOutputsAndStates(true,"S",null,null, null);
+
+        LearnerGraph graphBToPlot = null;
+        if (args.length > 1) {
+            String actualDot = Helper.loadFile(new File(args[1]));
+            graphBToPlot = FsmParserDot.buildLearnerGraph(actualDot, configAtomicPairs, null,true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_ACCEPT_FOUND).
+                    transform.convertIO().transform.numberOutputsAndStates(true,"T",null,null, null);
+        }
+        Visualiser.updateFrame(graphAToPlot,graphBToPlot);Visualiser.waitForKey();
     }
 
 }

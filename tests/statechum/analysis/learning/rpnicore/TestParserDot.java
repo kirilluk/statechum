@@ -965,6 +965,72 @@ public class TestParserDot {
 
         Assert.assertNull(graph.getInit());
     }
+
+    @Test
+    public final void testParse9a9() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a[label=1,isInitial=True];b;c;a->b[label=lbl,isInitial=True];b->c[label=u]; }",
+                configLTS,graph,converter,false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_ISINITIAL);
+        parser.parseGraph();
+        LearnerGraph gr = buildLearnerGraph("a-lbl->b-u->c","testParse4", configLTS,converter);
+        Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+        Assert.assertEquals("1",graph.getInit().getStringId());
+    }
+
+    @Test
+    public final void testParse9a10() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a[label=1,isInitial=False];b[isInitial = True];c;a->b[label=lbl];b->c[label=u]; }",
+                configLTS,graph,converter,false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_ISINITIAL);
+        parser.parseGraph();
+        LearnerGraph gr = buildLearnerGraph("b-u->c","testParse4", configLTS,converter);
+        Assert.assertNull(WMethod.checkM(gr, gr.findVertex("b"),graph,graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+        Assert.assertEquals("b",graph.getInit().getStringId());
+    }
+
+    @Test
+    public final void testParse9a11() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a[label=1,shape=square];b[shape=square];c[isInitial = True];a->b[label=lbl];b->c[label=u]; }",
+                configLTS,graph,converter,false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_ISINITIAL);
+        parser.parseGraph();
+        LearnerGraph gr = new LearnerGraph(configLTS);
+        Assert.assertNull(WMethod.checkM(gr, gr.getInit(),graph,graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+        Assert.assertEquals("c",graph.getInit().getStringId());
+    }
+
+    @Test
+    public final void testParse9a12() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a[label=1,shape=square];b[shape=square];c[shape=square,isInitial = True];a->b[label=lbl];b->c[label=u]; }",
+                configLTS,graph,converter,false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_ISINITIAL);
+        parser.parseGraph();
+        LearnerGraph gr = new LearnerGraph(configLTS);gr.getInit().setAccept(false);
+        Assert.assertNull(WMethod.checkM(gr, gr.getInit(),graph,graph.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
+        Assert.assertEquals("c",graph.getInit().getStringId());
+    }
+
+
+    @Test
+    public final void testParse9a13() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a {  }",
+                configLTS,graph,converter,false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_ISINITIAL);
+        parser.parseGraph();
+
+        Assert.assertNull(graph.getInit());
+    }
+
+    @Test
+    public final void testParse9a14() {
+        LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();
+        FsmParserDot<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> parser = new FsmParserDot<>("digraph a { a[label=1,isInitial=False];b;c;a->b[label=lbl];b->c[label=u]; }",
+                configLTS,graph,converter,false,FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_ISINITIAL);
+        parser.parseGraph();
+
+        Assert.assertNull(graph.getInit());
+    }
+
     @Test
     public final void testParse9b() {
         LearnerGraph graph = new LearnerGraph(configLTS);graph.initEmpty();

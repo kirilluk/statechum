@@ -30,8 +30,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static statechum.Configuration.LABELKIND.LABEL_ATOMICPAIRS;
-import static statechum.analysis.learning.rpnicore.FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND;
-import static statechum.analysis.learning.rpnicore.FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0;
+import static statechum.analysis.learning.rpnicore.FsmParserDot.HOW_TO_FIND_INITIAL_STATE.*;
 
 public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> {
 
@@ -91,7 +90,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 	final boolean allowPartialAutomata;
 
-	public enum HOW_TO_FIND_INITIAL_STATE {FIRST_FOUND,FIRST_ACCEPT_FOUND,USE_START0}
+	public enum HOW_TO_FIND_INITIAL_STATE {FIRST_FOUND,FIRST_ACCEPT_FOUND, USE_ISINITIAL, USE_START0}
 
 	final HOW_TO_FIND_INITIAL_STATE initial_state_locator;
 	/**
@@ -358,8 +357,8 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	Map<String,String> id_to_label = new TreeMap<>();
 
 	/** Given a current state, sets it as initial state if
-	 * * we have no initial state and configuration defines the first encountered state to be marked as initial state.
-	 * * state is accept, we have no initial state and configuration defines the first encountered accept-state state to be marked as initial state.
+	 * we have no initial state and configuration defines the first encountered state to be marked as initial state.
+	 * state is accept, we have no initial state and configuration defines the first encountered accept-state state to be marked as initial state.
 	 *
 	 * @param currentNode name of the current state
 	 * @param isAccepted whether the state is accept-state
@@ -374,6 +373,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 					if (isAccepted)
 						graph.setInit(vertexForName(currentNode));
 					break;
+				// ignore other cases
 			}
 		}
 	}
@@ -471,7 +471,13 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 						graph.transitionMatrix.findKey(VertexID.parseID(lbl)).setAccept(false);
 					}
 					id_to_label.put(currentNode, lbl);
-					createInitialStateIfNeeded(currentNode,accept);
+					if (initial_state_locator == USE_ISINITIAL) {
+						String initialOption = options.get("isInitial");
+						if (Boolean.parseBoolean(initialOption) && graph.getInit() == null)
+							graph.setInit(vertexForName(currentNode));
+					}
+					else
+						createInitialStateIfNeeded(currentNode,accept);
 				}
 			} else {// this is a state declaration without options
 				unget();

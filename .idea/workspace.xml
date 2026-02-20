@@ -5,10 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Revised loading of dot graphs to support missing graph name.">
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/com6911/EvaluateResults.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/com6911/GenerateAutomata.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/com6911/GenerateRandomWalks.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/com6911/PlotAutomaton.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/com6911/PlotLearningResult.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/com6911/RunLearner.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/XMachineTool.iml" beforeDir="false" afterPath="$PROJECT_DIR$/XMachineTool.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/PrecisionRecall/ConfusionMatrix.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/PrecisionRecall/ConfusionMatrix.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/util/OutputUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/util/OutputUtil.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
@@ -64,11 +70,28 @@
     "Application.DotVisualiser (1).executor": "Run",
     "Application.DotVisualiser Bluetooth outcome.executor": "Run",
     "Application.DotVisualiser.executor": "Run",
+    "Application.EvaluateResults K0.executor": "Run",
+    "Application.EvaluateResults K1.executor": "Run",
+    "Application.EvaluateResults K2.executor": "Run",
+    "Application.EvaluateResults.executor": "Run",
+    "Application.GenerateAutomata.executor": "Run",
+    "Application.GenerateRandomWalks (1).executor": "Run",
+    "Application.GenerateRandomWalks - large_number.executor": "Run",
+    "Application.GenerateRandomWalks.executor": "Run",
+    "Application.GenerateTrainingData.executor": "Run",
+    "Application.PlotAutomaton.executor": "Run",
+    "Application.PlotLearningResult.executor": "Run",
     "Application.RunDotExperiment (1).executor": "Run",
     "Application.RunDotExperiment Large (1).executor": "Run",
     "Application.RunDotExperiment against known.executor": "Run",
     "Application.RunDotExperiment using Task List.executor": "Run",
     "Application.RunDotExperiment.executor": "Run",
+    "Application.RunLearner (1).executor": "Run",
+    "Application.RunLearner (2).executor": "Run",
+    "Application.RunLearner E0.executor": "Run",
+    "Application.RunLearner K0.executor": "Run",
+    "Application.RunLearner K2.executor": "Run",
+    "Application.RunLearner.executor": "Run",
     "Application.experimentProgressProperty.executor": "Run",
     "Application.experimentUAS1.executor": "Run",
     "Application.experimentUAS2.executor": "Run",
@@ -146,7 +169,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "broken__local/tmp__learning__experiments",
+    "git-widget-placeholder": "COM6911-2026",
     "ignore.virus.scanning.warn.message": "true",
     "jdk.selected.JAVA_MODULE": "1.8",
     "kotlin-language-version-configured": "true",
@@ -180,14 +203,14 @@
       <recent name="statechum" />
     </key>
     <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="statechum.analysis.learning.experiments.com6911" />
       <recent name="statechum.apps" />
       <recent name="statechum.analysis.learning.experiments.EvaluationOfLearners" />
       <recent name="org.junit.runners" />
       <recent name="statechum" />
-      <recent name="statechum.analysis.Erlang.Signatures" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.TestParserDot (1)">
+  <component name="RunManager" selected="Application.EvaluateResults K2">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -276,6 +299,146 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="EvaluateResults E0 1" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.EvaluateResults" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="D:\tmp\com6911\random_automata D:\tmp\com6911\learning_E0 D:\tmp\com6911\evaluation_data D:\tmp\com6911\outcome_E0.csv" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="EvaluateResults E0" type="Application" factoryName="Application" temporary="true">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.EvaluateResults" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="D:\tmp\com6911\random_automata D:\tmp\com6911\learning_E0 D:\tmp\com6911\evaluation_data D:\tmp\com6911\outcome_E0.csv" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="EvaluateResults K0" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.EvaluateResults" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="D:\tmp\com6911\random_automata D:\tmp\com6911\learning_K0 D:\tmp\com6911\evaluation_data D:\tmp\com6911\outcome_K0.csv" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="EvaluateResults K1" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.EvaluateResults" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="D:\tmp\com6911\random_automata D:\tmp\com6911\learning_K1 D:\tmp\com6911\evaluation_data D:\tmp\com6911\outcome_K1.csv" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="EvaluateResults K2" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.EvaluateResults" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="D:\tmp\com6911\random_automata D:\tmp\com6911\learning_K2 D:\tmp\com6911\evaluation_data D:\tmp\com6911\outcome_K2.csv" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="GenerateRandomWalks - large_number" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.GenerateRandomWalks" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="D:\tmp\com6911\random_automata D:\tmp\com6911\evaluation_data 2 4 false 10" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="GenerateRandomWalks (1)" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.GenerateRandomWalks" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="D:\tmp\com6911\random_automata D:\tmp\com6911\training_data_10 10 4 false 10" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="GenerateRandomWalks" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.GenerateRandomWalks" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="D:\tmp\com6911\random_automata D:\tmp\com6911\training_data 20 4" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="PlotAutomaton" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.PlotAutomaton" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="D:\tmp\com6911\learning_k_all_2_pos learnt-automaton_5_2_2_0~9" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="PlotLearningResult" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.PlotLearningResult" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="D:\tmp\com6911\random_automata D:\tmp\com6911\learning_E0 learnt-automaton_5_2_2_0~9" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="RunDotExperiment Large (1)" type="Application" factoryName="Application">
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.EvaluationOfLearners.LearnMealy" />
       <module name="XMachineTool" />
@@ -308,6 +471,90 @@
       <module name="XMachineTool" />
       <option name="PROGRAM_PARAMETERS" value="&quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\Bluetooth_CYW43455.dot&quot; &quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\APTA_size_634_States\Bluetooth_APTA.dot&quot; &quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\APTA_size_634_States\Bluetooth_classical_edsm.dot&quot; &quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\APTA_size_634_States\Bluetooth_classical_edsm.dot&quot;" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs -Xmx25500m" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunLearner E0" type="Application" factoryName="Application" temporary="true">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.RunLearner" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="d:\tmp\com6911\training_data_10 d:\tmp\com6911\learning_E0 E0" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunLearner K0" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.RunLearner" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="d:\tmp\com6911\training_data_10 d:\tmp\com6911\learning_K0 K0" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunLearner K1" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.RunLearner" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="d:\tmp\com6911\training_data_10 d:\tmp\com6911\learning_K1 K1" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunLearner K2" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.RunLearner" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="d:\tmp\com6911\training_data_10 d:\tmp\com6911\learning_K2 K2" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunLearner (1)" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.RunLearner" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="d:\tmp\com6911\training_data_10_pos d:\tmp\com6911\learning_K3_pos K3" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunLearner (2)" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.com6911.RunLearner" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="d:\tmp\com6911\training_data_10_pos d:\tmp\com6911\learning_k_all_2_pos KTPTL2" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.experiments.com6911.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -595,21 +842,6 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestParserDot (1)" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
-      <option name="TEST_OBJECT" value="class" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="TestParserDot" type="JUnit" factoryName="JUnit">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -647,70 +879,6 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestParserDot.testExportDot1b" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
-      <option name="METHOD_NAME" value="testExportDot1b" />
-      <option name="TEST_OBJECT" value="method" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestParserDot.testExportDot3d" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
-      <option name="METHOD_NAME" value="testExportDot3d" />
-      <option name="TEST_OBJECT" value="method" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestParserDot.testExportDot5a" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
-      <option name="METHOD_NAME" value="testExportDot5a" />
-      <option name="TEST_OBJECT" value="method" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestParserDot.testExportDot6" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.rpnicore.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.rpnicore" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.rpnicore.TestParserDot" />
-      <option name="METHOD_NAME" value="testExportDot6" />
-      <option name="TEST_OBJECT" value="method" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
     <configuration default="true" type="JetRunConfigurationType">
       <method v="2">
         <option name="Make" enabled="true" />
@@ -734,6 +902,22 @@
       <item itemvalue="Application.RunDotExperiment using Task List" />
       <item itemvalue="Application.RunDotExperiment Large" />
       <item itemvalue="Application.RunDotExperiment Large (1)" />
+      <item itemvalue="Application.GenerateRandomWalks - large_number" />
+      <item itemvalue="Application.GenerateRandomWalks (1)" />
+      <item itemvalue="Application.EvaluateResults K2" />
+      <item itemvalue="Application.EvaluateResults K1" />
+      <item itemvalue="Application.EvaluateResults K0" />
+      <item itemvalue="Application.EvaluateResults E0 1" />
+      <item itemvalue="Application.RunLearner (1)" />
+      <item itemvalue="Application.RunLearner (2)" />
+      <item itemvalue="Application.PlotAutomaton" />
+      <item itemvalue="Application.PlotLearningResult" />
+      <item itemvalue="Application.EvaluateResults E0" />
+      <item itemvalue="Application.RunLearner E0" />
+      <item itemvalue="Application.RunLearner K0" />
+      <item itemvalue="Application.RunLearner K1" />
+      <item itemvalue="Application.RunLearner K2" />
+      <item itemvalue="Application.GenerateRandomWalks" />
       <item itemvalue="JUnit.OTP 24 - erlangtmp" />
       <item itemvalue="JUnit.OTP 24" />
       <item itemvalue="JUnit.Test something" />
@@ -748,27 +932,22 @@
       <item itemvalue="JUnit.TestLengthy (using OTP24)" />
       <item itemvalue="JUnit.Run All tests with old OTP" />
       <item itemvalue="JUnit.TestParserDot" />
-      <item itemvalue="JUnit.TestParserDot.testExportDot1b" />
-      <item itemvalue="JUnit.TestParserDot.testExportDot3d" />
-      <item itemvalue="JUnit.TestParserDot.testExportDot5a" />
-      <item itemvalue="JUnit.TestParserDot.testExportDot6" />
-      <item itemvalue="JUnit.TestParserDot (1)" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="JUnit.TestParserDot (1)" />
-        <item itemvalue="JUnit.TestParserDot.testExportDot6" />
-        <item itemvalue="JUnit.TestParserDot.testExportDot5a" />
-        <item itemvalue="JUnit.TestParserDot.testExportDot1b" />
-        <item itemvalue="JUnit.TestParserDot.testExportDot3d" />
+        <item itemvalue="Application.EvaluateResults E0" />
+        <item itemvalue="Application.RunLearner E0" />
+        <item itemvalue="Application.PlotLearningResult" />
+        <item itemvalue="Application.PlotAutomaton" />
+        <item itemvalue="Application.GenerateRandomWalks" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.23774.435" />
-        <option value="bundled-js-predefined-d6986cc7102b-f27c65a3e318-JavaScript-IU-251.23774.435" />
+        <option value="bundled-jdk-9823dce3aa75-bf35d07a577b-intellij.indexing.shared.core-IU-252.28539.13" />
+        <option value="bundled-js-predefined-d6986cc7102b-a71380e98a7c-JavaScript-IU-252.28539.13" />
       </set>
     </attachedChunks>
   </component>
@@ -805,6 +984,7 @@
       <workItem from="1755015145427" duration="16405000" />
       <workItem from="1755102462486" duration="20839000" />
       <workItem from="1755194747895" duration="5285000" />
+      <workItem from="1771589801056" duration="17590000" />
     </task>
     <task id="LOCAL-00001" summary="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer).">
       <created>1651266068784</created>
@@ -1289,12 +1469,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java</url>
-          <line>269</line>
+          <line>268</line>
           <option name="timeStamp" value="140" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java</url>
-          <line>1660</line>
+          <line>1661</line>
           <option name="timeStamp" value="149" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
@@ -1328,9 +1508,24 @@
           <option name="timeStamp" value="190" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/linear/GD.java</url>
+          <line>407</line>
+          <option name="timeStamp" value="195" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/apps/DotVisualiser.java</url>
+          <line>31</line>
+          <option name="timeStamp" value="196" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java</url>
-          <line>1415</line>
-          <option name="timeStamp" value="191" />
+          <line>975</line>
+          <option name="timeStamp" value="197" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java</url>
+          <line>475</line>
+          <option name="timeStamp" value="202" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

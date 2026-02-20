@@ -57,4 +57,11 @@ public class ConfusionMatrix {
 	{
 		return "tp="+tp+", tn="+tn+", fp="+fp+", fn="+fn; 
 	}
+    public static String toCSVHeading() {
+        return "BCR,tp,tn,fp,fn";
+    }
+    public String toCSV()
+    {
+        return Double.toString(BCR())+","+tp+","+tn+","+fp+","+fn;
+    }
 }

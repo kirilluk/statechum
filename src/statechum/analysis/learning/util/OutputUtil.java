@@ -83,7 +83,7 @@ public class OutputUtil {
 	}
 	
 	@SuppressWarnings("unchecked")
-	protected static StringWriter dotGraph(DirectedSparseGraph g){
+    public static StringWriter dotGraph(DirectedSparseGraph g){
 		StringWriter graphout = new StringWriter(); 
 		graphout.write("digraph dotMachine{");
 		ArrayList<DeterministicVertex> vertexList = new ArrayList<>();

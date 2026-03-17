@@ -178,11 +178,12 @@ public class ErlangRuntime {
 				typerPackageName = "typer_annotator_s";
 				break;
 			case 24:
+			case 25:
 				foldersForErl.add(erlangTypeDir + "typer_monolithic/" + erlangVersion);
 				typerPackageName = "erl_types_s";
 				break;
 			default:
-				throw new IllegalArgumentException("Unsupported Erlang version "+erlangVersion+", only 14,16,17 and 24 are supported");
+				throw new IllegalArgumentException("Unsupported Erlang version "+erlangVersion+", only 14,16,17 and 24,25 are supported");
 		}
 
 		for (String path : foldersForErl)

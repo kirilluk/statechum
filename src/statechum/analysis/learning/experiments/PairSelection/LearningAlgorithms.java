@@ -218,7 +218,7 @@ public class LearningAlgorithms
 		@Override
 		public void stateSelectedAsRed(LearnerGraph graph, CmpVertex redVertex, Collection<CmpVertex> reds) 
 		{
-			totalReds = reds.size()+1;
+			totalReds = reds.size()+1;// 1 accounts for vertex redVertex
 			
 			List<CmpVertex> verts = new ArrayList<>(reds.size() + 2);// we ensure there is at least one spare slot left, otherwise array may choose to resize itself.
 			verts.addAll(reds);verts.add(redVertex);
@@ -501,7 +501,7 @@ public class LearningAlgorithms
 	}
 
 	/** An enumeration of a number of scoring methods that can be used for learning. Its main use is to iterate through a subset of it, permitting the experiment to run with a range of different scoring methods. */
-	public enum ScoringToApply { SCORING_EDSM("E0"), SCORING_EDSM_1("E1"), SCORING_EDSM_2("E2"), SCORING_EDSM_3("E3"), SCORING_EDSM_4("E4"), SCORING_EDSM_5("E5"),
+	public enum ScoringToApply { SCORING_MARKOV("M0", true),SCORING_MARKOV_1("M1", true),SCORING_MARKOV_2("M2", true),SCORING_EDSM("E0"), SCORING_EDSM_1("E1"), SCORING_EDSM_2("E2"), SCORING_EDSM_3("E3"), SCORING_EDSM_4("E4"), SCORING_EDSM_5("E5"),
 		SCORING_EDSM_6("E6"), SCORING_EDSM_7("E7"), SCORING_EDSM_8("E8"), SCORING_EDSM_9("E9"), SCORING_EDSM_10("E10"), SCORING_EDSM_11("E11"), SCORING_EDSM_12("E12"), 
 		SCORING_SICCO("SICCO"),SCORING_SICCO_3("SICCO_3"), SCORING_SICCO_PTA("SICPTA"),SCORING_SICCO_PTARECURSIVE("SICREC"), SCORING_SICCO_NIS("SICNIS"), SCORING_SICCO_RED("SICRED"),
 		SCORING_PTAK_1("KTPTA1"),SCORING_PTAK_2("KTPTA2"),SCORING_PTAK_3("KTPTA3"),SCORING_PTAK_4("KTPTA4"),
@@ -515,15 +515,24 @@ public class LearningAlgorithms
 		SCORING_LIMITEDSELFLOOPS_SICCO_0("PROGRESS+SICCO_0"),SCORING_LIMITEDSELFLOOPS_SICCO_2("PROGRESS+SICCO_2"),SCORING_LIMITEDSELFLOOPS_SICCO_3("PROGRESS+SICCO_3"),SCORING_LIMITEDSELFLOOPS_SICCO_4("PROGRESS+SICCO_4");
 		
 		public final String name;
+		public final boolean scoringMarkov;
 		ScoringToApply(String nameText)
 		{
-			name = nameText;
+			name = nameText;scoringMarkov = false;
+		}
+		ScoringToApply(String nameText, boolean markov)
+		{
+			name = nameText;scoringMarkov = markov;
 		}
 		
 		@Override
 		public String toString()
 		{
 			return name;
+		}
+
+		public boolean isMarkov() {
+			return scoringMarkov;
 		}
 	}
 

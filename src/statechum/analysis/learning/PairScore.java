@@ -26,7 +26,6 @@ import statechum.Pair;
  * all computations since it is considered for information only. The getter for it
  * is provided because this class is not exclusively used for learning, but in other
  * cases when I need to associate two scores to states, such as in GD. 
- * @param <B>
  */
 public class PairScore extends StatePair
 {
@@ -58,19 +57,19 @@ public class PairScore extends StatePair
 
 	/** This one is used when pairs of states are identified and 
 	 * we'd like to sort them in the order of decreasing score, so that 
-	 * the first one will have the highest score etc. Unlike {@link compareTo}, this one
+	 * the first one will have the highest score etc. Unlike {@link PairScore#compareTo}, this one
 	 * uses depth so that states closer to the root state are given a priority. If used in place of 
-	 * {@link compareTo}, some 
-	 * of the tests will fail, such as {@link TestRpniLearner#testLearner2a}
+	 * {@link PairScore#compareTo}, some
+	 * of the tests will fail, such as TestRpniLearner.testLearner2a
 	 * that would need additional sequences 
 	 * {@code new String[]{"a","b"},new String[]{"b","a","b"}}
 	 * as part of negatives to learn correctly.
 	 * The existing question generator does not generate any questions for the incorrect merge of state P1002
 	 * into P1000, this is the way question generator works which was never aimed to execute an equivalence 
 	 * query.
-	 * <br>
+	 * <br/>
 	 * Note: this assumes the argument is not null etc; this routing throws up if something is wrong.  
-	 * <br>
+	 * <br/>
 	 * Note the type of argument: it has to be a supertype since we're overriding Pair's <em>compareTo</em> method.
 	 * @param b the state pair to compare to.
 	 */
@@ -90,59 +89,23 @@ public class PairScore extends StatePair
 		if (secondElem.getDepth() != pB.secondElem.getDepth())
 		{
 			assert secondElem.getDepth() != JUConstants.intUNKNOWN && pB.secondElem.getDepth() != JUConstants.intUNKNOWN;
-			if (secondElem.getDepth() < pB.secondElem.getDepth())
-				return 1;
-			if (secondElem.getDepth() > pB.secondElem.getDepth())
-				return -1;
-			return 0;
-		}
+            return Integer.compare(pB.secondElem.getDepth(), secondElem.getDepth());
+        }
 
 		// Now blue one
 		if (firstElem.getDepth() != pB.firstElem.getDepth())
 		{
 			assert firstElem.getDepth() != JUConstants.intUNKNOWN && pB.firstElem.getDepth() != JUConstants.intUNKNOWN;
-			if (firstElem.getDepth() < pB.firstElem.getDepth())
-				return 1;
-			if (firstElem.getDepth() > pB.firstElem.getDepth())
-				return -1;
-			return 0;
-		}
+            return Integer.compare(pB.firstElem.getDepth(), firstElem.getDepth());
+        }
 
 		// The comparison routine is modified to ensure that we compare red states first and then blue ones.
-		int secondComp = 0;
-		
-		if (secondElem == null)
-		{
-			if (pB.secondElem != null)
-				secondComp = -1;
-		}
-		else
-		{
-			if (pB.secondElem == null)
-				secondComp = 1;
-			else
-				secondComp = secondElem.compareTo(pB.secondElem);
-		}
-		
-		if(secondComp != 0)
+		int secondComp = secondElem.compareTo(pB.secondElem);
+
+        if(secondComp != 0)
 			return secondComp;
 
-		int firstComp = 0;
-		
-		if (firstElem == null)
-		{
-			if (pB.firstElem != null)
-				firstComp = -1;
-		}
-		else
-		{
-			if (pB.firstElem == null)
-				firstComp = 1;
-			else
-				firstComp = firstElem.compareTo(pB.firstElem);
-		}
-		
-		return firstComp;
+        return firstElem.compareTo(pB.firstElem);
 	}
 	
 	/** This one is used when pairs of states are identified and 
@@ -176,10 +139,8 @@ public class PairScore extends StatePair
 		final PairScore other = (PairScore) obj;
 		if (score != other.score)
 			return false;
-		if (!super.equals(obj))
-			return false;
-		return true;
-	}
+        return super.equals(obj);
+    }
 	
 	
 	@Override

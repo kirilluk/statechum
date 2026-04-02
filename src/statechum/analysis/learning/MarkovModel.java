@@ -186,7 +186,15 @@ public class MarkovModel
 	 * permits elements such sets to be represented as sequences.
 	 */
 	public final boolean pathsOrSets;
-	
+
+	/** Constructs an instance of a Markov model which will subsequently be populated with data by calling update.
+	 *
+	 * @param chunkLen length of paths used for prediction + 1. For instance, a value of 2 means predicting transitions based on one transition.
+	 * @param argPathsOrSets if true, predicts transitions based on presence of paths. If false, predicts based on collections of transitions (such as on an incoming fan-in)
+	 * @param argPredictForwardOrSideways if true, predicts transitions leaving a state based on those incoming (or the other way around). For false, predicts outgoing transitions based on existing outgoing transitions (or same for incoming transitions).
+	 * @param argDirectionForwardOrInverse whether to predict outgoing transitions (value true) or incoming transitions (value false)
+	 * @param PTAUseMatrix whether to use a matrix to store PTA storing Markov information. Matrix is great memory-wise for millions of elements (and not as good performance-wise) which is probably unlikely in this case hence most of the time it will be false.
+	 */
     public MarkovModel(int chunkLen,final boolean argPathsOrSets, boolean argPredictForwardOrSideways,boolean argDirectionForwardOrInverse, boolean PTAUseMatrix)
     {
     	if (chunkLen < 2)
@@ -492,6 +500,9 @@ public class MarkovModel
 		exploration.walkThroughAllPaths();
 	}
 
+	/** Predictions are used to predict labels following a prefix (both positive and negative predictions).
+	 * This function reports values stored in the markov matrix as far as predictions are concerned.
+	 */
 	public Map<List<Label>, MarkovOutcome> computePredictionMatrix()
 	{
 		final Map<List<Label>, MarkovOutcome> outcome = new LinkedHashMap<List<Label>,MarkovOutcome>();
@@ -531,7 +542,10 @@ public class MarkovModel
 		exploration.walkThroughAllPaths();
 		return outcome;
 	}
-	
+
+	/** Occurrences count the number of labels following a prefix (both positive and negative).
+	 * This function reports values stored in the markov matrix as far as occurrences are concerned.
+	 */
 	public Map<List<Label>, UpdatablePairInteger> computeOccurrenceMatrix()
 	{
 		final Map<List<Label>, UpdatablePairInteger> outcome = new LinkedHashMap<List<Label>,UpdatablePairInteger>();

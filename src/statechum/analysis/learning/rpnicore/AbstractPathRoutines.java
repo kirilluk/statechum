@@ -559,7 +559,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	 * </pre>
 	 * @param g target into which to merge what
 	 * @param what graph to merge into g.
-	 * @param argWhatToG maps original vertices to those included in the graph <em>g</em>.
+	 * @param argWhatToG maps original vertices to those included in the graph <em>g</em>. It will be cleared if not null.
 	 * @return vertex in g corresponding to the initial vertex in what 
 	 */
 	public static <TARGET_A_TYPE,TARGET_B_TYPE,
@@ -1020,8 +1020,10 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	{
 		updateDepthLabelling(Integer.MAX_VALUE);
 	}
-	/** When merging states using {@link MergeStates#mergeAndDeterminize}, depth does not always get updated because we re-jig the tree without touching most of the states. Although this was done for efficiency,
-	 * in some cases we need an up-to-date depth information. This is significant when using Weka with the learner, hence we recompute depth here.
+	/** When merging states using {@link MergeStates#mergeAndDeterminize}, depth does not always get updated because
+	 * we re-jig the tree without touching most of the states. Although this was done for efficiency,
+	 * in some cases we need an up-to-date depth information. This is significant when using Weka with the learner,
+	 * hence we recompute depth here.
 	 * 
 	 * @param maxDepth the maximal depth to go, useful where we only need correct depth information for vertices around the root state.
 	 */
@@ -1032,7 +1034,7 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 		Map<CmpVertex, CmpVertex> statesInFringe = AbstractLearnerGraph.constructMap(coregraph.config, coregraph);// in order not to iterate through the list all the time.
 
 		fringe.add(from);
-		statesInFringe.put(from, from);
+		statesInFringe.put(from, from);// using a map as a set since in a large graph we might need to use a special collection and Java sets are 'standard' collections.
 		while (!fringe.isEmpty()) {
 			CmpVertex currentState = fringe.remove();
 			int currentDepth = currentState.getDepth();
@@ -1099,7 +1101,8 @@ public class AbstractPathRoutines<TARGET_TYPE,CACHE_TYPE extends CachedData<TARG
 	}
 
 	/** The name of this routine is misleading - it also filters out unreachable states though the process of exploration. */ 
-	public <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE,CACHE_A_TYPE>> void removeReachableStatesFromWhichInitIsNotReachable(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> outcome)
+	public <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE,CACHE_A_TYPE>>
+	void removeReachableStatesFromWhichInitIsNotReachable(AbstractLearnerGraph<TARGET_A_TYPE,CACHE_A_TYPE> outcome)
 	{
 		final Set<CmpVertex> reachableStates = computeReachableStatesFromWhichInitIsNotReachable();
 		

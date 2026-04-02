@@ -139,7 +139,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 						representative = vert;// emulate lexicographical comparison if told to do so
 				}
 				else
-				{// not emulating lexicographical order
+				{// not emulating lexicographical order and thus relying on depth-values to identify representative.
 					if (currentDepth == JUConstants.intUNKNOWN)
 					{
 						if (vertDepth != JUConstants.intUNKNOWN || representative.compareTo(vert) > 0)

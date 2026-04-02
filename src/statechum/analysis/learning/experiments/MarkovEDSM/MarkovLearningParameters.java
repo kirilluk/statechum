@@ -18,28 +18,19 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
 public class MarkovLearningParameters implements ThreadResultID 
 {
-	public enum LearnerToUseEnum
-	{
-		LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
-		public final String name;
-		private LearnerToUseEnum(String nameText)
-		{
-			name = nameText;
-		}
-	}
-	public LearnerToUseEnum learnerToUse;
+	public ScoringToApply learnerToUse;
 	public final int states;
 	public final int sample;
 	public final int trainingSample;
 	public boolean onlyUsePositives;
-	public boolean learnUsingReferenceLearner; 
 	public final int seed;
 	public double alphabetMultiplier = 1;
 	public double traceLengthMultiplier = 1;
@@ -47,11 +38,10 @@ public class MarkovLearningParameters implements ThreadResultID
 	public int traceQuantity,statesMax;
 	public double traceLengthMultiplierMax,alphabetMultiplierMax;
 	boolean usePrintf = false;
-	public int density;
 	public int perStateSquaredDensityMultipliedBy10 = 0;
 	public final MarkovParameters markovParameters = new MarkovParameters();
 	
-	public MarkovLearningParameters(LearnerToUseEnum l,int argStates, double argAlphabetMultiplier, int density10, int argSample, int argTrainingSample, int argSeed)
+	public MarkovLearningParameters(ScoringToApply l, int argStates, double argAlphabetMultiplier, int density10, int argSample, int argTrainingSample, int argSeed)
 	{
 		learnerToUse = l;
 		states = argStates;alphabetMultiplier = argAlphabetMultiplier;perStateSquaredDensityMultipliedBy10 = density10;sample = argSample;trainingSample = argTrainingSample;seed = argSeed;
@@ -106,8 +96,8 @@ public class MarkovLearningParameters implements ThreadResultID
 
 	@Override
 	public String[] getColumnText() {
-		List<String> columnData = new ArrayList<String>(Arrays.asList(new String[]{learnerToUse.name()}));
-		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
+		List<String> columnData = new ArrayList<>(Collections.singletonList(learnerToUse.name()));
+		if (learnerToUse.isMarkov())
 			columnData.addAll(markovParameters.getColumnListForMarkovLearner());
 		else
 			columnData.addAll(markovParameters.getColumnListForNonMarkovLearner());
@@ -118,8 +108,7 @@ public class MarkovLearningParameters implements ThreadResultID
 	@Override
 	public String getColumnID() 
 	{
-		String outcome = learnerToUse.name()+"-"+markovParameters.getColumnID(learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV);
-		return outcome;
+        return learnerToUse.name()+"-"+markovParameters.getColumnID(learnerToUse.isMarkov());
 	}
 
 	public static final String [] cellheaderMarkov = new String[]{"Success","BCR","Diff","M_Invalid","M_Missed","States","I_Ref", "I_Lnt","fracS","marPre","marRec","Comparisons","centreCorrect","centerpaths","%transitions","Time"},
@@ -128,7 +117,7 @@ public class MarkovLearningParameters implements ThreadResultID
 	@Override
 	public String[] headerValuesForEachCell() 
 	{
-		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
+		if (learnerToUse.isMarkov())
 			return cellheaderMarkov;
 		
 		return cellheaderConventional;
@@ -143,7 +132,7 @@ public class MarkovLearningParameters implements ThreadResultID
 	@Override
 	public int executionTimeInCell() 
 	{// here time is always the last value.
-		if (learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
+		if (learnerToUse.isMarkov())
 			return cellheaderMarkov.length-1;
 		else
 			return cellheaderConventional.length-1;

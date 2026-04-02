@@ -457,6 +457,16 @@ public class MarkovScoreComputation
 	public MarkovScoreComputation() {
 	}
 
+	/** Counts the number of 'matching' transitions between red and blue states being merged. Matching
+	 * is determined by matching outgoing transitions, either present or predicted by Markov.
+	 * Warning: the use of extension_graph makes it very slow because extension_graph contains all states and this
+	 * method only looks at a pair of states being merged at the first step.
+	 *
+	 * @param P pair being merged
+	 * @param coregraph graph in which this pair is being merged
+	 * @param Extension_Graph coregraph extended with all the predicted transitions.
+	 * @return number of matching transitions or -1 if any transition does not have a counterpart.
+	 */
 	public static double computeMMScoreImproved(PairScore P, LearnerGraph coregraph, LearnerGraph Extension_Graph)
 	{
 		double score = 0;
@@ -478,7 +488,7 @@ public class MarkovScoreComputation
 				boolean target_from_red_acceptance  = coregraph.getTransitionMatrix().get(P.getR()).get(out_red).isAccept();
 				boolean target_form_blue_acceptance = Extension_Graph.getTransitionMatrix().get(P.getQ()).get(out_red).isAccept();	
 	    		if(target_form_blue_acceptance  ==  target_from_red_acceptance )	
-	    			score++;	
+	    			score++;// either a match between transitions present in the graph or between an actual and a predicted transition.
 	    		else
 	    			return MarkovClassifier.fREJECT;
 			}
@@ -493,7 +503,8 @@ public class MarkovScoreComputation
 				boolean target_from_red_acceptance  = Extension_Graph.getTransitionMatrix().get(P.getR()).get(out_blue).isAccept();
 				boolean target_form_blue_acceptance = coregraph.getTransitionMatrix().get(P.getQ()).get(out_blue).isAccept();
 	    		if(target_form_blue_acceptance  ==  target_from_red_acceptance )
-	    			score++;
+	    			score++;// a match between an actual and a predicted transition (if both were present they
+					// would have been matched by the loop in above 'out_red:outgoing_from_red_node.').
 	    		else
 	    			return MarkovClassifier.fREJECT;
 			}
@@ -517,7 +528,8 @@ public class MarkovScoreComputation
 		long pairScore = original.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices);
 		if (pairScore < 0)
 			return -1;
-
+		// mergedVertices maps red states (and those on a walk from the merged blue state that were not merged into
+		// any red state) to states (on the walk from the merged blue state) that were merged into them.
 		Map<CmpVertex,Collection<Label>> labelsAdded = new TreeMap<CmpVertex,Collection<Label>>();
 		
 		// make a loop
@@ -550,7 +562,7 @@ public class MarkovScoreComputation
 				{// for every input, I'll have a unique target state - this is a feature of PTA
 				 // For this reason, every if multiple branches of PTA get merged, there will be no loops or parallel edges.
 				// As a consequence, it is safe to assume that each input/target state combination will lead to a new state
-				// (as long as this combination is the one _not_ already present from the corresponding red state).
+				// (as long as this combination is the one _not_ already present from the corresponding red state _or_ a branch starting from a blue state we are merging into).
 					
 					Set<Label> remains = new TreeSet<Label>();remains.addAll(original.transitionMatrix.get(vert).keySet());remains.retainAll(original.transitionMatrix.get(toMerge).keySet());
 					//Set<Label> toAdd = new TreeSet<Label>();toAdd.addAll(original.transitionMatrix.get(toMerge).keySet());toAdd.removeAll(original.transitionMatrix.get(vert).keySet());
@@ -687,15 +699,16 @@ public class MarkovScoreComputation
 	}
 
 
-	/** The purpose of this method is to match predicted transitions between the supplied states. Imagine two states with a pair of Markov-predicted transitions. These transitions may happen to lead to compatible states
-	 * (in other words, both predicted as positive or negative). We can make a subsequent prediction, in which we assume that such predicted transitions are valid and predict those after them. Where these "second-step" transitions 
-	 *  match, increment scores.
-	 * 
+	/** The purpose of this method is to match predicted transitions between the supplied states.
+	 * Imagine two states with a pair of Markov-predicted transitions. These transitions may happen to lead to compatible states
+	 * (in other words, both predicted as positive or negative). We can make a subsequent prediction,
+	 * in which we assume that such predicted transitions are valid and predict those after them.
+	 * Where these "second-step" transitions match, increment scores.
 	 * @param cl prediction engine
 	 * @param red first state from which to predict transitions
 	 * @param blue second state from which to predict transitions
 	 * @param pathLenBeyondCurrentState path already predicted by the time this method is called. Initially empty and updated for each recursive call of
-	 * {@link MarkovScoreComputation#comparePredictedFanouts(MarkovClassifierLG, CmpVertex, CmpVertex, List, int)}
+	 * {@link MarkovScoreComputation#comparePredictedFanouts(MarkovClassifierLG, CmpVertex, CmpVertex, List, int)}.
 	 * @param stepNumber how many waves of transitions to generate
 	 * @return number of matching transitions 
 	 */
@@ -727,16 +740,8 @@ public class MarkovScoreComputation
 		{
 			MarkovOutcome outcomeRed = outgoing_red_probabilities.get(entry.getKey());
 			if (outcomeRed == null && entry.getValue() == MarkovOutcome.negative) 
-				++scoreCurrentFanout; // blue negative, red absent, hence the two are consistent
-			if (outcomeRed == entry.getValue()) // or if the two are consistent
-			{
-				if (stepNumber > 1)
-				{
-					LinkedList<Label> pathBeyond = new LinkedList<Label>(pathLenBeyondCurrentState);pathBeyond.add(entry.getKey());
-					score+=comparePredictedFanouts(cl,red,blue,pathBeyond,stepNumber-1);
-				}
-				++scoreCurrentFanout;
-			}
+				++scoreCurrentFanout; // blue negative, red absent, hence the two are consistent or if the two are consistent
+			// the case where both blue and red are consitent with each other is considered above under if (outcomeBlue == entry.getValue())
 		}
 		
 		if (scoreCurrentFanout*4 < (outgoing_red_probabilities.size()+outgoing_blue_probabilities.size())*3)
@@ -773,7 +778,7 @@ public class MarkovScoreComputation
 			throw new IllegalArgumentException("elements of the pair are incompatible");
 
 		if ((pair.getR().getDepth() < cl.model.getChunkLen()-1 || pair.getQ().getDepth() < cl.model.getChunkLen()-1) && pairScore <= 0)
-			return Long.MIN_VALUE;// block mergers into the states for which no statistical information is available if there are not common transitions.
+			return Long.MIN_VALUE;// block mergers into the states for which no statistical information is available if there are no common transitions.
 
 		Map<CmpVertex,Collection<Label>> labelsAdded = new TreeMap<CmpVertex,Collection<Label>>();
 

@@ -72,10 +72,11 @@ public class WaveBlueFringe extends PairQualityLearner
 	 * @param coregraph graph to consider
 	 * @param currentRed the state of interest
 	 * @param includeSelf whether to include single-state loops. 
-	 * @param whereToAddTransitions collection of transitions to populate, not a map to permit non-deterministic choice.
+	 * @param whereToAddTransitions collection of transitions to populate, not defined as a map to permit non-deterministic choice.
 	 */
 	private static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>> 
-		void addTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex currentRed,boolean includeSelf, Collection<Entry<Label,CmpVertex>> whereToAddTransitions)
+		void addTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex currentRed,
+								boolean includeSelf, Collection<Entry<Label,CmpVertex>> whereToAddTransitions)
 	{
 		for(final Entry<Label,TARGET_A_TYPE> incoming:coregraph.transitionMatrix.get(currentRed).entrySet())
 			for(final CmpVertex v:coregraph.getTargets(incoming.getValue()))
@@ -100,7 +101,7 @@ public class WaveBlueFringe extends PairQualityLearner
 						}});
 	}
 	
-	/** Given a graph and its inverse, computes transitions exiting a supplied state.
+	/** Given a graph, counts transitions exiting a supplied state.
 	 * 
 	 * @param coregraph graph to consider
 	 * @param current the state of interest
@@ -129,7 +130,9 @@ public class WaveBlueFringe extends PairQualityLearner
 	public static <TARGET_A_TYPE,TARGET_B_TYPE,
 		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
 		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
-		Collection<Map.Entry<Label,CmpVertex>> obtainSurroundingTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph, CmpVertex currentRed)
+		Collection<Map.Entry<Label,CmpVertex>>
+		obtainSurroundingTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph,
+									 AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph, CmpVertex currentRed)
 	{
 		Collection<Entry<Label,CmpVertex>> surroundingTransitions = new ArrayList<Entry<Label,CmpVertex>>();
 		addTransitionsFrom(coregraph, currentRed,true, surroundingTransitions);addTransitionsFrom(inverseGraph, currentRed,false, surroundingTransitions);
@@ -148,7 +151,7 @@ public class WaveBlueFringe extends PairQualityLearner
 		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
 		long countTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph, CmpVertex current)
 	{
-		return countTransitionsFrom(coregraph, current,true)+countTransitionsFrom(inverseGraph, current,false);
+		return countTransitionsFrom(coregraph, current,true)+countTransitionsFrom(inverseGraph, current,false);// using false here avoids counting self-loop twice.
 	}
 
 	/** Identifies a vertex with the maximal number of incoming and outgoing transitions.
@@ -167,7 +170,8 @@ public class WaveBlueFringe extends PairQualityLearner
 				throw new IllegalArgumentException("whichMostConnectedVertex should be non-negative");
 			if (coregraph.transitionMatrix.isEmpty())
 				return null;// with no transitions, nothing to report.
-			// by abuse of PairScore, we record vertex-connectivity association. The last element is where the new elements appear before they are sorted in.
+			// By abuse of PairScore, we record vertex-connectivity association.
+			// The last element is where the new elements appear before they are sorted in.
 			PairScore mostConnected[] = new PairScore[whichMostConnectedVertex+2];
 			PairScore dummyPair = new PairScore(null,null,-1,0);
 			Arrays.fill(mostConnected, dummyPair);
@@ -175,20 +179,20 @@ public class WaveBlueFringe extends PairQualityLearner
 			{
 				long size = obtainSurroundingTransitions(coregraph,inverseGraph,v).size();
 				if (size > mostConnected[whichMostConnectedVertex].getScore())
-				{
+				{// if this is more connected than whichMostConnectedVertex'th more connected vertex, insert in array.
 					mostConnected[whichMostConnectedVertex+1]=new PairScore(v,v,size,0);
-					// now sort the buffer. This is not the most efficient way to add elements to a sorted array, but Java implementation claims to be reasonably efficient, we do not have many elements in the array and not having to implement the insertion routine cuts down on the amount of unit testing for this routine.
-					Arrays.sort(mostConnected, new Comparator<PairScore>(){
-
-						@Override
-						public int compare(PairScore o1, PairScore o2) {
-							long diff = o2.getScore()-o1.getScore();
-							if (diff > 0)
-								return 1;
-							if (diff < 0)
-								return -1;
-							return 0;
-						}});
+					// now sort the buffer. This is not the most efficient way to add elements to a sorted array,
+					// but Java implementation claims to be reasonably efficient, we do not have many elements
+					// in the array and not having to implement the insertion routine cuts down on the amount
+					// of unit testing for this routine.
+					Arrays.sort(mostConnected, (o1, o2) -> {
+                        long diff = o2.getScore()-o1.getScore();
+                        if (diff > 0)
+                            return 1;
+                        if (diff < 0)
+                            return -1;
+                        return 0;
+                    });
 				}
 			}
 			int stateNumber = coregraph.transitionMatrix.size();
@@ -347,11 +351,12 @@ public class WaveBlueFringe extends PairQualityLearner
 			classifierToChooseWhereNoMergeIsAppropriate = classifierToBlockAllMergers;
 		}
 	
-		/** Where a pair has a zero score but Weka is not confident that this pair should not be merged, where this flag, such a pair will be assumed to be unmergeable. Where there is a clearly wrong pair
-		 * detected by Weka, its blue state will be marked red, where no pairs are clearly appropriate for a merger and all of them have zero scores, this flag will cause a blue state in one of them to be marked red.  
+		/** Where a pair has a zero score but Weka is not confident that this pair should not be merged,
+		 * and where this flag is set, such a pair will be assumed to be unmergeable. Where there is a clearly wrong pair
+		 * detected by Weka, its blue state will be marked red, where no pairs are clearly appropriate for a merger
+		 * and all of them have zero scores, this flag will cause a blue state in one of them to be marked red.
 		 */
 		protected boolean blacklistZeroScoringPairs = false;
-	
 	
 		public void setBlacklistZeroScoringPairs(boolean value)
 		{
@@ -393,7 +398,8 @@ public class WaveBlueFringe extends PairQualityLearner
 			}
 			return bestPair;
 		}
-	
+
+		/** Collects pairs with the lowest score (in case there are a few of them). */
 		public List<PairScore> pickPairToRed(Collection<PairScore> pairs)
 		{
 			assert pairs != null;
@@ -557,9 +563,11 @@ public class WaveBlueFringe extends PairQualityLearner
 						}
 					}));
 				else
-					pta.paths.augmentPTA(generator.getAllSequences(0));// the PTA will have very few reject-states because we are generating few sequences and hence there will be few negative sequences.
-					// In order to approximate the behaviour of our case study, we need to compute which pairs are not allowed from a reference graph and use those as if-then automata to start the inference.
-				//pta.paths.augmentPTA(referenceGraph.wmethod.computeNewTestSet(referenceGraph.getInit(),1));
+					pta.paths.augmentPTA(generator.getAllSequences(0));// the PTA will have very
+					// few reject-states because we are generating few sequences and hence there will be few negative sequences.
+					// In order to approximate the behaviour of our case study, we need to compute which pairs are not
+					// allowed from a reference graph and use those as if-then automata to start the inference.
+					//pta.paths.augmentPTA(referenceGraph.wmethod.computeNewTestSet(referenceGraph.getInit(),1));
 		
 				List<List<Label>> sPlus = generator.getAllSequences(0).getData(new FilterPredicate() {
 					@Override
@@ -585,8 +593,8 @@ public class WaveBlueFringe extends PairQualityLearner
 				else 
 					assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
 				
-				LearnerMarkovPassive learnerOfPairs = null;
-				LearnerGraph actualAutomaton = null;
+				LearnerMarkovPassive learnerOfPairs;
+				LearnerGraph actualAutomaton;
 				
 				final Configuration deepCopy = pta.config.copy();deepCopy.setLearnerCloneGraph(true);
 				LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
@@ -652,10 +660,14 @@ public class WaveBlueFringe extends PairQualityLearner
 					LearnerGraph coregraph = null;
 					
 					LearnerGraphND inverseGraph = null;
-					/** Where I have a set of paths to merge because I have identified specific states, this map is constructed that maps vertices to be merged together to the partition number that corresponds to them. */
+					/** Where I have a set of paths to merge because I have identified specific states,
+					 * this map is constructed that maps vertices to be merged together to the partition
+					 * number that corresponds to them.
+					 */
 					Map<CmpVertex,Integer> vertexToPartition = new TreeMap<CmpVertex,Integer>();
 					
 					@Override
+					// Called by chooseStatePairs
 					public void initComputation(LearnerGraph graph) 
 					{
 						coregraph = graph;
@@ -725,7 +737,9 @@ public class WaveBlueFringe extends PairQualityLearner
 
 				{
 					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null, LearningSupportRoutines.constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
+					int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null,
+							LearningSupportRoutines.constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),
+									verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
 					assert genScore >= 0;
 					actualAutomaton = MergeStates.mergeCollectionOfVertices(actualAutomaton, null, verticesToMerge, null, false);
 				}

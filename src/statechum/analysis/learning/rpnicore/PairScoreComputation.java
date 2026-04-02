@@ -154,7 +154,8 @@ public class PairScoreComputation {
 			}
 			else
 				if (!coregraph.pairsAndScores.isEmpty() && decisionProcedure != null)
-				{// the pairs chosen so far might all be the wrong ones, hence we could attempt to avoid the disaster if we can do something clever and whoever registered a decision procedure is given a chance to do it.  
+				{// the pairs chosen so far might all be the wrong ones, hence we could attempt to avoid the disaster
+				 // if we can do something clever and whoever registered a decision procedure is given a chance to do it.
 					newRedNode = decisionProcedure.resolvePotentialDeadEnd(coregraph, reds, coregraph.pairsAndScores);
 					if (newRedNode != null)
 					{
@@ -421,9 +422,23 @@ public class PairScoreComputation {
 						// so that two transitions which would not normally be
 						// near each other will be merged. For this reason, it
 						// is possible that our score computation will deliver
-						// a higher value that the conventional matching 
+						// a higher value than the conventional matching
 						// (where in the considered situation we'll be 
 						// matching PTA with itself and PTA may be sparse).
+						//
+						// Illustration:
+						// A-a->A  with B-b->B1->b->B2 / B-a->B3-b->B4
+						// Above, merging A with B adds an 'appendix' of two 'b' to A and then
+						// B-a->B3 rolls into A with B3-b->B4 being merged into B-b->B1.
+						// With this, we end up with three states,
+						// AB-a->ABB3-b->B1B4-b->B2
+						// What is important here:
+						// after one of B-b->B1 or B3-b->B4 is added to state A (thus incrementing score by 1),
+						// pairwise matching proceeds to match B1->b->B2 with B3-b->B4,
+						// incrementing score again. This is only wrong to do because we are matching
+						// a subtree rooted at B with itself. It would be perfectly fine to do this where
+						// b-transitions were starting in A and leading either to other red states or to
+						// unlabelled states.
 					}
 
 					if (coregraph.config.getScoreCompatibilityScoreComputationBugEmulation())
@@ -881,14 +896,16 @@ public class PairScoreComputation {
 	 * The method does not intend to compute a positive score since it is expected to be used to reject incompatible ones and will return 0 if provided with an empty set of equivalence 
 	 * classes (which means that computation of scores returned -1 and hence did not populate equivalence classes). 
 	 * 
-	 * In a similar way to ordinary Sicco score computation, there are three modes,
+	 * In a similar way to ordinary Sicco score computation, there are two modes,
 	 * <ul>
 	 * <li>Only look at the current pair to merge and the states that got merged into it (requested with howToScore == SiccoGeneralScoring.S_ONEPAIR). </li>
 	 * <li>Look at mergers of any state into a red state (if there are multiple red states being merged together, this will do a union of their outgoing transitions).</li>
 	 * </ul>
 	 * Unlike the score computation that relies on mergers between a branch of a tree and a graph, 
 	 * this scoring routine cannot tell whether any node comes from a tree or from the main graph (except where they are labelled red or blue).
-	 * This is why it cannot do an equivalent of 'recursive' computation where one follows a branch and checks states against those in the main graph. On the positive side, it can be used
+	 * Since it is expected to be used to check state mergers in arbitrary connected graphs,
+	 * it cannot do an equivalent of 'recursive' computation where one follows a branch and checks states against
+	 * those in the main graph. On the positive side, it can be used
 	 * for arbitrary mergers in a graph, something that typical Sicco score computation cannot handle.
 	 * 
 	 * There is no provision for 'blue' states because during score computation, it is not known which states are going to be blue or will immediately become red.

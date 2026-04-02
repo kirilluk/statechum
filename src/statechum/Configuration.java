@@ -111,11 +111,11 @@ public class Configuration implements Cloneable {
 	}
 
 	/**
-	 * The are a few ways in which one can compute scores associated to pairs of
+	 * There are a few ways in which one can compute scores associated to pairs of
 	 * states, using a conventional computation, using compatibility scores
 	 * (during traversal of pairs, ensures that the red state does not enter the
 	 * PTA) and the k-tails traversal (scores are only updated on paths from the
-	 * blue state of length k and less). Classical score computation matches two
+	 * blue state of length lower than or equal to k). Classical score computation matches two
 	 * nodes but does not look at parts of a PTA being traversed during the
 	 * computation of those scores. In particular, if there is a transition with
 	 * some label a from a blue node and a transition with the same label leads

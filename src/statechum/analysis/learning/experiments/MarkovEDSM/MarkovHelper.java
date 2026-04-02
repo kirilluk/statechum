@@ -36,7 +36,6 @@ import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovClassifierLG;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
@@ -84,10 +83,11 @@ public class MarkovHelper
 		return markovModel.toString();
 	}
 	
-	/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
+	/** This method orders the supplied pairs in the order of best to merge to worst to merge (as defined by computeMMScoreImproved).
 	 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly.
 	 * <p/> 
-	 * Pairs are supposed to be the ones from {@link statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines#filterPairsBasedOnMandatoryMerge(List, LearnerGraph, Collection, Collection)}
+	 * Pairs are supposed to be the ones from
+	 * {@link statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines#filterPairsBasedOnMandatoryMerge(List, LearnerGraph, Collection, Collection)}
 	 * where all those not matching mandatory merge conditions are not included.
 	 * Inclusion of such pairs will not affect the result but it would be pointless to consider such pairs.
 	 * @param graph
@@ -106,7 +106,7 @@ public class MarkovHelper
 				allPairsNegative = false;break;
 			}
 		}
-		ArrayList<PairScore> possibleResults = new ArrayList<PairScore>(pairs.size()),nonNegPairs = new ArrayList<PairScore>(pairs.size());
+		ArrayList<PairScore> possibleResults = new ArrayList<>(pairs.size()),nonNegPairs = new ArrayList<>(pairs.size());
 		if (allPairsNegative)
 			possibleResults.addAll(pairs);
 		else
@@ -154,14 +154,14 @@ public class MarkovHelper
 		inconsistenciesPerVertex =
 				coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY && (coregraph.getStateNumber() > coregraph.config.getThresholdToGoHash() || coregraph.config.getAlwaysUseTheSameMatrixType())?
 						new ArrayMapWithSearchPos<DeterministicDirectedSparseGraph.VertID,CmpVertex,Long>(coregraph.getStateNumber()):
-						new TreeMap<CmpVertex,Long>();
+                        new TreeMap<>();
 	}
 	
 	public long onlyComputeInconsistency(PairScore p)
 	{
-		if(p.getQ().isAccept()==false && p.getR().isAccept()==false)
+		if(!p.getQ().isAccept() && !p.getR().isAccept())
 			return 0;
-		List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
+		List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
 		int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 		long score= genScore;
 		if (genScore >= 0)
@@ -173,11 +173,11 @@ public class MarkovHelper
 	
 	public long computeScoreBasedOnInconsistencies(PairScore p) 
 	{
-		if(p.getQ().isAccept()==false && p.getR().isAccept()==false)
+		if(!p.getQ().isAccept() && !p.getR().isAccept())
 			return 0;
 		++comparisonsPerformed;
 		long currentInconsistency = 0;
-		List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
+		List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
 		int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 		long score= genScore;
 		if (genScore >= 0)

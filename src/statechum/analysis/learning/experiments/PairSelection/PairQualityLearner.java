@@ -777,7 +777,7 @@ public class PairQualityLearner
 			if (!outcome.isEmpty())
 			{
 				dataCollector.updateDatasetWithPairs(outcome, graph, inverseGraph, referenceGraph);// we learn from the whole range of pairs, not just the filtered ones
-				PairScore chosenPair = pickCorrectPair(outcome, graph);// selects any of the correct pairs, using a reference graph. This is why this learner is called 
+				PairScore chosenPair = pickCorrectPair(outcome, graph);// selects any of the correct pairs, using a reference graph. This is why this learner is derived from LearnerThatCanClassifyPairs
 				outcome.clear();outcome.push(chosenPair);
 			}
 			if (!checkAllMergersCorrect())
@@ -1060,7 +1060,9 @@ public class PairQualityLearner
 			System.out.println();
 		}
 		
-		/** If there is a state to be labelled red, returns it. This permits one to enlarge a set of possible pairs, merging only best ones compared to choosing from a list of mediocre pairs. */
+		/** If there is a state to be labelled red, returns it. This permits one to enlarge a set of possible pairs,
+		 * merging only best ones compared to choosing from a list of mediocre pairs.
+		 */
 		protected CmpVertex selectRedStateIfAnySeemsRedEnough(Collection<PairScore> pairsToStartWith, LearnerGraph tentativeGraph, LearnerGraphND invTentativeGraph, CmpVertex stateToDebug)
 		{
 			Map<CmpVertex,ValueAndCount> possiblyRedVerticesToTheirQuality = new TreeMap<>();
@@ -1650,7 +1652,7 @@ public class PairQualityLearner
 		{
 			return differenceBCR != null? differenceBCR.getValue():differenceStructural.getValue();
 		}
-		
+
 		@Override
 		public String toString()
 		{

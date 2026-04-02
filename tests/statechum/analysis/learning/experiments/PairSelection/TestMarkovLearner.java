@@ -56,7 +56,7 @@ public class TestMarkovLearner
 						String text=toErlangTerm();
 						if (text.length() != 1)
 							throw new IllegalArgumentException("label "+text+" should have a length of 1");
-						return text.codePointAt(0);
+						return text.codePointAt(0);// a very specialised converter only supporting single-character labels used in this test
 					}
 
 					@Override
@@ -1746,7 +1746,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C1 / B-u->E","testIdentifyUncoveredTransitions2a",config, converter);
 		final LearnerGraph reference = FsmParserStatechum.buildLearnerGraph("A-a->D","testIdentifyUncoveredTransitions3",config, converter);
-		TestHelper.checkForCorrectException(() -> LearningSupportRoutines.identifyUncoveredTransitions(graph,reference), IllegalArgumentException.class, "coverage has more transitions");
+		TestHelper.checkForCorrectException(() -> LearningSupportRoutines.identifyUncoveredTransitions(graph,reference), IllegalArgumentException.class, "walks utilise more transitions");
 	}
 	
 	@Test
@@ -1764,7 +1764,7 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C1 / B-u->E","testIdentifyUncoveredTransitions2a",config, converter);
 		final LearnerGraph reference = FsmParserStatechum.buildLearnerGraph("A-a->D","testIdentifyUncoveredTransitions3",config, converter);
-		TestHelper.checkForCorrectException(() -> LearningSupportRoutines.trimUncoveredTransitions(graph,reference), IllegalArgumentException.class, "coverage has more transitions");
+		TestHelper.checkForCorrectException(() -> LearningSupportRoutines.trimUncoveredTransitions(graph,reference), IllegalArgumentException.class, "walks utilise more transitions");
 	}
 	
 	@Test
@@ -2213,6 +2213,18 @@ public class TestMarkovLearner
 	}
 	
 	@Test
+	public void testConstructSurroundingTransitions0()
+	{
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-t->B", "testConstructSurroundingTransitions0",config,converter);
+		fsm.transitionMatrix.get(VertexID.parseID("A")).clear();fsm.transitionMatrix.remove(VertexID.parseID("B"));
+		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("A"));
+		Assert.assertEquals("",collectionOfTransitionsToString(surroundingTransitions));
+		Assert.assertEquals(0,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
+		Assert.assertEquals(fsm.findVertex("A"),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),0));
+		Assert.assertEquals(fsm.findVertex("A"),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),1));
+	}
+
+	@Test
 	public void testConstructSurroundingTransitions1a()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
@@ -2223,7 +2235,7 @@ public class TestMarkovLearner
 		Assert.assertEquals(1,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("C")));
 		Assert.assertEquals(fsm.findVertex("B"),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),0));
 	}
-	
+
 	/** Tests that the second best can be returned. */
 	@Test
 	public void testConstructSurroundingTransitions1b()

@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
@@ -71,24 +70,28 @@ public class SGE_ExperimentRunner
 	{
 		/** Called to plot results of the experiment, using the result <i>r</i>. The <i>experimentrunner</i> is what is to be used to perform plotting, via 
 		 * calls to {@link statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment#RecordR(RExperimentResult, Comparable, Double, String, String)}.
-		 * The outcome of these calls are stored in a file and subsequently assembled and plotted.
+		 * The outcome of these calls are stored in an outcome-of-work file and subsequently assembled and plotted.
 		 * 
 		 * @param result the outcome of running an experiment.
 		 * @param runSubExperiment
 		 */
         void processSubResult(RESULT result, RunSubExperiment<EXPERIMENT_PARAMETERS, RESULT> runSubExperiment)  throws IOException;
 		
-		/** Returns all graphs that will be plotted. This is needed because we would rather not store axis names in text files. */
+		/** Returns all graphs that will be plotted. This is needed because we would rather not store axis names in text files.
+		 * In the outcome-of-work files, there will be a single line per such graph and CRC field to ensure we can
+		 * detect experiments that failed to terminate successfully (such as getting killed by the scheduler for
+		 * running out of time or out of memory).
+		 */
         SGEExperimentResult[] getGraphs();
 	}
 	
 	
 	public enum PhaseEnum
 	{
-		RUN_TASK, // takes task ID as an argument and runs tasklets of the specific task in sequence. Intended to run on Iceberg.
+		RUN_TASK, // takes task ID as an argument and runs tasklets of the specific task in sequence. Intended to run on a grid-computer.
 		COLLECT_RESULTS, // takes results from tasks and builds a spreadsheet or graphs with results. Throws an exception if any task did not complete.
 		COLLECT_AVAILABLE, // similar to COLLECT_RESULTS but only collates results from experiments that have completed. Missing cells are replaced with blanks and rows with no data are omitted completely.
-		COUNT_TASKS, // performs workload partitioning and constructs a map from tasks to tasklets. The parameter is the number of tasks to split the work into.
+		COUNT_TASKS, // performs workload partitioning and constructs a map from tasks to tasklets. The parameter is the number of tasks to split the work into (aka the number of processes to run on a grid).
 		RUN_STANDALONE,  // runs all tasks in one go. This does not create progress files and therefore only useful when everything is likely to complete fast. 
 		// A much better choice is to run "COUNT_TASKS 1" followed by "RUN_PARALLEL 1" which constructs progress files. 
 		RUN_PARALLEL, // this is similar to RUN_TASK but will run all tasklets corresponding to the same virtual task in parallel. This permits multiple PCs to easily run different segments of work across their CPUs.
@@ -102,14 +105,19 @@ public class SGE_ExperimentRunner
 		private final PhaseEnum phase;
 		/** We need both taskCounterFromPreviousSubExperiment and taskCounter in order to run multiple series of experiments,
 		 * where a number of submitTask calls are followed with the same number of processResults.
+		 * Here taskCounter is the task being currently considered such as where we run on a grid and java process was told to run a specific task.
 		 */
 		private int taskCounter=0, taskCounterFromPreviousSubExperiment;
-		/** Virtual task to run, each virtual corresponds to a set of actual tasks that have not finished. */
+		/** Virtual task to run, each virtual corresponds to a set of actual tasks that have not finished.
+		 * The distinction is that we could have a lot of short-running tasks and thus need to cluster them
+		 * into longer-running tasks to run on a grid. A virtual task is a grid-running task, an actual task is what
+		 * we are running.
+		 */
 		private int virtTask = 0, tasksToSplitInto =0;
 		private ExecutorService executorService;
 		private final Map<Integer,EXPERIMENT_PARAMETERS> taskIDToParameters = new TreeMap<>();
 		
-		protected CompletionService<RESULT> runner = null; 
+		protected CompletionService<RESULT> runner;
 		
 		protected Set<Integer> taskletWasRun = new TreeSet<>();
 		private final DrawGraphs gr = new DrawGraphs();
@@ -276,7 +284,7 @@ public class SGE_ExperimentRunner
 					}
 				}
 				break;
-			}	
+			}
 			case RUN_PARALLEL:
 			{// Here we are running tasks in parallel rather than on a grid therefore no point creating tasks-started files.
 				Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
@@ -512,7 +520,7 @@ public class SGE_ExperimentRunner
 					else
 					{// normal field
 						if (!nameToGraph.containsKey(name))
-						{
+						{// unknown graph in file, hence not valid
 							outcome = false;
 							break;
 						}
@@ -672,7 +680,9 @@ public class SGE_ExperimentRunner
 		 */
 		public void collectOutcomeOfExperiments(processSubExperimentResult<EXPERIMENT_PARAMETERS,RESULT> handlerForExperimentResults)
 		{
-			nameToGraph = new TreeMap<>();for(SGEExperimentResult g:handlerForExperimentResults.getGraphs()) nameToGraph.put(g.getFileName(),g);
+			nameToGraph = new TreeMap<>();
+			for(SGEExperimentResult g:handlerForExperimentResults.getGraphs())
+				nameToGraph.put(g.getFileName(),g);
 			if (nameToGraph.size() != handlerForExperimentResults.getGraphs().length)
 				throw new IllegalArgumentException("duplicate file names in some graphs");
 			if (plotName != null && !nameToGraph.containsKey(plotName))
@@ -705,8 +715,8 @@ public class SGE_ExperimentRunner
 				{
 					Set<Integer> tasksForVirtualTask = virtTaskToRealTask.get(virtTask);
 					for(int rCounter=taskCounterFromPreviousSubExperiment;rCounter < taskCounter;++rCounter)
-						if (tasksForVirtualTask != null && tasksForVirtualTask.contains(rCounter) && taskletWasRun.contains(rCounter)) // only run a task if we do not have a result,
-							// without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
+						if (tasksForVirtualTask != null && tasksForVirtualTask.contains(rCounter) && taskletWasRun.contains(rCounter)) // only run a task if we did not start it just now (taskletWasRun),
+							// otherwise it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
 						{// it is worth noting that the only use of rCounter above is to ensure we do the same number of 'get()' as we scheduled the tasks. Tasks complete in any order making it
 							// impossible to expect them to complete in a specific order. This is why the name of the file is constructed based on parameters rather than rCounter.
 							outputWriter = new StringWriter();
@@ -721,7 +731,8 @@ public class SGE_ExperimentRunner
 									{
 										// The call to processSubResult below will record results into the file by
 										// adding values to outputWriter via calls to RecordCSV and RecordR with this
-										// experiment runner as a parameter.
+										// experiment runner as a parameter (outputWriter is an instance variable and
+										// we are passing an instance of this RunSubExperiment to processSubResult
 										handlerForExperimentResults.processSubResult(result,this);// we use StringWriter here in order to avoid creating a file if constructing output fails.
 										// At this point outputWriter has all the research data we need and what is left is to record cpu information and CRC value.
 										writer = new BufferedWriter(new FileWriter(constructFileName(tmpDir, result.parameters)));
@@ -868,7 +879,7 @@ public class SGE_ExperimentRunner
 	
 	public static String getCpuFreqValue(BufferedReader cpuinfoReader) throws IOException
 	{
-		String line = null;
+		String line;
 		while((line=cpuinfoReader.readLine()) != null)
 		{
 			if (line.startsWith(cpuName))
@@ -944,7 +955,7 @@ public class SGE_ExperimentRunner
 	 * <li>By reading values from /proc/cpuinfo and looking up the correction in the <pre>executionTimeScale.map</pre> or <pre>iceberg/executionTimeScale.map</pre> file.
 	 * This will work well on Linux boxes including Iceberg or any other grid engine.
 	 * </li>
-	 * <li>If the above fails, it obtain host name and looks up the correction in the <pre>executionTimeScale.map</pre> or <pre>iceberg/executionTimeScale.map</pre> file. Intended for Windows PCs or Macs.</li>
+	 * <li>If the above fails, it obtains host name and looks up the correction in the <pre>executionTimeScale.map</pre> or <pre>iceberg/executionTimeScale.map</pre> file. Intended for Windows PCs or Macs.</li>
 	 * </ul> 
 	 */
 	public static void configureCPUFreqNormalisation()
@@ -955,15 +966,16 @@ public class SGE_ExperimentRunner
 				
 		try
 		{
+			// Will be filled up with possible locations for executionTimeScale.map
 			List<String> candidatePaths = new LinkedList<>();
 			for(String p:new String[]{executionTimeProperties, "iceberg"+File.separator+executionTimeProperties}) {
 				candidatePaths.add(p);candidatePaths.add(".."+File.separator+p);
 			}
 			for(String p:candidatePaths)
-			if (new File(p).canRead())
-			{
-				propertiesFile = new BufferedReader(new FileReader(p));break;
-			}
+				if (new File(p).canRead())
+				{
+					propertiesFile = new BufferedReader(new FileReader(p));break;
+				}
 
 			if (propertiesFile == null)
 				throw new IllegalArgumentException("Unable to read CPU freq normalisation properties");

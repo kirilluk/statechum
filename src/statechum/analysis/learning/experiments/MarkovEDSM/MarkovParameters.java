@@ -107,7 +107,10 @@ public class MarkovParameters
 	
 	public void setMarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, double weight, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
 	{
-		chunkLen=chunkLength;pathsOrSets = argPathsOrSets;preset = pr;weightOfInconsistencies = weight;useAverageOrMax = aveOrMax;divisorForPathCount = divisor;whichMostConnectedVertex = mostConnectedVertex;expectedWLen=wlen;setPresetLearningParameters(preset);
+		chunkLen=chunkLength;pathsOrSets = argPathsOrSets;preset = pr;weightOfInconsistencies = weight;
+		useAverageOrMax = aveOrMax;divisorForPathCount = divisor;
+		whichMostConnectedVertex = mostConnectedVertex;expectedWLen=wlen;
+		setPresetLearningParameters(preset);
 	}
 	
 	public void setPresetLearningParameters(int value)

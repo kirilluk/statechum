@@ -28,7 +28,6 @@ import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.DrawGraphs.AggregateStringValues;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.Kruskal_Wallis;
 import statechum.analysis.learning.DrawGraphs.Mann_Whitney_U_Test;
@@ -39,7 +38,6 @@ import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.MarkovLearnerRunner;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.LearnerToUseEnum;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -52,6 +50,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 
 public class CVS
 {
@@ -83,12 +82,12 @@ public class CVS
 	}
 
 	/** Returns a reference graph for the CVS experiment. */
-	public static final LearnerGraph getCVSReference(LearnerEvaluationConfiguration cnf)
+	public static LearnerGraph getCVSReference(LearnerEvaluationConfiguration cnf)
 	{
 		return FsmParserStatechum.buildLearnerGraph("q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q1\nq3-changedirectory->q9-listnames->q10-delete->q10-changedirectory->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedirectory->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "specgraph",cnf.config,cnf.getLabelConverter());
 	}
 	
-	public static void main(String args[]) throws Exception
+	public static void main(String[] args) throws Exception
 	{
 		String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS)+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		UASExperiment.mkDir(outDir);
@@ -104,10 +103,10 @@ public class CVS
 		final int traceQuantity = 1;
 		final double traceLengthMultiplierMax = 10;
 		final int chunkSize = 3;
-		final int statesToUse[] = new int[]{5,10,20,40};
+		final int[] statesToUse = new int[]{5,10,20,40};
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		
-		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
 
@@ -139,8 +138,11 @@ public class CVS
 						for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 							for(boolean aveOrMax:new boolean[]{true,false})
 								for(int divisorForPathCount:new int[]{1,2,4})
-									for(LearnerToUseEnum learnerKind:LearnerToUseEnum.values())
-										for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{0.5,1.0,2.0}:new double[]{1.0})
+									for(LearningAlgorithms.ScoringToApply learnerKind:new LearningAlgorithms.ScoringToApply[]{
+											LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
+											LearningAlgorithms.ScoringToApply.SCORING_EDSM, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2,
+											LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_SICCO})
+										for(double weightOfInconsistencies:learnerKind.isMarkov()?new double[]{0.5,1.0,2.0}:new double[]{1.0})
 										{
 											LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 											ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
@@ -175,7 +177,7 @@ public class CVS
 							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergers);
 							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
 	
-							if (result.parameters.learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
+							if (result.parameters.learnerToUse.isMarkov())
 							{
 								CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);
 								CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);
@@ -210,23 +212,21 @@ public class CVS
 						final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 
 						final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_str.csv"));		 	 
 	
-						DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,LearnerToUseEnum.LEARNER_SICCO.name(),1,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,null,null);
-						DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,LearnerToUseEnum.LEARNER_SICCO.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
-						DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,LearnerToUseEnum.LEARNER_KTAILS_1.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
-						DrawGraphs.spreadsheetToBagPlot(BCRAgainstMarkov,resultCSV,LearnerToUseEnum.LEARNER_KTAILS_1.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
+						DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV, ScoringToApply.SCORING_SICCO.name(),1,ScoringToApply.SCORING_MARKOV.name(),1,null,null);
+						DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,ScoringToApply.SCORING_SICCO.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
+						DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,ScoringToApply.SCORING_PTAK_1.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
+						DrawGraphs.spreadsheetToBagPlot(BCRAgainstMarkov,resultCSV,ScoringToApply.SCORING_PTAK_1.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
 						
-						DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,LearnerToUseEnum.LEARNER_SICCO.name(),0);
-						DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,LearnerToUseEnum.LEARNER_SICCO.name(),1);
-						DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,LearnerToUseEnum.LEARNER_SICCO.name(),0);
-						DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,LearnerToUseEnum.LEARNER_SICCO.name(),1);
-						DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,LearnerToUseEnum.LEARNER_SICCO.name(),0);
-						DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,LearnerToUseEnum.LEARNER_SICCO.name(),1);
+						DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_SICCO.name(),0);
+						DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
+						DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_SICCO.name(),0);
+						DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
+						DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_SICCO.name(),0);
+						DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
 						
-						DrawGraphs.spreadsheetAsString(new AggregateStringValues() {
-							@Override
-							public void merge(String A, @SuppressWarnings("unused") String B) {
-								comparisonsPerformed.addAndGet(Long.parseLong(A));
-							}},resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),3,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),3);
+						DrawGraphs.spreadsheetAsString(
+								(A, B) ->
+										comparisonsPerformed.addAndGet(Long.parseLong(A)),resultCSV,ScoringToApply.SCORING_MARKOV.name(),3,ScoringToApply.SCORING_MARKOV.name(),3);
 							
 						for(@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result:new DrawGraphs.RExperimentResult[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov, Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR})
 						{

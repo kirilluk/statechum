@@ -71,7 +71,12 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	public final MarkovModel model;
 	/** The graph in which we are making predictions.*/
 	final AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph;
-	
+	/** True if model has been updated by calling update().
+	 * Implementation right now does not support doing update more than once: it would increment counters again
+	 * for all the previously-defined values hence we need to make sure we do not call update more than once.
+	 */
+	boolean modelUpdated = false;
+
 	/** Contains paths to be supplied to Markov for making predictions. The specific kind of the graph 
 	 * depends on the direction in which we are doing predictions. Could be either a deterministic or 
 	 * a non-deterministic graph.
@@ -313,7 +318,9 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * @param pathLength length of paths to explore
 	 * @param callback what to call for each discovered path.
 	 */
-	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void WalkThroughAllPathsOfSpecificLength_Sequences(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength,ForEachCollectionOfPaths callback)
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
+		void WalkThroughAllPathsOfSpecificLength_Sequences(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph,
+														   CmpVertex vert,int pathLength,ForEachCollectionOfPaths callback)
 	{
 		LinkedList<FrontLineElem> frontline = new LinkedList<>();
         FrontLineElem e=new FrontLineElem(new LinkedList<>(),vert);
@@ -348,8 +355,11 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	    }
 	}
 
-	/** Used to check if the supplied vertex cannot have anything predicted for it because there is no path of length "prediction length" leading to it. This usually happens for root states. */
-	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> boolean checkIfThereIsPathOfSpecificLength(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength)
+	/** Used to check if the supplied vertex cannot have anything predicted for it because there is no path of
+	 * length "prediction length" leading to it. This usually happens for root states.
+	 */
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> boolean
+		checkIfThereIsPathOfSpecificLength(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength)
 	{
 		LinkedList<FrontLineElem> frontline = new LinkedList<>();
         FrontLineElem e=new FrontLineElem(new LinkedList<>(),vert);
@@ -369,7 +379,8 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		    		{
 		    			List<Label> pathToNewState= new ArrayList<>(pathLength + 1);// +1 is to avoid potential array reallocation
 		    			pathToNewState.addAll(e.pathToFrontLine);pathToNewState.add(lbl);
-    					frontline.add(new FrontLineElem(pathToNewState,target));
+						// depth-first exploration should reach an answer faster
+    					frontline.push(new FrontLineElem(pathToNewState,target));
 		    		}
 		    }
 	    }
@@ -570,7 +581,9 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		}
 	}
 	
-	/** Given the markov model in this classifier and a graph, this method obtains inconsistency for the supplied graph. This is implemented by creating another classifier with the same parameters but a supplied graph as an argument. */
+	/** Given the markov model in this classifier and a graph, this method obtains inconsistency for the supplied graph.
+	 * This is implemented by creating another classifier with the same parameters but a supplied graph as an argument.
+	 */
 	@SuppressWarnings("rawtypes")
 	public static long computeInconsistency(AbstractLearnerGraph gr, AbstractLearnerGraph grInverse,MarkovModel model,  ConsistencyChecker checker, boolean displayTrace)
 	{
@@ -799,8 +812,9 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * </ul>
 	 * <em>predictForwardOrSideways</em> <i>true</i> if this is to predict forward (usual Markov) or <i>false</i> for sideways. 
 	 * @param vert state of interest
-	 * @param pathBeyondCurrentState labels that are assumed to be at the tail of all paths leading to a state of interest. 
-	 * Used in predictions where we are considering a PTA rooted at some real states. Each path in this PTA can the be passed as <i>pathBeyondCurrentState</i>. 
+	 * @param pathBeyondCurrentState labels that are assumed to be at the tail-end of all paths leading to a state of interest.
+	 * Used in predictions where we are considering a PTA rooted at some real states. Each path in this PTA can then
+	 * be passed as <i>pathBeyondCurrentState</i>.
 	 * @param chunkLength length of paths to consider (before the <i>pathBeyondCurrentState</i> component).
 	 * @param pathsOfInterest paths considered for prediction, filled in by this method. Ignored if <i>null</i>.
 	 * @param pathsOrSets if true, we are looking at sequences of transitions to/from a state of interest. 
@@ -831,8 +845,11 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 
             List<Label> partOfTraceUsedInMarkovPredictions = new ArrayList<>(pathToNewState.size());
             if (model.predictionGraphInverted) {
+				// Here pathToNewState is defined in an inverted graph hence following transitions backwards.
+				// We thus add characters to partOfTraceUsedInMarkovPredictions in an opposite order.
                 for (int i = pathToNewState.size() - 1; i >= 0; --i) partOfTraceUsedInMarkovPredictions.add(pathToNewState.get(i));
                 if (pathBeyondCurrentState != null) for (int i = pathBeyondCurrentState.size() - 1; i >= 0; --i) partOfTraceUsedInMarkovPredictions.add(pathBeyondCurrentState.get(i));
+				// pathBeyondCurrentState reflects transitions we already predicted and we extend the predictions to subsequent transitions.
             } else {
                 partOfTraceUsedInMarkovPredictions.addAll(pathToNewState);
                 if (pathBeyondCurrentState != null) partOfTraceUsedInMarkovPredictions.addAll(pathBeyondCurrentState);
@@ -861,7 +878,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 
 	/** Updates Markov. This is useful where we have added something to the original PTA and need to update Markov. 
 	 * Crucial for learning of Markov for sideways inference, where we cannot learn from the original
-	 * traces and have to delay Markov construction to the time where PTA is built.
+	 * traces and have to delay Markov construction until the time when PTA is built.
 	 * <p>
 	 * Note that computing Markov using incoming/outgoing paths of length 0 is just a distribution of letters, tagged with pos/neg/fail. 
 	 * It is not based on earlier knowledge hence could be built either forwards or sideways in the same way.
@@ -873,7 +890,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * represented as paths because we need to do a lookup in a collection of paths and numbering of labels 
 	 * permits elements such sets to be represented as sequences.
 	 */
-	public void updateMarkov(CmpVertex vert, int chunkLength, final boolean pathsOrSets)
+	protected void updateMarkov(CmpVertex vert, int chunkLength, final boolean pathsOrSets)
 	{
 		List<List<Label>> markovPathsToUpdate = new LinkedList<>();
 		predictTransitionsFromState(vert,null,chunkLength,pathsOrSets,markovPathsToUpdate);// this is only used to compute markovPathsToUpdate hence the result returned by it is ignored.
@@ -1024,7 +1041,8 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
                                 if (displayTrace)
                                     System.out.println("inconsistency at state " + vert + " because path " + partOfTraceUsedInMarkovPredictions + " followed by " + label + " is Markov-predicted as " + predicted_from_Markov + " but earlier value is " + labels_occurrence + " total inconsistencies: " + inconsistencies);
                             }
-                            outgoing_labels_value.put(label, checker.labelConsistent(labels_occurrence, predicted_from_Markov));// record the outcome composition of Markov and label. If a failure is recorded, we subsequently do not look at this label.
+                            outgoing_labels_value.put(label, checker.labelConsistent(labels_occurrence, predicted_from_Markov));// record the outcome composition of Markov and label.
+								// If a failure is recorded, we subsequently do not look at this label.
                         }
                     }
                 }
@@ -1036,10 +1054,12 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	/** This function is predicts transitions from each state.
 	 * <ul>
 	 * <li>
-	 * Where <i>predictForward</i> is true, we are predicting transitions based on paths leading to the state of interest. Parameter <i>Inverse_Graph</i> should be the (non-deterministic) inverse of <i>graph</i>.
+	 * Where <i>predictForward</i> is true, we are predicting transitions based on paths leading to the state of
+	 * interest. Parameter <i>Inverse_Graph</i> should be the (non-deterministic) inverse of <i>graph</i>.
 	 * </li>
 	 * <li> 
-	 * Where <i>predictForward</i> is false, we are predicting transitions based on paths leading from the state of interest (sideways predictions). Parameter <i>Inverse_Graph</i> should be the same as <i>graph</i>.
+	 * Where <i>predictForward</i> is false, we are predicting transitions based on paths leading from the state
+	 * of interest (sideways predictions). Parameter <i>Inverse_Graph</i> should be the same as <i>graph</i>.
 	 * </li>
 	 * </ul>
 	 * @return possible outgoing transitions from each state
@@ -1071,7 +1091,9 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * The implementation follows {@link MarkovClassifier#predictTransitions()}.
 	 * 
 	 * <em>predictForwardOrSideways</em> how to make predictions.
-	 * <em>directionForwardOrInverse</em> whether to merge states identified with the supplied outgoing transitions or those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i> transition and all its target states could be merged together.
+	 * <em>directionForwardOrInverse</em> whether to merge states identified with the supplied outgoing transitions or
+	 * those that the supplied transitions lead into. For instance, one might frequently have a <i>reset</i>
+	 * transition and all its target states could be merged together.
 	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
 	 * @return inconsistency
 	 */
@@ -1113,6 +1135,10 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 */
 	public void updateMarkov(boolean onlyLongest)
 	{
+		if (modelUpdated)
+			throw new IllegalArgumentException("Markov model already updated");
+		modelUpdated = true;
+
     	for(CmpVertex vert:graph.transitionMatrix.keySet())
     		for(int len=onlyLongest?model.getChunkLen():1;len <=model.getChunkLen();++len)// this is very inefficient; we'll optimize it later if needed.
 	           if(vert.isAccept())
@@ -1168,8 +1194,10 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	}
 
 	/** Given a collection of paths, makes it possible to merge states from which the provided paths can be followed. 
-	 * Where multiple paths can be followed from the same state, merges all states from which any of the paths can be followed. Depending on the input, can be used for paths in the forward 
-	 * direction or in the inverse one (in which case graphsToCheckForPaths should also be an inverse of a graph of interest, to match the paths being considered).
+	 * Where multiple paths can be followed from the same state, merges all states from which any of the paths can be
+	 * followed. Depending on the input, can be used for paths in the forward direction or in the inverse one
+	 * (in which case graphsToCheckForPaths should also be an inverse of a graph of interest, to match the
+	 * paths being considered).
 	 *  
 	 * @param paths collection of sequences of labels, we will merge all states that have the same sequence leading from them.
 	 * @return a number of collections of vertices to merge. Every two collections are non-intersecting but may not cover all states in the original graph.
@@ -1283,7 +1311,8 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	{
 		if (referenceGraph.getStateNumber() == 0)
 			throw new IllegalArgumentException("empty reference graph");
-		
+
+		// Using a set here because multiple paths could identify the same state.
 		Set<CmpVertex> identifiedVertices = new TreeSet<>();
 		
 		for(List<Label> l:whatToMerge)
@@ -1296,7 +1325,8 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		return (double)identifiedVertices.size()/referenceGraph.getStateNumber();
 	}
 
-	/** Given that this classified is instantiate with a reference graph, determines the ration of correct predictions by this classifier to the total number of predictions. 
+	/** Given that this classified is instantiate with a reference graph, determines the ration of
+	 * correct predictions by this classifier to the total number of predictions.
 	 * 
 	 * @return fraction of Markov's predictions that are correct.
 	 */
@@ -1313,7 +1343,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 				for(Entry<Label,MarkovOutcome> prediction:predictions.entrySet())
 				{
 					TARGET_TYPE targetList = entry.getValue().get(prediction.getKey()); 
-					assert prediction.getValue() != MarkovOutcome.failure;
+					assert prediction.getValue() != MarkovOutcome.failure;// a label is either predicted or not - failure-verdict is never added to the prediction map by predictTransitionsFromState
 					++numberOfPredictions;
 					for(CmpVertex target:graph.getTargets(targetList))
 					{
@@ -1334,6 +1364,9 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 				for(Entry<Label,TARGET_TYPE> existingTransition:entry.getValue().entrySet())
 				{
 					MarkovOutcome predictedTarget = predictions.get(existingTransition.getKey());
+					// can be MarkovOutcome.positive, MarkovOutcome.negative or null (if either nothing was
+					// predicted or markov model had inconsistent predictions reported hence a prediction was
+					// labelled as a failure and not added to the label->prediction map by predictTransitionsFromState).
 					for(CmpVertex existing:graph.getTargets(existingTransition.getValue()))
 					{
 						if (existing.isAccept() && predictedTarget == MarkovOutcome.positive)

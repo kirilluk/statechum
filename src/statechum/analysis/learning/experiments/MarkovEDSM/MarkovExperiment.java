@@ -22,8 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -46,7 +44,6 @@ import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.DrawGraphs.Wilcoxon;
 import statechum.analysis.learning.DrawGraphs.Mann_Whitney_U_Test;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
-import statechum.analysis.learning.DrawGraphs.AggregateStringValues;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.Kruskal_Wallis;
 import statechum.analysis.learning.MarkovClassifier;
@@ -58,14 +55,12 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.LearnerToUseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.LearnerThatCanClassifyPairs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.StateMergingStatistics;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner;
@@ -85,6 +80,9 @@ import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
+
+import static statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.constructLearner;
 
 
 public class MarkovExperiment
@@ -105,7 +103,7 @@ public class MarkovExperiment
 		public void generateReferenceFSM()
 		{
 			final int alphabet = (int)(par.alphabetMultiplier*par.states);
-			final double density = par.states*par.perStateSquaredDensityMultipliedBy10/10;
+			final double density = (double) (par.states * par.perStateSquaredDensityMultipliedBy10) /10;
 			MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
 			
 			try {
@@ -150,7 +148,7 @@ public class MarkovExperiment
 			if (par.tracesAlphabetMultiplier <= 0)
 				par.tracesAlphabetMultiplier = par.alphabetMultiplier;
 			generateReferenceFSM();
-			ExperimentResult<MarkovLearningParameters> outcome = new ExperimentResult<MarkovLearningParameters>(par);
+			ExperimentResult<MarkovLearningParameters> outcome = new ExperimentResult<>(par);
 			
 			learnerInitConfiguration.testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
 			
@@ -185,59 +183,45 @@ public class MarkovExperiment
 			}
 	
 			SampleData dataSample = new SampleData(null,null);
+
 			EDSM_MarkovLearner markovLearner = null;
 			long runTime = 0;
 			LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
 			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer = null;
-			saveGraph(namePTA, firstMerge.ptaToUseForInference);// although it may seem that pars.getExperimentID() would be a better name than a full name, in cases where we use a middle vertex PTA to start from is different to the one generated from a reference graph. Hence using full name and recording lots of graphs.
-			{// we always have to build a graph because without a learning process there is no record which mergers were right or not. Otherwise we'd be able to do if (actualAutomaton == null) and learn only in this case.
+			saveGraph(namePTA, firstMerge.ptaToUseForInference);// although it may seem that pars.getExperimentID()
+			// would be a better name than a full name, in cases where we use a middle vertex PTA to start from is
+			// different to the one generated from a reference graph. Hence using full name and recording lots of graphs.
+			{// we always have to build a graph because without a learning process there is no record which mergers
+				// were right or not. Otherwise we'd be able to do if (actualAutomaton == null) and learn only in this case.
 				LearnerGraph ptaBuilt = firstMerge.ptaToUseForInference;
 				Learner learnerOfPairs = null;
+				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
 	 			switch(par.learnerToUse)
 	 			{
-	 			case LEARNER_EDSMMARKOV:
-	 				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
-	 				markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,firstMerge.ptaToUseForInference,0,par.markovParameters, redReducer);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
-	 				learnerOfPairs = markovLearner;
-	 				break;
-	 			case LEARNER_EDSM2:
-	 				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2,ScoreMode.GENERAL_NOFULLMERGE,redReducer);
-	 				break;
-	 			case LEARNER_EDSM4:
-	 				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,ScoreMode.GENERAL_NOFULLMERGE,redReducer);
-	 				break;
-	 			case LEARNER_SICCO:
-	 				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,true);
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_SICCO,ScoreMode.GENERAL_NOFULLMERGE,redReducer);
-	 				break;
-	 			case LEARNER_KTAILS_PTA1:
-	 				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_PTAK_1,ScoreMode.GENERAL_NOFULLMERGE,redReducer);
-	 				break;
-	 			case LEARNER_KTAILS_PTA2:
-	 				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,ScoreMode.GENERAL_NOFULLMERGE,redReducer);
-	 				break;
-	 			case LEARNER_KTAILS_1:
-	 				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_KT_1,ScoreMode.GENERAL_NOFULLMERGE,redReducer);
-	 				break;
-	 			case LEARNER_KTAILS_2:
-	 				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
-	 				learnerOfPairs = LearningAlgorithms.constructLearner(learnerInitConfiguration, ptaBuilt, LearningAlgorithms.ScoringToApply.SCORING_KT_2,ScoreMode.GENERAL_NOFULLMERGE,redReducer);
-	 				break;
-				default:
-					throw new IllegalArgumentException("unexpected learner "+par.learnerToUse.name()+" requested");
+					case SCORING_MARKOV:
+						markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,firstMerge.ptaToUseForInference,0,par.markovParameters, redReducer);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+						learnerOfPairs = markovLearner;
+						break;
+					case SCORING_MARKOV_1:
+						markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,firstMerge.ptaToUseForInference,1,par.markovParameters, redReducer);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+						learnerOfPairs = markovLearner;
+						break;
+					case SCORING_MARKOV_2:
+						markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,firstMerge.ptaToUseForInference,2,par.markovParameters, redReducer);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+						learnerOfPairs = markovLearner;
+						break;
+					default:
+						learnerOfPairs = constructLearner(learnerInitConfiguration,ptaBuilt, par.learnerToUse,ScoreMode.GENERAL_NOFULLMERGE,redReducer);
+						break;
 	 			}
 	 			
 	 			long startTime = LearningSupportRoutines.getThreadTime();
-	 			LearnerGraph learntGraph = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+	 			LearnerGraph learntGraph = learnerOfPairs.learnMachine(new LinkedList<>(), new LinkedList<>());
 				if (firstMerge.verticesToMergeBasedOnInitialPTA != null && par.markovParameters.mergeIdentifiedPathsAfterInference)
 				{
-					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-					int genScore = learntGraph.pairscores.computePairCompatibilityScore_general(null, constructPairsToMergeBasedOnSetsToMerge(learntGraph.transitionMatrix.keySet(),firstMerge.verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
+					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();
+					int genScore = learntGraph.pairscores.computePairCompatibilityScore_general(null,
+							constructPairsToMergeBasedOnSetsToMerge(learntGraph.transitionMatrix.keySet(),firstMerge.verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
 					assert genScore >= 0;
 					learntGraph = MergeStates.mergeCollectionOfVertices(learntGraph, null, verticesToMerge, null, false);
 				}			
@@ -267,7 +251,7 @@ public class MarkovExperiment
 			dataSample.centrePathNumber = firstMerge.centrePathNumber;
 			dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
 			dataSample.stateNumber = referenceGraph.getStateNumber();
-			dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
+			dataSample.transitionsSampled = Math.round(100*(double)trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
 			statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifierLG(m, referenceGraph,null).evaluateCorrectnessOfMarkov();
 			dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
  			if (markovLearner != null)
@@ -307,10 +291,11 @@ public class MarkovExperiment
 		
 	public static Collection<StatePair> constructPairsToMergeBasedOnSetsToMerge(Set<CmpVertex> validStates, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
 	{
-		List<StatePair> pairsList = new LinkedList<StatePair>();
+		List<StatePair> pairsList = new LinkedList<>();
 		for(Set<CmpVertex> groupOfStates:verticesToMergeBasedOnInitialPTA)
 		{
-			Set<CmpVertex> validStatesInGroup = new TreeSet<CmpVertex>();validStatesInGroup.addAll(groupOfStates);validStatesInGroup.retainAll(validStates);
+            Set<CmpVertex> validStatesInGroup = new TreeSet<>(groupOfStates);
+            validStatesInGroup.retainAll(validStates);
 			if (validStatesInGroup.size() > 1)
 			{
 				CmpVertex v0=validStatesInGroup.iterator().next();
@@ -416,9 +401,9 @@ public class MarkovExperiment
 		 * Pairs are supposed to be the ones from {@link LearningSupportRoutines#filterPairsBasedOnMandatoryMerge(List, LearnerGraph, Collection, Collection)}
 		 * where all those not matching mandatory merge conditions are not included.
 		 * Inclusion of such pairs will not affect the result but it would be pointless to consider such pairs.
-		 * @param pairs
-		 * @param graph
-		 * @param extension_graph
+		 * @param pairs pairs to consider
+		 * @param graph tentative automaton
+		 * @param extension_graph markov-extended tentative automaton
 		 */
 		public List<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph graph, LearnerGraph extension_graph)
 		{
@@ -432,7 +417,7 @@ public class MarkovExperiment
 					allPairsNegative = false;break;
 				}
 			}
-			ArrayList<PairScore> possibleResults = new ArrayList<PairScore>(pairs.size()),nonNegPairs = new ArrayList<PairScore>(pairs.size());
+			ArrayList<PairScore> possibleResults = new ArrayList<>(pairs.size()),nonNegPairs = new ArrayList<>(pairs.size());
 			if (allPairsNegative)
 				possibleResults.addAll(pairs);
 			else
@@ -453,15 +438,13 @@ public class MarkovExperiment
 						possibleResults.add(new WaveBlueFringe.PairScoreWithDistance(p, d));
 				}
 					
-				Collections.sort(possibleResults, new Comparator<PairScore>(){
-	
-					@Override
-					public int compare(PairScore o1, PairScore o2) {
-						int outcome = (int) Math.signum( ((WaveBlueFringe.PairScoreWithDistance)o2).getDistanceScore() - ((WaveBlueFringe.PairScoreWithDistance)o1).getDistanceScore());  
-						if (outcome != 0)
-							return outcome;
-						return o2.compareTo(o1);
-					}}); 
+				possibleResults.sort(
+						(o1, o2) -> {
+                    int outcome = (int) Math.signum(((WaveBlueFringe.PairScoreWithDistance) o2).getDistanceScore() - ((WaveBlueFringe.PairScoreWithDistance) o1).getDistanceScore());
+                    if (outcome != 0)
+                        return outcome;
+                    return o2.compareTo(o1);
+                });
 			}				
 			return possibleResults;
 		}
@@ -489,10 +472,10 @@ public class MarkovExperiment
 		final double traceLengthMultiplierMax = 16;
 		final int chunkSize = 3;
 		final boolean pathsOrSets = true;
-		final int statesToUse[] = new int[]{10,20,40};
+		final int[] statesToUse = new int[]{10,20,40};
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		
-		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
 
 		// Inference from a few traces
@@ -627,8 +610,13 @@ public class MarkovExperiment
 							for(boolean aveOrMax:new boolean[]{false})
 								for(double traceLengthMultiplier:new double[] {1,4,16})
 								for(int divisor:new int[]{2})
-									for(LearnerToUseEnum learnerKind:LearnerToUseEnum.values())
-										for(double weightOfInconsistencies:learnerKind == LearnerToUseEnum.LEARNER_EDSMMARKOV?new double[]{0.5,1.0,2.0,4.0}:new double[]{1.0})
+									// LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
+									for(ScoringToApply learnerKind:new ScoringToApply[]{
+											ScoringToApply.SCORING_MARKOV,
+											ScoringToApply.SCORING_EDSM, ScoringToApply.SCORING_EDSM_2,
+											ScoringToApply.SCORING_PTAK_1, ScoringToApply.SCORING_SICCO
+									})
+										for(double weightOfInconsistencies:learnerKind.isMarkov()?new double[]{0.5,1.0,2.0,4.0}:new double[]{1.0})
 										{
 											LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 											ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
@@ -668,16 +656,16 @@ public class MarkovExperiment
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);
 
-				if (result.parameters.learnerToUse == LearnerToUseEnum.LEARNER_EDSMMARKOV)
+				if (result.parameters.learnerToUse.isMarkov())
 				{
 					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);
 					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);
 					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);
 					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);
 				}
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Boolean.toString(sm.centreCorrect));
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Integer.toString(sm.centrePathNumber));
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Long.toString(sm.transitionsSampled));
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.centreCorrect);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.centrePathNumber);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.transitionsSampled);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
 			}
@@ -706,25 +694,22 @@ public class MarkovExperiment
 				final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test(new File(experimentName +"Whitney_U_Test_str.csv"));		 
 				final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 
 				final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_str.csv"));		 	 
-
-				DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,LearnerToUseEnum.LEARNER_SICCO.name(),1,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,null,null);
-				DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,LearnerToUseEnum.LEARNER_SICCO.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
-				DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,LearnerToUseEnum.LEARNER_KTAILS_1.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
-				DrawGraphs.spreadsheetToBagPlot(BCRAgainstMarkov,resultCSV,LearnerToUseEnum.LEARNER_KTAILS_1.name(),0,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,null,null);
+				// names of columns include parameters used with learners, here we ignore that and pick those that match learner names
+				DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,ScoringToApply.SCORING_SICCO.name(),1,ScoringToApply.SCORING_MARKOV.name(),1,null,null);
+				DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,ScoringToApply.SCORING_SICCO.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
+				DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,ScoringToApply.SCORING_PTAK_1.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
+				DrawGraphs.spreadsheetToBagPlot(BCRAgainstMarkov,resultCSV,ScoringToApply.SCORING_PTAK_1.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
 				
-				DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,LearnerToUseEnum.LEARNER_SICCO.name(),0);
-				DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,LearnerToUseEnum.LEARNER_SICCO.name(),1);
-				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,LearnerToUseEnum.LEARNER_SICCO.name(),0);
-				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,LearnerToUseEnum.LEARNER_SICCO.name(),1);
-				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),0,LearnerToUseEnum.LEARNER_SICCO.name(),0);
-				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural,resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),1,LearnerToUseEnum.LEARNER_SICCO.name(),1);
+				DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_SICCO.name(),0);
+				DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
+				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_SICCO.name(),0);
+				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
+				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_SICCO.name(),0);
+				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
 				
 				final AtomicLong comparisonsPerformed = new AtomicLong(0);
-				DrawGraphs.spreadsheetAsString(new AggregateStringValues() {
-					@Override
-					public void merge(String A, @SuppressWarnings("unused") String B) {
-						comparisonsPerformed.addAndGet(Long.parseLong(A));
-					}},resultCSV,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),3,LearnerToUseEnum.LEARNER_EDSMMARKOV.name(),3);
+				DrawGraphs.spreadsheetAsString((A, B) ->
+						comparisonsPerformed.addAndGet(Long.parseLong(A)),resultCSV,ScoringToApply.SCORING_MARKOV.name(),3,ScoringToApply.SCORING_MARKOV.name(),3);
 					
 				for(@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result:new DrawGraphs.RExperimentResult[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov, Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR})
 				{

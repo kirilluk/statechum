@@ -292,7 +292,8 @@ public class LearningSupportRoutines
 		return false;
 	}
 	
-	/** Given a reference graph, identifies pairs of labels that cannot be taken in a sequence, from any state. If a pair is possible from some states and not others, it will not be included. 
+	/** Given a reference graph, identifies pairs of labels that cannot be taken in a sequence, from any state.
+	 * If a pair is possible from some states and not others, it will not be included.
 	 * This is subsequently used to construct if-then automata for the UAS experiment.
 	 */
 	public static Map<Label,Set<Label>> computeInfeasiblePairs(LearnerGraph tentativeGraph)
@@ -338,7 +339,9 @@ public class LearningSupportRoutines
 	 * @param pairs pairs to merge
 	 * @return the outcome of merging.
 	 */
-	public static List<PairScore> filterPairsBasedOnMandatoryMerge(List<PairScore> pairs, LearnerGraph tentativeGraph,Collection<Label> labelsLeadingToStatesToBeMerged,Collection<Label> labelsLeadingFromStatesToBeMerged)
+	public static List<PairScore> filterPairsBasedOnMandatoryMerge(
+			List<PairScore> pairs, LearnerGraph tentativeGraph, Collection<Label> labelsLeadingToStatesToBeMerged,
+			Collection<Label> labelsLeadingFromStatesToBeMerged)
 	{
 		List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new ArrayList<>();
 		List<StatePair> pairsList = buildVerticesToMerge(tentativeGraph,labelsLeadingToStatesToBeMerged,labelsLeadingFromStatesToBeMerged);
@@ -371,17 +374,13 @@ public class LearningSupportRoutines
 	public static PairScore pickPairQSMLike(Collection<PairScore> pairs)
 	{
 		ArrayList<PairScore> pairsSorted = new ArrayList<>(pairs);
-		Collections.sort(pairsSorted, new Comparator<PairScore>() {
+		pairsSorted.sort((o1, o2) -> {
+            long scoreDiff = o1.getScore() - o2.getScore();
+            if (scoreDiff != 0)
+                return signum(scoreDiff);
 
-			@Override
-			public int compare(PairScore o1, PairScore o2) {
-				long scoreDiff = o1.getScore() - o2.getScore();
-				if (scoreDiff != 0)
-					return signum(scoreDiff);
-
-				return o1.compareTo(o2);// other than by score, we sort using vertex IDs
-			}
-		});
+            return o1.compareTo(o2);// other than by score, we sort using vertex IDs
+        });
 		return pairsSorted.get(pairsSorted.size()-1);
 	}
 
@@ -558,13 +557,12 @@ public class LearningSupportRoutines
 	
  	/** Given a graph, removes all negatives and returns the outcome.
  	 * 
- 	 * @param initialPTA
- 	 * @throws Exception
+ 	 * @param graph graph to remove negative states from
  	 */
- 	public static LearnerGraph removeAllNegatives(LearnerGraph initialPTA)
+ 	public static LearnerGraph removeAllNegatives(LearnerGraph graph)
  	{
-		LearnerGraph ptaTmp = new LearnerGraph(initialPTA,initialPTA.config);
-		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:initialPTA.transitionMatrix.entrySet())
+		LearnerGraph ptaTmp = new LearnerGraph(graph,graph.config);
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,CmpVertex>> entry:graph.transitionMatrix.entrySet())
 		{
 			if (!entry.getKey().isAccept())
 				ptaTmp.transitionMatrix.remove(entry.getKey());
@@ -592,14 +590,14 @@ public class LearningSupportRoutines
 
  	/** Returns a string padded to the specified width with the supplied character.
  	 * 
- 	 * @param whatToPad
+ 	 * @param whatToPad text to pad
  	 * @param ch character to pad with
  	 * @param length the length to pad to
  	 * @return padded string
  	 */
  	public static String padString(String whatToPad, char ch, int length)
  	{
- 		StringBuffer buf = new StringBuffer();
+ 		StringBuilder buf = new StringBuilder();
  		for(int i=0;i<length-whatToPad.length();++i)
  			buf.append(ch);
  		buf.append(whatToPad);
@@ -652,8 +650,8 @@ public class LearningSupportRoutines
  	 * to tell from the outcome of inference which of the two should be labelled initial so we match the whole of the initial PTA to all states in the inferred model in order to check which 
  	 * of the states looks like an initial one. EDSM-PTA scoring is used because a significant amount of matches are expected and the initial PTA is a tree. 
  	 * 
- 	 * @param graph
- 	 * @param ptaWithInitialState
+ 	 * @param graph outcome of inference
+ 	 * @param ptaWithInitialState PTA that inference has started from
  	 */
  	public static CmpVertex findBestMatchForInitialVertexInGraph(LearnerGraph graph, LearnerGraph ptaWithInitialState)
  	{
@@ -672,6 +670,7 @@ public class LearningSupportRoutines
  		}
  		return currBest;
  	}
+
 	/** PTA is supposed to be built using walks over a reference graph.
 	 * If these are random walks, it is possible that some transitions will not be covered.
 	 * For the learning purposes, this is significant because this could make some states more easily identifiable.
@@ -701,7 +700,7 @@ public class LearningSupportRoutines
 					visitedInTree.add(target.getValue());
 					CmpVertex nextGraphState = reference.transitionMatrix.get(reference_pta.firstElem).get(target.getKey());
 					if (nextGraphState == null)
-						throw new IllegalArgumentException("coverage has more transitions than the original graph");
+						throw new IllegalArgumentException("walks utilise more transitions than present in the original graph");
 					pairsToExplore.add(new StatePair(nextGraphState, target.getValue()));
 				}
 		}
@@ -904,7 +903,7 @@ public class LearningSupportRoutines
 			if (currTarget != null && currTarget.isAccept())
 			{
 				if (vertexOfInterest != null)
-					return null;
+					return null;// multiple states accept the provided path hence return null
 
 				vertexOfInterest = v;
 			}

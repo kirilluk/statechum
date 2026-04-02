@@ -76,10 +76,10 @@ public class Pair<A extends Comparable<? super A>,B extends Comparable<? super B
 		if (secondElem == null) {
 			if (other.secondElem != null) {
 				return false;
-                        }
+            }
 		} else if (!secondElem.equals(other.secondElem)) {
 			return false;
-                }
+        }
 		return true;
 
 	}

@@ -516,11 +516,6 @@ public class DrawGraphs {
 	 		buf.append(',');
 	 	}
 
-	 	public static void addNewLine(StringBuffer buf)
-	 	{
-	 		buf.append('\n');
-	 	}
-
 	 	public static String concatenateWithSeparator(String [] text)
 	 	{
 	 		StringBuilder outcome = new StringBuilder();

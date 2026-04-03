@@ -2,8 +2,9 @@
 
 # Essentially from http://www.kevinsheppard.org/research/matlabatlas/
 
-[ -r /usr/local/soft/yices-1.0.38 ] && YICES_ROOT=/usr/local/soft/yices-1.0.38
 
+[ -r /usr/local/soft/yices-1.0.36 ] && YICES_ROOT=/usr/local/soft/yices-1.0.36
+[ -r /usr/local/soft/yices-1.0.38 ] && YICES_ROOT=/usr/local/soft/yices-1.0.38
 # 1.0.40 is the last version of yices-1, there will be no newer versions.
 [ -r /usr/local/soft/yices-1.0.40 ] && YICES_ROOT=/usr/local/soft/yices-1.0.40
 

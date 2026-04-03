@@ -118,15 +118,13 @@ public class MarkovParameters
 		switch(value)
 		{
 		case 0:// learning by not doing pre-merging, starting from root 
-			setlearningParameters(false, false, false, false, false, false);break;
+			setlearningParameters(false, false, false, false);break;
 		case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs and hence is very slow.
-			setlearningParameters(true, false, false, false, false, true);break;
+			setlearningParameters(true, false, false, true);break;
 		case 2:// learning by doing pre-merging but starting from root. 
-			setlearningParameters(true, false, false, false, false, false);break;
-		case 3:// learning by not doing pre-merging, starting from root and using a heuristic around root 
-			setlearningParameters(false, false, true, false, true, false);break;
-		case 4:// learning by not doing pre-merging, starting from root and not ranking the top IScore candidates with the fanout metric.
-			setlearningParameters(false, false, false, false, false, false);break;
+			setlearningParameters(true, false, false,  false);break;
+		// alternatives are: learning by not doing pre-merging, starting from root and using a heuristic around root
+		// or learning by not doing pre-merging, starting from root and not ranking the top IScore candidates with the fanout metric.
 		default:
 			throw new IllegalArgumentException("invalid preset number");
 		}
@@ -135,15 +133,13 @@ public class MarkovParameters
 	// Values below are assigned by setting a preset.
 	
 	public boolean useCentreVertex = false;
-	public boolean useDifferentScoringNearRoot = false;
 	public boolean mergeIdentifiedPathsAfterInference = true;
-	public boolean useClassifyToOrderPairs = true;
 	public boolean useMostConnectedVertexToStartLearning = false;
 	public boolean useNewScoreNearRoot = false;
 	
-	public void setlearningParameters(boolean useCentreVertexArg, boolean newScoreNearRoot, boolean useDifferentScoringNearRootArg, boolean mergeIdentifiedPathsAfterInferenceArg, boolean useClassifyToOrderPairsArg, boolean useMostConnectedVertexToStartLearningArg)
+	public void setlearningParameters(boolean useCentreVertexArg, boolean newScoreNearRoot, boolean mergeIdentifiedPathsAfterInferenceArg, boolean useMostConnectedVertexToStartLearningArg)
 	{
-		useCentreVertex = useCentreVertexArg;useNewScoreNearRoot = newScoreNearRoot;useDifferentScoringNearRoot = useDifferentScoringNearRootArg;mergeIdentifiedPathsAfterInference = mergeIdentifiedPathsAfterInferenceArg;useClassifyToOrderPairs = useClassifyToOrderPairsArg;useMostConnectedVertexToStartLearning = useMostConnectedVertexToStartLearningArg; 
+		useCentreVertex = useCentreVertexArg;useNewScoreNearRoot = newScoreNearRoot;mergeIdentifiedPathsAfterInference = mergeIdentifiedPathsAfterInferenceArg;useMostConnectedVertexToStartLearning = useMostConnectedVertexToStartLearningArg;
 	}
 
 	private List<String> getColumnTextForAnyLearner(int spacesAtTheEnd)

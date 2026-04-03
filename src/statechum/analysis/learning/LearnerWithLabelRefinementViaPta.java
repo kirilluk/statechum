@@ -235,7 +235,7 @@ public class LearnerWithLabelRefinementViaPta extends MarkovExperiment.EDSM_Mark
 
 	public LearnerWithLabelRefinementViaPta(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold,MarkovParameters markovParameters, StateMergingStatistics redReducer) 
 	{
-		super(evalCnf, argInitialPTA, threshold,markovParameters, redReducer);
+		super(evalCnf, argInitialPTA, threshold,markovParameters, null, redReducer);
 	}
 
 	protected LearnerGraphND coreInverse = null;

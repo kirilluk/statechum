@@ -149,12 +149,10 @@ public class CVS
 											ev.config.setOverride_usePTAMerging(false);
 				
 											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplierMax, density, sample,trainingSample, seedForFSM);
-											parameters.setOnlyUsePositives(onlyPositives);
 											parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
 											parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies,aveOrMax,divisorForPathCount,0,1);
-											parameters.setDisableInconsistenciesInMergers(false);
 											parameters.setUsePrintf(experimentRunner.isInteractive());
 											MarkovLearnerFromPTAUsingReference learnerRunner = new MarkovLearnerFromPTAUsingReference(parameters, ev,pta, getCVSReference(eval));
 											learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).

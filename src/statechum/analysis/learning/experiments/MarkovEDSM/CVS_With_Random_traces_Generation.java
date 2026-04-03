@@ -91,7 +91,6 @@ public class CVS_With_Random_traces_Generation
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
 
 		// Inference from a few traces
-		final boolean onlyPositives=true;
 		final int alphabetMultiplierMax = 1;// dummy value - it is needed by parameters
 		final LearnerGraph cvsReference = CVS.getCVSReference(eval); 
 		final int states = cvsReference.getAcceptStateNumber();
@@ -122,12 +121,10 @@ public class CVS_With_Random_traces_Generation
 											ev.config.setOverride_usePTAMerging(false);
 				
 											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, 0, alphabetMultiplierMax, 0,trainingSample, seedForFSM);
-											parameters.setOnlyUsePositives(onlyPositives);
 											parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,states,alphabetMultiplierMax);
 											parameters.markovParameters.setMarkovParameters(preset, chunkSize, true, weightOfInconsistencies,aveOrMax, divisorForPathCount,0,1);
-											parameters.setDisableInconsistenciesInMergers(false);
 											parameters.setUsePrintf(experimentRunner.isInteractive());
 											MarkovLearnerUsingReference learnerRunner = new MarkovLearnerUsingReference(parameters, ev, cvsReference);
 											learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).

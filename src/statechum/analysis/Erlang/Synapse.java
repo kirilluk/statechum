@@ -931,7 +931,7 @@ public class Synapse implements Runnable {
 														final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 													
 														pta.clearColours();
-														EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,-1,markovParameters, null) {
+														EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,-1,markovParameters, null, null) {
 
 															@Override
 															protected boolean permitUnlimitedNumberOfStates()
@@ -1009,7 +1009,7 @@ public class Synapse implements Runnable {
 																
 															}
 															ptaToUseForInference.clearColours();
-															EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,-1,markovParameters, null) {
+															EDSM_MarkovLearner learner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaToUseForInference,-1,markovParameters, null,null) {
 
 																@Override
 																public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 

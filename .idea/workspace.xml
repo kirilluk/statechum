@@ -4,31 +4,21 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Very minor changes, mostly just added comments.">
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Added a good number of comments and made markov experiments rely on ScoringToApply enumeration rather than LearnerToUseEnum.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/Configuration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Configuration.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/Pair.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Pair.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/DrawGraphs.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/DrawGraphs.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/MarkovClassifier.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/MarkovClassifier.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/MarkovClassifierLG.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/MarkovClassifierLG.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/MarkovModel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/MarkovModel.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/PairScore.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/PairScore.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Synapse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Synapse.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/LearnerWithLabelRefinementViaPta.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/LearnerWithLabelRefinementViaPta.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/BenchmarkCPU.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/BenchmarkCPU.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/I2cexperiment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/I2cexperiment.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/CVS.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/CVS.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/CVS_With_Random_traces_Generation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/CVS_With_Random_traces_Generation.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovExperiment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovExperiment.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovHelper.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovHelper.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovLearningParameters.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovLearningParameters.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovParameters.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovParameters.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovPreMergeExperiment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovPreMergeExperiment.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovScoreComputation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovScoreComputation.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/WaveBlueFringe.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/WaveBlueFringe.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningAlgorithms.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningSupportRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningSupportRoutines.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityLearner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityLearner.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/SGE_ExperimentRunner.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/SGE_ExperimentRunner.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AMEquivalenceClass.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AMEquivalenceClass.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractPathRoutines.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/AbstractPathRoutines.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PairScoreComputation.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestMarkovLearner.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestMarkovLearner.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearnUsingClassifier.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearnUsingClassifier.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestMarkov_i2c.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestMarkov_i2c.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
@@ -89,6 +79,7 @@
     "Application.RunDotExperiment against known.executor": "Run",
     "Application.RunDotExperiment using Task List.executor": "Run",
     "Application.RunDotExperiment.executor": "Run",
+    "Application.benchmarkCPU.executor": "Run",
     "Application.experimentProgressProperty.executor": "Run",
     "Application.experimentUAS1.executor": "Run",
     "Application.experimentUAS2.executor": "Run",
@@ -223,7 +214,7 @@
       <recent name="statechum.analysis.Erlang.Signatures" />
     </key>
   </component>
-  <component name="RunManager" selected="JUnit.TestAll (using OTP25)">
+  <component name="RunManager" selected="Application.benchmarkCPU">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -344,6 +335,18 @@
       <module name="XMachineTool" />
       <option name="PROGRAM_PARAMETERS" value="&quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\Bluetooth_CYW43455.dot&quot; &quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\APTA_size_634_States\Bluetooth_APTA.dot&quot; &quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\APTA_size_634_States\Bluetooth_classical_edsm.dot&quot; &quot;D:\experiment\Arwa\EDSM_overmerge\expiment- classicalEDSM-overmerge-20250721T182653Z-1-001\expiment- classicalEDSM-overmerge\bluetooth\APTA_size_634_States\Bluetooth_classical_edsm.dot&quot;" />
       <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs -Xmx25500m" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="benchmarkCPU" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.2.2" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.EvaluationOfLearners.BenchmarkCPU" />
+      <module name="XMachineTool" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_office_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.2.2\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <option name="WORKING_DIRECTORY" value="$MODULE_WORKING_DIR$" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -805,6 +808,7 @@
       <item itemvalue="Application.DotComparator" />
       <item itemvalue="Application.experimentUAS1" />
       <item itemvalue="Application.experimentUAS2" />
+      <item itemvalue="Application.benchmarkCPU" />
       <item itemvalue="Application.experimentProgressProperty" />
       <item itemvalue="Application.DotVisualiser" />
       <item itemvalue="Application.DotVisualiser Bluetooth outcome" />
@@ -885,7 +889,7 @@
       <workItem from="1755015145427" duration="16405000" />
       <workItem from="1755102462486" duration="20839000" />
       <workItem from="1755194747895" duration="5285000" />
-      <workItem from="1773751293817" duration="127267000" />
+      <workItem from="1773751293817" duration="144690000" />
     </task>
     <task id="LOCAL-00001" summary="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer).">
       <created>1651266068784</created>
@@ -1180,7 +1184,15 @@
       <option name="project" value="LOCAL" />
       <updated>1774040375458</updated>
     </task>
-    <option name="localTasksCounter" value="40" />
+    <task id="LOCAL-00040" summary="Added a good number of comments and made markov experiments rely on ScoringToApply enumeration rather than LearnerToUseEnum.">
+      <option name="closed" value="true" />
+      <created>1775158553196</created>
+      <option name="number" value="00040" />
+      <option name="presentableId" value="LOCAL-00040" />
+      <option name="project" value="LOCAL" />
+      <updated>1775158553196</updated>
+    </task>
+    <option name="localTasksCounter" value="41" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1345,7 +1357,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Renamed ParameterizedWithName's package to junit_runners in order for it to be different to JUnit's since when running under Eclipse it causes security error given that JUnit package is signed and ParameterizedWithName is not. In addition, made sure that construction of vertices does not pass an existing vertex to DeterministicVertex as an ID - even a single attempt to compareTo between DeterministicVertex with StringVertex as ID and another ID appears to reduce the performance of subsequent computations by around 10%." />
     <MESSAGE value="Renamed ParameterizedWithName's package to junit_runners in order for it to be different to JUnit's since when running under Eclipse it causes security error given that JUnit package is signed and ParameterizedWithName is not. In addition, made sure that construction of vertices does not pass an existing vertex to DeterministicVertex as an ID - even a single attempt to compareTo between DeterministicVertex with StringVertex as ID and another ID appears to reduce the performance of subsequent computations by around 10%. Miscellaneous cleanup." />
     <MESSAGE value="Moved Harmony to separate directory, currently using old collections. All (including lengthy) tests pass." />
     <MESSAGE value="Misc cleanup" />
@@ -1370,7 +1381,8 @@
     <MESSAGE value="Revised loading of dot graphs to support missing graph name." />
     <MESSAGE value="Updated to handle OTP25, Erlang tests pass." />
     <MESSAGE value="Very minor changes, mostly just added comments." />
-    <option name="LAST_COMMIT_MESSAGE" value="Very minor changes, mostly just added comments." />
+    <MESSAGE value="Added a good number of comments and made markov experiments rely on ScoringToApply enumeration rather than LearnerToUseEnum." />
+    <option name="LAST_COMMIT_MESSAGE" value="Added a good number of comments and made markov experiments rely on ScoringToApply enumeration rather than LearnerToUseEnum." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

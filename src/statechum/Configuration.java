@@ -191,8 +191,10 @@ public class Configuration implements Cloneable {
 		override_maximalNumberOfStates = newValue;
 	}
 	
-	/** In a number of experiments, it is possible to choose whether to merge states using {@link MergeStates#mergeAndDeterminize} merger that work on PTAs or a generalised merger that works on anything.
-	 * The difference between the two is a number of states that may affect the learning outcome; sometimes, PTA merging can be much faster. 
+	/** In a number of experiments, it is possible to choose whether to merge states using
+	 * {@link MergeStates#mergeAndDeterminize} merger that work on PTAs or a generalised merger that works on anything.
+	 * The difference between the two is a number of states that may affect the learning outcome;
+	 * sometimes, PTA merging can be much faster.
 	 * For this reason, overridden versions of learner routines permit selection of PTA v.s. generalised mergers.
 	 * The default is generalised mergers.
 	 */

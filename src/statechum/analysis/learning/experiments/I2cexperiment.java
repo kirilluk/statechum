@@ -21,16 +21,8 @@ package statechum.analysis.learning.experiments;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
@@ -45,7 +37,6 @@ import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.MarkovModel;
-import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovParameters;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.EDSM_MarkovLearner;
@@ -71,27 +62,6 @@ public class I2cexperiment extends PairQualityLearner
 		gr.addUserDatum(JUConstants.VERTEX, labelling, UserData.SHARED);
 		Visualiser.updateFrame(gr,null);	
 		Visualiser.waitForKey();		
-	}
-		
-	public static Collection<StatePair> constructPairsToMergeBasedOnSetsToMerge(Set<CmpVertex> validStates, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
-	{
-		List<StatePair> pairsList = new LinkedList<>();
-		for(Set<CmpVertex> groupOfStates:verticesToMergeBasedOnInitialPTA)
-		{
-			Set<CmpVertex> validStatesInGroup = new TreeSet<>(groupOfStates);
-			validStatesInGroup.retainAll(validStates);
-			if (validStatesInGroup.size() > 1)
-			{
-				CmpVertex v0=validStatesInGroup.iterator().next();
-				for(CmpVertex v:validStatesInGroup)
-				{
-					if (v != v0)
-						pairsList.add(new StatePair(v0,v));
-					v0=v;
-				}
-			}
-		}
-		return pairsList;
 	}
 
 	public static void main(String[] args) throws Exception
@@ -128,7 +98,7 @@ public class I2cexperiment extends PairQualityLearner
             while ((fileString = in.readLine()) != null) 
             {
             	String lineOfLog= fileString.trim();
-            	while(lineOfLog.length() > 0)
+            	while(!lineOfLog.isEmpty())
             	{
 	            	String aFound = null;
 	            	for(String st:alphabet)
@@ -186,17 +156,17 @@ public class I2cexperiment extends PairQualityLearner
 		LearnerGraph initialPTA = new LearnerGraph(eval.config);
 		initialPTA.paths.augmentPTA(loadTrace("resources/i2c_study/log10.txt",eval.getLabelConverter(),errElement), true, false,null);
 		// The purpose of if-then below is to make it clear that an error transition will not be repeated - this was the only problem in the inferred model. 
-		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(Arrays.asList(new String[]{"ifthenFSM graph1 A-!"+errElement+"->A-"+errElement+"->B-"+errElement+"->B-!"+errElement+"->A / P-"+errElement+"-#Q / P == THEN == B"}), initialPTA.pathroutines.computeAlphabet(), eval.config, eval.getLabelConverter()).toArray(new LearnerGraph[0]);
+		LearnerGraph [] ifthenAutomata = Transform.buildIfThenAutomata(Collections.singletonList("ifthenFSM graph1 A-!" + errElement + "->A-" + errElement + "->B-" + errElement + "->B-!" + errElement + "->A / P-" + errElement + "-#Q / P == THEN == B"), initialPTA.pathroutines.computeAlphabet(), eval.config, eval.getLabelConverter()).toArray(new LearnerGraph[0]);
 		Transform.augmentFromIfThenAutomaton(initialPTA, null, ifthenAutomata, 1);// we only need  to augment our PTA once.
 		final MarkovModel m= new MarkovModel(chunkSize,true,true,true,false);
 		new MarkovClassifierLG(m, initialPTA,null).updateMarkov(false);// construct Markov chain if asked for.
 		initialPTA.clearColours();
 		final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		MarkovParameters markovParameters = new MarkovParameters(0, chunkSize,true,1, true,1,0,1);
-		EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(eval,initialPTA,0,markovParameters, null);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+		EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(eval,initialPTA,0,markovParameters,null, null);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
 
 		System.out.println("started: "+new Date());
-		LearnerGraph graph = markovLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+		LearnerGraph graph = markovLearner.learnMachine(new LinkedList<>(), new LinkedList<>());
 		System.out.println("finished: "+new Date());
 		graph.storage.writeGraphML("outcome_i2c.xml");
 	}

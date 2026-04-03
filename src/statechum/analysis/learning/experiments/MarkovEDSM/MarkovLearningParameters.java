@@ -24,13 +24,15 @@ import java.util.List;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 
+/** Describes setup of experiments using markov learning. This is different to
+ * {@link MarkovParameters} that describe how to learn each automaton.
+ */
 public class MarkovLearningParameters implements ThreadResultID 
 {
 	public ScoringToApply learnerToUse;
 	public final int states;
 	public final int sample;
 	public final int trainingSample;
-	public boolean onlyUsePositives;
 	public final int seed;
 	public double alphabetMultiplier = 1;
 	public double traceLengthMultiplier = 1;
@@ -41,10 +43,10 @@ public class MarkovLearningParameters implements ThreadResultID
 	public int perStateSquaredDensityMultipliedBy10 = 0;
 	public final MarkovParameters markovParameters = new MarkovParameters();
 	
-	public MarkovLearningParameters(ScoringToApply l, int argStates, double argAlphabetMultiplier, int density10, int argSample, int argTrainingSample, int argSeed)
+	public MarkovLearningParameters(ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed)
 	{
 		learnerToUse = l;
-		states = argStates;alphabetMultiplier = argAlphabetMultiplier;perStateSquaredDensityMultipliedBy10 = density10;sample = argSample;trainingSample = argTrainingSample;seed = argSeed;
+		states = argStates;alphabetMultiplier = argAlphabetMultiplier;perStateSquaredDensityMultipliedBy10 = perStateSquaredDensity10;sample = argSample;trainingSample = argTrainingSample;seed = argSeed;
 	}
 	
 	public void setExperimentID(int traceQuantity,double argTraceLengthMultiplierMax,int statesMax,double argAlphabetMultiplierMax)
@@ -65,23 +67,9 @@ public class MarkovLearningParameters implements ThreadResultID
 		usePrintf = value;
 	}
 	
-	/** Whether we should try learning with zero inconsistencies, to see how heuristics fare. */
-	protected boolean disableInconsistenciesInMergers = false;
-	
-	public void setDisableInconsistenciesInMergers(boolean v)
-	{
-		disableInconsistenciesInMergers = v;
-	}
-	
 	public void setTracesAlphabetMultiplier(double evalAlphabetMult)
 	{
 		tracesAlphabetMultiplier = evalAlphabetMult;
-	}
-		
-	/** Whether to filter the collection of traces such that only positive traces are used. */
-	public void setOnlyUsePositives(boolean value)
-	{
-		onlyUsePositives = value;
 	}
 
 	public void setTraceLengthMultiplier(double traceMulti) {
@@ -90,7 +78,7 @@ public class MarkovLearningParameters implements ThreadResultID
 
 	@Override
 	public String getRowID() {
-		return getExperimentID()+"_S="+states+"_m="+alphabetMultiplier+"_d="+perStateSquaredDensityMultipliedBy10+"_sa="+sample+"_tS="+trainingSample+"_se="+seed+(onlyUsePositives?"_POS":"_PN")+
+		return getExperimentID()+"_S="+states+"_m="+alphabetMultiplier+"_d="+perStateSquaredDensityMultipliedBy10+"_sa="+sample+"_tS="+trainingSample+"_se="+seed+
 				"_tM="+traceLengthMultiplier+"_tAMr="+tracesAlphabetMultiplier;
 	}
 

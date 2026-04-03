@@ -60,8 +60,8 @@ import statechum.collections.MapWithSearch;
 import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 // This runs a benchmark, the directory prefix needs changing for a different system. 
-// It is hardcoded becase the way to run it is also system-specific.
-// For instance, using a hostname as part of benchmark will only work is this is 
+// It is hardcoded because the way to run it is also system-specific.
+// For instance, using a hostname as part of benchmark will only work if benchmark is
 // not run on a supercomputer/grid and it will usually be run there.
 // Using CPU from /proc/cpuinfo makes sense but not if run on Windows or MacOS.
 //
@@ -69,7 +69,7 @@ import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 //
 public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>
 {
-	public static final String directoryNamePrefix = "max6_benchmark_learners_Apr_2016";
+	public static final String directoryNamePrefix = "6core_benchmark_learners";
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
 	public BenchmarkCPU(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
@@ -350,13 +350,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 											if (traceQuantity*traceLengthMultiplier == 64) // <= 64)
 											for(ScoringModeScore scoringPair:new ScoringModeScore[]{
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),/*
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_8),
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_10),
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_12),
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_8),*/
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO),
 											})
 											{

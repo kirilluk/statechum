@@ -25,7 +25,7 @@ public class MarkovParameters
 {
 	public int chunkLen=3,preset=0;
 	public boolean useAverageOrMax = true;
-	public double weightOfInconsistencies = 1.0;
+
 	public int divisorForPathCount=1,expectedWLen=1;
 	public int whichMostConnectedVertex = 0;
 	
@@ -39,13 +39,15 @@ public class MarkovParameters
 	public MarkovParameters()
 	{}
 	
-	public MarkovParameters(MarkovParameters a)
+	@SuppressWarnings("CopyConstructorMissesField") // missing fields are created from preset by setPresetLearningParameters
+    public MarkovParameters(MarkovParameters a)
 	{
-		chunkLen = a.chunkLen;pathsOrSets = a.pathsOrSets;preset = a.preset;
-		useAverageOrMax = a.useAverageOrMax;weightOfInconsistencies = a.weightOfInconsistencies;
+		chunkLen = a.chunkLen;preset = a.preset;
+		useAverageOrMax = a.useAverageOrMax;
 		divisorForPathCount = a.divisorForPathCount;expectedWLen = a.expectedWLen;
 		whichMostConnectedVertex = a.whichMostConnectedVertex;
-		
+		pathsOrSets = a.pathsOrSets;
+
 		setPresetLearningParameters(preset);
 	}
 	
@@ -62,9 +64,7 @@ public class MarkovParameters
 		result = prime * result + preset;
 		result = prime * result + (useAverageOrMax ? 1231 : 1237);
 		result = prime * result + (pathsOrSets ? 1231 : 1237);
-		long temp;
-		temp = Double.doubleToLongBits(weightOfInconsistencies);
-		result = prime * result + (int) (temp ^ (temp >>> 32));
+        result = prime * result + Double.hashCode(weightOfInconsistencies);
 		result = prime * result + whichMostConnectedVertex;
 		return result;
 	}
@@ -95,10 +95,8 @@ public class MarkovParameters
 			return false;
 		if (Double.doubleToLongBits(weightOfInconsistencies) != Double.doubleToLongBits(other.weightOfInconsistencies))
 			return false;
-		if (whichMostConnectedVertex != other.whichMostConnectedVertex)
-			return false;
-		return true;
-	}
+        return whichMostConnectedVertex == other.whichMostConnectedVertex;
+    }
 
 	public MarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, double weight, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
 	{
@@ -136,7 +134,8 @@ public class MarkovParameters
 	public boolean mergeIdentifiedPathsAfterInference = true;
 	public boolean useMostConnectedVertexToStartLearning = false;
 	public boolean useNewScoreNearRoot = false;
-	
+	public double weightOfInconsistencies = 1.0;
+
 	public void setlearningParameters(boolean useCentreVertexArg, boolean newScoreNearRoot, boolean mergeIdentifiedPathsAfterInferenceArg, boolean useMostConnectedVertexToStartLearningArg)
 	{
 		useCentreVertex = useCentreVertexArg;useNewScoreNearRoot = newScoreNearRoot;mergeIdentifiedPathsAfterInference = mergeIdentifiedPathsAfterInferenceArg;useMostConnectedVertexToStartLearning = useMostConnectedVertexToStartLearningArg;
@@ -144,9 +143,9 @@ public class MarkovParameters
 
 	private List<String> getColumnTextForAnyLearner(int spacesAtTheEnd)
 	{
-		List<String> whatToReturn = new ArrayList<String>();whatToReturn.addAll(Arrays.asList(
-				Integer.toString(preset),(useAverageOrMax?"Average":"Max"),Integer.toString(divisorForPathCount),Integer.toString(whichMostConnectedVertex),
-				Integer.toString(expectedWLen)));
+        List<String> whatToReturn = new ArrayList<>(Arrays.asList(
+                Integer.toString(preset), (useAverageOrMax ? "Average" : "Max"), Integer.toString(divisorForPathCount), Integer.toString(whichMostConnectedVertex),
+                Integer.toString(expectedWLen)));
 		for(int i=0;i<spacesAtTheEnd;++i)
 			whatToReturn.add("");
 		return whatToReturn;
@@ -154,8 +153,7 @@ public class MarkovParameters
 	
 	public List<String> getColumnListOnlyForMarkov()
 	{
-		List<String> whatToReturn = new ArrayList<String>();whatToReturn.addAll(Arrays.asList(new String[]{Integer.toString(chunkLen), Double.toString(weightOfInconsistencies)}));
-		return whatToReturn;
+        return new ArrayList<>(Arrays.asList(Integer.toString(chunkLen), Double.toString(weightOfInconsistencies)));
 	}
 	
 	public List<String> getColumnListForMarkovLearner()
@@ -172,7 +170,6 @@ public class MarkovParameters
 	/** Constructs a component of a columnID determined by these parameters.
 	 * 
 	 * @param useMarkovLearner whether the intention is to use Markov learner or any other. This affects which parameters are reported. Even if non-Markov learner is used, most parameters are still relevant, such as prefix length that is utilised in identification of the best centre vertex to use.
-	 * @return
 	 */
 	public String getColumnID(boolean useMarkovLearner)
 	{
@@ -188,5 +185,3 @@ public class MarkovParameters
 		return outcome;
 	}
 }
-
-

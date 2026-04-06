@@ -20,7 +20,6 @@ package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -183,7 +182,7 @@ public class MarkovExperiment
 			SampleData dataSample = new SampleData(null,null);
 
 			EDSM_MarkovLearner markovLearner = null;
-			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer = null;
+			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer;
 			saveGraph(namePTA, firstMerge.ptaToUseForInference);// although it may seem that pars.getExperimentID()
 			// would be a better name than a full name, in cases where we use a middle vertex PTA to start from is
 			// different to the one generated from a reference graph. Hence using full name and recording lots of graphs.
@@ -192,7 +191,7 @@ public class MarkovExperiment
 			// not possible because without a learning process there is no record which mergers
 			// were right or not and we will not have information how long it took for a learner to complete the learn.
 			LearnerGraph ptaBuilt = firstMerge.ptaToUseForInference;
-			Learner learnerOfPairs = null;
+			Learner learnerOfPairs;
 			redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
 			switch(par.learnerToUse)
 			{
@@ -404,60 +403,6 @@ public class MarkovExperiment
 		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 		{
 			return graph.pairscores.chooseStatePairs(this);
-		}
-		
-		/** This method orders the supplied pairs in the order of best to merge to worst to merge. 
-		 * We do not simply return the best pair because the next step is to check whether pairs we think are right are classified correctly.
-		 * <p/> 
-		 * Pairs are supposed to be the ones from {@link LearningSupportRoutines#filterPairsBasedOnMandatoryMerge(List, LearnerGraph, Collection, Collection)}
-		 * where all those not matching mandatory merge conditions are not included.
-		 * Inclusion of such pairs will not affect the result but it would be pointless to consider such pairs.
-		 * @param pairs pairs to consider
-		 * @param graph tentative automaton
-		 * @param extension_graph markov-extended tentative automaton
-		 */
-		public List<PairScore> classifyPairs(Collection<PairScore> pairs, LearnerGraph graph, LearnerGraph extension_graph)
-		{
-			boolean allPairsNegative = true;
-			for(PairScore p:pairs)
-			{
-				assert p.getScore() >= 0;
-				
-				if (p.getQ().isAccept() || p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
-				{
-					allPairsNegative = false;break;
-				}
-			}
-			ArrayList<PairScore> possibleResults = new ArrayList<>(pairs.size()),nonNegPairs = new ArrayList<>(pairs.size());
-			if (allPairsNegative)
-				possibleResults.addAll(pairs);
-			else
-			{
-				for(PairScore p:pairs)
-				{
-					assert p.getScore() >= 0;
-					if (!p.getQ().isAccept() || !p.getR().isAccept()) // if any are rejects, add with a score of zero, these will always work because accept-reject pairs will not get here and all rejects can be merged.
-						possibleResults.add(new WaveBlueFringe.PairScoreWithDistance(p,0));
-					else
-						nonNegPairs.add(p);// meaningful pairs, will check with the classifier
-				}
-
-				for(PairScore p:nonNegPairs)
-				{
-					double d = MarkovScoreComputation.computeMMScoreImproved(p,graph, extension_graph);
-					if(d >= 0.0)
-						possibleResults.add(new WaveBlueFringe.PairScoreWithDistance(p, d));
-				}
-					
-				possibleResults.sort(
-						(o1, o2) -> {
-                    int outcome = (int) Math.signum(((WaveBlueFringe.PairScoreWithDistance) o2).getDistanceScore() - ((WaveBlueFringe.PairScoreWithDistance) o1).getDistanceScore());
-                    if (outcome != 0)
-                        return outcome;
-                    return o2.compareTo(o1);
-                });
-			}				
-			return possibleResults;
 		}
 
 		@Override

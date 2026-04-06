@@ -55,9 +55,7 @@ import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.Transform;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
-import statechum.analysis.learning.rpnicore.Transform.AugmentFromIfThenAutomatonException;
 import statechum.collections.MapWithSearch;
-import statechum.model.testset.PTASequenceEngine.FilterPredicate;
 
 // This runs a benchmark, the directory prefix needs changing for a different system. 
 // It is hardcoded because the way to run it is also system-specific.
@@ -77,9 +75,6 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 		super(parameters,eval,directoryNamePrefix);
 	}
 	
-	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{//Configuration.ScoreMode.CONVENTIONAL, Configuration.ScoreMode.COMPATIBILITY, 
-			Configuration.ScoreMode.GENERAL_NOFULLMERGE, Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE};
-	
 	@Override
 	public EvaluationOfLearnersResult runexperiment() throws Exception 
 	{
@@ -87,7 +82,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 		EvaluationOfLearnersResult outcome = new EvaluationOfLearnersResult(par);
 		MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
 		Label uniqueFromInitial = null;
-		final Random rnd = new Random(par.seed*31+par.attempt*par.states);
+		final Random rnd = new Random(par.seed* 31L + (long) par.attempt *par.states);
 		boolean pickUniqueFromInitial = par.pickUniqueFromInitial;
 		do
 		{
@@ -112,7 +107,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 					 // it seems appropriate.  
 						Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("unique", learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter());
 						assert(!existingAlphabet.contains(uniqueLabel));
-						List<CmpVertex> possibleVertices = new ArrayList<CmpVertex>();
+						List<CmpVertex> possibleVertices = new ArrayList<>();
 						for(Entry<CmpVertex, MapWithSearch<Label, Label, CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet())
 							if (entry.getValue().size() < alphabet)
 								possibleVertices.add(entry.getKey());
@@ -157,7 +152,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 				}
 			},true,true,null,Arrays.asList(new Label[]{uniqueFromInitial}));
 */
-		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.attempt*23+par.seed),5,referenceGraph.getInit());
+		final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.attempt* 23L +par.seed),5,referenceGraph.getInit());
 		generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 								
 				@Override
@@ -173,12 +168,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 
 		//generator.generateRandomPosNeg(tracesToGenerate, 1, false);
 		if (par.onlyUsePositives)
-			pta.paths.augmentPTA(generator.getAllSequences(0).filter(new FilterPredicate() {
-				@Override
-				public boolean shouldBeReturned(Object name) {
-					return ((statechum.analysis.learning.rpnicore.RandomPathGenerator.StateName)name).accept;
-				}
-			}));
+			pta.paths.augmentPTA(generator.getAllSequences(0).filter(name -> ((RandomPathGenerator.StateName)name).accept));
 		else
 			pta.paths.augmentPTA(generator.getAllSequences(0));// the PTA will have very few reject-states because we are generating few sequences and hence there will be few negative sequences.
 			// In order to approximate the behaviour of our case study, we need to compute which pairs are not allowed from a reference graph and use those as if-then automata to start the inference.
@@ -190,13 +180,13 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 		{// now we have an even positive/negative split, add negatives by encoding them as if-then automata.
 			assert pta.getStateNumber() > pta.getAcceptStateNumber() : "graph with only accept states but onlyUsePositives is not set";
 			Map<Label,Set<Label>> infeasiblePairs = LearningSupportRoutines.computeInfeasiblePairs(referenceGraph);
-			Map<Label,Set<Label>> subsetOfPairs = new TreeMap<Label,Set<Label>>();
+			Map<Label,Set<Label>> subsetOfPairs = new TreeMap<>();
 			for(Entry<Label,Set<Label>> entry:infeasiblePairs.entrySet())
 			{
-				Set<Label> value = new TreeSet<Label>();
+				Set<Label> value = new TreeSet<>();
 				if (!entry.getValue().isEmpty()) 
 				{// we add a single entry per label, to mimic what was done with UAS study, where labels could not be repeated.
-					Label possibleLabels[]=entry.getValue().toArray(new Label[]{});
+					Label[] possibleLabels =entry.getValue().toArray(new Label[]{});
 					if (possibleLabels.length == 1)
 						value.add(possibleLabels[0]);
 					else
@@ -234,7 +224,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 				return par.getRowID();
 			}
 			@Override
-			public LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException 
+			public LearnerGraph buildPTA() throws IOException
 			{
 				saveGraph(namePTA,pta);
 				return pta;
@@ -289,7 +279,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		mkDir(outPathPrefix+directoryExperimentResult);
-		final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+		final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");
@@ -297,8 +287,8 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 		final int samplesPerFSMSize = 5;
 		final int attemptsPerFSM = 2;
 
-		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<String>("experiment","BCR",new File(outPathPrefix+"BCR_vs_experiment.pdf"));
-		final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<String>("experiment","Structural difference",new File(outPathPrefix+"diff_vs_experiment.pdf"));
+		final RBoxPlot<String> BCR_vs_experiment = new RBoxPlot<>("experiment", "BCR", new File(outPathPrefix + "BCR_vs_experiment.pdf"));
+		final RBoxPlot<String> diff_vs_experiment = new RBoxPlot<>("experiment", "Structural difference", new File(outPathPrefix + "diff_vs_experiment.pdf"));
 
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
 
@@ -328,7 +318,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 			}
 		};
 		
-		List<BenchmarkCPU> listOfExperiments = new ArrayList<BenchmarkCPU>();
+		List<BenchmarkCPU> listOfExperiments = new ArrayList<>();
 		
 		try
 		{

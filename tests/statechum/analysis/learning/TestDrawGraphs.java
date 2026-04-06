@@ -1,5 +1,6 @@
 package statechum.analysis.learning;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static statechum.TestHelper.checkForCorrectException;
 
@@ -25,13 +26,9 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.Helper;
 import statechum.TestHelper;
-import statechum.TestHelper.whatToRun;
 import statechum.analysis.learning.DrawGraphs.RGraph;
 import statechum.analysis.learning.DrawGraphs.ScatterPlot;
-import statechum.analysis.learning.DrawGraphs.AggregateStringValues;
-import statechum.analysis.learning.DrawGraphs.AggregateValues;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
@@ -47,105 +44,97 @@ public class TestDrawGraphs {
 	@Test
 	public void testVectorToRFail()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.vectorToR(new LinkedList<String>(),false);
-		}},IllegalArgumentException.class,"empty");
+		checkForCorrectException(() -> DrawGraphs.vectorToR(new LinkedList<String>(),false),IllegalArgumentException.class,"empty");
 	}
 
 	@Test
 	public void testVectorToR1()
 	{
-		Assert.assertEquals("c(1.0)", DrawGraphs.vectorToR(Arrays.asList(new Double[]{1.0}),false));
+		Assert.assertEquals("c(1.0)", DrawGraphs.vectorToR(Collections.singletonList(1.0),false));
 	}
 	
 	@Test
 	public void testVectorToR2()
 	{
-		Assert.assertEquals("c(\"1.0\")", DrawGraphs.vectorToR(Arrays.asList(new Double[]{1.0}),true));
+		Assert.assertEquals("c(\"1.0\")", DrawGraphs.vectorToR(Collections.singletonList(1.0),true));
 	}
 
 	@Test
 	public void testVectorToR3()
 	{
-		Assert.assertEquals("c(\"1.0\",\"6.0\")", DrawGraphs.vectorToR(Arrays.asList(new Double[]{1.0,6.0}),true));
+		Assert.assertEquals("c(\"1.0\",\"6.0\")", DrawGraphs.vectorToR(Arrays.asList(1.0,6.0),true));
 	}
 
 	@Test
 	public void testVectorToR4()
 	{
-		Assert.assertEquals("c(\"nameA\",\"nameB\",\"nameC\")", DrawGraphs.vectorToR(Arrays.asList(new String[]{"nameA","nameB","nameC"}),true));
+		Assert.assertEquals("c(\"nameA\",\"nameB\",\"nameC\")", DrawGraphs.vectorToR(Arrays.asList("nameA","nameB","nameC"),true));
 	}
 
 	@Test
 	public void testBoxPlotToStringFail1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.boxPlotToString(new LinkedList<List<Double>>(), new LinkedList<String>(),new LinkedList<String>(),null);
-		}},IllegalArgumentException.class,"empty");
+		checkForCorrectException(() -> DrawGraphs.boxPlotToString(new LinkedList<>(), new LinkedList<>(), new LinkedList<>(),null),IllegalArgumentException.class,"empty");
 	}
 	
 	@Test
 	public void testBoxPlotToStringFail2()
 	{
-		final List<List<Double>> data = new LinkedList<List<Double>>();
-		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
-		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.boxPlotToString(data, new LinkedList<String>(),new LinkedList<String>(),null);
-		}},IllegalArgumentException.class,"mismatch");
+		final List<List<Double>> data = new LinkedList<>();
+		data.add(Arrays.asList(4.,5.,5.));
+		data.add(Arrays.asList(4.,5.,5.));
+		checkForCorrectException(() -> DrawGraphs.boxPlotToString(data, new LinkedList<>(), new LinkedList<>(),null),IllegalArgumentException.class,"mismatch");
 	}
 
 	@Test
 	public void testBoxPlotToStringFail3()
 	{
-		final List<List<Double>> data = new LinkedList<List<Double>>();
-		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.boxPlotToString(data, new LinkedList<String>(),new LinkedList<String>(),null);
-		}},IllegalArgumentException.class,"not used");
+		final List<List<Double>> data = new LinkedList<>();
+		data.add(Arrays.asList(4.,5.,5.));
+		checkForCorrectException(() -> DrawGraphs.boxPlotToString(data, new LinkedList<>(), new LinkedList<>(),null),IllegalArgumentException.class,"not used");
 	}
 
 	@Test
 	public void testBoxPlotToString1a()
 	{
-		final List<List<Double>> data = new LinkedList<List<Double>>();
-		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
-		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
+		final List<List<Double>> data = new LinkedList<>();
+		data.add(Arrays.asList(4.,5.,5.));
+		data.add(Arrays.asList(7.,8.,3.));
 		String colour = DrawGraphs.defaultColour;
 		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),c(7.0,8.0,3.0),names=c(\"graphA\",\"graphB\"),col=c(\""+colour+"\",\""+colour+"\"))",
-				DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),Arrays.asList(new String[]{colour,colour}),null));
+				DrawGraphs.boxPlotToString(data, Arrays.asList("graphA","graphB"),Arrays.asList(colour,colour),null));
 	}
 	
 	/** Same colours. */
 	@Test
 	public void testBoxPlotToString1b()
 	{
-		final List<List<Double>> data = new LinkedList<List<Double>>();
-		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
-		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
+		final List<List<Double>> data = new LinkedList<>();
+		data.add(Arrays.asList(4.,5.,5.));
+		data.add(Arrays.asList(7.,8.,3.));
 		String colour = DrawGraphs.defaultColour;
 		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),c(7.0,8.0,3.0),names=c(\"graphA\",\"graphB\"),col=c(\""+colour+"\",\""+colour+"\"),someOther attrs)",
-				DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),Arrays.asList(new String[]{colour,colour}),"someOther attrs"));
+				DrawGraphs.boxPlotToString(data, Arrays.asList("graphA","graphB"),Arrays.asList(colour,colour),"someOther attrs"));
 	}
 	
 	/** Same as above but different colours. */
 	@Test
 	public void testBoxPlotToString1c()
 	{
-		final List<List<Double>> data = new LinkedList<List<Double>>();
-		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
-		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
+		final List<List<Double>> data = new LinkedList<>();
+		data.add(Arrays.asList(4.,5.,5.));
+		data.add(Arrays.asList(7.,8.,3.));
 		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),c(7.0,8.0,3.0),names=c(\"graphA\",\"graphB\"),col=c(\""+"red"+"\",\""+"blue"+"\"),someOther attrs)",
-				DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),Arrays.asList(new String[]{"red","blue"}),"someOther attrs"));
+				DrawGraphs.boxPlotToString(data, Arrays.asList("graphA","graphB"),Arrays.asList("red","blue"),"someOther attrs"));
 	}
 	
 	/** As above but without labels. */
 	@Test
 	public void testBoxPlotToString2()
 	{
-		final List<List<Double>> data = new LinkedList<List<Double>>();
-		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
-		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
+		final List<List<Double>> data = new LinkedList<>();
+		data.add(Arrays.asList(4.,5.,5.));
+		data.add(Arrays.asList(7.,8.,3.));
 		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),c(7.0,8.0,3.0),col=c(\""+DrawGraphs.defaultColour+"\",\""+DrawGraphs.defaultColour+"\"))",
 				DrawGraphs.boxPlotToString(data, null,null,null));
 	}
@@ -154,8 +143,8 @@ public class TestDrawGraphs {
 	@Test
 	public void testBoxPlotToString3a()
 	{
-		final List<List<Double>> data = new LinkedList<List<Double>>();
-		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
+		final List<List<Double>> data = new LinkedList<>();
+		data.add(Arrays.asList(4.,5.,5.));
 		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),col=c(\""+DrawGraphs.defaultColour+"\"))",
 				DrawGraphs.boxPlotToString(data, null,null,null));
 	}
@@ -163,8 +152,8 @@ public class TestDrawGraphs {
 	@Test
 	public void testBoxPlotToString3b()
 	{
-		final List<List<Double>> data = new LinkedList<List<Double>>();
-		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
+		final List<List<Double>> data = new LinkedList<>();
+		data.add(Arrays.asList(4.,5.,5.));
 		Assert.assertEquals("boxplot(c(4.0,5.0,5.0),col=c(\""+DrawGraphs.defaultColour+"\"),other attrs)",
 				DrawGraphs.boxPlotToString(data, null,null,"other attrs"));
 	}
@@ -175,92 +164,80 @@ public class TestDrawGraphs {
 	@Test
 	public void testBagPlotToStringFail1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.datasetToString("bagplot",new LinkedList<List<Double>>(), new LinkedList<Double>(),null);
-		}},IllegalArgumentException.class,"empty");
+		checkForCorrectException(() -> DrawGraphs.datasetToString("bagplot", new LinkedList<>(), new LinkedList<>(),null),IllegalArgumentException.class,"empty");
 	}
 	
 	@Test
 	public void testBagPlotToStringFail2()
 	{
-		final List<List<Double>> data = new LinkedList<List<Double>>();
-		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
-		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{6.7}),null);
-		}},IllegalArgumentException.class,"mismatch");
+		final List<List<Double>> data = new LinkedList<>();
+		data.add(Arrays.asList(4.,5.,5.));
+		data.add(Arrays.asList(4.,5.,5.));
+		checkForCorrectException(() -> DrawGraphs.datasetToString("bagplot",data, Collections.singletonList(6.7),null),IllegalArgumentException.class,"mismatch");
 	}
 
 	@Test
 	public void testBagPlotToString1a()
 	{
-		final List<List<Double>> data = new LinkedList<List<Double>>();
-		data.add(Arrays.asList(new Double[]{4.,5.}));
-		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
+		final List<List<Double>> data = new LinkedList<>();
+		data.add(Arrays.asList(4.,5.));
+		data.add(Arrays.asList(7.,8.,3.));
 		Assert.assertEquals("bagplot(c(7.0,7.0,8.3,8.3,8.3),c(4.0,5.0,7.0,8.0,3.0))",
-				DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{7.,8.3}),null));
+				DrawGraphs.datasetToString("bagplot",data, Arrays.asList(7.,8.3),null));
 	}
 
 	@Test
 	public void testBagPlotToString1b()
 	{
-		final List<List<Double>> data = new LinkedList<List<Double>>();
-		data.add(Arrays.asList(new Double[]{4.,5.}));
-		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
+		final List<List<Double>> data = new LinkedList<>();
+		data.add(Arrays.asList(4.,5.));
+		data.add(Arrays.asList(7.,8.,3.));
 		Assert.assertEquals("bagplot(c(7.0,7.0,8.3,8.3,8.3),c(4.0,5.0,7.0,8.0,3.0),someOther attrs)",
-				DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{7.,8.3}),"someOther attrs"));
+				DrawGraphs.datasetToString("bagplot",data, Arrays.asList(7.,8.3),"someOther attrs"));
 	}
 
 	
 	@Test
 	public void testWilcoxonTestToStringFail1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			new DrawGraphs.Wilcoxon(new File("test")).getDrawingCommand();
-		}},IllegalArgumentException.class,"empty");
+		checkForCorrectException(() -> new DrawGraphs.WilcoxonPairedTest(new File("test")).getDrawingCommand(),IllegalArgumentException.class,"empty");
 	}
 	
-	// here we only testing for lists valuesA and valuesB being empty because they cannot be null by construction due to being final and a non-null initialisation. 
+	// here we are only testing for lists valuesA and valuesB being empty because they cannot be null by construction due to being final and a non-null initialisation.
 	
 	@Test
 	public void testWilcoxonTestToStringFail2()
 	{
-		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
+		final DrawGraphs.WilcoxonPairedTest w = new DrawGraphs.WilcoxonPairedTest(new File("test"));
 		w.add(4., 7.);w.add(5., 8.);w.add(5., 6.);
 		w.valuesB.clear();
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			w.getDrawingCommand();
-		}},IllegalArgumentException.class,"empty");
+		checkForCorrectException(w::getDrawingCommand,IllegalArgumentException.class,"empty");
 	}
 
 	@Test
 	public void testWilcoxonTestToStringFail3()
 	{
-		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
+		final DrawGraphs.WilcoxonPairedTest w = new DrawGraphs.WilcoxonPairedTest(new File("test"));
 		w.add(4., 7.);w.add(5., 8.);w.add(5., 6.);
 		w.valuesA.clear();
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			w.getDrawingCommand();
-		}},IllegalArgumentException.class,"empty");
+		checkForCorrectException(w::getDrawingCommand,IllegalArgumentException.class,"empty");
 	}
 
 	@Test
 	public void testWilcoxonTestToStringFail4()
 	{
-		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
+		final DrawGraphs.WilcoxonPairedTest w = new DrawGraphs.WilcoxonPairedTest(new File("test"));
 		w.add(4., 7.);w.add(5., 8.);w.add(5., 6.);w.valuesB.remove(2);
 		
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			w.getDrawingCommand();
-		}},IllegalArgumentException.class," 'x' and 'y' must have the same length");
+		checkForCorrectException(w::getDrawingCommand,IllegalArgumentException.class," 'x' and 'y' must have the same length");
 	}
 	
 	@Test
 	public void testWilcoxonTestToString()
 	{
-		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
+		final DrawGraphs.WilcoxonPairedTest w = new DrawGraphs.WilcoxonPairedTest(new File("test"));
 		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
 		Assert.assertEquals("[m=wilcox.test(c(4.0,5.0,5.0),c(7.0,8.0,3.0),paired=TRUE)]",
 				w.getDrawingCommand().toString());
@@ -271,7 +248,7 @@ public class TestDrawGraphs {
 	{
 		@SuppressWarnings("unused")
 		DrawGraphs gr = new DrawGraphs();// loads the R library
-		final DrawGraphs.Wilcoxon w = new DrawGraphs.Wilcoxon(new File("test"));
+		final DrawGraphs.WilcoxonPairedTest w = new DrawGraphs.WilcoxonPairedTest(new File("test"));
 		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
 
 		StringWriter s=new StringWriter();
@@ -300,7 +277,28 @@ public class TestDrawGraphs {
 		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
 		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon rank sum test,2.0,0.3758250874886983\n",s.toString());
 	}
-	
+
+	@Test
+	public void testVarghaDelaney_TestToString()
+	{
+		final DrawGraphs.A_VarghaDelaney w = new DrawGraphs.A_VarghaDelaney(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+		Assert.assertEquals("[m=ufs::A_VarghaDelaney(c(4.0,5.0,5.0),c(7.0,8.0,3.0))]",
+				w.getDrawingCommand().toString());
+	}
+
+	@Test
+	public void testVarghaDelaney_Test() throws IOException
+	{
+		@SuppressWarnings("unused")
+		DrawGraphs gr = new DrawGraphs();// loads the R library
+		final DrawGraphs.A_VarghaDelaney w = new DrawGraphs.A_VarghaDelaney(new File("test"));
+		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
+
+		StringWriter s=new StringWriter();
+		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
+		Assert.assertEquals("Method,Statistic\nA_VarghaDelaney (A12) test,0.7777777777777778\n",s.toString());
+	}
 	@Test
 	public void testKruskal_Wallis_TestToString()
 	{
@@ -378,8 +376,8 @@ public class TestDrawGraphs {
 		TestParameters par = new TestParameters(null,"Col",new String[]{"a"}, new String[]{"b"});
 		par.rowID = "Row1";w.add(par,"line A");par.rowID = "Row2";w.add(par,"line B");w.reportResults(null);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
-		String line = null;
-		StringBuffer buffer = new StringBuffer();
+		String line;
+		StringBuilder buffer = new StringBuilder();
 		try
 		{
 			while((line=reader.readLine()) != null)
@@ -400,8 +398,8 @@ public class TestDrawGraphs {
 		File output = new File(testDir,"out.csv");
 		CSVExperimentResult w = new CSVExperimentResult(output);w.reportResults(null);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
-		String line = null;
-		StringBuffer buffer = new StringBuffer();
+		String line;
+		StringBuilder buffer = new StringBuilder();
 		try
 		{
 			while((line=reader.readLine()) != null)
@@ -425,8 +423,8 @@ public class TestDrawGraphs {
 		par.rowID = "Row1";w.add(par,"A BCR, A Diff, A states");par.rowID = "Row2";w.add(par,"B BCR, B Diff, B PTA states");w.reportResults(null);
 		
 		BufferedReader reader = new BufferedReader(new FileReader(output));
-		String line = null;
-		StringBuffer buffer = new StringBuffer();
+		String line;
+		StringBuilder buffer = new StringBuilder();
 		try
 		{
 			while((line=reader.readLine()) != null)
@@ -452,8 +450,8 @@ public class TestDrawGraphs {
 		par.rowID = "Row1";w.add(par,"p1,q1");par.rowID = "Row2";w.add(par,"p2,q2");
 		w.reportResults(null);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
-		String line = null;
-		StringBuffer buffer = new StringBuffer();
+		String line;
+		StringBuilder buffer = new StringBuilder();
 		try
 		{
 			while((line=reader.readLine()) != null)
@@ -482,8 +480,8 @@ public class TestDrawGraphs {
 		parB.rowID = "Row1";w.add(parB,"p1,q1");
 		w.reportResults(null);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
-		String line = null;
-		StringBuffer buffer = new StringBuffer();
+		String line;
+		StringBuilder buffer = new StringBuilder();
 		try
 		{
 			while((line=reader.readLine()) != null)
@@ -511,8 +509,8 @@ public class TestDrawGraphs {
 		parB.rowID = "Row1";w.add(parB,"p1,q1");
 		w.reportResults(null);
 		BufferedReader reader = new BufferedReader(new FileReader(output));
-		String line = null;
-		StringBuffer buffer = new StringBuffer();
+		String line;
+		StringBuilder buffer = new StringBuilder();
 		try
 		{
 			while((line=reader.readLine()) != null)
@@ -538,12 +536,10 @@ public class TestDrawGraphs {
 		parA.rowID = "Row1";w.add(parA,"A BCR, A Diff, A states");parA.rowID = "Row2";w.add(parA,"B BCR, B Diff, B PTA states");
 		parB.rowID = "Row1";w.add(parB,"p1,q1");parB.rowID = "Row2";w.add(parB,"p2,q10");
 		
-		final List<String> valueA=new ArrayList<String>(), valueB = new ArrayList<String>();
-		DrawGraphs.spreadsheetAsString(new AggregateStringValues() {
-			@Override
-			public void merge(String A, String B) {
-				valueA.add(A);valueB.add(B);
-			}},w,"Col",1,"Col2",0);
+		final List<String> valueA= new ArrayList<>(), valueB = new ArrayList<>();
+		DrawGraphs.spreadsheetAsString((A, B) -> {
+            valueA.add(A);valueB.add(B);
+        },w,"Col",1,"Col2",0);
 		Assert.assertEquals("[A Diff, B Diff]", valueA.toString());
 		Assert.assertEquals("[p1, p2]", valueB.toString());
 	}
@@ -558,12 +554,10 @@ public class TestDrawGraphs {
 		parA.rowID = "Row1";w.add(parA,"A BCR, A Diff, A states");parA.rowID = "Row2";w.add(parA,"B BCR, B Diff, B PTA states");
 		parB.rowID = "Row1";w.add(parB,"p1,q1");parB.rowID = "Row2";
 		
-		final List<String> valueA=new ArrayList<String>(), valueB = new ArrayList<String>();
-		DrawGraphs.spreadsheetAsString(new AggregateStringValues() {
-			@Override
-			public void merge(String A, String B) {
-				valueA.add(A);valueB.add(B);
-			}},w,"Col",1,"Col2",0);
+		final List<String> valueA= new ArrayList<>(), valueB = new ArrayList<>();
+		DrawGraphs.spreadsheetAsString((A, B) -> {
+            valueA.add(A);valueB.add(B);
+        },w,"Col",1,"Col2",0);
 		Assert.assertEquals("[A Diff, B Diff]", valueA.toString());
 		Assert.assertEquals("[p1, null]", valueB.toString());
 	}
@@ -579,12 +573,10 @@ public class TestDrawGraphs {
 		parA.rowID = "Row1";w.add(parA,"A BCR, 1.5, A states");parA.rowID = "Row2";w.add(parA,"B BCR, 2, B PTA states");
 		parB.rowID = "Row1";w.add(parB,"0.01,q1");parB.rowID = "Row2";w.add(parB,"0.21,q1");
 		
-		final List<Double> valueA=new ArrayList<Double>(), valueB = new ArrayList<Double>();
-		DrawGraphs.spreadsheetAsDouble(new AggregateValues() {
-			@Override
-			public void merge(double A, double B) {
-				valueA.add(A);valueB.add(B);
-			}},w,"Col",1,"Col2",0);
+		final List<Double> valueA= new ArrayList<>(), valueB = new ArrayList<>();
+		DrawGraphs.spreadsheetAsDouble((A, B) -> {
+            valueA.add(A);valueB.add(B);
+        },w,"Col",1,"Col2",0);
 		Assert.assertEquals("[1.5, 2.0]", valueA.toString());
 		Assert.assertEquals("[0.01, 0.21]", valueB.toString());
 	}
@@ -600,12 +592,10 @@ public class TestDrawGraphs {
 		parA.rowID = "Row1";w.add(parA,"A BCR, 1.5, A states");parA.rowID = "Row2";w.add(parA,"B BCR, 2, B PTA states");
 		parB.rowID = "Row1";w.add(parB,"0.01,q1");
 		
-		final List<Double> valueA=new ArrayList<Double>(), valueB = new ArrayList<Double>();
-		DrawGraphs.spreadsheetAsDouble(new AggregateValues() {
-			@Override
-			public void merge(double A, double B) {
-				valueA.add(A);valueB.add(B);
-			}},w,"Col",1,"Col2",0);
+		final List<Double> valueA= new ArrayList<>(), valueB = new ArrayList<>();
+		DrawGraphs.spreadsheetAsDouble((A, B) -> {
+            valueA.add(A);valueB.add(B);
+        },w,"Col",1,"Col2",0);
 		Assert.assertEquals("[1.5]", valueA.toString());
 		Assert.assertEquals("[0.01]", valueB.toString());
 	}
@@ -629,41 +619,32 @@ public class TestDrawGraphs {
 	@Test
 	public void testParseObjectFail0()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.objectAsText(new Object());
-		}},IllegalArgumentException.class,"failed to serialise");
+		checkForCorrectException(() -> DrawGraphs.objectAsText(new Object()),IllegalArgumentException.class,"failed to serialise");
 	}
 	
 	@Test
 	public void testParseObjectFail1()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.parseObject("jj");
-		}},IllegalArgumentException.class,"invalid char");
+		checkForCorrectException(() -> DrawGraphs.parseObject("jj"),IllegalArgumentException.class,"invalid char");
 	}
 	
 	@Test
 	public void testParseObjectFail2()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.parseObject("A");
-		}},IllegalArgumentException.class,"should be even");
+		checkForCorrectException(() -> DrawGraphs.parseObject("A"),IllegalArgumentException.class,"should be even");
 	}
 	
 	@Test
 	public void testParseObjectFail3()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.parseObject("A0");
-		}},IllegalArgumentException.class,"failed to deserialise");
+		checkForCorrectException(() -> DrawGraphs.parseObject("A0"),IllegalArgumentException.class,"failed to deserialise");
 	}
 	
-	@Test
+	@SuppressWarnings("ResultOfMethodCallIgnored")
+    @Test
 	public void testParseObjectFail4()
 	{
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			DrawGraphs.charToHex(400);
-		}},IllegalArgumentException.class,"invalid byte");
+		checkForCorrectException(() -> DrawGraphs.charToHex(400),IllegalArgumentException.class,"invalid byte");
 	}
 	
 	
@@ -713,9 +694,7 @@ public class TestDrawGraphs {
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
-		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
-			w.add(new TestParameters("row","col",new String[]{},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
-		}}, IllegalArgumentException.class,"invalid column header");
+		TestHelper.checkForCorrectException(() -> w.add(new TestParameters("row","col",new String[]{},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d"), IllegalArgumentException.class,"invalid column header");
 	}
 	
 	@Test
@@ -723,9 +702,7 @@ public class TestDrawGraphs {
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
-		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
-			w.add(new TestParameters("row","col",new String[]{"BCR","Diff","States","PTA states"},new String[]{}),"a,b,c,d");
-		}}, IllegalArgumentException.class,"invalid header values for cell");
+		TestHelper.checkForCorrectException(() -> w.add(new TestParameters("row","col",new String[]{"BCR","Diff","States","PTA states"},new String[]{}),"a,b,c,d"), IllegalArgumentException.class,"invalid header values for cell");
 	}
 	
 	/** Number of elements appended does not match the number of the element in supplemental headers. */
@@ -734,9 +711,7 @@ public class TestDrawGraphs {
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
-		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
-			w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c");
-		}}, IllegalArgumentException.class,"the number of values (");
+		TestHelper.checkForCorrectException(() -> w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c"), IllegalArgumentException.class,"the number of values (");
 	}
 	
 	/** Number of elements appended is zero. */
@@ -745,9 +720,7 @@ public class TestDrawGraphs {
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
-		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
-			w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{})," ");
-		}}, IllegalArgumentException.class,"invalid header values");
+		TestHelper.checkForCorrectException(() -> w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{})," "), IllegalArgumentException.class,"invalid header values");
 	}
 	
 	/** Number of elements appended is zero. */
@@ -756,9 +729,7 @@ public class TestDrawGraphs {
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
-		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
-			w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"a"})," ");
-		}}, IllegalArgumentException.class,"empty line added at");
+		TestHelper.checkForCorrectException(() -> w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"a"})," "), IllegalArgumentException.class,"empty line added at");
 	}
 	
 	/** The number of elements in a header between two writes does not match. */
@@ -768,9 +739,7 @@ public class TestDrawGraphs {
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
 		w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
-		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
-			w.add(new TestParameters("row2","col",new String[]{"descr"},new String[]{"BCR","Diff","States"}),"a,b,c");
-		}}, IllegalArgumentException.class,"different values of cell headers");
+		TestHelper.checkForCorrectException(() -> w.add(new TestParameters("row2","col",new String[]{"descr"},new String[]{"BCR","Diff","States"}),"a,b,c"), IllegalArgumentException.class,"different values of cell headers");
 	}
 	
 	/** Duplicate values in cell. */
@@ -780,9 +749,7 @@ public class TestDrawGraphs {
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
 		w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
-		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
-			w.add(new TestParameters("row","col2",new String[]{"descr","descr2"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
-		}}, IllegalArgumentException.class,"with an invalid number of rows in column header");
+		TestHelper.checkForCorrectException(() -> w.add(new TestParameters("row","col2",new String[]{"descr","descr2"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d"), IllegalArgumentException.class,"with an invalid number of rows in column header");
 	}
 	
 	@Test
@@ -790,12 +757,8 @@ public class TestDrawGraphs {
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
-		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
-			w.add(new TestParameters(null,"col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
-		}}, IllegalArgumentException.class,"cannot add a cell without row id");
-		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
-			w.add(new TestParameters("","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
-		}}, IllegalArgumentException.class,"cannot add a cell without row id");
+		TestHelper.checkForCorrectException(() -> w.add(new TestParameters(null,"col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d"), IllegalArgumentException.class,"cannot add a cell without row id");
+		TestHelper.checkForCorrectException(() -> w.add(new TestParameters("","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d"), IllegalArgumentException.class,"cannot add a cell without row id");
 	}
 	
 	@Test
@@ -803,21 +766,17 @@ public class TestDrawGraphs {
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
-		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
-			w.add(new TestParameters("row",null,new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
-		}}, IllegalArgumentException.class,"cannot add a cell without column id");
-		TestHelper.checkForCorrectException(new TestHelper.whatToRun() { public @Override void run() {
-			w.add(new TestParameters("row","",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
-		}}, IllegalArgumentException.class,"cannot add a cell without column id");
+		TestHelper.checkForCorrectException(() -> w.add(new TestParameters("row",null,new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d"), IllegalArgumentException.class,"cannot add a cell without column id");
+		TestHelper.checkForCorrectException(() -> w.add(new TestParameters("row","",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d"), IllegalArgumentException.class,"cannot add a cell without column id");
 	}
 
 	@Test
 	public void testBagPlotToString1()
 	{
-		final List<List<Double>> data = new LinkedList<List<Double>>();
-		data.add(Arrays.asList(new Double[]{4.,5.}));
+		final List<List<Double>> data = new LinkedList<>();
+		data.add(Arrays.asList(4.,5.));
 		Assert.assertEquals("bagplot(c(7.0,7.0),c(4.0,5.0),someOther attrs)",
-				DrawGraphs.datasetToString("bagplot",data, Arrays.asList(new Double[]{7.}),"someOther attrs"));
+				DrawGraphs.datasetToString("bagplot",data, Collections.singletonList(7.),"someOther attrs"));
 	}
 
 	public static void mkDirRetryOnFail(File dir)
@@ -853,17 +812,17 @@ public class TestDrawGraphs {
 	public void testRunRealPlot() throws IOException
 	{
 		final DrawGraphs gr = new DrawGraphs();
-		final List<List<Double>> data = new LinkedList<List<Double>>();
-		data.add(Arrays.asList(new Double[]{4.,5.,5.}));
-		data.add(Arrays.asList(new Double[]{7.,8.,3.}));
+		final List<List<Double>> data = new LinkedList<>();
+		data.add(Arrays.asList(4.,5.,5.));
+		data.add(Arrays.asList(7.,8.,3.));
 		File output = new File(testDir,"out.pdf");
-		gr.drawPlot(Collections.singletonList(DrawGraphs.boxPlotToString(data, Arrays.asList(new String[]{"graphA","graphB"}),null,null)),7,7,output);
+		gr.drawPlot(Collections.singletonList(DrawGraphs.boxPlotToString(data, Arrays.asList("graphA","graphB"),null,null)),7,7,output);
 		
 		BufferedReader reader = new BufferedReader(new FileReader(output));
-		String line = null;
-		List<String> stringsOfInterest = Arrays.asList(new String[]{"Title (R Graphics Output)", "aphA","aphB"});
-		Map<String,Boolean> encounteredStrings = new TreeMap<String,Boolean>();
-		StringBuffer buffer = new StringBuffer();
+		String line;
+		List<String> stringsOfInterest = Arrays.asList("Title (R Graphics Output)", "aphA","aphB");
+		Map<String,Boolean> encounteredStrings = new TreeMap<>();
+		StringBuilder buffer = new StringBuilder();
 		try
 		{
 			while((line=reader.readLine()) != null)
@@ -878,7 +837,7 @@ public class TestDrawGraphs {
 			reader.close();
 		}
 
-		Assert.assertEquals("only found "+encounteredStrings+"\n"+buffer.toString(),stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings
+		Assert.assertEquals("only found "+encounteredStrings+"\n"+ buffer,stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings
 	}
 	
 	@Test
@@ -888,7 +847,7 @@ public class TestDrawGraphs {
 
 		final String X="axisX", Y="axisY";
 		File output = new File(testDir,"out.pdf");
-		RGraph<String> g=new RBoxPlot<String>(X,Y, output);
+		RGraph<String> g= new RBoxPlot<>(X, Y, output);
 		g.add("one",34.,"cyan","lbl");
 		g.add("one",34.);
 		g.add("one",2.,"magenta",null);
@@ -898,10 +857,10 @@ public class TestDrawGraphs {
 		g.reportResults(gr);
 
 		BufferedReader reader = new BufferedReader(new FileReader(output));
-		StringBuffer buffer = new StringBuffer();
-		String line = null;
-		List<String> stringsOfInterest = Arrays.asList(new String[]{"Title (R Graphics Output)", X,Y,"(lb","0.000 0.000 1.000 ","1.000 0.000 1.000 ","0.000 1.000 0.000 ","0.000 0.000 0.000 "});
-		Map<String,Boolean> encounteredStrings = new TreeMap<String,Boolean>();
+		StringBuilder buffer = new StringBuilder();
+		String line;
+		List<String> stringsOfInterest = Arrays.asList("Title (R Graphics Output)", X,Y,"(lb","0.000 0.000 1.000 ","1.000 0.000 1.000 ","0.000 1.000 0.000 ","0.000 0.000 0.000 ");
+		Map<String,Boolean> encounteredStrings = new TreeMap<>();
 		try
 		{
 			while((line=reader.readLine()) != null)
@@ -915,7 +874,7 @@ public class TestDrawGraphs {
 		{
 			reader.close();
 		}
-		Assert.assertEquals("only found "+encounteredStrings+"\n"+buffer.toString(),stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings	
+		Assert.assertEquals("only found "+encounteredStrings+"\n"+ buffer,stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings
 	}
 	
 	@Test
@@ -923,9 +882,7 @@ public class TestDrawGraphs {
 	{
 		final DrawGraphs gr = new DrawGraphs();
 		final File output = new File(testDir,"out.pdf");
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			gr.drawPlot(Collections.singletonList(""),0,1,output);
-		}},IllegalArgumentException.class,"horizontal");
+		checkForCorrectException(() -> gr.drawPlot(Collections.singletonList(""),0,1,output),IllegalArgumentException.class,"horizontal");
 	}
 	
 	@Test
@@ -933,44 +890,36 @@ public class TestDrawGraphs {
 	{
 		final DrawGraphs gr = new DrawGraphs();
 		final File output = new File(testDir,"out.pdf");
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			gr.drawPlot(Collections.singletonList(""),1,0,output);
-		}},IllegalArgumentException.class,"vertical");
+		checkForCorrectException(() -> gr.drawPlot(Collections.singletonList(""),1,0,output),IllegalArgumentException.class,"vertical");
 	}
 	
 	@Test
 	public void testGenerateGraphFail1a()
 	{
-		final RGraph<Integer> g=new RBoxPlot<Integer>("axisX", "axisY", new File("someName"));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			g.getDrawingCommand();
-		}},IllegalArgumentException.class,"empty");
+		final RGraph<Integer> g= new RBoxPlot<>("axisX", "axisY", new File("someName"));
+		checkForCorrectException(g::getDrawingCommand,IllegalArgumentException.class,"empty");
 	}
 	
 	@Test
 	public void testGenerateGraphFail1b()
 	{
 		final RGraph<Double> g=new RBagPlot("axisX", "axisY", new File("someName"));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			g.getDrawingCommand();
-		}},IllegalArgumentException.class,"empty");
+		checkForCorrectException(g::getDrawingCommand,IllegalArgumentException.class,"empty");
 	}
 	
 	@Test
 	public void testGenerateGraphFail2()
 	{
 		final DrawGraphs gr = new DrawGraphs();
-		final RGraph<String> g=new RBoxPlot<String>("axisX", "axisY", new File("someName"));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			g.drawInteractive(gr);
-		}},IllegalArgumentException.class,"empty");
+		final RGraph<String> g= new RBoxPlot<>("axisX", "axisY", new File("someName"));
+		checkForCorrectException(() -> g.drawInteractive(gr),IllegalArgumentException.class,"empty");
 	}
 	
 	@Test
 	public void testGenerateGraph1a()
 	{
 		final String X="axisX", Y="axisY";
-		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
+		RGraph<String> g= new RBoxPlot<>(X, Y, new File("someName"));
 		g.add("one",34.);
 		Assert.assertEquals(Collections.singletonList("boxplot(c(34.0),col=c(\""+DrawGraphs.defaultColour+"\"),xlab=\""+X+"\",ylab=\""+Y+"\")"),g.getDrawingCommand());
 	}
@@ -988,7 +937,7 @@ public class TestDrawGraphs {
 	public void testGenerateGraph2a()
 	{
 		final String X="axisX", Y="axisY";
-		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
+		RGraph<String> g= new RBoxPlot<>(X, Y, new File("someName"));
 		g.add("one",34.);
 		g.add("one",34.);
 		g.add("one",2.);
@@ -1000,7 +949,7 @@ public class TestDrawGraphs {
 	public void testGenerateGraphWithdifferentColours()
 	{
 		final String X="axisX", Y="axisY";
-		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
+		RGraph<String> g= new RBoxPlot<>(X, Y, new File("someName"));
 		g.add("one",34.,"cyan",null);
 		g.add("one",34.);
 		g.add("one",2.,"magenta",null);
@@ -1014,7 +963,7 @@ public class TestDrawGraphs {
 	public void testGenerateGraphWithdifferentColoursAndLabels()
 	{
 		final String X="axisX", Y="axisY";
-		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
+		RGraph<String> g= new RBoxPlot<>(X, Y, new File("someName"));
 		g.add("one",34.,"cyan","lbl");
 		g.add("one",34.);
 		g.add("one",2.,"magenta",null);
@@ -1039,7 +988,7 @@ public class TestDrawGraphs {
 	public void testGenerateGraph3a()
 	{
 		final String X="axisX", Y="axisY";
-		RGraph<String> g=new RBoxPlot<String>(X,Y, new File("someName"));
+		RGraph<String> g= new RBoxPlot<>(X, Y, new File("someName"));
 		g.add("one",34.);
 		g.add("one",34.);
 		g.add("one",2.);
@@ -1145,9 +1094,7 @@ public class TestDrawGraphs {
 		g.setXboundaries(5.5, -34.);
 		g.setYboundaries(5.5, -34.);
 		g.add(5.5,34.);g.add(5.5,34.);g.add(5.5,2.);g.add(7.5,2.);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			g.getDrawingCommand();
-		}},IllegalArgumentException.class,"empty");
+		checkForCorrectException(g::getDrawingCommand,IllegalArgumentException.class,"empty");
 	}
 	
 	@Test
@@ -1158,9 +1105,7 @@ public class TestDrawGraphs {
 		g.setXboundaries(5.5, -34.);
 		g.setYboundaries(5.5, -34.);
 		g.add(5.5,34.);g.add(5.5,34.);g.add(5.5,2.);g.add(7.5,2.);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			g.getDrawingCommand();
-		}},IllegalArgumentException.class,"empty");
+		checkForCorrectException(g::getDrawingCommand,IllegalArgumentException.class,"empty");
 		
 	}
 	
@@ -1170,9 +1115,7 @@ public class TestDrawGraphs {
 		final String X="axisX", Y="axisY";
 		final RBagPlot g=new RBagPlot(X,Y, new File("someName"));
 		g.add(5.5,34.);g.add(5.5,35.);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			g.computeDiagonal();
-		}},IllegalArgumentException.class,"width is too small");
+		checkForCorrectException(g::computeDiagonal,IllegalArgumentException.class,"width is too small");
 		
 	}	
 	
@@ -1182,9 +1125,7 @@ public class TestDrawGraphs {
 		final String X="axisX", Y="axisY";
 		final RBagPlot g=new RBagPlot(X,Y, new File("someName"));
 		g.add(5.6,35.);g.add(5.5,35.);
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			g.computeDiagonal();
-		}},IllegalArgumentException.class,"height is too small");
+		checkForCorrectException(g::computeDiagonal,IllegalArgumentException.class,"height is too small");
 		
 	}
 	
@@ -1203,7 +1144,7 @@ public class TestDrawGraphs {
 		final String X="axisX", Y="axisY";
 		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,true);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
-		Assert.assertEquals(Arrays.asList(new String[]{"bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0))","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")", "abline(0,1)"}),
+		Assert.assertEquals(Arrays.asList("bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0))","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")", "abline(0,1)"),
 				g.getDrawingCommand());
 	}
 	
@@ -1213,7 +1154,7 @@ public class TestDrawGraphs {
 		final String X="axisX", Y="axisY";
 		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,false);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
-		Assert.assertEquals(Arrays.asList(new String[]{"bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0))","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")"}),
+		Assert.assertEquals(Arrays.asList("bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0))","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")"),
 				g.getDrawingCommand());
 	}
 	
@@ -1224,14 +1165,14 @@ public class TestDrawGraphs {
 		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,true);
 		g.setLimit(30000);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
-		Assert.assertEquals(Arrays.asList(new String[]{"bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),approx.limit=30000)","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")", "abline(0,1)"}),
+		Assert.assertEquals(Arrays.asList("bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),approx.limit=30000)","plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0),xlab=\"axisX\",ylab=\"axisY\")", "abline(0,1)"),
 				g.getDrawingCommand());
 	}
 
 
 	public static String arrayToString(List<String> a)
 	{
-		StringBuffer outcome = new StringBuffer();
+		StringBuilder outcome = new StringBuilder();
 		boolean first = true;
 		for(String s:a)
 		{
@@ -1251,7 +1192,7 @@ public class TestDrawGraphs {
 		final ScatterPlot plot = new ScatterPlot("x axis", "y axis", new File("plotName"));
 		
 		plot.add(0, 0, "red");plot.add(1, 0, "red");plot.add(0, 1, "red");plot.add(1, 1, "red");
-		Assert.assertEquals(arrayToString(Arrays.asList(new String[]{"plot(c(0.0,1.0,0.0,1.0),c(0.0,0.0,1.0,1.0),type = \"p\",col=\"red\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)"})),arrayToString(plot.getDrawingCommand()));
+		Assert.assertEquals(arrayToString(Collections.singletonList("plot(c(0.0,1.0,0.0,1.0),c(0.0,0.0,1.0,1.0),type = \"p\",col=\"red\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)")),arrayToString(plot.getDrawingCommand()));
 	}
 	
 	@Test
@@ -1261,22 +1202,18 @@ public class TestDrawGraphs {
 		
 		plot.add(0, 0, "red");plot.add(1, 0, "red");plot.add(0, 1, "red");plot.add(1, 1, "red");
 		plot.add(0, 0.5, "blue");plot.add(1.5, 0, "green");plot.add(0, 1.5, "blue");plot.add(1.2, 1, "red");
-		Assert.assertEquals(arrayToString(Arrays.asList(new String[]{
-				"plot(c(0.0,0.0),c(0.5,1.5),type = \"p\",col=\"blue\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)",
-				"par(new=TRUE)",
-				"plot(c(1.5),c(0.0),type = \"p\",col=\"green\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)",
-				"par(new=TRUE)",
-				"plot(c(0.0,1.0,0.0,1.0,1.2),c(0.0,0.0,1.0,1.0,1.0),type = \"p\",col=\"red\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)"				
-		})),arrayToString(plot.getDrawingCommand()));
+		Assert.assertEquals(arrayToString(Arrays.asList("plot(c(0.0,0.0),c(0.5,1.5),type = \"p\",col=\"blue\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)",
+                "par(new=TRUE)",
+                "plot(c(1.5),c(0.0),type = \"p\",col=\"green\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)",
+                "par(new=TRUE)",
+                "plot(c(0.0,1.0,0.0,1.0,1.2),c(0.0,0.0,1.0,1.0,1.0),type = \"p\",col=\"red\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)")),arrayToString(plot.getDrawingCommand()));
 	}
 	
 	@Test
 	public void testDrawingScatterFail()
 	{
 		final ScatterPlot plot = new ScatterPlot("x axis", "y axis", new File("plotName"));
-		checkForCorrectException(new whatToRun() { public @Override void run() {
-			plot.getDrawingCommand();
-		}},IllegalArgumentException.class,"empty");
+		checkForCorrectException(plot::getDrawingCommand,IllegalArgumentException.class,"empty");
 	}
 
 	@Test
@@ -1292,10 +1229,10 @@ public class TestDrawGraphs {
 		plot.reportResults(gr);
 		
 		BufferedReader reader = new BufferedReader(new FileReader(output));
-		String line = null;
-		List<String> stringsOfInterest = Arrays.asList(new String[]{"Title (R Graphics Output)", X,Y});
-		Map<String,Boolean> encounteredStrings = new TreeMap<String,Boolean>();
-		StringBuffer buffer = new StringBuffer();
+		String line;
+		List<String> stringsOfInterest = Arrays.asList("Title (R Graphics Output)", X,Y);
+		Map<String,Boolean> encounteredStrings = new TreeMap<>();
+		StringBuilder buffer = new StringBuilder();
 		try
 		{
 			while((line=reader.readLine()) != null)
@@ -1310,107 +1247,104 @@ public class TestDrawGraphs {
 			reader.close();
 		}
 
-		Assert.assertEquals("only found "+encounteredStrings+"\n"+buffer.toString(),stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings
+		Assert.assertEquals("only found "+encounteredStrings+"\n"+ buffer,stringsOfInterest.size(),encounteredStrings.size());// ensure that we find all our strings
 	}
 
 
 	@Test
 	public final void testBuildStringMapFromPairs1()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
-		
-		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
-		})));
+		assertTrue(buildStringMapFromStringPairs(new String[][]{}).isEmpty());
 	}
 	
 	@Test
 	public final void testBuildStringMapFromPairs2()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
-				new String[]{"a","value2"},
-				new String[]{"b","value3"}
-		})));
+
+        assertEquals(expectedResult, buildStringMapFromStringPairs(new String[][]{
+                new String[]{"a", "value2"},
+                new String[]{"b", "value3"}
+        }));
 	}
 	
 	@Test
 	public final void testBuildStringMapFromPairs3()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
-				new String[]{"strC","value2"},
-				new String[]{"a","value1"},
-				new String[]{"b","value3"}
-		})));
+
+        assertEquals(expectedResult, buildStringMapFromStringPairs(new String[][]{
+                new String[]{"strC", "value2"},
+                new String[]{"a", "value1"},
+                new String[]{"b", "value3"}
+        }));
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public final void testBuildStringMapFromPairs4()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
-				new String[]{"strC","value1"},
-				new String[]{"a"},// an invalid sequence
-				new String[]{"b","value3"}
-		})));
+
+        assertEquals(expectedResult, buildStringMapFromStringPairs(new String[][]{
+                new String[]{"strC", "value1"},
+                new String[]{"a"},// an invalid sequence
+                new String[]{"b", "value3"}
+        }));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public final void testBuildStringMapFromPairs5()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
-				new String[]{"strC","value1"},
-				new String[]{},// an invalid sequence - too few elements
-				new String[]{"b","value3"}
-		})));
+
+        assertEquals(expectedResult, buildStringMapFromStringPairs(new String[][]{
+                new String[]{"strC", "value1"},
+                new String[]{},// an invalid sequence - too few elements
+                new String[]{"b", "value3"}
+        }));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public final void testBuildStringMapFromPairs6()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
-				new String[]{"strC","value1"},
-				new String[]{"a","c","d"},// an invalid sequence - too many elements
-				new String[]{"b","value3"}
-		})));
+
+        assertEquals(expectedResult, buildStringMapFromStringPairs(new String[][]{
+                new String[]{"strC", "value1"},
+                new String[]{"a", "c", "d"},// an invalid sequence - too many elements
+                new String[]{"b", "value3"}
+        }));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public final void testBuildStringMapFromPairs7()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
-				new String[]{"strC","value1"},
-				new String[]{null,"value"},// an invalid sequence - null in the first element
-				new String[]{"b","value3"}
-		})));
+
+        assertEquals(expectedResult, buildStringMapFromStringPairs(new String[][]{
+                new String[]{"strC", "value1"},
+                new String[]{null, "value"},// an invalid sequence - null in the first element
+                new String[]{"b", "value3"}
+        }));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public final void testBuildStringMapFromPairs8()
 	{
-		Map<String,String> expectedResult = new HashMap<String,String>();
+		Map<String,String> expectedResult = new HashMap<>();
 		expectedResult.put("a","value1");expectedResult.put("strC","value2");expectedResult.put("b","value3");
-		
-		assertTrue(expectedResult.equals(buildStringMapFromStringPairs(new String[][]{
-				new String[]{"strC","value1"},
-				new String[]{"a", null},// an invalid sequence - null in the second element
-				new String[]{"b",null}
-		})));
+
+        assertEquals(expectedResult, buildStringMapFromStringPairs(new String[][]{
+                new String[]{"strC", "value1"},
+                new String[]{"a", null},// an invalid sequence - null in the second element
+                new String[]{"b", null}
+        }));
 	}
 
 }

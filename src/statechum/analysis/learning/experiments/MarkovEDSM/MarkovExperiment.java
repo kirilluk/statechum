@@ -40,7 +40,7 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Label;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.Learner;
-import statechum.analysis.learning.DrawGraphs.Wilcoxon;
+import statechum.analysis.learning.DrawGraphs.WilcoxonPairedTest;
 import statechum.analysis.learning.DrawGraphs.Mann_Whitney_U_Test;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
@@ -102,7 +102,10 @@ public class MarkovExperiment
 		public void generateReferenceFSM()
 		{
 			final int alphabet = (int)(par.alphabetMultiplier*par.states);
-			final double density = (double) (par.states * par.perStateSquaredDensityMultipliedBy10) /10;
+			// density refers to the number of transitions per state. It is defined as a multiplier of a number
+			// of states because we would like 100% to refer to a fully-connected graph (which is hence useless
+			// as it accepts everything).
+			final double density = (double) (par.states * par.perStateSquaredDensityMultipliedBy100) / 100;
 			MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
 			
 			try {
@@ -423,12 +426,12 @@ public class MarkovExperiment
 		
 		DrawGraphs gr = new DrawGraphs();
 		
-		final int samplesPerFSM = 20;
-		final int trainingSamplesPerFSM = 2;
+		final int fsmSamplesPerStateNumber = 20;
+		final int trainingSamplesPerFSM = 4;
 		final double traceLengthMultiplierMax = 16;
 		final int chunkSize = 3;
 		final boolean pathsOrSets = true;
-		final int[] statesToUse = new int[]{10,20,40};
+		final int[] statesToUse = new int[]{10};
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		
 		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
@@ -548,23 +551,23 @@ public class MarkovExperiment
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
 		for(final int preset: new int[]{0})//0,1,2})
 		{
-			for(final int traceQuantityToUse:new int[]{1,2,4,8})
+			for(final int traceQuantityToUse:new int[]{1,2,4})
 			{
 				int seedForFSM = 0;
 
 				for(int states:statesToUse)
-					for(int perStateSquaredDensity10:new int[] {0,3})
+					for(int perStateSquaredDensity100:new int[] {0,30})
 					{
-						for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
+						for(int sample=0;sample<fsmSamplesPerStateNumber;++sample,++seedForFSM)
 							for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 								for(boolean aveOrMax:new boolean[]{false})
 									for(double traceLengthMultiplier:new double[] {1,4,16})
 										for(ScoringToApply learnerKind:
-												preset > 0?
+												preset == 0?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
 													new ScoringToApply[]{
 														ScoringToApply.SCORING_MARKOV,
-														ScoringToApply.SCORING_EDSM, ScoringToApply.SCORING_EDSM_2,
-														ScoringToApply.SCORING_PTAK_1, ScoringToApply.SCORING_SICCO
+														ScoringToApply.SCORING_EDSM, ScoringToApply.SCORING_EDSM_2, ScoringToApply.SCORING_EDSM_4,
+														ScoringToApply.SCORING_PTAK_1, ScoringToApply.SCORING_PTAK_2, ScoringToApply.SCORING_SICCO
 													}:
 													new ScoringToApply[]{
 														ScoringToApply.SCORING_MARKOV,
@@ -579,7 +582,7 @@ public class MarkovExperiment
 														ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 														ev.config.setOverride_usePTAMerging(false);
 
-														MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplierMax, perStateSquaredDensity10, sample,trainingSample, seedForFSM);
+														MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplierMax, perStateSquaredDensity100, sample,trainingSample, seedForFSM);
 														parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
 														parameters.setTraceLengthMultiplier(traceLengthMultiplier);
 														parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
@@ -643,8 +646,8 @@ public class MarkovExperiment
 				final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_kt_bcr.pdf"),0.5,1,true);		
 				final SquareBagPlot BCRAgainstMarkov = new SquareBagPlot("BCR, Markov","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_markov_bcr.pdf"),0.5,1,true);		
 
-				final Wilcoxon Wilcoxon_test_Structural=new Wilcoxon(new File(experimentName +"Wilcoxon_t_str.csv"));		 
-				final Wilcoxon Wilcoxon_Test_BCR=new Wilcoxon(new File(experimentName +"Wilcoxon_t_bcr.csv"));		 
+				final WilcoxonPairedTest Wilcoxon_test_Structural=new WilcoxonPairedTest(new File(experimentName +"Wilcoxon_t_str.csv"));
+				final WilcoxonPairedTest Wilcoxon_Test_BCR=new WilcoxonPairedTest(new File(experimentName +"Wilcoxon_t_bcr.csv"));
 				final Mann_Whitney_U_Test Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test(new File(experimentName +"Mann_Whitney_U_Test_BCR.csv"));		 
 				final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test(new File(experimentName +"Whitney_U_Test_str.csv"));		 
 				final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 

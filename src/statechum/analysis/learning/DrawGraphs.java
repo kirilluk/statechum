@@ -54,7 +54,7 @@
  *
  * Installation of the above on MacOSX and Win32:
  *
- * install.packages(c("JavaGD","rJava","aplpack"))
+ * install.packages(c("JavaGD","rJava","aplpack","ufs"))
  * On MacOS, tcltk is a special download which installs into /usr/local.
  *
  * Where R is install from Macports, I need to installed both as follows:
@@ -82,6 +82,10 @@
  * and the likes of  C:\Program Files\R\R-4.2.0\bin\x64 needs to be on the path (which is part of IdeaJ run
  * configuration) otherwise jri.dll fails to load. Interesting to note that although jri.dll depends on JVM.dll
  * (according to depends 2.2), I do not need to include a path to JDK, presumably because IdeaJ does it itself.
+ *
+ * On Windows as of Apr 2026, the latest usable version of R is 4.3.3 because 4.4 and later
+ * pull a broken version or jri: rJava does not include JRI.jar and jri.dll,
+ * whereas R-4.2 fails to install the ufs package for A12 statistics.
  */
 
 
@@ -1485,7 +1489,7 @@ public class DrawGraphs {
 			if (valuesA.size() != valuesB.size()) throw new IllegalArgumentException(" 'x' and 'y' must have the same length");
 
 			StringBuilder result = new StringBuilder();
-			result.append(variableName).append("=").append(testName).append(".test(");
+			result.append(variableName).append("=").append(testName).append("(");
 			
 			result.append(vectorToR(valuesA,false));
 			result.append(",");
@@ -1649,10 +1653,10 @@ public class DrawGraphs {
 		}
 	}
 
-	public static class Wilcoxon extends RStatisticalAnalysis
+	public static class WilcoxonPairedTest extends RStatisticalAnalysis
 	{
-		public Wilcoxon(File name) {
-			super("wilcox","paired=TRUE", name);
+		public WilcoxonPairedTest(File name) {
+			super("wilcox.test","paired=TRUE", name);
 		}
 
 		@Override
@@ -1674,7 +1678,7 @@ public class DrawGraphs {
 	public static class Mann_Whitney_U_Test extends RStatisticalAnalysis
 	{
 		public Mann_Whitney_U_Test(File name) {
-			super("wilcox",null, name);
+			super("wilcox.test",null, name);
 		}
 
 		@Override
@@ -1690,10 +1694,56 @@ public class DrawGraphs {
 		}
 	}
 
+	public static class A_VarghaDelaney extends RStatisticalAnalysis
+	{
+		public A_VarghaDelaney(File name) {
+			super("ufs::A_VarghaDelaney",null, name);
+		}
+
+		@Override
+		public String [] getMethodNames() {	return new String[] {"A_VarghaDelaney (A12) test"};	}
+
+		public void writeHeaderToFile(Writer writer) throws IOException
+		{
+			writer.append("Method");
+			writeSeparator(writer);
+			writer.append("Statistic");
+		}
+
+		public void writeMainData(StatisticalTestResult o, Writer writer) throws IOException
+		{
+			writer.append(getMethodNames()[0]);// use the first of the method names
+			writeSeparator(writer);
+			writer.append(String.valueOf(o.statistic));
+		}
+
+		/** Requests results of statistical analysis from R. */
+		public StatisticalTestResult obtainResultFromR() {
+			List<String> drawingCommands = new LinkedList<>();
+			drawingCommands.addAll(getDrawingCommand());
+			drawingCommands.addAll(extraCommands);
+
+			StatisticalTestResult STR = new StatisticalTestResult();
+			for (String cmd : drawingCommands)
+				eval(cmd, "failed to run " + cmd);
+			STR.statistic = StatisticalTestResult.valueAsDouble(engine.eval(variableName));
+			return STR;
+		}
+
+		@Override
+		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException
+		{
+			writeHeaderToFile(writer);
+			writeEndl(writer);
+			writeMainData(result, writer);
+			writeEndl(writer);
+		}
+	}
+
 	public static class Kruskal_Wallis extends RStatisticalAnalysis
 	{
 		public Kruskal_Wallis(File name) {
-			super("kruskal",null, name);
+			super("kruskal.test",null, name);
 		}
 
 		@Override

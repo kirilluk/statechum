@@ -75,6 +75,7 @@ public class Smt {
 		if (libraryLoaded == LibraryLoadResult.NOT_ATTEMPTED)
 		{
 			UnsatisfiedLinkError ex = LSolver.tryLoading("cygSMT_Yices-1");
+			if (ex != null) ex = LSolver.tryLoading("StatechumSmt");
 			if (ex != null) ex = LSolver.tryLoading("SMT_Yices");
 			if (ex != null) ex = LSolver.tryLoading("libSMT_Yices");
 

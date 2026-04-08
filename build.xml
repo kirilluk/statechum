@@ -22,6 +22,16 @@ lack of tracking dependencies between Java files.
   <property name="test_dir" location="."/>
   <property name="statechum_bin" location="bin"/>
 <!--  <property name="ant.build.javac.source" value="8"/> -->
+
+  <!-- Thanks to https://stackoverflow.com/questions/1618493/ant-1-6-5-how-to-set-two-properties-in-one-condition-or-if -->
+  <property environment="env"/>
+  <condition property="rtool_path" value="${env.JRI_PATH}">
+	<isset property="env.JRI_PATH"/>
+  </condition>
+  <condition property="rpath" value="${env.R_HOME}">
+	<isset property="env.R_HOME"/>
+  </condition>
+  <!-- default values -->
   <property name="rtool_path" value="/usr/local/lib/R/site-library/rJava/jri"/>
   <property name="rpath" value="/usr/lib/R"/>
   <property name="LTL2BA" value="lib/ltl2ba-1.1/ltl2ba"/>
@@ -134,6 +144,71 @@ lack of tracking dependencies between Java files.
    </target>
 
   <target name="test" depends="compileTests" description="run unit tests">
+	   <echo>Runs fast tests, invoke with lengthytests to also run lengthy tests</echo>
+  	   <echo>This will always fail on any 32-bit OS because max memory is set too high, but will work on 64-bit platforms that have at least 10GB of RAM</echo>
+  	   <echo>Assumes that R is installed in ${rpath} and jri shared library is in ${rtool_path}</echo>  	   
+       <junit  fork="on" maxmemory="8000m" forkmode="once" printsummary="yes" haltonfailure="no" dir="${test_dir}" >
+		<assertions>
+        	<enable/>
+      	</assertions>
+      	<env key="R_HOME" value="${rpath}"/>
+    	<!-- <jvmarg value="-XX:+CITime"/> -->
+       	<jvmarg value="-ea"/>
+    	<jvmarg value="-XX:+UseCompressedOops"/>
+       	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
+       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
+       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs:${rtool_path}"/>
+
+       	<sysproperty key="threadnum" value="4"/>
+       	<sysproperty key="ASSERT_ENABLED" value="true"/>
+       	<sysproperty key="SMTWARNINGS" value="true"/>
+       	<sysproperty key="LINEARWARNINGS" value="true"/>
+	<sysproperty key="ERLANGOUTPUT_ENABLED" value="true"/>
+       	<sysproperty key="FORCEFORK" value="true"/>
+	<sysproperty key="LTL2BA" value="${LTL2BA}"/>
+	<sysproperty key="com.sun.management.jmxremote" value="" />
+       	<classpath>
+         	<path refid="classpath.statechum" />
+         </classpath>
+       	
+       	<formatter type="plain"/>
+       	<test name="statechum.FastTests" />
+	</junit>
+  </target>
+  <target name="singletest" depends="compileTests" description="run unit tests">
+	   <echo>Runs fast tests, invoke with lengthytests to also run lengthy tests</echo>
+  	   <echo>This will always fail on any 32-bit OS because max memory is set too high, but will work on 64-bit platforms that have at least 10GB of RAM</echo>
+  	   <echo>Assumes that R is installed in ${rpath} and jri shared library is in ${rtool_path}</echo>  	   
+       <junit  fork="on" maxmemory="8000m" forkmode="once" printsummary="yes" haltonfailure="no" dir="${test_dir}" >
+		<assertions>
+        	<enable/>
+      	</assertions>
+      	<env key="R_HOME" value="${rpath}"/>
+    	<!-- <jvmarg value="-XX:+CITime"/> -->
+       	<jvmarg value="-ea"/>
+    	<jvmarg value="-XX:+UseCompressedOops"/>
+       	<jvmarg value="-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n" />
+       	<!-- from http://stackoverflow.com/questions/1159333/how-do-i-set-the-java-library-path-from-a-java-task -->
+       	<sysproperty key="java.library.path" value="linear/.libs:smt/.libs:${rtool_path}"/>
+
+       	<sysproperty key="threadnum" value="4"/>
+       	<sysproperty key="ASSERT_ENABLED" value="true"/>
+       	<sysproperty key="SMTWARNINGS" value="true"/>
+       	<sysproperty key="LINEARWARNINGS" value="true"/>
+	<sysproperty key="ERLANGOUTPUT_ENABLED" value="true"/>
+       	<sysproperty key="FORCEFORK" value="true"/>
+	<sysproperty key="LTL2BA" value="${LTL2BA}"/>
+	<sysproperty key="com.sun.management.jmxremote" value="" />
+       	<classpath>
+         	<path refid="classpath.statechum" />
+         </classpath>
+       	
+       	<formatter type="plain"/>
+       	<test name="statechum.analysis.Erlang.TestSynapse" />
+	</junit>
+  </target>
+
+  <target name="lengthytest" depends="test" description="run lengthy unit tests">
   	   <echo>This will always fail on any 32-bit OS because max memory is set too high, but will work on 64-bit platforms that have at least 32GB of RAM</echo>
   	   <echo>Assumes that R is installed in ${rpath} and jri shared library is in ${rtool_path}</echo>  	   
        <junit  fork="on" maxmemory="20000m" forkmode="once" printsummary="yes" haltonfailure="no" dir="${test_dir}" >
@@ -153,6 +228,7 @@ lack of tracking dependencies between Java files.
        	<sysproperty key="SMTWARNINGS" value="true"/>
        	<sysproperty key="LINEARWARNINGS" value="true"/>
        	<sysproperty key="FORCEFORK" value="true"/>
+	<sysproperty key="LTL2BA" value="${LTL2BA}"/>
 		<sysproperty key="com.sun.management.jmxremote" value="" />
        	<classpath>
          	<path refid="classpath.statechum" />
@@ -180,7 +256,7 @@ lack of tracking dependencies between Java files.
     </fileset>
   </batchtest>
 -->
-       	<test name="statechum.AllTests" />
+       	<test name="statechum.AllTests.LengthyTests" />
 <!--
 	<test name="statechum.analysis.learning.experiments.TestExperimentRunner" />
 -->
@@ -241,15 +317,15 @@ lack of tracking dependencies between Java files.
        	<sysproperty key="java.library.path" value="linear/.libs"/>
        	<sysproperty key="VIZ_CONFIG" value="config_systemtests.xml"/>
        	<sysproperty key="threadnum" value="4"/>
-		<sysproperty key="com.sun.management.jmxremote" value="" />
+	<sysproperty key="com.sun.management.jmxremote" value="" />
        	<sysproperty key="ASSERT_ENABLED" value="true"/>
        	<sysproperty key="SMTWARNINGS" value="true"/>
        	<sysproperty key="LINEARWARNINGS" value="true"/>
        	<sysproperty key="FORCEFORK" value="true"/>
-		<sysproperty key="ERLANGOUTPUT_ENABLED" value="true" />
+	<sysproperty key="ERLANGOUTPUT_ENABLED" value="true" />
       	<classpath>
-         	<path refid="classpath.statechum" />
-         	<pathelement location="${statechum_bin}"/>
+         <path refid="classpath.statechum" />
+         <pathelement location="${statechum_bin}"/>
          </classpath>
 
        	<formatter type="plain"/>
@@ -262,7 +338,7 @@ lack of tracking dependencies between Java files.
 	
 	 <target name="diag" depends="compileStatechum" description="run unit tests">
 	  	   <echo>This will fail on any 32-bit OS because max memory is set too high, but will work on most 64-bit platforms</echo>
-	        <java  fork="on" maxmemory="8192m"  classname="statechum.analysis.learning.rpnicore.TestGD_ExistingGraphsNDUsingTestSet">
+	        <java  fork="on" maxmemory="8192m"  classname="statechum.analysis.Erlang.TestSynapse">
 		<assertions>
 	        	<enable/>
 	      	</assertions>
@@ -277,7 +353,8 @@ lack of tracking dependencies between Java files.
            	<sysproperty key="SMTWARNINGS" value="true"/>
            	<sysproperty key="LINEARWARNINGS" value="true"/>
            	<sysproperty key="FORCEFORK" value="true"/>
-			<sysproperty key="com.sun.management.jmxremote" value="" />
+		<sysproperty key="ERLANGOUTPUT_ENABLED" value="true" />
+		<sysproperty key="com.sun.management.jmxremote" value="" />
 	       	<classpath>
 	         	<path refid="classpath.statechum" />
 	         	<pathelement location="${statechum_bin}"/>

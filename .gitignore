@@ -14,6 +14,7 @@ ErlangExamples/locker/*.plt
 ErlangExamples/frequency/*.beam
 ErlangExamples/frequency/*.plt
 
+linear/build/
 linear/.deps/
 linear/Makefile
 linear/Makefile.in
@@ -31,6 +32,7 @@ linear/m4/ltversion.m4
 linear/m4/lt~obsolete.m4
 linear/umfsolver.lo
 
+smt/build/
 smt/.deps/
 smt/Makefile
 smt/Makefile.in

@@ -22,6 +22,8 @@ import static statechum.TestHelper.checkForCorrectException;
 import java.io.File;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -357,9 +359,15 @@ public class TestSynapse {
 
 	protected static String getJavaBinDir() {
 		// Thanks to https://stackoverflow.com/questions/227486/find-where-java-class-is-loaded-from
-		return Configuration.class.getResource("/" + Configuration.class.getCanonicalName().replace(".", "/") + ".class").toString().
-				replace(Configuration.class.getSimpleName()+".class","").replace("file:/","")+"..";
+               	String tentativePath = Configuration.class.getResource("/" + Configuration.class.getCanonicalName().replace(".", "/") + ".class").toString().
+                   replace(Configuration.class.getSimpleName()+".class","").replace("file:/","")+"..";
 
+               	if (Files.exists(Paths.get(tentativePath)))
+                       return tentativePath;
+		// this could be an absolute path without a '/' at the start, try this
+		String correctedTentativePath = "/"+tentativePath;
+               	Assert.assertTrue(Files.exists(Paths.get(correctedTentativePath)));
+               	return correctedTentativePath;
 	}
 
 	/** Starts Synapse and returns the associated pid. */

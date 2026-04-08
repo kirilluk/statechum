@@ -54,7 +54,7 @@
  *
  * Installation of the above on MacOSX and Win32:
  *
- * install.packages(c("JavaGD","rJava","aplpack"))
+ * install.packages(c("JavaGD","rJava","aplpack","ufs"))
  * On MacOS, tcltk is a special download which installs into /usr/local.
  *
  * Where R is install from Macports, I need to installed both as follows:
@@ -82,6 +82,10 @@
  * and the likes of  C:\Program Files\R\R-4.2.0\bin\x64 needs to be on the path (which is part of IdeaJ run
  * configuration) otherwise jri.dll fails to load. Interesting to note that although jri.dll depends on JVM.dll
  * (according to depends 2.2), I do not need to include a path to JDK, presumably because IdeaJ does it itself.
+ *
+ * On Windows as of Apr 2026, the latest usable version of R is 4.3.3 because 4.4 and later
+ * pull a broken version or jri: rJava does not include JRI.jar and jri.dll,
+ * whereas R-4.2 fails to install the ufs package for A12 statistics.
  */
 
 
@@ -113,6 +117,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import static java.lang.Math.round;
 
 import javax.swing.SwingUtilities;
 
@@ -128,6 +133,7 @@ import statechum.StatechumXML.StringSequenceWriter;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
+
 
 public class DrawGraphs {
 	/** Determines whether our callbacks are dummies (without a main loop) or active (main loop running).
@@ -656,7 +662,7 @@ public class DrawGraphs {
 				throw new IllegalArgumentException("the number of values ("+elements.length+") passed via \""+Arrays.asList(elements)+"\" does not match those ("+id.headerValuesForEachCell().length+") in id.headerValuesForEachCell()=\""+Arrays.asList(id.headerValuesForEachCell())+"\"");
 			if (id.executionTimeInCell() >= 0)
 			{
-				elements[id.executionTimeInCell()]=Integer.toString((int)Math.round(Integer.parseInt(elements[id.executionTimeInCell()])/LearningSupportRoutines.getFreqCorrectionValue()));// a rather long-winded way to scale execution time.
+				elements[id.executionTimeInCell()]=Integer.toString((int) round(Integer.parseInt(elements[id.executionTimeInCell()])/LearningSupportRoutines.getFreqCorrectionValue()));// a rather long-winded way to scale execution time.
 			}
 			w.append(concatenateWithSeparator(elements));
 			outputWriter.write(w.toString());
@@ -1485,7 +1491,7 @@ public class DrawGraphs {
 			if (valuesA.size() != valuesB.size()) throw new IllegalArgumentException(" 'x' and 'y' must have the same length");
 
 			StringBuilder result = new StringBuilder();
-			result.append(variableName).append("=").append(testName).append(".test(");
+			result.append(variableName).append("=").append(testName).append("(");
 			
 			result.append(vectorToR(valuesA,false));
 			result.append(",");
@@ -1649,10 +1655,10 @@ public class DrawGraphs {
 		}
 	}
 
-	public static class Wilcoxon extends RStatisticalAnalysis
+	public static class WilcoxonPairedTest extends RStatisticalAnalysis
 	{
-		public Wilcoxon(File name) {
-			super("wilcox","paired=TRUE", name);
+		public WilcoxonPairedTest(File name) {
+			super("wilcox.test","paired=TRUE", name);
 		}
 
 		@Override
@@ -1674,7 +1680,7 @@ public class DrawGraphs {
 	public static class Mann_Whitney_U_Test extends RStatisticalAnalysis
 	{
 		public Mann_Whitney_U_Test(File name) {
-			super("wilcox",null, name);
+			super("wilcox.test",null, name);
 		}
 
 		@Override
@@ -1690,10 +1696,86 @@ public class DrawGraphs {
 		}
 	}
 
+	public static class A_VarghaDelaney extends RStatisticalAnalysis
+	{
+		protected int confidenceValuesNumber = 0;
+		/** Creates a file with results, including confidence values.
+		 *
+		 * @param name output file name
+		 * @param confidenceBootstrapSamples number of samples to use for computation of confidence.
+		 *                                   Zero means no values. Minimum is 100 (according to the error from
+		 *                                   A_VarghaDelaney when I provide a lower number).
+		 */
+		public A_VarghaDelaney(File name, int confidenceBootstrapSamples) {
+			super("ufs::A_VarghaDelaney",(confidenceBootstrapSamples > 0)?String.valueOf(confidenceBootstrapSamples):null, name);
+			confidenceValuesNumber = confidenceBootstrapSamples;
+			if (confidenceBootstrapSamples < 0)
+				throw new IllegalArgumentException("confidenceBootstrapSamples has to be non-negative, zero for no confidence interval reporting");
+		}
+
+		@Override
+		public String [] getMethodNames() {	return new String[] {"A_VarghaDelaney (A12) test"+(confidenceValuesNumber>0?" ("+confidenceValuesNumber+")":"")};	}
+
+		public void writeHeaderToFile(Writer writer) throws IOException
+		{
+			writer.append("Method");
+			writeSeparator(writer);
+			writer.append("Statistic");
+			if (confidenceValuesNumber > 0) {
+				writeSeparator(writer);
+				writer.append("confidence_lo");
+				writeSeparator(writer);
+				writer.append("confidence_high");
+			}
+		}
+
+		public void writeMainData(StatisticalTestResult o, Writer writer) throws IOException
+		{
+			writer.append(getMethodNames()[0]);// use the first of the method names
+			writeSeparator(writer);
+			writer.append(String.valueOf(o.statistic));
+			if (confidenceValuesNumber > 0) {
+				writeSeparator(writer);
+				writer.append(String.valueOf(round(o.confidence_lo)));
+				writeSeparator(writer);
+				writer.append(String.valueOf(round(o.confidence_hi)));
+			}
+		}
+
+		/** Requests results of statistical analysis from R. */
+		public StatisticalTestResult obtainResultFromR() {
+			List<String> drawingCommands = new LinkedList<>();
+			drawingCommands.addAll(getDrawingCommand());
+			drawingCommands.addAll(extraCommands);
+
+			StatisticalTestResult STR = new StatisticalTestResult();
+			for (String cmd : drawingCommands)
+				eval(cmd, "failed to run " + cmd);
+			if (confidenceValuesNumber == 0)
+				STR.statistic = StatisticalTestResult.valueAsDouble(engine.eval(variableName));
+			else
+			{
+				STR.statistic = StatisticalTestResult.valueAsDouble(engine.eval(variableName+"[0]"));
+				STR.confidence_lo = StatisticalTestResult.valueAsDouble(engine.eval(variableName+"[1]"));
+				STR.confidence_hi = StatisticalTestResult.valueAsDouble(engine.eval(variableName+"[2]"));
+			}
+			return STR;
+		}
+
+		@Override
+		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException
+		{
+			writeHeaderToFile(writer);
+			writeEndl(writer);
+			writeMainData(result, writer);
+			writeEndl(writer);
+		}
+	}
+
 	public static class Kruskal_Wallis extends RStatisticalAnalysis
 	{
 		public Kruskal_Wallis(File name) {
-			super("kruskal",null, name);
+			super("kruskal.test",null, name);
 		}
 
 		@Override
@@ -1883,7 +1965,8 @@ public class DrawGraphs {
 		double pvalue=0.;
 		String alternative;
 		double parameter=0.;
-
+		double confidence_lo=0.;
+		double confidence_hi=0.;
 		
 		public static double valueAsDouble(REXP val)
 		{

@@ -40,13 +40,14 @@ public class MarkovLearningParameters implements ThreadResultID
 	public int traceQuantity,statesMax;
 	public double traceLengthMultiplierMax,alphabetMultiplierMax;
 	boolean usePrintf = false;
-	public int perStateSquaredDensityMultipliedBy10 = 0;
+	public int perStateSquaredDensityMultipliedBy100 = 0;
 	public final MarkovParameters markovParameters = new MarkovParameters();
 	
 	public MarkovLearningParameters(ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed)
 	{
 		learnerToUse = l;
-		states = argStates;alphabetMultiplier = argAlphabetMultiplier;perStateSquaredDensityMultipliedBy10 = perStateSquaredDensity10;sample = argSample;trainingSample = argTrainingSample;seed = argSeed;
+		states = argStates;alphabetMultiplier = argAlphabetMultiplier;
+		perStateSquaredDensityMultipliedBy100 = perStateSquaredDensity10;sample = argSample;trainingSample = argTrainingSample;seed = argSeed;
 	}
 	
 	public void setExperimentID(int traceQuantity,double argTraceLengthMultiplierMax,int statesMax,double argAlphabetMultiplierMax)
@@ -78,7 +79,7 @@ public class MarkovLearningParameters implements ThreadResultID
 
 	@Override
 	public String getRowID() {
-		return getExperimentID()+"_S="+states+"_m="+alphabetMultiplier+"_d="+perStateSquaredDensityMultipliedBy10+"_sa="+sample+"_tS="+trainingSample+"_se="+seed+
+		return getExperimentID()+"_S="+states+"_m="+alphabetMultiplier+"_d="+ perStateSquaredDensityMultipliedBy100 +"_sa="+sample+"_tS="+trainingSample+"_se="+seed+
 				"_tM="+traceLengthMultiplier+"_tAMr="+tracesAlphabetMultiplier;
 	}
 

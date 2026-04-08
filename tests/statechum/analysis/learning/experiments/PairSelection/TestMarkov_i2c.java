@@ -2,11 +2,9 @@ package statechum.analysis.learning.experiments.PairSelection;
 
 import java.io.IOException;
 import java.util.LinkedList;
-import java.util.List;
 
 import org.junit.Test;
 
-import statechum.Label;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.analysis.learning.MarkovClassifier;
@@ -47,7 +45,7 @@ public class TestMarkov_i2c
 		final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		EDSM_MarkovLearner markovLearner = new EDSM_MarkovLearner(eval,initialPTA,0,markovParameters,null, null);markovLearner.setMarkov(m);markovLearner.setChecker(checker);
 	
-		LearnerGraph graph = markovLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+		LearnerGraph graph = markovLearner.learnMachine(new LinkedList<>(), new LinkedList<>());
 		LearnerGraph expected = new LearnerGraph(eval.config);AbstractPersistence.loadGraph("resources/i2c_study/outcome_i2c_chunk7.xml", expected,eval.getLabelConverter());expected.setName("expected");
 		LearnerGraph expectedWithoutNegatives=LearningSupportRoutines.removeAllNegatives(expected);
 		DifferentFSMException ex = WMethod.checkM(expectedWithoutNegatives, graph);

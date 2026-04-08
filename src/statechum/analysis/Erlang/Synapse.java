@@ -110,11 +110,11 @@ public class Synapse implements Runnable {
 
 	public static void main(String[] args) 
 	{
-		final String erlangNode = args[3];
 		if(args.length < 3) {
 		    System.err.println("Usage: statechum.analysis.Erlang.Synapse <ourNode> <cookie> <mailBox> <partnerNode>");
 		    System.exit(99);
 		}
+		final String erlangNode = args[3];
 		Synapse s = new Synapse(args[0],args[1],args[2],erlangNode);
 
 		ErlangNode.getErlangNode().getNode().registerStatusHandler(new OtpNodeStatus(){
@@ -138,7 +138,7 @@ public class Synapse implements Runnable {
 
 	public void reply(OtpErlangPid where, OtpErlangRef ref, OtpErlangAtom responseCode, OtpErlangObject data)
 	{
-		OtpErlangObject [] whatToSend = null;
+		OtpErlangObject [] whatToSend;
 		if (data != null)
 			whatToSend = new OtpErlangObject[]{ref,responseCode,data};
 		else
@@ -540,7 +540,7 @@ public class Synapse implements Runnable {
 		
 		protected void sendProgress(OtpErlangPid pid, OtpErlangRef ref, LearnerGraph graph, ErlangModule mod, AtomicLong counter)
 		{
-			OtpErlangObject progressDetails = null, stateNumber = new com.ericsson.otp.erlang.OtpErlangLong(graph.getStateNumber());
+			OtpErlangObject progressDetails, stateNumber = new com.ericsson.otp.erlang.OtpErlangLong(graph.getStateNumber());
 			if (learnerInitConfiguration.config.getSynapseSendFSMFrequency() <= 0 || 0 != (counter.incrementAndGet() % learnerInitConfiguration.config.getSynapseSendFSMFrequency()))
 				progressDetails = new OtpErlangTuple(new OtpErlangObject[]{ stateNumber });
 			else
@@ -568,7 +568,6 @@ public class Synapse implements Runnable {
 		 * @param startFrom the starting position in the tuple to go through
 		 * @param fsmPicture graph to update
 		 * @return window number to use or negative for a test mode.
-		 * @throws OtpErlangRangeException 
 		 */
 		public static int setOptions(final OtpErlangTuple message, int startFrom, DirectedSparseGraph fsmPicture) throws OtpErlangRangeException
 		{
@@ -784,7 +783,7 @@ public class Synapse implements Runnable {
 										else
 											if (command.equals(msgTestLoadFSM) && message.arity() == 3)
 											{
-												OtpErlangObject outcome = null;
+												OtpErlangObject outcome;
 												try
 												{
 													learnerInitConfiguration.graph = new LearnerGraph(learnerInitConfiguration.config);
@@ -801,7 +800,7 @@ public class Synapse implements Runnable {
 											else
 												if (command.equals(msgGetFSM) && message.arity() == 2)
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,constructFSM(learnerInitConfiguration.graph)});
@@ -815,7 +814,7 @@ public class Synapse implements Runnable {
 											else
 												if (command.equals(msgSetReds) && message.arity() == 3)
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														setReds(message.elementAt(2), learnerInitConfiguration.graph);
@@ -830,7 +829,7 @@ public class Synapse implements Runnable {
 												else
 											if (command.equals(msgTestMapParsing) && message.arity() == 3)
 											{
-												OtpErlangObject outcome = null;
+												OtpErlangObject outcome;
 												try
 												{
 													outcome = new OtpErlangTuple(new OtpErlangObject[]{ref,msgOk,mapToObject(parseMap(message.elementAt(2)))});
@@ -847,7 +846,7 @@ public class Synapse implements Runnable {
 												// on error, ref,failure,text_of_the_error (as string)
 												if (command.equals(msgComputeDiff) && message.arity() == 4)
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														LearnerGraphND grA = new LearnerGraphND(learnerInitConfiguration.config), grB = new LearnerGraphND(learnerInitConfiguration.config);
@@ -871,7 +870,7 @@ public class Synapse implements Runnable {
 												// on error: Ref,failure,text_of_the_error (as string)
 												if (command.equals(msgLearnEDSM) && message.arity() >= 2)
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														final AtomicLong counter = new AtomicLong();
@@ -914,7 +913,7 @@ public class Synapse implements Runnable {
 												// on error: Ref,failure,text_of_the_error (as string)
 												if (command.equals(msgLearnEDSMMARKOV) && message.arity() >= 2)
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														final AtomicLong counter = new AtomicLong();
@@ -937,7 +936,7 @@ public class Synapse implements Runnable {
 															protected boolean permitUnlimitedNumberOfStates()
 															{
 																return true;
-															}															
+															}
 
 															@Override
 															public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 
@@ -977,7 +976,7 @@ public class Synapse implements Runnable {
 													// on error: Ref,failure,text_of_the_error (as string)
 													if (command.equals(msgLearnEDSMMARKOVcentre) && message.arity() >= 2)
 													{
-														OtpErlangObject outcome = null;
+														OtpErlangObject outcome;
 														try
 														{
 															final AtomicLong counter = new AtomicLong();
@@ -1049,7 +1048,7 @@ public class Synapse implements Runnable {
 													// on error: Ref,failure,text_of_the_error (as string)
 													if (command.equals(msgLearnEDSMMARKOVabstractionrefinement) && message.arity() >= 2)
 													{
-														OtpErlangObject outcome = null;
+														OtpErlangObject outcome;
 														try
 														{
 															learnerInitConfiguration.config.setLearnerScoreMode(ScoreMode.ONLYOVERRIDE);
@@ -1122,7 +1121,7 @@ public class Synapse implements Runnable {
 												// on error, ref,failure,text_of_the_error (as string)
 												if (command.equals(msgCompareWithOthers) && message.arity() == 4)
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														LearnerGraph grA = new LearnerGraph(learnerInitConfiguration.config), grB = new LearnerGraph(learnerInitConfiguration.config);
@@ -1146,7 +1145,7 @@ public class Synapse implements Runnable {
 												// on error: Ref,failure,text_of_the_error (as string)
 												if (command.equals(msgLearnSicco) && message.arity() >= 2)
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														final AtomicLong counter = new AtomicLong();
@@ -1210,7 +1209,7 @@ public class Synapse implements Runnable {
 												// on error: Ref,failure,text_of_the_error (as string)
 												if (command.equals(msgLearnKTails) && message.arity() >= 2)
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														final AtomicLong counter = new AtomicLong();
@@ -1256,7 +1255,7 @@ public class Synapse implements Runnable {
 												// Args: Ref,addTypeInformation,list of pairs containing method names and types.
 												if (command.equals(msgAddTypeInformation) && message.arity() >= 3)
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														updateFrom((OtpErlangList)message.elementAt(2), overrides);
@@ -1274,7 +1273,7 @@ public class Synapse implements Runnable {
 												// Since using addTypeInformation followed by learnErlang causes changes to the alphabet modules we are dealing with, independence of tests requires the collection of loaded modules to be purged. This is the purpose of this function.
 												if (command.equals(msgPurgeModuleInformation) && message.arity() >= 2)
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														ErlangModule.flushRegistry();
@@ -1292,7 +1291,7 @@ public class Synapse implements Runnable {
 												// Returns a list of pairs of method names and types.
 												if (command.equals(msgExtractTypeInformation) && message.arity() >= 3)
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														ErlangModule.setupErlangConfiguration(learnerInitConfiguration.config, new File(((OtpErlangAtom)message.elementAt(2)).atomValue()));
@@ -1318,7 +1317,7 @@ public class Synapse implements Runnable {
 												// on error: Ref,failure,text_of_the_error (as string)
 												if (command.equals(msgLearnErlang) && message.arity() >= 3)
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														ErlangModule.setupErlangConfiguration(learnerInitConfiguration.config, new File(((OtpErlangAtom)message.elementAt(2)).atomValue()));
@@ -1399,7 +1398,7 @@ public class Synapse implements Runnable {
 												else
 												if (command.equals(msgTestDiffParsing) && message.arity() == 4) // this one computes a graph reflecting the differences and returns the labelling part of it as a string. Inputs are one of the original machines and the differences.
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														DirectedSparseGraph diff = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(message.elementAt(2), message.elementAt(3));
@@ -1424,7 +1423,7 @@ public class Synapse implements Runnable {
 												// Note: if the difference name is an empty sequence, no graph is displayed but notifications are provided (for testing).
 												if (command.equals(msgDisplayDiff) && message.arity() >= 5) 
 												{
-													OtpErlangObject outcome = null;
+													OtpErlangObject outcome;
 													try
 													{
 														DirectedSparseGraph diff = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(message.elementAt(2), message.elementAt(3));
@@ -1446,7 +1445,7 @@ public class Synapse implements Runnable {
 													// Note: if the difference name is an empty sequence, no graph is displayed but notifications are provided (for testing).
 													if (command.equals(msgDisplayFSM) && message.arity() >= 4) 
 													{
-														OtpErlangObject outcome = null;
+														OtpErlangObject outcome;
 														try
 														{
 															Configuration config = Configuration.getDefaultConfiguration().copy();

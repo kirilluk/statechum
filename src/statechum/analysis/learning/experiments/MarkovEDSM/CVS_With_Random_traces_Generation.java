@@ -32,7 +32,7 @@ import statechum.analysis.learning.DrawGraphs.Kruskal_Wallis;
 import statechum.analysis.learning.DrawGraphs.Mann_Whitney_U_Test;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
-import statechum.analysis.learning.DrawGraphs.Wilcoxon;
+import statechum.analysis.learning.DrawGraphs.WilcoxonPairedTest;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
@@ -51,7 +51,7 @@ import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.
 
 public class CVS_With_Random_traces_Generation
 {
-	public static final String directoryNamePrefix = "cvs_june_2016";
+	public static final String directoryNamePrefix = "cvs";
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
 	public static class MarkovLearnerUsingReference extends MarkovLearnerRunner
@@ -175,8 +175,8 @@ public class CVS_With_Random_traces_Generation
 						final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+states+"_trace_kt_bcr.pdf"),0.5,1,true);		
 						final SquareBagPlot BCRAgainstMarkov = new SquareBagPlot("BCR, Markov","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+states+"_trace_markov_bcr.pdf"),0.5,1,true);		
 	
-						final Wilcoxon Wilcoxon_test_Structural=new Wilcoxon(new File(experimentName +"Wilcoxon_t_str.csv"));		 
-						final Wilcoxon Wilcoxon_Test_BCR=new Wilcoxon(new File(experimentName +"Wilcoxon_t_bcr.csv"));		 
+						final WilcoxonPairedTest Wilcoxon_test_Structural=new WilcoxonPairedTest(new File(experimentName +"Wilcoxon_t_str.csv"));
+						final WilcoxonPairedTest Wilcoxon_Test_BCR=new WilcoxonPairedTest(new File(experimentName +"Wilcoxon_t_bcr.csv"));
 						final Mann_Whitney_U_Test Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test(new File(experimentName +"Mann_Whitney_U_Test_BCR.csv"));		 
 						final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test(new File(experimentName +"Whitney_U_Test_str.csv"));		 
 						final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 

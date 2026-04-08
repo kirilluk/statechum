@@ -27,7 +27,7 @@ import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.DrawGraphs.Wilcoxon;
+import statechum.analysis.learning.DrawGraphs.WilcoxonPairedTest;
 import statechum.analysis.learning.DrawGraphs.Mann_Whitney_U_Test;
 import statechum.analysis.learning.DrawGraphs.SGEExperimentResult;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
@@ -194,7 +194,7 @@ public class MarkovPreMergeExperiment
 			int seedForFSM = 0;
 
 			for(int states:statesToUse)
-				for(int density:new int[] {0,3})
+				for(int density:new int[] {0,30})
 				{
 					for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
 						for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
@@ -272,8 +272,8 @@ public class MarkovPreMergeExperiment
 				final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_kt_bcr.pdf"),0.5,1,true);		
 				final SquareBagPlot BCRAgainstMarkov = new SquareBagPlot("BCR, Markov","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_markov_bcr.pdf"),0.5,1,true);		
 
-				final Wilcoxon Wilcoxon_test_Structural=new Wilcoxon(new File(experimentName +"Wilcoxon_t_str.csv"));		 
-				final Wilcoxon Wilcoxon_Test_BCR=new Wilcoxon(new File(experimentName +"Wilcoxon_t_bcr.csv"));		 
+				final WilcoxonPairedTest Wilcoxon_test_Structural=new WilcoxonPairedTest(new File(experimentName +"Wilcoxon_t_str.csv"));
+				final WilcoxonPairedTest Wilcoxon_Test_BCR=new WilcoxonPairedTest(new File(experimentName +"Wilcoxon_t_bcr.csv"));
 				final Mann_Whitney_U_Test Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test(new File(experimentName +"Mann_Whitney_U_Test_BCR.csv"));		 
 				final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test(new File(experimentName +"Whitney_U_Test_str.csv"));		 
 				final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 

@@ -11,7 +11,7 @@
 
 cmake_minimum_required ( VERSION 3.19 )
 
-set ( STATECHUMSOLVER_DATE "Jun 12, 2023" )
+set ( STATECHUMSOLVER_DATE "Apr 3, 2026" )
 set ( STATECHUMSOLVER_VERSION_MAJOR 1 )
 set ( STATECHUMSOLVER_VERSION_MINOR 0 )
 set ( STATECHUMSOLVER_VERSION_PATCH 0 )
@@ -52,6 +52,7 @@ project ( StatechumSolver
     VERSION "${STATECHUMSOLVER_VERSION_MAJOR}.${STATECHUMSOLVER_VERSION_MINOR}.${STATECHUMSOLVER_VERSION_PATCH}"
     LANGUAGES C )
 
+if (EXISTS ${CMAKE_SOURCE_DIR}/../lib/cmake/SuiteSparse OR EXISTS ${CMAKE_INSTALL_PREFIX}/lib/cmake/SuiteSparse)
 #-------------------------------------------------------------------------------
 # find library dependencies
 #-------------------------------------------------------------------------------
@@ -64,10 +65,25 @@ find_package ( CCOLAMD 3.0.3 REQUIRED )
 find_package ( COLAMD 3.0.3 REQUIRED )
 find_package ( CHOLMOD 4.0.3 REQUIRED )
 find_package ( UMFPACK 6.1.0 REQUIRED )
+SET(SUITESPARSE_LIBS
+        ${AMD_STATIC}
+        ${CAMD_static} ${CCOLAMD_STATIC} ${COLAMD_STATIC}
+        ${SUITESPARSE_CONFIG_STATIC} ${UMFPACK_STATIC})
+include ( SuiteSparseBLAS )
+else()
+find_library(SUITESPARSE_CONFIG_LIB NAMES ${CMAKE_FIND_LIBRARY_PREFIXES}suitesparseconfig.so) 
+find_library(AMD_LIB NAMES ${CMAKE_FIND_LIBRARY_PREFIXES}amd.so)
+find_library(CAMD_LIB ${CMAKE_FIND_LIBRARY_PREFIXES}camd.so)
+find_library(CCOLAMD_LIB ${CMAKE_FIND_LIBRARY_PREFIXES}ccolamd.so)
+find_library(COLAMD_LIB ${CMAKE_FIND_LIBRARY_PREFIXES}colamd.so)
+find_library(UMFPACK_LIB ${CMAKE_FIND_LIBRARY_PREFIXES}umfpack.so)
+SET(SUITESPARSE_LIBS ${SUITESPARSE_CONFIG_LIB} ${AMD_LIB} ${CAMD_LIB} ${CCOLAMD_LIB} ${COLAMD_LIB} ${UMFPACK_LIB})
+
+find_path(UMFPACK_INCLUDE_DIR NAMES umfpack.h PATHS "/usr/include/suitesparse")
+endif()
 
 # look for all external libaries:
 find_package ( JNI REQUIRED )
-include ( SuiteSparseBLAS )
 
 #-------------------------------------------------------------------------------
 # my dynamic library properties
@@ -90,28 +106,25 @@ if ( NOT WIN32 )
     target_link_libraries ( StatechumSolver PUBLIC m )
 endif ( )
 
-target_include_directories(StatechumSolver PRIVATE ${JNI_INCLUDE_DIRS})
+target_include_directories(StatechumSolver PRIVATE ${JNI_INCLUDE_DIRS} ${UMFPACK_INCLUDE_DIR})
 target_link_libraries(StatechumSolver PUBLIC ${JNI_LIBRARIES})
 
 # dependencies
 target_link_libraries(StatechumSolver PRIVATE
         ${BLAS_LIBRARIES}
         ${LAPACK_LIBRARIES}
-        ${AMD_STATIC}
-        ${CAMD_static} ${CCOLAMD_STATIC} ${COLAMD_STATIC}
-        ${SUITESPARSE_CONFIG_STATIC}
+	${SUITESPARSE_LIBS}
         )
-
-# umfpack:
-target_link_libraries ( StatechumSolver PRIVATE ${UMFPACK_STATIC} )
-include_directories ( ${UMFPACK_INCLUDE_DIR} )
 
 #-------------------------------------------------------------------------------
 # installation location
 #-------------------------------------------------------------------------------
 
+# The installation path mimics old configure-selected install path used both 
+# in IdeaJ and in ant-build.
+SET(STATECHUM_LIBS "${CMAKE_CURRENT_LIST_DIR}/.libs")
 install ( TARGETS StatechumSolver
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} )
+    LIBRARY DESTINATION ${STATECHUM_LIBS}
+    ARCHIVE DESTINATION ${STATECHUM_LIBS}
+    RUNTIME DESTINATION ${STATECHUM_LIBS}
+    PUBLIC_HEADER DESTINATION ${STATECHUM_LIBS} )

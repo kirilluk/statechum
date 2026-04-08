@@ -1,5 +1,6 @@
 package statechum.analysis.learning;
 
+import static java.lang.Math.abs;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static statechum.TestHelper.checkForCorrectException;
@@ -9,14 +10,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -279,25 +273,73 @@ public class TestDrawGraphs {
 	}
 
 	@Test
-	public void testVarghaDelaney_TestToString()
+	public void testVarghaDelaney_TestToString1()
 	{
-		final DrawGraphs.A_VarghaDelaney w = new DrawGraphs.A_VarghaDelaney(new File("test"));
+		final DrawGraphs.A_VarghaDelaney w = new DrawGraphs.A_VarghaDelaney(new File("test"),0);
 		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
 		Assert.assertEquals("[m=ufs::A_VarghaDelaney(c(4.0,5.0,5.0),c(7.0,8.0,3.0))]",
 				w.getDrawingCommand().toString());
 	}
 
 	@Test
-	public void testVarghaDelaney_Test() throws IOException
+	public void testVarghaDelaney_TestToString2()
+	{
+		final DrawGraphs.A_VarghaDelaney w = new DrawGraphs.A_VarghaDelaney(new File("test"),100);
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+		Assert.assertEquals("[m=ufs::A_VarghaDelaney(c(4.0,5.0,5.0),c(7.0,8.0,3.0),100)]",
+				w.getDrawingCommand().toString());
+	}
+	@Test
+	public void testVarghaDelaney_Test0() throws IOException
 	{
 		@SuppressWarnings("unused")
 		DrawGraphs gr = new DrawGraphs();// loads the R library
-		final DrawGraphs.A_VarghaDelaney w = new DrawGraphs.A_VarghaDelaney(new File("test"));
+		checkForCorrectException(() -> {
+			new DrawGraphs.A_VarghaDelaney(new File("test"),-1);
+		},IllegalArgumentException.class,"has to be non-negative");
+	}
+	@Test
+	public void testVarghaDelaney_Test1() throws IOException
+	{
+		@SuppressWarnings("unused")
+		DrawGraphs gr = new DrawGraphs();// loads the R library
+		final DrawGraphs.A_VarghaDelaney w = new DrawGraphs.A_VarghaDelaney(new File("test"),0);
 		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
 
 		StringWriter s=new StringWriter();
 		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
 		Assert.assertEquals("Method,Statistic\nA_VarghaDelaney (A12) test,0.7777777777777778\n",s.toString());
+	}
+	@Test
+	public void testVarghaDelaney_Test2() throws IOException
+	{
+		@SuppressWarnings("unused")
+		DrawGraphs gr = new DrawGraphs();// loads the R library
+		final DrawGraphs.A_VarghaDelaney w = new DrawGraphs.A_VarghaDelaney(new File("test"),100);
+		Random rnd = new Random(0);
+		for(double cnt=0;cnt<20;cnt++)
+			w.add(rnd.nextDouble(), rnd.nextDouble()+0.2);
+
+		StringWriter s=new StringWriter();
+		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
+		String expectedFixedPart = "Method,Statistic,confidence_lo,confidence_high\nA_VarghaDelaney (A12) test (100),0.0,";
+		String[] confidence_interval = s.toString().substring(expectedFixedPart.length()).split(",");
+		Assert.assertEquals(2,confidence_interval.length);
+		Assert.assertTrue(abs(Double.parseDouble(confidence_interval[0])-1) < 0.01);
+		Assert.assertTrue(abs(Double.parseDouble(confidence_interval[1])-1) < 0.01);
+	}
+
+	@Test
+	public void testVarghaDelaney_Test3() throws IOException
+	{
+		@SuppressWarnings("unused")
+		DrawGraphs gr = new DrawGraphs();// loads the R library
+		final DrawGraphs.A_VarghaDelaney w = new DrawGraphs.A_VarghaDelaney(new File("test"),10000);
+		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
+
+		checkForCorrectException(() -> {
+			w.obtainResultFromR();
+		},IllegalArgumentException.class,"not enough");// error from R
 	}
 	@Test
 	public void testKruskal_Wallis_TestToString()

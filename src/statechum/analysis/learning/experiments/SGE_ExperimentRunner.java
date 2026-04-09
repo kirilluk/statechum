@@ -73,7 +73,7 @@ public class SGE_ExperimentRunner
 		 * The outcome of these calls are stored in an outcome-of-work file and subsequently assembled and plotted.
 		 * 
 		 * @param result the outcome of running an experiment.
-		 * @param runSubExperiment
+		 * @param runSubExperiment experiment to run
 		 */
         void processSubResult(RESULT result, RunSubExperiment<EXPERIMENT_PARAMETERS, RESULT> runSubExperiment)  throws IOException;
 		
@@ -312,12 +312,6 @@ public class SGE_ExperimentRunner
 			++taskCounter;
 		}
 
-		/** Returns the number of the current task. The returned value is only updated on a call to {@link RunSubExperiment#submitTask(UASExperiment)}. */
-		public int getTaskID()
-		{
-			return taskCounter;
-		}
-		
 		public static String sanitiseFileName(String name)
 		{
 			return name.replaceAll("[:\\\\/ ]", "_");
@@ -863,7 +857,7 @@ public class SGE_ExperimentRunner
 	public static String getCorrection(BufferedReader reader,String cpuStringArg) throws IOException
 	{
 		String cpuString = LearningSupportRoutines.removeSpaces(cpuStringArg);
-		String line = null;
+		String line;
 		while((line=reader.readLine()) != null)
 		{
 			String[] elems =line.split(separatorRegEx);
@@ -908,7 +902,8 @@ public class SGE_ExperimentRunner
 					rd.close();
 				} catch (IOException e) {
 					// ignore this
-				}rd = null;
+				}
+				rd = null;
 			}
 		}
 		return result;
@@ -968,7 +963,7 @@ public class SGE_ExperimentRunner
 		{
 			// Will be filled up with possible locations for executionTimeScale.map
 			List<String> candidatePaths = new LinkedList<>();
-			for(String p:new String[]{executionTimeProperties, "iceberg"+File.separator+executionTimeProperties}) {
+			for(String p:new String[]{executionTimeProperties, "stanage"+File.separator+executionTimeProperties}) {
 				candidatePaths.add(p);candidatePaths.add(".."+File.separator+p);
 			}
 			for(String p:candidatePaths)

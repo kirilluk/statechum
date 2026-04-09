@@ -17,12 +17,8 @@
  */
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph;
@@ -90,7 +86,7 @@ public class MarkovHelperClassifier
 			inconsistenciesPerVertexAndMarkovModel[i]=
 				coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY && (coregraph.getStateNumber() > coregraph.config.getThresholdToGoHash() || coregraph.config.getAlwaysUseTheSameMatrixType())?
 						new ArrayMapWithSearchPos<DeterministicDirectedSparseGraph.VertID,CmpVertex,Long>(coregraph.getStateNumber()):
-						new TreeMap<CmpVertex,Long>();
+						new LinkedHashMap<>(coregraph.getStateNumber()*5);
 		}
 	}
 

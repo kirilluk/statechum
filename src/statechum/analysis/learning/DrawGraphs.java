@@ -861,7 +861,7 @@ public class DrawGraphs {
 	public static String getValueFromMapGivenRegexp(Map<String,String> map, String regexp)
 	{
 		for(Entry<String,String> entry:map.entrySet())
-			if (entry.getKey().matches(regexp))
+			if (entry.getKey() == regexp || entry.getKey().matches(regexp) || entry.getKey().matches(regexp+".*"))
 				return entry.getValue();
 		return null;
 	}

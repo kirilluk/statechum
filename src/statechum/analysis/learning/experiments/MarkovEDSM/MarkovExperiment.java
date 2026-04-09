@@ -123,7 +123,10 @@ public class MarkovExperiment
 			LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
 			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.trainingSample),5,null);
 			final int tracesAlphabet = (int)(par.tracesAlphabetMultiplier*par.states);
-			generator.generateRandomPosNeg(par.traceQuantity, 1, false, new RandomLengthGenerator() {
+			// Using 2*par.traceQuantity reflects the original goal to generate an equal number of positive and
+			// negative traces hence an input to generateRandomPosNeg was expected to be even.
+			// We are not doing this now, instead only generating positive traces in quantity par.traceQuantity.
+			generator.generateRandomPosNeg(2*par.traceQuantity, 1, false, new RandomLengthGenerator() {
 
 					@Override
 					public int getLength() {
@@ -217,7 +220,8 @@ public class MarkovExperiment
 					learnerOfPairs = markovLearner;
 					break;
 				default:
-					// ScoreMode.GENERAL_NOFULLMERGE is ok here because all states are accept-states.
+					// ScoreMode.GENERAL_NOFULLMERGE is ok here because all states are accept-states,
+					// otherwise GENERAL_PLUS_NOFULLMERGE might have been a better choice.
 					learnerOfPairs = constructLearner(learnerInitConfiguration,ptaBuilt, par.learnerToUse,ScoreMode.GENERAL_NOFULLMERGE,redReducer);
 					break;
 			}
@@ -267,17 +271,17 @@ public class MarkovExperiment
  			if (markovLearner != null)
  				dataSample.comparisonsPerformed = markovLearner.markovHelper.comparisonsPerformed;
  			
- 			if (dataSample.actualLearner.differenceBCR.getValue() < 1.0 && dataSample.actualLearner.differenceStructural.getValue() == 1.0)
- 			{
- 				System.out.println("Graph with perfect DIFF but wrong initial state: "+SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir+"outcome-",par));
- 				/*
-				CmpVertex newInit = LearningSupportRoutines.findBestMatchForInitialVertexInGraph(actualAutomaton,pta);// this cannot return null since the outcome of learning will have at least one state
-				DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
- 				Visualiser.updateFrame(actualAutomaton, referenceGraph);
- 				System.out.println();
- 				*/
- 			}
 			if (par.usePrintf) {
+				if (dataSample.actualLearner.differenceBCR.getValue() < 1.0 && dataSample.actualLearner.differenceStructural.getValue() == 1.0)
+				{
+					System.out.println("Graph with perfect DIFF but wrong initial state: "+SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir+"outcome-",par));
+					/*
+					CmpVertex newInit = LearningSupportRoutines.findBestMatchForInitialVertexInGraph(actualAutomaton,pta);// this cannot return null since the outcome of learning will have at least one state
+					DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
+					Visualiser.updateFrame(actualAutomaton, referenceGraph);
+					System.out.println();
+					*/
+				}
 				Collection<List<Label>> wset = WMethod.computeWSet_reducedw(referenceGraph);
 				int wSeqLen = 0;
 				for (List<Label> seq : wset) {
@@ -551,7 +555,7 @@ public class MarkovExperiment
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
 		for(final int preset: new int[]{0})//0,1,2})
 		{
-			for(final int traceQuantityToUse:new int[]{1,2,4})
+			for(final int traceQuantityToUse:new int[]{1,2,4,8})
 			{
 				int seedForFSM = 0;
 
@@ -561,7 +565,7 @@ public class MarkovExperiment
 						for(int sample=0;sample<fsmSamplesPerStateNumber;++sample,++seedForFSM)
 							for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 								for(boolean aveOrMax:new boolean[]{false})
-									for(double traceLengthMultiplier:new double[] {1,4,16})
+									for(double traceLengthMultiplier:new double[] {16,32,64})
 										for(ScoringToApply learnerKind:
 												preset == 0?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
 													new ScoringToApply[]{
@@ -574,12 +578,14 @@ public class MarkovExperiment
 														ScoringToApply.SCORING_EDSM, ScoringToApply.SCORING_EDSM_2
 										})
 										// LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
-											for(double weightOfInconsistencies:learnerKind.isMarkov()?new double[]{0.5,1.0,2.0,4.0}:new double[]{1.0})
+											for(double weightOfInconsistencies:learnerKind.isMarkov()?new double[]{2.0}//0.5,1.0,2.0,4.0}
+													:new double[]{1.0})
 												for(int wlen:preset == 0?new int []{1} : new int[]{1,2})
 													for(int divisor:preset == 0?new int []{1} : new int[]{4})
 													{
 														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 														ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+														ev.config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);// small automata hence no need for array STATETREE.STATETREE_ARRAY);
 														ev.config.setOverride_usePTAMerging(false);
 
 														MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplierMax, perStateSquaredDensity100, sample,trainingSample, seedForFSM);
@@ -644,7 +650,7 @@ public class MarkovExperiment
 				final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_structuraldiff.pdf"),0,1,true);
 				final SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_bcr.pdf"),0.5,1,true);		
 				final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_kt_bcr.pdf"),0.5,1,true);		
-				final SquareBagPlot BCRAgainstMarkov = new SquareBagPlot("BCR, Markov","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_markov_bcr.pdf"),0.5,1,true);		
+				final SquareBagPlot BCRAgainstEDSM_2 = new SquareBagPlot("BCR, EDSM-2","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_markov_bcr.pdf"),0.5,1,true);
 
 				final WilcoxonPairedTest Wilcoxon_test_Structural=new WilcoxonPairedTest(new File(experimentName +"Wilcoxon_t_str.csv"));
 				final WilcoxonPairedTest Wilcoxon_Test_BCR=new WilcoxonPairedTest(new File(experimentName +"Wilcoxon_t_bcr.csv"));
@@ -653,23 +659,29 @@ public class MarkovExperiment
 				final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 
 				final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_str.csv"));		 	 
 				// names of columns include parameters used with learners, here we ignore that and pick those that match learner names
-				DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,ScoringToApply.SCORING_SICCO.name(),1,ScoringToApply.SCORING_MARKOV.name(),1,null,null);
-				DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,ScoringToApply.SCORING_SICCO.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
-				DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,ScoringToApply.SCORING_PTAK_1.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
-				DrawGraphs.spreadsheetToBagPlot(BCRAgainstMarkov,resultCSV,ScoringToApply.SCORING_PTAK_1.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
-				
-				DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_SICCO.name(),0);
-				DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
-				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_SICCO.name(),0);
-				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
-				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_SICCO.name(),0);
-				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
-				
+				DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,ScoringToApply.SCORING_SICCO.name(),2,ScoringToApply.SCORING_MARKOV.name(),2,null,null);
+				DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,ScoringToApply.SCORING_SICCO.name(),1,ScoringToApply.SCORING_MARKOV.name(),1,null,null);
+				DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,ScoringToApply.SCORING_PTAK_1.name(),1,ScoringToApply.SCORING_MARKOV.name(),1,null,null);
+				DrawGraphs.spreadsheetToBagPlot(BCRAgainstEDSM_2,resultCSV,ScoringToApply.SCORING_PTAK_1.name(),1,ScoringToApply.SCORING_MARKOV.name(),1,null,null);
+
+				DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
+				DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),2,ScoringToApply.SCORING_SICCO.name(),2);
+				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
+				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),2,ScoringToApply.SCORING_SICCO.name(),2);
+				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
+				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),2,ScoringToApply.SCORING_SICCO.name(),2);
 				final AtomicLong comparisonsPerformed = new AtomicLong(0);
-				DrawGraphs.spreadsheetAsString((A, B) ->
-						comparisonsPerformed.addAndGet(Long.parseLong(A)),resultCSV,ScoringToApply.SCORING_MARKOV.name(),3,ScoringToApply.SCORING_MARKOV.name(),3);
-					
-				for(@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result:new DrawGraphs.RExperimentResult[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov, Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR})
+				/*
+				DrawGraphs.spreadsheetAsString((A, B) -> {
+					try {
+						comparisonsPerformed.addAndGet(Long.parseLong(A));
+					}
+					catch(NumberFormatException e) {
+						System.out.println("Failed to convert "+e);
+					}
+				},resultCSV,ScoringToApply.SCORING_MARKOV.name(),3,ScoringToApply.SCORING_MARKOV.name(),3);
+					*/
+				for(@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result:new DrawGraphs.RExperimentResult[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstEDSM_2, Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR})
 				{
 					result.reportResults(gr);
 				}

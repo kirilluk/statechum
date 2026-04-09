@@ -279,6 +279,13 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		mkDir(outPathPrefix+directoryExperimentResult);
+
+		if (args.length <= 0) {
+			System.err.println("The benchmark should be run via COUNT_TASKS/RUN_PARALLEL/COLLECT_RESULTS rather than " +
+					"in the interactive mode because computation of correction value expects to rely on COLLECT_RESULTS" +
+					"and the values are not recorded in the interactive mode");
+		}
+
 		final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();

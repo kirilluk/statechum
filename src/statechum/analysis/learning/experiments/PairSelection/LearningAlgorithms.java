@@ -292,6 +292,11 @@ public class LearningAlgorithms
 		{
 			protected final Timer tmr;
 			protected final long threadID;
+			/** The purpose of the scale value (below) is to ensure we have the same effective running time permitted
+			 * regardless of the performance of a specific CPU. For example, if a reference cpu is
+			 * Intel(R) Xeon(R) Platinum 8358 CPU @ 2.60GHz , and we give a task 2 hrs wall-clock to run, running the
+			 * same task on a 1.5 times slower CPU requires scaling the time to 3 hrs for fairness.
+			 */
 			protected final double scale;
 			
 			public CancelOnTimeout(Timer tm, long id, double s)
@@ -771,7 +776,11 @@ public class LearningAlgorithms
 		
 		/** Override in child classes to permit learning FSM without a limit on state number.
 		 * Useful in production use but not for research experiments where evaluation explores learnt
-		 * automata up to a specfic limit on the number of states.
+		 * automata up to a specfic limit on the number of states. An a-priori limit at around 2x the number of states
+		 * in a reference automata is significant to stop experiments running apparently forever. This is caused by
+		 * mergers considering merging each state into any of 'red' states thus where every state quickly
+		 * becomes 'red' due to conservative merging decisions, one might end up evaluating a million states
+		 * against each of them.
 		 */
 		protected boolean permitUnlimitedNumberOfStates()
 		{

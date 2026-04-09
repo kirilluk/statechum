@@ -57,7 +57,7 @@ public class ComputeExecutionTimeCorrectionValue
 	{
 		String[] args={"COLLECT_RESULTS"};
 		
-		String referenceDirectory="benchmark_learners_Apr_2016";
+		String referenceDirectory="6core_benchmark_learners";
 		
 		String directoryToUse[] = new String[]{referenceDirectory,directoryToCompareAgainst[0]};
 		String directoryFullPathCollection[] = new String[2];
@@ -182,7 +182,7 @@ public class ComputeExecutionTimeCorrectionValue
 		// parameters below are dummy - they are needed to construct an instance but only values hardwired into EvaluationOfLearnersParameters are used.
 		EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO,LearningType.PREMERGE,false,Configuration.STATETREE.STATETREE_ARRAY);
 		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(1), par, 3600L*4L,10,1);
-		System.out.println("directory provided v.s. S5520sc, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
+		System.out.println("directory provided v.s. reference, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
 		DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
 		
 	}

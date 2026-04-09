@@ -1,0 +1,1 @@
+DEFAULTJOBPARAMETERS="--mem=16g --time=06:00:00"

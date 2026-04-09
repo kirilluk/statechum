@@ -52,3 +52,6 @@ smt/yices_caller.o
 
 linear/cmake-build-relwithdebinfo-visual-studio-2022-x64
 linear/.idea
+
+stanage/tmp
+stanage/log

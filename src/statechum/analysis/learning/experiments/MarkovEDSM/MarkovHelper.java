@@ -163,7 +163,9 @@ public class MarkovHelper
 		}		
 		return score;
 	}
-	
+
+	long lastComputedInconsistency;
+
 	public long computeScoreBasedOnInconsistencies(PairScore p) 
 	{
 		if(!p.getQ().isAccept() && !p.getR().isAccept())
@@ -173,12 +175,14 @@ public class MarkovHelper
 		List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
 		int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 		long score= genScore;
+		lastComputedInconsistency = 0;
 		if (genScore >= 0)
 		{			
 			currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, inconsistenciesPerVertex, markovModel, cl, markovConsistencyChecker);
 			
 			score=Math.round(genScore-markovParameters.weightOfInconsistencies*currentInconsistency);
-			
+			lastComputedInconsistency = currentInconsistency;
+
 			if (markovParameters.useNewScoreNearRoot && genScore <= 1) // could do with 2 but it does not make a difference.
 			{
 				if (!MarkovClassifier.checkIfThereIsPathOfSpecificLength(inverseGraph,p.getR(),markovModel.getPredictionLen()) ||
@@ -191,7 +195,12 @@ public class MarkovHelper
 				}
 			}
 		}
+
 		return score;
+	}
+
+	public long getLastComputedInconsistency() {
+		return lastComputedInconsistency;
 	}
 
 	public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 

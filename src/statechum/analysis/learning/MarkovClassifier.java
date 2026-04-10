@@ -402,8 +402,10 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * @param origClassifier the classifier used on the original graph. 
 	 */
 	@SuppressWarnings("unchecked")
-	public static long computeInconsistencyOfAMerger(LearnerGraph coregraph, List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge,
-			Map<CmpVertex,Long> origInconsistencies, MarkovModel m, MarkovClassifier<CmpVertex,LearnerGraphCachedData> origClassifier, ConsistencyChecker checker)
+	public static long computeInconsistencyOfAMerger(
+			 LearnerGraph coregraph, List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge,
+			 Map<CmpVertex,Long> origInconsistencies, MarkovModel m,
+			 MarkovClassifier<CmpVertex,LearnerGraphCachedData> origClassifier, ConsistencyChecker checker)
 	{
 		Set<CmpVertex> affectedVerticesInMergedGraph = new LinkedHashSet<>(),affectedVerticesInOrigGraph = new LinkedHashSet<>(),influentialVerticesInOrigGraph = new LinkedHashSet<>();
 		for(EquivalenceClass<CmpVertex, LearnerGraphCachedData> eqClass:verticesToMerge)
@@ -1364,7 +1366,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 				for(Entry<Label,TARGET_TYPE> existingTransition:entry.getValue().entrySet())
 				{
 					MarkovOutcome predictedTarget = predictions.get(existingTransition.getKey());
-					// can be MarkovOutcome.positive, MarkovOutcome.negative or null (if either nothing was
+					// Can be MarkovOutcome.positive, MarkovOutcome.negative or null (if either nothing was
 					// predicted or markov model had inconsistent predictions reported hence a prediction was
 					// labelled as a failure and not added to the label->prediction map by predictTransitionsFromState).
 					for(CmpVertex existing:graph.getTargets(existingTransition.getValue()))

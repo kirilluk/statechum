@@ -569,7 +569,7 @@ public class DrawGraphs {
 				columnIDToCellHeader.put(id.getColumnID(), id.headerValuesForEachCell());
 			}
 			else
-			{// Now a consistency check: if we collate results from multiple experiments, it is necessary to ensure they have the same number of components otherwise we risk construcing malformed CSV.
+			{// Now a consistency check: if we collate results from multiple experiments, it is necessary to ensure they have the same number of components otherwise we risk constructing a malformed CSV.
 				List<String> oldColumnHeaders = Arrays.asList(columnIDToHeader.get(id.getColumnID())), currColumnHeaders = Arrays.asList(id.getColumnText());
 				List<String> oldCellHeaders = Arrays.asList(columnIDToCellHeader.get(id.getColumnID())), currCellHeaders = Arrays.asList(id.headerValuesForEachCell());
 				if (!oldColumnHeaders.equals(currColumnHeaders))

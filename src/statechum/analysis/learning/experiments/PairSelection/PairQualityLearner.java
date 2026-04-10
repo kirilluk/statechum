@@ -754,13 +754,22 @@ public class PairQualityLearner
 						markovMultiHelpers.initComputation(gr, inverseGraph);
 				}
 
+				long lastComputedCompatibilityScore;
+
 				@Override
 				public long overrideScoreComputation(PairScore p) 
 				{
+					lastComputedCompatibilityScore = -1;
 					if (!labelsLeadingToStatesToBeMerged.isEmpty() || !labelsLeadingFromStatesToBeMerged.isEmpty())
 						if (LearningSupportRoutines.computeScoreBasedOnMandatoryMerge(p, g, labelsLeadingToStatesToBeMerged, labelsLeadingFromStatesToBeMerged) < 0)
 							return -1;
+					lastComputedCompatibilityScore = p.getAnotherScore();
 					return p.getScore();// here we always have to return a conventional score because if any other one is used, a negative will mean that a pair will not even be considered for mergers and passed to the outcome.
+				}
+
+				@Override
+				public long getLastComputedCompatibilityScore() {
+					return lastComputedCompatibilityScore;
 				}
 
 				@Override
@@ -1434,11 +1443,19 @@ public class PairQualityLearner
 				return outcome;
 			}
 
+			long lastComputedCompatibilityScore;
+
 			@Override
 			public long overrideScoreComputation(PairScore p) {
+				lastComputedCompatibilityScore = p.getAnotherScore();
 				return p.getScore();
 			}
-			
+
+			@Override
+			public long getLastComputedCompatibilityScore() {
+				return lastComputedCompatibilityScore;
+			}
+
 		}
 		
 		

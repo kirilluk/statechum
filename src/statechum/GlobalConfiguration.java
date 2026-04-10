@@ -120,7 +120,7 @@ public class GlobalConfiguration {
 		defaultValues.put(G_PROPERTIES.CLOSE_TERMINATE, "false");
 		defaultValues.put(G_PROPERTIES.SGE_MAP_FILENAMEPREFIX,"default");
 		defaultValues.put(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING, "");		
-		defaultValues.put(G_PROPERTIES.SGE_DISABLEGRAPHSAVE, "true");
+		defaultValues.put(G_PROPERTIES.SGE_DISABLEGRAPHSAVE, "false");//"true");
 		// default configuration, the real one will be set up via command line when the experiment is started
 		defaultValues.put(G_PROPERTIES.PATH_UASPAPER, "/home/kirill/experiment/research/xmachine/ModelInferenceUAS/traces");
 		defaultValues.put(G_PROPERTIES.PATH_EXPERIMENTRESULTS, "tmp");

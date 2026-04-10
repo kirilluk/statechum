@@ -458,6 +458,11 @@ public class TestMiscLearningRoutines
 				}
 
 				@Override
+				public long getLastComputedCompatibilityScore() {
+					return 0;
+				}
+
+				@Override
 				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
 				{
 					return null;// dummy, ignored if null.
@@ -521,6 +526,11 @@ public class TestMiscLearningRoutines
 				@Override
 				public long overrideScoreComputation(PairScore p) {
 					return p.getScore();// dummy
+				}
+
+				@Override
+				public long getLastComputedCompatibilityScore() {
+					return 0;// dummy
 				}
 
 				@Override

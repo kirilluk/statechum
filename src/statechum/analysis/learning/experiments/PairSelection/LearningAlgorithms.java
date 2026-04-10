@@ -197,7 +197,10 @@ public class LearningAlgorithms
 		public int countRedsKnowingTheCorrectSolution() 
 		{
 			if (reportReducedReds)
-				return totalReds-missedMergers;
+				return totalReds-missedMergers;// Sicco heuristic creates a lot of red states, expecting them to be
+			// merged with SAT. This may cause learner to abort on L_REDS hence we 'forgive' mistakes created
+			// by such learner, at the expense of the time taken to learn (and a possibly inflated score computed
+			// by structural difference).
 			return totalReds;
 		}
 		
@@ -520,20 +523,30 @@ public class LearningAlgorithms
 		SCORING_LIMITEDSELFLOOPS_SICCO_0("PROGRESS+SICCO_0"),SCORING_LIMITEDSELFLOOPS_SICCO_2("PROGRESS+SICCO_2"),SCORING_LIMITEDSELFLOOPS_SICCO_3("PROGRESS+SICCO_3"),SCORING_LIMITEDSELFLOOPS_SICCO_4("PROGRESS+SICCO_4");
 		
 		public final String name;
+		public final String reportedName;
 		public final boolean scoringMarkov;
+
 		ScoringToApply(String nameText)
 		{
+			if (!name().startsWith("SCORING_"))
+				throw new IllegalArgumentException("Name of enumeration reflecting learner kind should start with SCORING_");
+			reportedName = name().substring(name().lastIndexOf("_")+1);
+
 			name = nameText;scoringMarkov = false;
 		}
 		ScoringToApply(String nameText, boolean markov)
 		{
+			if (!name().startsWith("SCORING_"))
+				throw new IllegalArgumentException("Name of enumeration reflecting learner kind should start with SCORING_");
+			reportedName = name().substring(name().lastIndexOf("_")+1);
+
 			name = nameText;scoringMarkov = markov;
 		}
 		
 		@Override
 		public String toString()
 		{
-			return name;
+			return reportedName;
 		}
 
 		public boolean isMarkov() {
@@ -856,6 +869,8 @@ public class LearningAlgorithms
 					coregraph = gr;
 				}
 
+				long lastComputedCompatibilityScore;
+
 				@Override
 				public long overrideScoreComputation(PairScore p) 
 				{
@@ -1023,7 +1038,12 @@ public class LearningAlgorithms
 							score = -1;
 					checkTimeout();
 
+					lastComputedCompatibilityScore = score;
 					return score;
+				}
+
+				public long getLastComputedCompatibilityScore() {
+					return lastComputedCompatibilityScore;
 				}
 
 				@Override
@@ -1462,7 +1482,9 @@ public class LearningAlgorithms
 			cl = new MarkovClassifierLG(m, coregraph,null);
 		    extendedGraph = cl.constructMarkovTentative();
 		}
-		
+
+		long lastComputedCompatibilityScore;
+
 		@Override
 		public long overrideScoreComputation(PairScore p) 
 		{
@@ -1471,8 +1493,13 @@ public class LearningAlgorithms
 			
 			if (pairScore >= 0)
 				pairScore = MarkovScoreComputation.computenewscore(p, extendedGraph);
-			
+
+			lastComputedCompatibilityScore = pairScore;
 			return pairScore;
+		}
+
+		public long getLastComputedCompatibilityScore() {
+			return lastComputedCompatibilityScore;
 		}
 
 		/** This one returns a set of transitions in all directions. */

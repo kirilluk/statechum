@@ -229,6 +229,8 @@ public class RPNIBlueFringeVariability
 						// dummy
 					}
 
+					long lastComputedCompatibilityScore;
+
 					@Override
 					public long overrideScoreComputation(PairScore p) {
 						boolean haveToUseGeneralisedComputation = graph.config.getLearnerScoreMode() == ScoreMode.GENERAL || graph.config.getLearnerScoreMode() == ScoreMode.ONLYOVERRIDE;
@@ -254,7 +256,13 @@ public class RPNIBlueFringeVariability
 						}						
 						if (haveToUseGeneralisedComputation)
 							return scoreGeneral;
+						lastComputedCompatibilityScore = p.getAnotherScore();
 						return p.getScore();// return the existing score
+					}
+
+					@Override
+					public long getLastComputedCompatibilityScore() {
+						return lastComputedCompatibilityScore;
 					}
 
 					@Override

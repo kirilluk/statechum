@@ -681,13 +681,16 @@ public class WaveBlueFringe extends PairQualityLearner
 							++partitionNumber;
 						}
 					}
-					
+
+					long lastComputedRelativeInconsistency;
+
 					@Override
 					public long overrideScoreComputation(PairScore p) 
 					{
 						ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
 						List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
 						LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(coregraph, finalReferenceGraph, pairOfInterest, correctPairs, wrongPairs);
+						lastComputedRelativeInconsistency = 0;
 						long score = p.getScore();//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);
 						if (score < 0)
 							return score;
@@ -705,7 +708,7 @@ public class WaveBlueFringe extends PairQualityLearner
 									)-inconsistencyFromAnEarlierIteration;
 							relativeInconsistency = new MarkovClassifierLG(m, merged,null).computeRelativeInconsistency(checker);
 						}
-						
+						lastComputedRelativeInconsistency = Math.round(100*relativeInconsistency);
 						// A green state next to a red may have many incoming paths, more than in a PTA, some of which may predict its outgoing transition as non-existent. 
 						// When a merge happens this state may be merged into the one with a similar surroundings. In this way, two states with the same in-out inconsistency
 						// are merged into the one with that inconsistency, turning two inconsistencies into one and hence reducing the total number of inconsistencies.
@@ -722,6 +725,11 @@ public class WaveBlueFringe extends PairQualityLearner
 						
 
 						return score;
+					}
+
+					@Override
+					public long getLastComputedCompatibilityScore() {
+						return lastComputedRelativeInconsistency;
 					}
 
 					/** This one returns a set of transitions in all directions. */

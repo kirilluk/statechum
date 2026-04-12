@@ -2561,7 +2561,9 @@ public class TestMarkovLearner
 		Set<CmpVertex> verts= new TreeSet<>();verts.add(trainingGraphForClosures.findVertex("B"));
 		MarkovClassifier.computeClosure(trainingGraphForClosures,verts,1);
 		Assert.assertEquals(2,verts.size());
-		Iterator<CmpVertex> iter=verts.iterator();Assert.assertSame(trainingGraphForClosures.findVertex("B"),iter.next());Assert.assertSame(trainingGraphForClosures.findVertex("C"),iter.next());
+		Iterator<CmpVertex> iter=verts.iterator();
+		Assert.assertSame(trainingGraphForClosures.findVertex("B"),iter.next());
+		Assert.assertSame(trainingGraphForClosures.findVertex("C"),iter.next());
 	}
 	
 	@Test
@@ -2570,7 +2572,10 @@ public class TestMarkovLearner
 		Set<CmpVertex> verts= new TreeSet<>();verts.add(trainingGraphForClosures.findVertex("B"));
 		MarkovClassifier.computeClosure(trainingGraphForClosures,verts,2);
 		Assert.assertEquals(3,verts.size());
-		Iterator<CmpVertex> iter=verts.iterator();Assert.assertSame(trainingGraphForClosures.findVertex("B"),iter.next());Assert.assertSame(trainingGraphForClosures.findVertex("C"),iter.next());Assert.assertSame(trainingGraphForClosures.findVertex("D"),iter.next());
+		Iterator<CmpVertex> iter=verts.iterator();
+		Assert.assertSame(trainingGraphForClosures.findVertex("B"),iter.next());
+		Assert.assertSame(trainingGraphForClosures.findVertex("C"),iter.next());
+		Assert.assertSame(trainingGraphForClosures.findVertex("D"),iter.next());
 	}
 	
 	@Test

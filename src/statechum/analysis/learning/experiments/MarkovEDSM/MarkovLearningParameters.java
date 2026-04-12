@@ -17,9 +17,7 @@
  */
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
@@ -84,8 +82,9 @@ public class MarkovLearningParameters implements ThreadResultID
 	}
 
 	@Override
+	/** Reports the meaning of column header values */
 	public String[] getColumnText() {
-		List<String> columnData = new ArrayList<>(Collections.singletonList(learnerToUse.name()));
+		List<String> columnData = new ArrayList<>(Collections.singletonList(learnerToUse.toString()));
 		if (learnerToUse.isMarkov())
 			columnData.addAll(markovParameters.getColumnListForMarkovLearner());
 		else
@@ -95,21 +94,33 @@ public class MarkovLearningParameters implements ThreadResultID
 	}
 
 	@Override
+	/** Reports the values of column header values. */
 	public String getColumnID() 
 	{
-        return learnerToUse.name()+"-"+markovParameters.getColumnID(learnerToUse.isMarkov());
+        return learnerToUse.toString()+"-"+markovParameters.getColumnID(learnerToUse.isMarkov());
 	}
 
-	public static final String [] cellheaderMarkov = new String[]{"Success","BCR","Diff","M_Invalid","M_Missed","States","I_Ref", "I_Lnt","fracS","marPre","marRec","Comparisons","centreCorrect","centerpaths","%transitions","Time"},
-			cellheaderConventional = new String[]{"Success","BCR","Diff","M_Invalid","M_Missed","States","I_Ref", "I_Lnt","centreCorrect","centerpaths","%transitions","Time"};
-	
 	@Override
+	/** For each row (a specific walk in a specific automaton) and column (learner type and parameters), reports
+	 * experiment results.
+	 *
+	 * % Invalid/missed refer to mergers,
+	 * States refer to the difference between expected and learnt states,
+	 * I_Ref, I_Lnt are inconsistencies of the original and learnt automata.
+	 *
+	 * fracS is the %% of states identifiable as singletons,
+	 * marPre is Markov precision
+	 * marRec is Morkov recall,
+	 * %transitions is the %% of transitions in the reference automata covered by walk from which we are learning.
+	 * Time (should always be the last one) refers to the wall clock taken by learner to learn.
+	 */
 	public String[] headerValuesForEachCell() 
 	{
+		List<String> headers = new LinkedList<>(Arrays.asList("Success","BCR","Diff","% Invalid","% Missed","States","I_Ref", "I_Lnt"));
 		if (learnerToUse.isMarkov())
-			return cellheaderMarkov;
-		
-		return cellheaderConventional;
+			headers.addAll(Arrays.asList("fracS","marPre","marRec","Comparisons"));
+		headers.addAll(Arrays.asList("centreCorrect","centerpaths","%transitions","Time"));
+		return headers.toArray(new String[]{});
 	}
 
 	@Override
@@ -121,9 +132,6 @@ public class MarkovLearningParameters implements ThreadResultID
 	@Override
 	public int executionTimeInCell() 
 	{// here time is always the last value.
-		if (learnerToUse.isMarkov())
-			return cellheaderMarkov.length-1;
-		else
-			return cellheaderConventional.length-1;
+		return headerValuesForEachCell().length-1;
 	}
 }

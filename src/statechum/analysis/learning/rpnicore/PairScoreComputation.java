@@ -55,6 +55,7 @@ public class PairScoreComputation {
 	{
 		void initComputation(LearnerGraph graph);
 		long overrideScoreComputation(PairScore p);
+		long getLastComputedCompatibilityScore();
 	}
 
 	public interface RedNodeSelectionProcedure extends ScoreComputationCallback
@@ -197,7 +198,8 @@ public class PairScoreComputation {
 		switch(coregraph.config.getLearnerScoreMode())
 		{
 			case ONLYOVERRIDE:
-				computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,0, 0));compatibilityScore=computedScore;
+				computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,0, 0));
+				compatibilityScore=scoreComputationOverride.getLastComputedCompatibilityScore();
 				return new PairScore(blue,red,computedScore, compatibilityScore);
 			case COMPATIBILITY:
 				computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;

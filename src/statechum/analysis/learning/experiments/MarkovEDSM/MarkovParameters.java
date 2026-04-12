@@ -19,6 +19,7 @@ package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class MarkovParameters 
@@ -115,16 +116,18 @@ public class MarkovParameters
 	{
 		switch(value)
 		{
-		case 0:// learning by not doing pre-merging, starting from root 
-			setlearningParameters(false, false, false, false);break;
-		case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs and hence is very slow.
-			setlearningParameters(true, false, false, true);break;
-		case 2:// learning by doing pre-merging but starting from root. 
-			setlearningParameters(true, false, false,  false);break;
-		// alternatives are: learning by not doing pre-merging, starting from root and using a heuristic around root
-		// or learning by not doing pre-merging, starting from root and not ranking the top IScore candidates with the fanout metric.
-		default:
-			throw new IllegalArgumentException("invalid preset number");
+			case 0:// learning by not doing pre-merging, starting from root
+				setlearningParameters(false, false, false, false, false);break;
+//			case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs and hence is very slow.
+//				setlearningParameters(true, false, false, true, false);break;
+			case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs and hence is very slow.
+				setlearningParameters(true, false, false, true, true);break;
+			case 2:// learning by doing pre-merging but starting from root.
+				setlearningParameters(true, false, false,  false, false);break;
+			// alternatives are: learning by not doing pre-merging, starting from root and using a heuristic around root
+			// or learning by not doing pre-merging, starting from root and not ranking the top IScore candidates with the fanout metric.
+			default:
+				throw new IllegalArgumentException("invalid preset number");
 		}
 	}
 
@@ -134,18 +137,35 @@ public class MarkovParameters
 	public boolean mergeIdentifiedPathsAfterInference = true;
 	public boolean useMostConnectedVertexToStartLearning = false;
 	public boolean useNewScoreNearRoot = false;
+	public boolean subtractInconsistenciesOfMergedStatesFromTotal = true;
 	public double weightOfInconsistencies = 1.0;
 
-	public void setlearningParameters(boolean useCentreVertexArg, boolean newScoreNearRoot, boolean mergeIdentifiedPathsAfterInferenceArg, boolean useMostConnectedVertexToStartLearningArg)
+	public void setlearningParameters(boolean useCentreVertexArg, boolean newScoreNearRoot,
+									  boolean mergeIdentifiedPathsAfterInferenceArg,
+									  boolean useMostConnectedVertexToStartLearningArg,
+									  boolean subtractInconsistenciesOfMergedStates)
 	{
-		useCentreVertex = useCentreVertexArg;useNewScoreNearRoot = newScoreNearRoot;mergeIdentifiedPathsAfterInference = mergeIdentifiedPathsAfterInferenceArg;useMostConnectedVertexToStartLearning = useMostConnectedVertexToStartLearningArg;
+		useCentreVertex = useCentreVertexArg;useNewScoreNearRoot = newScoreNearRoot;
+		mergeIdentifiedPathsAfterInference = mergeIdentifiedPathsAfterInferenceArg;
+		useMostConnectedVertexToStartLearning = useMostConnectedVertexToStartLearningArg;
+		subtractInconsistenciesOfMergedStatesFromTotal = subtractInconsistenciesOfMergedStates;
 	}
 
+	/** This method is expected to report columns associated with any possible transformation of a PTA into a
+	 * directed graph by merging states that Markov believes to be most likely to correspond to the same reference
+	 * state.
+	 *
+	 * @param spacesAtTheEnd how many blank cells to add at the end, intended to make sure the number of cells is the same regardless of how many parameter a learner has got.
+	 */
 	private List<String> getColumnTextForAnyLearner(int spacesAtTheEnd)
 	{
-        List<String> whatToReturn = new ArrayList<>(Arrays.asList(
-                Integer.toString(preset), (useAverageOrMax ? "Average" : "Max"), Integer.toString(divisorForPathCount), Integer.toString(whichMostConnectedVertex),
-                Integer.toString(expectedWLen)));
+        List<String> whatToReturn = new ArrayList<>(Collections.singletonList(Integer.toString(preset)));
+		if (useCentreVertex)
+			whatToReturn.addAll(Arrays.asList(
+                Integer.toString(preset),
+					(useAverageOrMax ? "Ave" : "Max"), Integer.toString(divisorForPathCount),
+                Integer.toString(expectedWLen)));//, Boolean.toString(subtractInconsistenciesOfMergedStatesFromTotal)));
+
 		for(int i=0;i<spacesAtTheEnd;++i)
 			whatToReturn.add("");
 		return whatToReturn;
@@ -158,7 +178,8 @@ public class MarkovParameters
 	
 	public List<String> getColumnListForMarkovLearner()
 	{
-		List<String> whatToReturn = getColumnTextForAnyLearner(0);whatToReturn.addAll(getColumnListOnlyForMarkov());
+		List<String> whatToReturn = getColumnTextForAnyLearner(0);
+		whatToReturn.addAll(getColumnListOnlyForMarkov());
 		return whatToReturn;
 	}
 
@@ -174,13 +195,13 @@ public class MarkovParameters
 	public String getColumnID(boolean useMarkovLearner)
 	{
 		String outcome = Integer.toString(preset);// after identification of a centre vertex many learners can be attempted, Markov is not the only one.
+
 		if (useCentreVertex)
 		{
-			outcome+="_dv="+(useAverageOrMax?"A":"M")+divisorForPathCount+"_v"+whichMostConnectedVertex+"_wl"+expectedWLen;
-			outcome +="_cl="+chunkLen;
+			outcome+="_dv="+(useAverageOrMax?"A":"M")+"_d="+divisorForPathCount+"_wl="+expectedWLen;//+"_s="+subtractInconsistenciesOfMergedStatesFromTotal;
 		}
 		if (useMarkovLearner)
-			outcome+="_w"+weightOfInconsistencies+(useNewScoreNearRoot?"_NS":"");
+			outcome+="_cl="+chunkLen+"_w="+weightOfInconsistencies;
 		
 		return outcome;
 	}

@@ -130,9 +130,12 @@ public class MarkovExperiment
 
 					@Override
 					public int getLength() {
-						// The idea is to generate long traces reflecting a lengthy period of computation. The difference between "tracesAlphabet" and "alphabetMultiplier" is to make it possible
-						// to change the size of an alphabet but generate traces of the same length, in order to evaluate how sensitive the learner is to alphabet size.
-						// Other than for this very specific experiment tracesAlphabet and alphabetMultiplier should be the same.
+						// The idea is to generate long traces reflecting a lengthy period of computation.
+						// The difference between "tracesAlphabet" and "alphabetMultiplier" is to make it possible
+						// to change the size of an alphabet but generate traces of the same length, in order to
+						// evaluate how sensitive the learner is to alphabet size.
+						// Other than for this very specific experiment tracesAlphabet and alphabetMultiplier
+						// should be the same.
 						return (int)(par.traceLengthMultiplier*par.states*tracesAlphabet);// not the same as for SmallVsHuge (which aims for a specific distribution of paths) or LearnerEvaluation
 					}
 	
@@ -152,8 +155,9 @@ public class MarkovExperiment
 			if (par.tracesAlphabetMultiplier <= 0)
 				par.tracesAlphabetMultiplier = par.alphabetMultiplier;
 			generateReferenceFSM();
+			saveGraph(nameReference,referenceGraph);
+
 			ExperimentResult<MarkovLearningParameters> outcome = new ExperimentResult<>(par);
-			
 			learnerInitConfiguration.testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
 			
 			LearnerGraph pta = constructPTA();
@@ -181,7 +185,9 @@ public class MarkovExperiment
 				firstMerge.buildFirstGraph(pta, referenceGraph, par.markovParameters, m, checker);
 				if (par.usePrintf) {
 					LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(firstMerge.ptaToUseForInference);
-					System.out.println("Centre vertex: " + firstMerge.vertexWithMostTransitions + " number of transitions: " + WaveBlueFringe.countTransitions(firstMerge.ptaToUseForInference, inverseOfPtaAfterInitialMerge, firstMerge.vertexWithMostTransitions));
+					System.out.println("Centre vertex: " + firstMerge.vertexWithMostTransitions + " number of transitions: " +
+							WaveBlueFringe.countTransitions(firstMerge.ptaToUseForInference,
+									inverseOfPtaAfterInitialMerge, firstMerge.vertexWithMostTransitions));
 				}
 			}
 	
@@ -375,11 +381,20 @@ public class MarkovExperiment
 			markovHelper.initComputation(graph, MarkovClassifier.computeInverseGraph(coregraph));
 		}
 
+		long lastComputedCompatibilityScore;
+
 		@Override // we only need this in order to supply a routine to find surrounding transitions and initComputation
 		public long overrideScoreComputation(PairScore p) 
 		{
-			return markovHelper.computeScoreBasedOnInconsistencies(p);
-		}		
+			long score = markovHelper.computeScoreBasedOnInconsistencies(p);
+			lastComputedCompatibilityScore = markovHelper.getLastComputedInconsistency();
+			return score;
+		}
+
+		@Override
+		public long getLastComputedCompatibilityScore() {
+			return lastComputedCompatibilityScore;
+		}
 
 		/** This one returns a set of transitions in all directions. */
 		@Override
@@ -555,7 +570,7 @@ public class MarkovExperiment
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
 		for(final int preset: new int[]{0})//0,1,2})
 		{
-			for(final int traceQuantityToUse:new int[]{1,2,4,8})
+			for(final int traceQuantityToUse:new int[]{8})
 			{
 				int seedForFSM = 0;
 
@@ -565,17 +580,17 @@ public class MarkovExperiment
 						for(int sample=0;sample<fsmSamplesPerStateNumber;++sample,++seedForFSM)
 							for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 								for(boolean aveOrMax:new boolean[]{false})
-									for(double traceLengthMultiplier:new double[] {16,32,64})
+									for(double traceLengthMultiplier:new double[] {32})
 										for(ScoringToApply learnerKind:
 												preset == 0?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
 													new ScoringToApply[]{
 														ScoringToApply.SCORING_MARKOV,
-														ScoringToApply.SCORING_EDSM, ScoringToApply.SCORING_EDSM_2, ScoringToApply.SCORING_EDSM_4,
+														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2, ScoringToApply.SCORING_EDSM_4,
 														ScoringToApply.SCORING_PTAK_1, ScoringToApply.SCORING_PTAK_2, ScoringToApply.SCORING_SICCO
 													}:
 													new ScoringToApply[]{
 														ScoringToApply.SCORING_MARKOV,
-														ScoringToApply.SCORING_EDSM, ScoringToApply.SCORING_EDSM_2
+														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2
 										})
 										// LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
 											for(double weightOfInconsistencies:learnerKind.isMarkov()?new double[]{2.0}//0.5,1.0,2.0,4.0}
@@ -641,16 +656,18 @@ public class MarkovExperiment
 			}
 			
 		});
-		
+		int referencePreset=0;
 		for(final int preset: new int[]{0})//0,1,2})
 		{
 			if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS)
 			{// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
-				String experimentName = outPathPrefix+"preset"+preset+"_";
-				final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_structuraldiff.pdf"),0,1,true);
-				final SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_bcr.pdf"),0.5,1,true);		
-				final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_kt_bcr.pdf"),0.5,1,true);		
-				final SquareBagPlot BCRAgainstEDSM_2 = new SquareBagPlot("BCR, EDSM-2","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_markov_bcr.pdf"),0.5,1,true);
+				String presetStr = "-"+preset;
+				String referencePresetStr="-"+referencePreset;
+				String experimentName = outPathPrefix+"preset_"+preset+"_";
+				final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(experimentName+statesMax+"_trace_structuraldiff.pdf"),0,1,true);
+				final SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(experimentName+statesMax+"_trace_bcr.pdf"),0.5,1,true);
+				final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(experimentName+"_"+statesMax+"_trace_kt_bcr.pdf"),0.5,1,true);
+				final SquareBagPlot BCRAgainstEDSM_2 = new SquareBagPlot("BCR, EDSM-2","BCR, EDSM-Markov learner",new File(experimentName+"_"+statesMax+"_trace_markov_bcr.pdf"),0.5,1,true);
 
 				final WilcoxonPairedTest Wilcoxon_test_Structural=new WilcoxonPairedTest(new File(experimentName +"Wilcoxon_t_str.csv"));
 				final WilcoxonPairedTest Wilcoxon_Test_BCR=new WilcoxonPairedTest(new File(experimentName +"Wilcoxon_t_bcr.csv"));
@@ -659,17 +676,17 @@ public class MarkovExperiment
 				final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 
 				final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_str.csv"));		 	 
 				// names of columns include parameters used with learners, here we ignore that and pick those that match learner names
-				DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,ScoringToApply.SCORING_SICCO.name(),2,ScoringToApply.SCORING_MARKOV.name(),2,null,null);
-				DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,ScoringToApply.SCORING_SICCO.name(),1,ScoringToApply.SCORING_MARKOV.name(),1,null,null);
-				DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,ScoringToApply.SCORING_PTAK_1.name(),1,ScoringToApply.SCORING_MARKOV.name(),1,null,null);
-				DrawGraphs.spreadsheetToBagPlot(BCRAgainstEDSM_2,resultCSV,ScoringToApply.SCORING_PTAK_1.name(),1,ScoringToApply.SCORING_MARKOV.name(),1,null,null);
+				DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,ScoringToApply.SCORING_SICCO+referencePresetStr,2,ScoringToApply.SCORING_MARKOV+presetStr,2,null,null);
+				DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,ScoringToApply.SCORING_SICCO+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
+				DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,ScoringToApply.SCORING_PTAK_1+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
+				DrawGraphs.spreadsheetToBagPlot(BCRAgainstEDSM_2,resultCSV,ScoringToApply.SCORING_EDSM_2+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
 
-				DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
-				DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),2,ScoringToApply.SCORING_SICCO.name(),2);
-				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
-				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),2,ScoringToApply.SCORING_SICCO.name(),2);
-				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
-				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),2,ScoringToApply.SCORING_SICCO.name(),2);
+				DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,1,ScoringToApply.SCORING_SICCO+referencePresetStr,1);
+				DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,2,ScoringToApply.SCORING_SICCO+referencePresetStr,2);
+				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,1,ScoringToApply.SCORING_SICCO+referencePresetStr,1);
+				DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,2,ScoringToApply.SCORING_SICCO+referencePresetStr,2);
+				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,1,ScoringToApply.SCORING_SICCO+referencePresetStr,1);
+				DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,2,ScoringToApply.SCORING_SICCO+referencePresetStr,2);
 				final AtomicLong comparisonsPerformed = new AtomicLong(0);
 				/*
 				DrawGraphs.spreadsheetAsString((A, B) -> {
@@ -679,7 +696,7 @@ public class MarkovExperiment
 					catch(NumberFormatException e) {
 						System.out.println("Failed to convert "+e);
 					}
-				},resultCSV,ScoringToApply.SCORING_MARKOV.name(),3,ScoringToApply.SCORING_MARKOV.name(),3);
+				},resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,3,ScoringToApply.SCORING_MARKOV+presetStr,3);
 					*/
 				for(@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result:new DrawGraphs.RExperimentResult[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstEDSM_2, Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR})
 				{

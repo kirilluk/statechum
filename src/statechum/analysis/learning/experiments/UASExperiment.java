@@ -171,7 +171,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException;
 	}
 
-	public static String namePTA="pta", namePTABEFORECENTRE="pbc",nameOUTCOME="outcome";
+	public static String nameReference="reference",namePTA="pta", namePTABEFORECENTRE="pbc",nameOUTCOME="outcome";
 	
 	public static class ScoringModeScore
 	{

@@ -54,7 +54,7 @@
  *
  * Installation of the above on MacOSX and Win32:
  *
- * install.packages(c("JavaGD","rJava","aplpack","ufs"))
+ * install.packages(c("JavaGD","rJava","aplpack","ufs"), method="wininet")
  * On MacOS, tcltk is a special download which installs into /usr/local.
  *
  * Where R is install from Macports, I need to installed both as follows:

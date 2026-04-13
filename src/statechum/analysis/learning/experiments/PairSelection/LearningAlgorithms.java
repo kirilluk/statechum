@@ -530,7 +530,7 @@ public class LearningAlgorithms
 		{
 			if (!name().startsWith("SCORING_"))
 				throw new IllegalArgumentException("Name of enumeration reflecting learner kind should start with SCORING_");
-			reportedName = name().substring(name().lastIndexOf("_")+1);
+			reportedName = name().substring(name().indexOf("_")+1);
 
 			name = nameText;scoringMarkov = false;
 		}
@@ -538,7 +538,7 @@ public class LearningAlgorithms
 		{
 			if (!name().startsWith("SCORING_"))
 				throw new IllegalArgumentException("Name of enumeration reflecting learner kind should start with SCORING_");
-			reportedName = name().substring(name().lastIndexOf("_")+1);
+			reportedName = name().substring(name().indexOf("_")+1);
 
 			name = nameText;scoringMarkov = markov;
 		}

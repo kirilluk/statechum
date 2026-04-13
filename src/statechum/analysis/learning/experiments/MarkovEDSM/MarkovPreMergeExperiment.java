@@ -77,7 +77,7 @@ public class MarkovPreMergeExperiment
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
 
 		// Inference from a few traces
-		final double alphabetMultiplierMax=2;
+		final double alphabetMultiplier=2;
 
 		try
 		{
@@ -209,10 +209,9 @@ public class MarkovPreMergeExperiment
 													ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 													ev.config.setOverride_usePTAMerging(false);
 
-													MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplierMax, density, sample,trainingSample, seedForFSM);
-													parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
+													MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplier, density, sample,trainingSample, seedForFSM);
 													parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
-													parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
+													parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplier);
 													parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies, aveOrMax,divisor,positionOfMostConnectedVertex,wlen);
 													parameters.setUsePrintf(experimentRunner.isInteractive());
 													MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);

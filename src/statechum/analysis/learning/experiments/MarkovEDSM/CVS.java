@@ -111,8 +111,7 @@ public class CVS
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
 
 		// Inference from a few traces
-		final boolean onlyPositives=true;
-		final double alphabetMultiplierMax=2;
+		final double alphabetMultiplier=2;
 		try
 		{
 			for(final int preset: new int[]{0})//0,1,2})
@@ -126,7 +125,7 @@ public class CVS
 				final AtomicLong comparisonsPerformed = new AtomicLong(0);
 				final int statesMax = statesToUse[statesToUse.length-1];// reflects the size of the largest FSM that will be generated. 
 				MarkovLearningParameters parExp = new MarkovLearningParameters(null,0,0,0,0,0,0);
-				parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
+				parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplier);
 	
 				for(int states:statesToUse)
 				for(int density:new int[] {0,3})
@@ -148,10 +147,9 @@ public class CVS
 											ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 											ev.config.setOverride_usePTAMerging(false);
 				
-											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplierMax, density, sample,trainingSample, seedForFSM);
-											parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
+											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplier, density, sample,trainingSample, seedForFSM);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
-											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,statesMax,alphabetMultiplierMax);
+											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,statesMax,alphabetMultiplier);
 											parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies,aveOrMax,divisorForPathCount,0,1);
 											parameters.setUsePrintf(experimentRunner.isInteractive());
 											MarkovLearnerFromPTAUsingReference learnerRunner = new MarkovLearnerFromPTAUsingReference(parameters, ev,pta, getCVSReference(eval));

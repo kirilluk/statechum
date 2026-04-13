@@ -162,8 +162,7 @@ public class MarkovParameters
         List<String> whatToReturn = new ArrayList<>(Collections.singletonList(Integer.toString(preset)));
 		if (useCentreVertex)
 			whatToReturn.addAll(Arrays.asList(
-                Integer.toString(preset),
-					(useAverageOrMax ? "Ave" : "Max"), Integer.toString(divisorForPathCount),
+				(useAverageOrMax ? "Ave" : "Max"), Integer.toString(divisorForPathCount),
                 Integer.toString(expectedWLen)));//, Boolean.toString(subtractInconsistenciesOfMergedStatesFromTotal)));
 
 		for(int i=0;i<spacesAtTheEnd;++i)

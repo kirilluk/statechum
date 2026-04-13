@@ -91,7 +91,7 @@ public class CVS_With_Random_traces_Generation
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
 
 		// Inference from a few traces
-		final int alphabetMultiplierMax = 1;// dummy value - it is needed by parameters
+		final int alphabetMultiplier = 1;// dummy value - it is needed by parameters
 		final LearnerGraph cvsReference = CVS.getCVSReference(eval); 
 		final int states = cvsReference.getAcceptStateNumber();
 		try
@@ -102,7 +102,7 @@ public class CVS_With_Random_traces_Generation
 				int seedForFSM = 0;
 				final AtomicLong comparisonsPerformed = new AtomicLong(0);
 				MarkovLearningParameters parExp = new MarkovLearningParameters(null,0,0,0,0,0,0);
-				parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax,states,alphabetMultiplierMax);
+				parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax,states,alphabetMultiplier);
 				
 					final String experimentName = outPathPrefix+parExp.getExperimentID();
 					final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(experimentName+"results.csv"));
@@ -120,10 +120,9 @@ public class CVS_With_Random_traces_Generation
 											ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 											ev.config.setOverride_usePTAMerging(false);
 				
-											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, 0, alphabetMultiplierMax, 0,trainingSample, seedForFSM);
-											parameters.setTracesAlphabetMultiplier(alphabetMultiplierMax);
+											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, 0, alphabetMultiplier, 0,trainingSample, seedForFSM);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
-											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,states,alphabetMultiplierMax);
+											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,states,alphabetMultiplier);
 											parameters.markovParameters.setMarkovParameters(preset, chunkSize, true, weightOfInconsistencies,aveOrMax, divisorForPathCount,0,1);
 											parameters.setUsePrintf(experimentRunner.isInteractive());
 											MarkovLearnerUsingReference learnerRunner = new MarkovLearnerUsingReference(parameters, ev, cvsReference);

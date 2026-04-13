@@ -34,7 +34,6 @@ public class MarkovLearningParameters implements ThreadResultID
 	public final int seed;
 	public double alphabetMultiplier = 1;
 	public double traceLengthMultiplier = 1;
-	public double tracesAlphabetMultiplier = 0;
 	public int traceQuantity,statesMax;
 	public double traceLengthMultiplierMax,alphabetMultiplierMax;
 	boolean usePrintf = false;
@@ -66,11 +65,6 @@ public class MarkovLearningParameters implements ThreadResultID
 		usePrintf = value;
 	}
 	
-	public void setTracesAlphabetMultiplier(double evalAlphabetMult)
-	{
-		tracesAlphabetMultiplier = evalAlphabetMult;
-	}
-
 	public void setTraceLengthMultiplier(double traceMulti) {
 		traceLengthMultiplier=traceMulti;
 	}
@@ -78,7 +72,7 @@ public class MarkovLearningParameters implements ThreadResultID
 	@Override
 	public String getRowID() {
 		return getExperimentID()+"_S="+states+"_m="+alphabetMultiplier+"_d="+ perStateSquaredDensityMultipliedBy100 +"_sa="+sample+"_tS="+trainingSample+"_se="+seed+
-				"_tM="+traceLengthMultiplier+"_tAMr="+tracesAlphabetMultiplier;
+				"_tM="+traceLengthMultiplier;
 	}
 
 	@Override
@@ -119,7 +113,9 @@ public class MarkovLearningParameters implements ThreadResultID
 		List<String> headers = new LinkedList<>(Arrays.asList("Success","BCR","Diff","% Invalid","% Missed","States","I_Ref", "I_Lnt"));
 		if (learnerToUse.isMarkov())
 			headers.addAll(Arrays.asList("fracS","marPre","marRec","Comparisons"));
-		headers.addAll(Arrays.asList("centreCorrect","centerpaths","%transitions","Time"));
+		if (markovParameters.useCentreVertex)
+			headers.addAll(Arrays.asList("centreCorrect","centerpaths"));
+		headers.addAll(Arrays.asList("%transitions","Time"));
 		return headers.toArray(new String[]{});
 	}
 

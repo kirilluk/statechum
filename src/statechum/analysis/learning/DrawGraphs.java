@@ -551,7 +551,7 @@ public class DrawGraphs {
 
 			Map<String, String> columnText = rowColumnText.computeIfAbsent(id.getRowID(), k -> new TreeMap<>());
 			if (columnText.containsKey(id.getColumnID()))
-				throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell "+id.getRowID()+","+id.getColumnID());
+				throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell ["+id.getRowID()+"] , ["+id.getColumnID()+"]");
 			String [] elements = text.split(",");
 			if (elements.length != id.headerValuesForEachCell().length)
 				throw new IllegalArgumentException("the number of values ("+elements.length+") passed via \""+Arrays.asList(elements)+"\" does not match those ("+id.headerValuesForEachCell().length+") in id.headerValuesForEachCell()=\""+Arrays.asList(id.headerValuesForEachCell())+"\"");
@@ -1005,8 +1005,29 @@ public class DrawGraphs {
 				plot.add(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)), colour, label);
 		}
 	}
-	
-	
+
+	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
+	 *
+	 * @param plot R graph to update
+	 * @param whereFrom spreadsheet to get data from
+	 * @param columnX column for the horizontal values.
+	 * @param columnY column for the vertical values.
+	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
+	 * @param label label to add with each value.
+	 */
+	public static void spreadsheetToBagPlotNoZeroYValues(RBagPlot plot, CSVExperimentResult whereFrom, String columnX, int cellWithinX, String columnY, int cellWithinY, String colour, String label)
+	{
+		for(Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			String X = getValueFromMapGivenRegexp(rowEntry.getValue(),columnX);
+			String Y = getValueFromMapGivenRegexp(rowEntry.getValue(),columnY);
+			if (X != null && Y != null) {
+				double value = Double.parseDouble(obtainValueFromCell(Y,cellWithinY));
+				if (value > 0.)
+					plot.add(Double.parseDouble(obtainValueFromCell(X, cellWithinX)), value, colour, label);
+			}
+		}
+	}
 	public interface MergeObjects
 	{
 		/** Called to merge the provided object into that represented by a provider of this interface. */

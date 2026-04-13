@@ -17,7 +17,6 @@ import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.MarkovModel.UpdatablePairInteger;
 import statechum.analysis.learning.experiments.MarkovEDSM.WaveBlueFringe;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -2461,26 +2460,46 @@ public class TestMarkovLearner
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-t->B-t-#C / A-a->A", "testUniquePaths2",config,converter);
 		Assert.assertEquals(1/3.,MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(fsm),Configuration.fpAccuracy);		
 	}
-	
+
+	@Test
+	public void testMarkovPerformance0() {
+		final LearnerGraph trainingGraph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G", "testUpdateMarkovSideways3", config, converter);
+		MarkovModel m = new MarkovModel(2, true, true, true, markovPTAUseMatrix);
+		MarkovClassifierLG cl = new MarkovClassifierLG(m, trainingGraph, null);
+		cl.updateMarkov(false);
+		statechum.Pair<Double, Double> pairTraining = cl.evaluateCorrectnessOfMarkov(true, false);
+
+		Assert.assertEquals(0.6, pairTraining.firstElem, Configuration.fpAccuracy);// reflects that transitions u and c from G are not present but predicted
+		Assert.assertEquals(0.6, pairTraining.secondElem, Configuration.fpAccuracy);// reflects that transitions a and c from A are not predicted but present.
+
+		pairTraining = cl.evaluateCorrectnessOfMarkov(false, true);
+		Assert.assertEquals(1.0, pairTraining.firstElem, Configuration.fpAccuracy);// reflects that transitions u and c from G are not present but predicted
+		Assert.assertEquals(1. / 19., pairTraining.secondElem, Configuration.fpAccuracy);// reflects that there are relatively few transitions in the training graph and Markov only knows about a single negative.
+
+		pairTraining = cl.evaluateCorrectnessOfMarkov(false, false);
+		Assert.assertEquals(0,pairTraining.firstElem,Configuration.fpAccuracy);Assert.assertEquals(0,pairTraining.secondElem,Configuration.fpAccuracy);
+
+	}
+
 	@Test
 	public void testMarkovPerformance1()
 	{
 		final LearnerGraph trainingGraph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
 		MarkovClassifierLG cl=new MarkovClassifierLG(m,trainingGraph,null);cl.updateMarkov(false);
-		statechum.Pair<Double,Double> pairTraining = cl.evaluateCorrectnessOfMarkov();
-		Assert.assertEquals(2./3,pairTraining.firstElem,Configuration.fpAccuracy);// reflects that transitions u and c from G are not present but predicted
-		Assert.assertEquals(2./3.,pairTraining.secondElem,Configuration.fpAccuracy);// reflects that transitions a and c are not predicted but present.
+		statechum.Pair<Double,Double> pairTraining = cl.evaluateCorrectnessOfMarkov(true, true);
+		Assert.assertEquals(2./3,pairTraining.firstElem,Configuration.fpAccuracy);// reflects that transitions u and c from G are not present but predicted, as well as missing predictions from A
+		Assert.assertEquals(0.16666666666666666,pairTraining.secondElem,Configuration.fpAccuracy);// reflects that there are relatively few transitions in the training graph and Markov only knows about a single negative.
 		
 		MarkovClassifierLG eval = new MarkovClassifierLG(m, FsmParserStatechum.buildLearnerGraph("A-t->B","testMarkovPerformance1a",config, converter),null);
-		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov();
+		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov(true, true);
 		Assert.assertEquals(0,pair.firstElem,Configuration.fpAccuracy);Assert.assertEquals(0,pair.secondElem,Configuration.fpAccuracy);
 
 		MarkovClassifierLG evalB = new MarkovClassifierLG(m, FsmParserStatechum.buildLearnerGraph("A-a->B","testMarkovPerformance1b",config, converter),null);
-		statechum.Pair<Double,Double> pairB = evalB.evaluateCorrectnessOfMarkov();
+		statechum.Pair<Double,Double> pairB = evalB.evaluateCorrectnessOfMarkov(true, true);
 		Assert.assertEquals(0,pairB.firstElem,Configuration.fpAccuracy);Assert.assertEquals(0,pairB.secondElem,Configuration.fpAccuracy);
 	}
-	
+
 	@Test
 	public void testMarkovPerformance2()
 	{
@@ -2489,8 +2508,9 @@ public class TestMarkovLearner
 		MarkovClassifierLG cl=new MarkovClassifierLG(m,trainingGraph,null);cl.updateMarkov(false);
 		
 		MarkovClassifierLG eval = new MarkovClassifierLG(m, FsmParserStatechum.buildLearnerGraph("A-a->B-u-#D / B-b->G","testMarkovPerformance2",config, converter),null);
-		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov();
-		Assert.assertEquals(1,pair.firstElem,Configuration.fpAccuracy);Assert.assertEquals(2./3,pair.secondElem,Configuration.fpAccuracy);// transition a is not predicted
+		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov(true, false);
+		Assert.assertEquals(1,pair.firstElem,Configuration.fpAccuracy);
+		Assert.assertEquals(0.5,pair.secondElem,Configuration.fpAccuracy);// transition a is not predicted but transition b is.
 	}
 	
 	@Test
@@ -2501,8 +2521,8 @@ public class TestMarkovLearner
 		MarkovClassifierLG cl=new MarkovClassifierLG(m,trainingGraph,null);cl.updateMarkov(false);
 		
 		MarkovClassifierLG eval = new MarkovClassifierLG(m, FsmParserStatechum.buildLearnerGraph("A-a->B-u-#D / B-b->G / B-e->Z","testMarkovPerformance3",config, converter),null);
-		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov();
-		Assert.assertEquals(1,pair.firstElem,Configuration.fpAccuracy);Assert.assertEquals(0.5,pair.secondElem,Configuration.fpAccuracy);// transition a is not predicted
+		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov(true, false);
+		Assert.assertEquals(1,pair.firstElem,Configuration.fpAccuracy);Assert.assertEquals(1.0/3.,pair.secondElem,Configuration.fpAccuracy);// transition a is not predicted
 	}
 	
 	@Test
@@ -2511,11 +2531,19 @@ public class TestMarkovLearner
 		final LearnerGraph trainingGraph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
 		MarkovClassifierLG cl=new MarkovClassifierLG(m,trainingGraph,null);cl.updateMarkov(false);
-		
-		MarkovClassifierLG eval = new MarkovClassifierLG(m, FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-c->D-u->E","testMarkovPerformance4",config, converter),null);
-		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov();
-		Assert.assertEquals(3./4,pair.firstElem,Configuration.fpAccuracy);// u is predicted as negative and is indeed missing, b is correctly predicted as a positive; u after c is correctly predicted as positive and c after c is not correctly predicted.
-		Assert.assertEquals(0.5,pair.secondElem,Configuration.fpAccuracy);// transition a is not predicted
+
+//		{
+//			MarkovClassifierLG eval = new MarkovClassifierLG(m, FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-c->D-u->E", "testMarkovPerformance4", config, converter), null);
+//			statechum.Pair<Double, Double> pair = eval.evaluateCorrectnessOfMarkov(true, false);
+//			Assert.assertEquals(2. / 3, pair.firstElem, Configuration.fpAccuracy);// u is predicted as negative and is indeed missing (but ignored in this case), b is correctly predicted as a positive; u after c is correctly predicted as positive and c after c is not correctly predicted.
+//			Assert.assertEquals(0.5, pair.secondElem, Configuration.fpAccuracy);// transition a is not predicted
+//		}
+		{
+			MarkovClassifierLG eval = new MarkovClassifierLG(m, FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-c->D-u->E", "testMarkovPerformance4", config, converter), null);
+			statechum.Pair<Double, Double> pair = eval.evaluateCorrectnessOfMarkov(true, true);
+			Assert.assertEquals(3. / 4, pair.firstElem, Configuration.fpAccuracy);// u is predicted as negative and is indeed missing, b is correctly predicted as a positive; u after c is correctly predicted as positive and c after c is not correctly predicted.
+			Assert.assertEquals(3.0/20., pair.secondElem, Configuration.fpAccuracy);// B-b->C as well as missing B-u-# , D-u->E are the three correct predictions, out of total of 5 (states) * 4 (alphabet) possible transitions.
+		}
 	}
 	
 	@Test
@@ -2526,7 +2554,7 @@ public class TestMarkovLearner
 		MarkovClassifierLG cl=new MarkovClassifierLG(m,trainingGraph,null);cl.updateMarkov(false);
 		
 		MarkovClassifierLG eval = new MarkovClassifierLG(m, FsmParserStatechum.buildLearnerGraph("A-a->B-b->G","testMarkovPerformance5",config, converter),null);
-		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov();
+		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov(true, false);
 		Assert.assertEquals(1,pair.firstElem,Configuration.fpAccuracy);// u is predicted as negative and is indeed missing, b is correctly predicted as a positive
 		Assert.assertEquals(0.5,pair.secondElem,Configuration.fpAccuracy);// transition a is not predicted
 	}

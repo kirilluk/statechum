@@ -1329,58 +1329,76 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 
 	/** Given that this classified is instantiate with a reference graph, determines the ration of
 	 * correct predictions by this classifier to the total number of predictions.
-	 * 
+	 *
+	 * @param evaluatePositives whether to evaluate accuracy in relation to transitions present in the graph and leading to accept-states.
+	 * @param evaluateNegatives whether to evaluate accuracy in relation to transitions either missing in the graph or leading to reject-states.
 	 * @return fraction of Markov's predictions that are correct.
 	 */
-	public statechum.Pair<Double,Double> evaluateCorrectnessOfMarkov()
+	public statechum.Pair<Double,Double> evaluateCorrectnessOfMarkov(boolean evaluatePositives, boolean evaluateNegatives)
 	{
 		double outcomePrecision = 0, outcomeRecall = 0;
 		
 		long correctPredictions=0, numberOfPredictions=0;
-		long numberOfExistingPredicted=0;
+		long numberOfExistingPredicted=0, numberOfEdgesConsidered = 0;
 		for(Entry<CmpVertex,MapWithSearch<Label,Label,TARGET_TYPE>> entry:graph.transitionMatrix.entrySet())
 			if (entry.getKey().isAccept())
 			{
 				Map<Label, MarkovOutcome> predictions = predictTransitionsFromState(entry.getKey(), null, model.getChunkLen(), model.pathsOrSets, null);
 				for(Entry<Label,MarkovOutcome> prediction:predictions.entrySet())
-				{
+				{// all predictions, both presence and absence of transitions
 					TARGET_TYPE targetList = entry.getValue().get(prediction.getKey()); 
 					assert prediction.getValue() != MarkovOutcome.failure;// a label is either predicted or not - failure-verdict is never added to the prediction map by predictTransitionsFromState
-					++numberOfPredictions;
+
 					for(CmpVertex target:graph.getTargets(targetList))
 					{
-						if (prediction.getValue() == MarkovOutcome.positive)
+						if (prediction.getValue() == MarkovOutcome.positive && evaluatePositives)
 						{
 							if(target != null && target.isAccept())
 								++correctPredictions;
+							++numberOfPredictions;
 						}
-						if (prediction.getValue() == MarkovOutcome.negative)
+						else
+						if (prediction.getValue() == MarkovOutcome.negative && evaluateNegatives)
 						{
 							if (target == null || !target.isAccept())
 								++correctPredictions;
+							++numberOfPredictions;
 						}
 					}
 				}
 				
-				
-				for(Entry<Label,TARGET_TYPE> existingTransition:entry.getValue().entrySet())
+				for(Label lbl:graph.getCache().getAlphabet())
 				{
-					MarkovOutcome predictedTarget = predictions.get(existingTransition.getKey());
+					TARGET_TYPE targets = entry.getValue().get(lbl);
+					MarkovOutcome predictedTarget = predictions.get(lbl);
 					// Can be MarkovOutcome.positive, MarkovOutcome.negative or null (if either nothing was
 					// predicted or markov model had inconsistent predictions reported hence a prediction was
 					// labelled as a failure and not added to the label->prediction map by predictTransitionsFromState).
-					for(CmpVertex existing:graph.getTargets(existingTransition.getValue()))
+					if (targets == null) {
+						if (evaluateNegatives) {
+							if (predictedTarget == MarkovOutcome.negative)
+								++numberOfExistingPredicted;
+							++numberOfEdgesConsidered;// missing transition, still have to check for this
+						}
+					}
+					else
+					for(CmpVertex existing:graph.getTargets(targets))
 					{
-						if (existing.isAccept() && predictedTarget == MarkovOutcome.positive)
-							++numberOfExistingPredicted;
-						if (!existing.isAccept() && predictedTarget == MarkovOutcome.negative)
-							++numberOfExistingPredicted;
+						if (existing.isAccept() && evaluatePositives) {
+							if (predictedTarget == MarkovOutcome.positive)
+								++numberOfExistingPredicted;
+							++numberOfEdgesConsidered;
+						}
+						if (!existing.isAccept() && evaluateNegatives) {// transition is present but leading to a reject-state
+							if (predictedTarget == MarkovOutcome.negative)
+								++numberOfExistingPredicted;
+							++numberOfEdgesConsidered;
+						}
 					}
 				}
 			}
 		if (numberOfPredictions > 0) outcomePrecision = (double)correctPredictions/numberOfPredictions;
-		int edgeNumber = graph.pathroutines.countEdges();
-		if (edgeNumber > 0) outcomeRecall = (double)numberOfExistingPredicted/edgeNumber;
+		if (numberOfEdgesConsidered > 0) outcomeRecall = (double)numberOfExistingPredicted/numberOfEdgesConsidered;
 		return new statechum.Pair<>(outcomePrecision, outcomeRecall);
 	}
 }

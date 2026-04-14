@@ -28,13 +28,7 @@ import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
-import statechum.analysis.learning.Learner;
-import statechum.analysis.learning.MarkovClassifierLG;
-import statechum.analysis.learning.MarkovModel;
-import statechum.analysis.learning.PairOfPaths;
-import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.RPNIUniversalLearner;
-import statechum.analysis.learning.StatePair;
+import statechum.analysis.learning.*;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovScoreComputation;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner.OverrideScoringToApply;
@@ -141,14 +135,14 @@ public class LearningAlgorithms
 		public double reportInvalidMergers()
 		{
 			int totalMergers=validMergers+missedMergers+invalidMergers;
-			return ConfusionMatrix.divide(invalidMergers,totalMergers);
+			return 100.*ConfusionMatrix.divide(invalidMergers,totalMergers);
 		}
 		
 		@Override
 		public double reportMissedMergers()
 		{
 			int totalMergers=validMergers+missedMergers+invalidMergers;
-			return ConfusionMatrix.divide(missedMergers,totalMergers);
+			return 100.*ConfusionMatrix.divide(missedMergers,totalMergers);
 		}
 
 		public static ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown constructReducerIfUsingSiccoScoring(LearnerGraph reference, ScoringToApply scoringMethod)

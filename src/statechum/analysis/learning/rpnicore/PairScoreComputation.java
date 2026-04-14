@@ -70,7 +70,9 @@ public class PairScoreComputation {
 		
 		/** Given a graph, the current collection of red nodes and those not compatible with any 
 		 * current red nodes, this function is supposed to decide which of the blue nodes to promote to red.
-		 * 
+		 * For completeness, it can be called with a single entry in the tentativeRedNodes. This is used to
+		 * report incorrect labelling of nodes as red.
+		 *
 		 * @param coregraph graph to work with.
 		 * @param reds nodes currently coloured red.
 		 * @param tentativeRedNodes blue nodes that are subject to promotion.
@@ -145,7 +147,7 @@ public class PairScoreComputation {
 			CmpVertex newRedNode;
 			if (!RedStatesFound.isEmpty())
 			{
-				if (RedStatesFound.size() > 1 && decisionProcedure != null)
+				if (decisionProcedure != null)
 					newRedNode = decisionProcedure.selectRedNode(coregraph, reds, RedStatesFound);
 				else
 					newRedNode = RedStatesFound.iterator().next();

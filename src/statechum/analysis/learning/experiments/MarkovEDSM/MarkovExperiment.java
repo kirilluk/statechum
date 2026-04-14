@@ -561,7 +561,7 @@ public class MarkovExperiment
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
 		for(final int preset: new int[]{0})//,1,2})
 		{
-			for(final int traceQuantityToUse:new int[]{1,2,4,8})
+			for(final int traceQuantityToUse:new int[]{8})
 			{
 				int seedForFSM = 0;
 
@@ -571,7 +571,7 @@ public class MarkovExperiment
 						for(int sample=0;sample<fsmSamplesPerStateNumber;++sample,++seedForFSM)
 							for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 								for(boolean aveOrMax:new boolean[]{false})
-									for(double traceLengthMultiplier:new double[] {256})
+									for(double traceLengthMultiplier:new double[] {32})
 										for(ScoringToApply learnerKind:
 												preset == 0?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
 													new ScoringToApply[]{

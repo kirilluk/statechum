@@ -9,7 +9,7 @@ fi
 
 EMAIL=acp95keb@sheffield.ac.uk
 
-source defaultjobparameters.sh
+source ./defaultjobparameters.sh
 
 [ -r data ] || mkdir data
 (cd ..;ant compileStatechum )

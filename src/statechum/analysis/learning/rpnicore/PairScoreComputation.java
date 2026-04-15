@@ -67,7 +67,18 @@ public class PairScoreComputation {
 		 * @return a Map of labels to the following states.
 		 */
 		Collection<Entry<Label,CmpVertex>> getSurroundingTransitions(CmpVertex currentRed);
-		
+
+		/** Usual blue fringe will promote the first found blue state that is not compatible with any red states to red.
+		 * An alternative is to collect a set of all such blue states and use a decision procedure to choose the
+		 * 'least compatible' to be red. Although this idea could be useful in some experiments, learning automata where
+		 * a lot of states turn red due to misconfigured heuristics is extremely slow without any reason: Markov
+		 * experiments are not using any intelligent heuristics, instead simply reporting the first pair
+		 * (and checking its validity).
+		 *
+ 		 * @return whether to classify all blue states or stop after the first found one.
+		 */
+		boolean useFirstFoundRed();
+
 		/** Given a graph, the current collection of red nodes and those not compatible with any 
 		 * current red nodes, this function is supposed to decide which of the blue nodes to promote to red.
 		 * For completeness, it can be called with a single entry in the tentativeRedNodes. This is used to
@@ -103,18 +114,18 @@ public class PairScoreComputation {
 				reds.add(v);
 		//System.out.println("choose state pairs with "+reds.size()+" red states");
 		
-		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<>();// FIFO queue
 		Collection<CmpVertex> RedStatesFound = new ArrayList<>();
 		
 		do
 		{
 			RedStatesFound.clear();coregraph.pairsAndScores.clear();
-			currentExplorationBoundary.addAll(reds);
-			//System.out.println("iterating through loop with "+reds.size()+" red states");
-			while(!currentExplorationBoundary.isEmpty())
+			Iterator<CmpVertex> currentRedIter = reds.iterator();
+			while(currentRedIter.hasNext() &&
+					// the condition below stops the loop if any blue state has become eligible to become red and we are not required to go through all the blue states
+					(decisionProcedure == null || !decisionProcedure.useFirstFoundRed() || RedStatesFound.isEmpty()))
 			{
-				CmpVertex currentRed = currentExplorationBoundary.remove();
-	
+				CmpVertex currentRed = currentRedIter.next();
+
 				Collection<Entry<Label,CmpVertex>> surrounding = decisionProcedure == null?null:decisionProcedure.getSurroundingTransitions(currentRed);
 				if (surrounding == null) surrounding = coregraph.transitionMatrix.get(currentRed).entrySet();
 				for(Entry<Label,CmpVertex> BlueEntry:surrounding)
@@ -135,8 +146,11 @@ public class PairScoreComputation {
 							}
 						}
 						
-						if (numberOfCompatiblePairs == 0)
+						if (numberOfCompatiblePairs == 0) {
 							RedStatesFound.add(currentBlueState);
+							if (decisionProcedure != null && decisionProcedure.useFirstFoundRed())
+								break;
+						}
 							
 						// This node is current a blue node and remains blue until I decide which of the currently potentially red nodes become red.
 						currentBlueState.setColour(JUConstants.BLUE);

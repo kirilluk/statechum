@@ -1045,6 +1045,11 @@ public class LearningAlgorithms
 				{
 					return null;// dummy, ignored if null.
 				}
+
+				@Override
+				public boolean useFirstFoundRed() {
+					return true;
+				}
 			});
 			updatePairQualityStatistics(graph,outcome);
 			return outcome;
@@ -1502,6 +1507,11 @@ public class LearningAlgorithms
 		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 		{
 			return null;
+		}
+
+		@Override
+		public boolean useFirstFoundRed() {
+			return true;
 		}
 
 	}

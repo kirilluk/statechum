@@ -57,7 +57,7 @@ public class TestMergeStatistics {
 		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();for(String name:new String[] {"A","B","C"}) reds.add(pta.findVertex(VertexID.parseID(name)));
 		evaluator.stateSelectedAsRed(pta, pta.findVertex(VertexID.parseID("E")), reds);
 		assertEquals(0.0, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
-		assertEquals(1.0, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
+		assertEquals(100.0, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
 		assertEquals(3.0, evaluator.countRedsKnowingTheCorrectSolution(), Configuration.fpAccuracy);// here we account for missed mergers, hence an attempt to label E red does not increase the number of red states.
 	}
 
@@ -70,7 +70,7 @@ public class TestMergeStatistics {
 		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();for(String name:new String[] {"A","B","C"}) reds.add(pta.findVertex(VertexID.parseID(name)));
 		evaluator.stateSelectedAsRed(pta, pta.findVertex(VertexID.parseID("E")), reds);
 		assertEquals(0.0, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
-		assertEquals(1.0, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
+		assertEquals(100.0, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
 		assertEquals(4.0, evaluator.countRedsKnowingTheCorrectSolution(), Configuration.fpAccuracy);// since we do not count missed mergers, all red states are reported.
 	}
 
@@ -94,7 +94,7 @@ public class TestMergeStatistics {
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
 		StateMergingStatistics evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true);
 		evaluator.pairSelectedForMerger(pta, new StatePair(pta.findVertex(VertexID.parseID("A")),pta.findVertex(VertexID.parseID("B"))));
-		assertEquals(1.0, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
+		assertEquals(100.0, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
 		assertEquals(0.0, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
 	}
 
@@ -107,7 +107,7 @@ public class TestMergeStatistics {
 		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();for(String name:new String[] {"A","B","C"}) reds.add(pta.findVertex(VertexID.parseID(name)));
 		evaluator.stateSelectedAsRed(pta, pta.findVertex(VertexID.parseID("E")), reds);
 		evaluator.pairSelectedForMerger(pta, new StatePair(pta.findVertex(VertexID.parseID("A")),pta.findVertex(VertexID.parseID("B"))));
-		assertEquals(0.5, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
-		assertEquals(0.5, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
+		assertEquals(50, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
+		assertEquals(50, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
 	}
 }

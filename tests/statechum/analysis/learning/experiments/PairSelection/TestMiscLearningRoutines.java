@@ -27,7 +27,6 @@ import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.LearnerThatUsesWekaResults.CollectionOfPairsEstimator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.EquivalenceClass;
@@ -165,9 +164,9 @@ public class TestMiscLearningRoutines
 	public void TestMergeBasedOnUniques1()
 	{
 		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->A1-a->B1-b->A2-b->A3-c-#C / A3 -a->B3-a->D / B3-b->A", "TestMergeBasedOnUniques", mainConfiguration,converter);
-		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)}),Collections.<Label>emptyList());
-		Set<StatePair> pairsSet = new HashSet<StatePair>();pairsSet.addAll(pairsList);
+		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();
+		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph, Collections.singletonList(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)),Collections.emptyList());
+        Set<StatePair> pairsSet = new HashSet<>(pairsList);
 		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A3"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"), mainConfiguration))));
 		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A1"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A2"), mainConfiguration))));
 		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A2"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A3"), mainConfiguration))));
@@ -179,7 +178,7 @@ public class TestMiscLearningRoutines
 	public void TestMergeBasedOnUniques2()
 	{
 		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a-#C", "TestMergeBasedOnUniques2", mainConfiguration,converter);
-		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Collections.<Label>emptyList(),Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter)}));
+		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Collections.emptyList(), Collections.singletonList(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter)));
 		Assert.assertTrue(pairsList.isEmpty());
 		pairsList =  LearningSupportRoutines.buildVerticesToMergeForPathsFrom(graph, AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter));
 		Assert.assertTrue(pairsList.isEmpty());
@@ -189,8 +188,8 @@ public class TestMiscLearningRoutines
 	public void TestMergeBasedOnUniques3()
 	{
 		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a-#C / D-a->D-b->F", "TestMergeBasedOnUniques3", mainConfiguration,converter);
-		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Collections.<Label>emptyList(),Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter)}));
-		Set<StatePair> pairsSet = new HashSet<StatePair>();pairsSet.addAll(pairsList);
+		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Collections.emptyList(), Collections.singletonList(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter)));
+        Set<StatePair> pairsSet = new HashSet<>(pairsList);
 		Assert.assertEquals(1, pairsList.size());
 		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D"), mainConfiguration))));
 
@@ -203,8 +202,8 @@ public class TestMiscLearningRoutines
 	public void TestMergeBasedOnUniques4()
 	{
 		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a-#C / D-a->D-b->F-a->F", "TestMergeBasedOnUniques4", mainConfiguration,converter);
-		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Collections.<Label>emptyList(),Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter)}));
-		Set<StatePair> pairsSet = new HashSet<StatePair>();pairsSet.addAll(pairsList);
+		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Collections.emptyList(), Collections.singletonList(AbstractLearnerGraph.generateNewLabel("a", mainConfiguration, converter)));
+        Set<StatePair> pairsSet = new HashSet<>(pairsList);
 		Assert.assertEquals(2, pairsList.size());
 		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("A"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D"), mainConfiguration))));
 		Assert.assertTrue(pairsSet.contains(new StatePair(AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("D"), mainConfiguration),AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID("F"), mainConfiguration))));
@@ -219,8 +218,8 @@ public class TestMiscLearningRoutines
 	public void TestMergeBasedOnUniquesFail()
 	{
 		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->A1-a->B1-b->A2-b->A3-c-#C / A3 -a-#D", "TestMergeBasedOnUniquesFail", mainConfiguration,converter);
-		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
-		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph,Arrays.asList(new Label[]{AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)}),Collections.<Label>emptyList());
+		LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();
+		List<StatePair> pairsList = LearningSupportRoutines.buildVerticesToMerge(graph, Collections.singletonList(AbstractLearnerGraph.generateNewLabel("b", mainConfiguration, converter)),Collections.emptyList());
 		Assert.assertTrue(graph.pairscores.computePairCompatibilityScore_general(null, pairsList, verticesToMerge, false) < 0);
 	}
 	
@@ -245,7 +244,7 @@ public class TestMiscLearningRoutines
 		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
 		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
 		Map<Label,Pair<CmpVertex,CmpVertex>> map=LearningSupportRoutines.uniqueIntoState(graph);
-		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
+		evaluationConfiguration.ifthenSequences = new LinkedList<>();evaluationConfiguration.ifthenSequences.add("junk");
 		LearningSupportRoutines.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
 		Assert.assertEquals(3,evaluationConfiguration.ifthenSequences.size());
 		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
@@ -273,7 +272,7 @@ public class TestMiscLearningRoutines
 		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
 		LearnerGraph graph = new LearnerGraph(mainConfiguration);
 		Map<Label,Pair<CmpVertex,CmpVertex>> map=LearningSupportRoutines.uniqueIntoState(graph);
-		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
+		evaluationConfiguration.ifthenSequences = new LinkedList<>();evaluationConfiguration.ifthenSequences.add("junk");
 		LearningSupportRoutines.addIfThenForMandatoryMerge(evaluationConfiguration, map.keySet());
 		Assert.assertEquals(1,evaluationConfiguration.ifthenSequences.size());
 		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
@@ -308,7 +307,7 @@ public class TestMiscLearningRoutines
 		Iterator<List<Label>> listsIterator = expected.iterator();
 		for(String lblString:new String[]{"a","b","c"})
 		{
-			Set<Label> infeasible = new TreeSet<Label>();infeasible.addAll(listsIterator.next());
+            Set<Label> infeasible = new TreeSet<>(listsIterator.next());
 			Assert.assertEquals(infeasible,mapOfLabelToSet.get(AbstractLearnerGraph.generateNewLabel(lblString, mainConfiguration, converter)));
 		}
 	}
@@ -318,7 +317,7 @@ public class TestMiscLearningRoutines
 	{
 		LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-c->B-b->A / B-a-#C", "testSplitFSM", mainConfiguration,converter);
 		LearnerEvaluationConfiguration evaluationConfiguration = new LearnerEvaluationConfiguration(mainConfiguration);
-		evaluationConfiguration.ifthenSequences = new LinkedList<String>();evaluationConfiguration.ifthenSequences.add("junk");
+		evaluationConfiguration.ifthenSequences = new LinkedList<>();evaluationConfiguration.ifthenSequences.add("junk");
 		LearningSupportRoutines.addIfThenForPairwiseConstraints(evaluationConfiguration, LearningSupportRoutines.computeInfeasiblePairs(graph));
 		Assert.assertEquals(2,evaluationConfiguration.ifthenSequences.size());
 		Iterator<String> ifthenIterator = evaluationConfiguration.ifthenSequences.iterator();
@@ -337,7 +336,7 @@ public class TestMiscLearningRoutines
 		Iterator<List<Label>> listsIterator = expected.iterator();
 		for(String lblString:new String[]{"a","b","c"})
 		{
-			Set<Label> infeasible = new TreeSet<Label>();infeasible.addAll(listsIterator.next());
+            Set<Label> infeasible = new TreeSet<>(listsIterator.next());
 			Assert.assertEquals(infeasible,mapOfLabelToSet.get(AbstractLearnerGraph.generateNewLabel(lblString, mainConfiguration, converter)));
 		}
 	}
@@ -353,7 +352,7 @@ public class TestMiscLearningRoutines
 		Iterator<List<Label>> listsIterator = expected.iterator();
 		for(String lblString:new String[]{"a","b","e"})
 		{
-			Set<Label> infeasible = new TreeSet<Label>();infeasible.addAll(listsIterator.next());
+            Set<Label> infeasible = new TreeSet<>(listsIterator.next());
 			Assert.assertEquals(infeasible,mapOfLabelToSet.get(AbstractLearnerGraph.generateNewLabel(lblString, mainConfiguration, converter)));
 		}
 	}
@@ -378,9 +377,9 @@ public class TestMiscLearningRoutines
 	public void TestDecisionProcedureForRedStates1()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a-#Rc / B-b->D-a-#Rd / B-c->E-a-#Re / F-a->G-a-#Rg","TestDecisionProcedureForRedStates1",mainConfiguration, converter);
-		final Collection<CmpVertex> redToBeExpected = new ArrayList<CmpVertex>();redToBeExpected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C"),graph.findVertex("D"),graph.findVertex("E"),graph.findVertex("G")}));
-		final Collection<CmpVertex> redsAlways = new ArrayList<CmpVertex>();redsAlways.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("A"),graph.findVertex("B"),graph.findVertex("F")}));
-		TestDecisionProcedureForRedStatesHelper(graph,redToBeExpected,redsAlways, new LinkedList<CmpVertex>(),true);
+        final Collection<CmpVertex> redToBeExpected = new ArrayList<>(Arrays.asList(graph.findVertex("C"), graph.findVertex("D"), graph.findVertex("E"), graph.findVertex("G")));
+        final Collection<CmpVertex> redsAlways = new ArrayList<>(Arrays.asList(graph.findVertex("A"), graph.findVertex("B"), graph.findVertex("F")));
+		TestDecisionProcedureForRedStatesHelper(graph,redToBeExpected,redsAlways, new LinkedList<>(),true);
 	}
 	
 	/** This one uses chooseStatePairs with a stub of decision maker to compute different sets of pairs depending on the choices made by the decision procedure, 
@@ -390,9 +389,9 @@ public class TestMiscLearningRoutines
 	public void TestDecisionProcedureForRedStates2()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a-#Rc / B-b->D-a-#Rd / B-c->E-a-#Re / B-d->F","TestDecisionProcedureForRedStates2",mainConfiguration, converter);
-		final Collection<CmpVertex> redToBeExpected = new ArrayList<CmpVertex>();redToBeExpected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C"),graph.findVertex("D"),graph.findVertex("E")}));
-		final Collection<CmpVertex> redsAlways = new ArrayList<CmpVertex>();redsAlways.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("A"),graph.findVertex("B")}));
-		TestDecisionProcedureForRedStatesHelper(graph,redToBeExpected,redsAlways, Arrays.asList(new CmpVertex[]{graph.findVertex("F")}),true);
+        final Collection<CmpVertex> redToBeExpected = new ArrayList<>(Arrays.asList(graph.findVertex("C"), graph.findVertex("D"), graph.findVertex("E")));
+        final Collection<CmpVertex> redsAlways = new ArrayList<>(Arrays.asList(graph.findVertex("A"), graph.findVertex("B")));
+		TestDecisionProcedureForRedStatesHelper(graph,redToBeExpected,redsAlways, Collections.singletonList(graph.findVertex("F")),true);
 	}
 	
 	/** This one uses chooseStatePairs with a stub of decision maker to compute different sets of pairs depending on the choices made by the decision procedure, 
@@ -402,17 +401,17 @@ public class TestMiscLearningRoutines
 	public void TestDecisionProcedureForRedStates3()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C-a->D-b->F / C-b->G / B-b-#E","TestDecisionProcedureForRedStates3",mainConfiguration, converter);
-		
-		final Collection<CmpVertex> redToBeExpected = new ArrayList<CmpVertex>();redToBeExpected.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C"),graph.findVertex("E")}));
-		final Collection<CmpVertex> redsAlways = new ArrayList<CmpVertex>();redsAlways.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("A"),graph.findVertex("B")}));
-		TestDecisionProcedureForRedStatesHelper(graph,redToBeExpected,redsAlways, Arrays.asList(new CmpVertex[]{}),false);// the decision procedure is tasked with choosing between E and C which both generate the same set of pairs so any of the two can be chosen. This is why we disable a check for the specific vertex chosen.
+
+        final Collection<CmpVertex> redToBeExpected = new ArrayList<>(Arrays.asList(graph.findVertex("C"), graph.findVertex("E")));
+        final Collection<CmpVertex> redsAlways = new ArrayList<>(Arrays.asList(graph.findVertex("A"), graph.findVertex("B")));
+		TestDecisionProcedureForRedStatesHelper(graph,redToBeExpected,redsAlways, Collections.emptyList(),false);// the decision procedure is tasked with choosing between E and C which both generate the same set of pairs so any of the two can be chosen. This is why we disable a check for the specific vertex chosen.
 	}
 	
 	protected void TestDecisionProcedureForRedStatesHelper(final LearnerGraph graph, final Collection<CmpVertex> redToBeExpected, final Collection<CmpVertex> redsAlways,
 			final Collection<CmpVertex> blueStates, final boolean checkCorrectNodeChosen)
 	{
-		final Map<CmpVertex,Collection<PairScore>> redToPairsObtained = new TreeMap<CmpVertex,Collection<PairScore>>();
-		final Set<CmpVertex> tentativeRedsChosen = new TreeSet<CmpVertex>();// vertices already chosen.
+		final Map<CmpVertex,Collection<PairScore>> redToPairsObtained = new TreeMap<>();
+		final Set<CmpVertex> tentativeRedsChosen = new TreeSet<>();// vertices already chosen.
 		
 		for(final CmpVertex bestVertex:redToBeExpected)
 		{
@@ -431,8 +430,9 @@ public class TestMiscLearningRoutines
 					Assert.assertSame(graph,coregraph);
 					Assert.assertTrue(reds.contains(graph.findVertex("A")));Assert.assertTrue(reds.contains(graph.findVertex("B")));
 					Assert.assertTrue(redToBeExpected.equals(tentativeRedNodes));
-					
-					Set<CmpVertex> available = new TreeSet<CmpVertex>();available.addAll(tentativeRedNodes);available.removeAll(tentativeRedsChosen);
+
+                    Set<CmpVertex> available = new TreeSet<>(tentativeRedNodes);
+                    available.removeAll(tentativeRedsChosen);
 					redChosen = bestVertex;
 					return redChosen;
 				}
@@ -442,7 +442,7 @@ public class TestMiscLearningRoutines
 				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs) 
 				{
 					Assert.assertNotNull(redChosen);// ensure that selectRedNode was called.
-					Set<PairScore> copyOfPairs = new TreeSet<PairScore>(pairs);
+					Set<PairScore> copyOfPairs = new TreeSet<>(pairs);
 					redToPairsObtained.put(redChosen,copyOfPairs);// record the pairs we got, these should be the same pairs as those to be returned from chooseStatePairs so long as resolvePotentialDeadEnd returns null.
 					return null;// no resolution
 				}
@@ -467,9 +467,15 @@ public class TestMiscLearningRoutines
 				{
 					return null;// dummy, ignored if null.
 				}
+
+				@Override
+				public boolean useFirstFoundRed() {
+					// In this test, we check that all the right blue states to turn red were chosen hence it is wrong to stop after the first found one.
+					return false;
+				}
 			});
 			
-			Set<PairScore> pairsReturnedAsSet = new TreeSet<PairScore>(pairsReturned);
+			Set<PairScore> pairsReturnedAsSet = new TreeSet<>(pairsReturned);
 			Assert.assertEquals(redToPairsObtained.get(bestVertex),pairsReturnedAsSet);
 		}
 		
@@ -488,24 +494,19 @@ public class TestMiscLearningRoutines
 				@Override
 				public CmpVertex selectRedNode(LearnerGraph coregraph, final Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 				{
-					final Set<Collection<PairScore>> collectionOfPairsSeen = new HashSet<Collection<PairScore>>();
-					CmpVertex nodeSelected = LearnerThatUsesWekaResults.selectRedNodeUsingQualityEstimator(coregraph, inverseTentativeGraph, tentativeRedNodes, new CollectionOfPairsEstimator() {
-	
-						@Override
-						public double obtainEstimateOfTheQualityOfTheCollectionOfPairs(LearnerGraph argGraph, @SuppressWarnings("unused") LearnerGraphND inverseGraph, Collection<PairScore> pairs) 
-						{
-							Assert.assertSame(graph,argGraph);Assert.assertEquals(redsAlways,reds);
-							Set<PairScore> AdditionalPairs = new TreeSet<PairScore>(pairs);
-							collectionOfPairsSeen.add(AdditionalPairs);// we'll check that pairs passed to us were the same as those computed during the forward-run of the chooseStatePairs.
-								// It is important to do this check because pairs passed to obtainEstimateOfTheQualityOfTheCollectionOfPairs are computed by selectRedNode.
-							
-							if (AdditionalPairs.equals(redToPairsObtained.get(bestVertexFinal))) // pairs passed to this one should be some of the same collections of pairs seen by resolvePotentialDeadEnd above. 
-								return 1;
-							return 0;
-						}
-						
-					});
-					final Set<Collection<PairScore>> collectionOfPairsExpected = new HashSet<Collection<PairScore>>();collectionOfPairsExpected.addAll(redToPairsObtained.values());
+					final Set<Collection<PairScore>> collectionOfPairsSeen = new HashSet<>();
+					CmpVertex nodeSelected = LearnerThatUsesWekaResults.selectRedNodeUsingQualityEstimator(coregraph, inverseTentativeGraph, tentativeRedNodes,
+							(argGraph, inverseGraph, pairs) -> {
+                        Assert.assertSame(graph,argGraph);Assert.assertEquals(redsAlways,reds);
+                        Set<PairScore> AdditionalPairs = new TreeSet<>(pairs);
+                        collectionOfPairsSeen.add(AdditionalPairs);// we'll check that pairs passed to us were the same as those computed during the forward-run of the chooseStatePairs.
+                            // It is important to do this check because pairs passed to obtainEstimateOfTheQualityOfTheCollectionOfPairs are computed by selectRedNode.
+
+                        if (AdditionalPairs.equals(redToPairsObtained.get(bestVertexFinal))) // pairs passed to this one should be some of the same collections of pairs seen by resolvePotentialDeadEnd above.
+                            return 1;
+                        return 0;
+                    });
+                    final Set<Collection<PairScore>> collectionOfPairsExpected = new HashSet<>(redToPairsObtained.values());
 					Assert.assertEquals(collectionOfPairsExpected,collectionOfPairsSeen);
 					if (checkCorrectNodeChosen) Assert.assertEquals(bestVertexFinal,nodeSelected);// check that the expected vertex has been selected
 					return bestVertexFinal;
@@ -538,9 +539,15 @@ public class TestMiscLearningRoutines
 				{
 					return null;// dummy, ignored if null.
 				}
+
+				@Override
+				public boolean useFirstFoundRed() {
+					// Make sure we choose all the blue states that need to become red.
+					return false;
+				}
 			});
 			
-			Set<PairScore> pairsReturnedAsSet = new TreeSet<PairScore>(pairsReturned);
+			Set<PairScore> pairsReturnedAsSet = new TreeSet<>(pairsReturned);
 			Assert.assertEquals(redToPairsObtained.get(bestVertex),pairsReturnedAsSet);
 		}
 	}
@@ -617,16 +624,16 @@ public class TestMiscLearningRoutines
 	public void testConstructPairsToMergeWithOutgoing1()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing1",mainConfiguration, converter);
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>(), expectedTargets = new TreeSet<CmpVertex>(), actualTargets = new TreeSet<CmpVertex>();
+		Set<CmpVertex> actual, expectedTargets, actualTargets = new TreeSet<>();
 		Label unique = AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter);
-		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
+		actual = new TreeSet<>(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
 		Assert.assertEquals(4,actual.size());
-		expectedTargets.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C1"),graph.findVertex("C2"),graph.findVertex("C3"),graph.findVertex("C4")}));
+		expectedTargets = new TreeSet<>(Arrays.asList(graph.findVertex("C1"), graph.findVertex("C2"), graph.findVertex("C3"), graph.findVertex("C4")));
 		for(CmpVertex v:actual)
 		{
 			Map<Label,CmpVertex> next = graph.transitionMatrix.get(v);
 			if (!v.equals(graph.getInit())) Assert.assertEquals(1,next.size());
-			Assert.assertTrue(next.keySet().contains(unique));
+			Assert.assertTrue(next.containsKey(unique));
 			actualTargets.add(next.get(unique));
 		}
 		Assert.assertEquals(expectedTargets,actualTargets);
@@ -636,16 +643,16 @@ public class TestMiscLearningRoutines
 	public void testConstructPairsToMergeWithOutgoing2()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("M1-c-#C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing2",mainConfiguration, converter);
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>(), expectedTargets = new TreeSet<CmpVertex>(), actualTargets = new TreeSet<CmpVertex>();
+		Set<CmpVertex> actual, expectedTargets, actualTargets = new TreeSet<>();
 		Label unique = AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter);
-		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
+		actual = new TreeSet<>(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
 		Assert.assertEquals(3,actual.size());
-		expectedTargets.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C2"),graph.findVertex("C3"),graph.findVertex("C4")}));
+		expectedTargets = new TreeSet<>(Arrays.asList(graph.findVertex("C2"), graph.findVertex("C3"), graph.findVertex("C4")));
 		for(CmpVertex v:actual)
 		{
 			Map<Label,CmpVertex> next = graph.transitionMatrix.get(v);Assert.assertEquals(1,next.size());
 			if (!v.equals(graph.getInit())) Assert.assertEquals(1,next.size());
-			Assert.assertTrue(next.keySet().contains(unique));
+			Assert.assertTrue(next.containsKey(unique));
 			actualTargets.add(next.get(unique));
 		}
 		Assert.assertEquals(expectedTargets,actualTargets);
@@ -656,16 +663,16 @@ public class TestMiscLearningRoutines
 	public void testConstructPairsToMergeWithOutgoing3()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("M1-c->C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c-#D / M2-b->B","testConstructPairsToMergeWithOutgoing3",mainConfiguration, converter);
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>(), expectedTargets = new TreeSet<CmpVertex>(), actualTargets = new TreeSet<CmpVertex>();
+		Set<CmpVertex> actual, expectedTargets, actualTargets = new TreeSet<>();
 		Label unique = AbstractLearnerGraph.generateNewLabel("c", mainConfiguration,converter);
-		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
+		actual = new TreeSet<>(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, unique));
 		Assert.assertEquals(3,actual.size());
-		expectedTargets.addAll(Arrays.asList(new CmpVertex[]{graph.findVertex("C1"),graph.findVertex("C2"),graph.findVertex("C4")}));
+		expectedTargets = new TreeSet<>(Arrays.asList(graph.findVertex("C1"), graph.findVertex("C2"), graph.findVertex("C4")));
 		for(CmpVertex v:actual)
 		{
 			Map<Label,CmpVertex> next = graph.transitionMatrix.get(v);
 			if (!v.equals(graph.getInit())) Assert.assertEquals(1,next.size());
-			Assert.assertTrue(next.keySet().contains(unique));
+			Assert.assertTrue(next.containsKey(unique));
 			actualTargets.add(next.get(unique));
 		}
 		Assert.assertEquals(expectedTargets,actualTargets);
@@ -675,8 +682,7 @@ public class TestMiscLearningRoutines
 	public void testConstructPairsToMergeWithOutgoing4()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("M1-c-#C1 / M1-a->A1-b->M2-c->C2-a->A3-b->M4-c->C4-a->A4 / M2-a->A2-b->M3-c->C3-d-#D / M2-b->B","testCconstructPairsToMergeWithOutgoing2",mainConfiguration, converter);
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>();
-		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter)));
+        Set<CmpVertex> actual = new TreeSet<>(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration, converter)));
 		Assert.assertTrue(actual.isEmpty());
 	}
 	
@@ -684,8 +690,7 @@ public class TestMiscLearningRoutines
 	public void testConstructPairsToMergeWithOutgoing5()
 	{
 		final LearnerGraph graph = new LearnerGraph(mainConfiguration);
-		Set<CmpVertex> actual = new TreeSet<CmpVertex>();
-		actual.addAll(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration,converter)));
+        Set<CmpVertex> actual = new TreeSet<>(LearningSupportRoutines.constructPairsToMergeWithOutgoing(graph, AbstractLearnerGraph.generateNewLabel("d", mainConfiguration, converter)));
 		Assert.assertTrue(actual.isEmpty());
 	}
 	

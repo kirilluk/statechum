@@ -270,6 +270,11 @@ public class RPNIBlueFringeVariability
 					{
 						return null;// dummy, ignored if null.
 					}
+
+					@Override
+					public boolean useFirstFoundRed() {
+						return true;
+					}
 				});
 				
 				if (!outcome.isEmpty())

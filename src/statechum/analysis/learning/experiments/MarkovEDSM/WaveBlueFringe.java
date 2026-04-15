@@ -739,6 +739,11 @@ public class WaveBlueFringe extends PairQualityLearner
 						return obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
 					}
 
+					@Override
+					public boolean useFirstFoundRed() {
+						return true;
+					}
+
 				});
 
 				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());

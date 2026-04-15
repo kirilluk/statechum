@@ -339,6 +339,8 @@ public class MarkovExperiment
 			CmpVertex redVertex = tentativeRedNodes.iterator().next();
 			if (redReducer != null)
 				redReducer.stateSelectedAsRed(gr,redVertex,reds);
+
+			LearningAlgorithms.LearnerAbortedException.throwExceptionIfTooManyReds(coregraph, config.getOverride_maximalNumberOfStates(),redReducer);
 			return redVertex;
 		}
 		
@@ -395,6 +397,11 @@ public class MarkovExperiment
 			return	markovHelper.getSurroundingTransitions(currentRed);
 		}
 
+		@Override
+		public boolean useFirstFoundRed() {
+			return true;
+		}
+
 		private static LearnerEvaluationConfiguration constructConfiguration(LearnerEvaluationConfiguration evalCnf,Configuration.ScoreMode scoreMode, int threshold)
 		{
 			Configuration config = evalCnf.config.copy();config.setRejectPositivePairsWithScoresLessThan(threshold);
@@ -416,6 +423,8 @@ public class MarkovExperiment
 		@Override 
 		public Stack<PairScore> ChooseStatePairs(LearnerGraph graph)
 		{
+			LearningAlgorithms.LearnerAbortedException.throwExceptionIfTooManyReds(graph, config.getOverride_maximalNumberOfStates(),redReducer);
+			checkTimeout();
 			return graph.pairscores.chooseStatePairs(this);
 		}
 
@@ -559,7 +568,7 @@ public class MarkovExperiment
 		final int chunkSize = 3;
 		final int statesMax = statesToUse[statesToUse.length-1];// reflects the size of the largest FSM that will be generated. 
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
-		for(final int preset: new int[]{0})//,1,2})
+		for(final int preset: new int[]{1})//,1,2})
 		{
 			for(final int traceQuantityToUse:new int[]{8})
 			{
@@ -650,7 +659,7 @@ public class MarkovExperiment
 			
 		});
 		int referencePreset=0;
-		for(final int preset: new int[]{0})//,1,2})
+		for(final int preset: new int[]{1})//,1,2})
 		{
 			if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS)
 			{// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.

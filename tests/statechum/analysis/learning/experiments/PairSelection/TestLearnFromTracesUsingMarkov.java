@@ -137,6 +137,11 @@ public class TestLearnFromTracesUsingMarkov
 		{
 			return	WaveBlueFringe.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
 		}
+
+		@Override
+		public boolean useFirstFoundRed() {
+			return true;
+		}
 	}
 	
 	@Test

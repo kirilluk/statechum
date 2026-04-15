@@ -782,6 +782,11 @@ public class PairQualityLearner
 						surroundingTransitions = markovHelper.getSurroundingTransitions(currentRed);
 					return surroundingTransitions;
 				}
+
+				@Override
+				public boolean useFirstFoundRed() {
+					return true;
+				}
 			});
 			if (!outcome.isEmpty())
 			{
@@ -1441,6 +1446,12 @@ public class PairQualityLearner
 				else
 					outcome = markovHelper.getSurroundingTransitions(currentRed);
 				return outcome;
+			}
+
+			@Override
+			public boolean useFirstFoundRed() {
+				// if not using a classifier, stop after the first blue state to make red.
+				return !par.useClassifierToChooseNextRed;
 			}
 
 			long lastComputedCompatibilityScore;

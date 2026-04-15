@@ -1225,7 +1225,8 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 				if (tracePath(graphToCheckForConsistency,path.getValue(),v))
 				{
 					vertToPaths.computeIfAbsent(v, k -> new TreeSet<>());
-					// now we record which paths leave each vertex and separately which vertices are at root of which paths. If there are A-a-> , A-b-> , B-a-> , C-b->, 
+					// now we record which paths leave each vertex and separately which vertices are at root of which paths.
+					// If there are A-a-> , A-b-> , B-a-> , C-b->,
 					// vertToPaths will have IDs of a and b from A, just a from B and b from C;
 					// idToVerticesToMerge will map A,B to a and C,A to b. We then need to ensure that A,B are merged together and since both A,C have b in common, C is also merged into A,B.
 					vertToPaths.get(v).add(path.getKey());idToVerticesToMerge.get(path.getKey()).add(v);
@@ -1244,7 +1245,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 			for(Entry<CmpVertex,Set<Integer>> vertAndPaths:vertToPaths.entrySet())
 				if (!vertsConsidered.contains(vertAndPaths.getKey())) // we only look at vertices that were not seen before on this iteration of merging
 				{
-					verts = new TreeSet<>();// we subsequently add this set to the output, therefore a new set has to be create rather than an old one cleared.
+					verts = new TreeSet<>();// we subsequently add this set to the output, therefore a new set has to be created rather than an old one cleared.
 					for(Integer pathID:vertAndPaths.getValue())
 						verts.addAll(idToVerticesToMerge.get(pathID));// these are all the vertices that have path pathID from them, we will now merge sets of paths for all of them to form pathsFromAnyOfVerts
 					
@@ -1265,7 +1266,9 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 					if (pathsFromAnyOfVerts != null)
 						break;// new paths have been found, in the loop below we use pathsFromAnyOfVerts as the collection of paths from any state in verts.
 					
-					vertsConsidered.addAll(verts);// at this point, we have considered a bunch of states verts (which would include vertAndPaths.getKey() ) that have paths from them that are included in the set of paths possible from state vertAndPaths.getKey().
+					vertsConsidered.addAll(verts);// at this point, we have considered a bunch of states verts
+					// (which would include vertAndPaths.getKey() ) that have paths from them that are included in
+					// the set of paths possible from state vertAndPaths.getKey().
 					setsConsidered.add(verts);// here we update the return value, if we get to the end with pathsFromAnyOfVerts remaining null, we are done and setsConsidered can be returned
 				}
 			if (pathsFromAnyOfVerts != null)

@@ -146,14 +146,14 @@ public class PairScoreComputation {
 							}
 						}
 						
+						// This node is currently a blue node and remains blue until I decide which of the current potentially red nodes become red.
+						currentBlueState.setColour(JUConstants.BLUE);
+
 						if (numberOfCompatiblePairs == 0) {
 							RedStatesFound.add(currentBlueState);
 							if (decisionProcedure != null && decisionProcedure.useFirstFoundRed())
 								break;
 						}
-							
-						// This node is current a blue node and remains blue until I decide which of the currently potentially red nodes become red.
-						currentBlueState.setColour(JUConstants.BLUE);
 					}
 			}
 	

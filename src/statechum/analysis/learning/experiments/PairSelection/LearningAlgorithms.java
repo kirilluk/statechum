@@ -59,7 +59,7 @@ public class LearningAlgorithms
 	 * if a learnt automaton has traces that cannot be explored within that bound, it is quite easy to obtain something with a huge number of states that passes all checks with flying colours.
 	 * This is the maximal number of states permitted in a learnt graph, as a multiplier of a number of states in a reference graph. 
 	 */
-	public static int maxStateNumberMultiplier = 3;
+	public static int maxStateNumberMultiplier = 4;
 	
 	public static Collection<List<Label>> computeEvaluationSet(LearnerGraph referenceGraph, int seqLength, int numberOfSeq)
 	{

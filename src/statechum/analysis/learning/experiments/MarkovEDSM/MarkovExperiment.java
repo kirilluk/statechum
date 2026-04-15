@@ -579,23 +579,24 @@ public class MarkovExperiment
 					{
 						for(int sample=0;sample<fsmSamplesPerStateNumber;++sample,++seedForFSM)
 							for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
-								for(boolean aveOrMax:new boolean[]{false})
+								for(boolean aveOrMax:new boolean[]{true}) // average divide by the divisor
 									for(double traceLengthMultiplier:new double[] {32})
 										for(ScoringToApply learnerKind:
 												preset == 0?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
 													new ScoringToApply[]{
 														ScoringToApply.SCORING_MARKOV,
-														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2, ScoringToApply.SCORING_EDSM_4,
-														ScoringToApply.SCORING_PTAK_1, ScoringToApply.SCORING_PTAK_2, ScoringToApply.SCORING_SICCO
+//														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2, ScoringToApply.SCORING_EDSM_4,
+//														ScoringToApply.SCORING_PTAK_1, ScoringToApply.SCORING_PTAK_2,
+															ScoringToApply.SCORING_SICCO
 													}:
 													new ScoringToApply[]{
-														ScoringToApply.SCORING_MARKOV,
-														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2
+														ScoringToApply.SCORING_MARKOV
+//														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2
 										})
 										// LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
 											for(double weightOfInconsistencies:learnerKind.isMarkov()?new double[]{2.0}//1.0,2.0,4.0}
 													:new double[]{1.0})
-												for(int wlen:preset == 0?new int []{1} : new int[]{1,2})
+												for(int wlen:preset == 0?new int []{1} : new int[]{2})
 													for(int divisor:preset == 0?new int []{1} : new int[]{4})
 													{
 														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
@@ -636,10 +637,10 @@ public class MarkovExperiment
 
 				if (result.parameters.learnerToUse.isMarkov())
 				{
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);// 8
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);// 9
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);// 10
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);// 11
 				}
 
 				if (result.parameters.markovParameters.useCentreVertex) {
@@ -659,19 +660,21 @@ public class MarkovExperiment
 			
 		});
 		int referencePreset=0;
-		for(final int preset: new int[]{1})//,1,2})
+		for(final int preset: new int[]{0})//,1,2})
 		{
 			if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS)
 			{// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
 				String presetStr = "-"+preset;
 				String referencePresetStr="-"+referencePreset;
 				String experimentName = outPathPrefix+"preset_"+preset+"_";
-				final RBagPlot gr_StructuralVsInconsistency = new RBagPlot("Inconsistency Learnt","Structural Score, EDSM-Markov learner",new File(experimentName+statesMax+"_trace_structural_inconsistency.pdf"));
-				final RBagPlot gr_BCRVsInconsistency = new RBagPlot("Inconsistency Learnt","BCR Score, EDSM-Markov learner",new File(experimentName+statesMax+"_trace_bcr_inconsistency.pdf"));
-				final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(experimentName+statesMax+"_trace_structuraldiff.pdf"),0,1,true);
+				final RBagPlot gr_StructuralVsInconsistency = new RBagPlot("Inconsistency Learnt","Structural Score, EDSM-Markov learner",new File(experimentName+statesMax+"_inconsistency_structural.pdf"));
+				final RBagPlot gr_BCRVsInconsistency = new RBagPlot("Inconsistency Learnt","BCR Score, EDSM-Markov learner",new File(experimentName+statesMax+"_inconsistency_bcr.pdf"));
+				final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(experimentName+statesMax+"_sicco_structuraldiff.pdf"),0,1,true);
+				final RBagPlot gr_MarkovPrecisionStructuralDiff = new RBagPlot("Precision Markov","Structural Score, EDSM-Markov learner",new File(experimentName+statesMax+"_markovprecision_structuraldiff.pdf"));
 				final SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(experimentName+statesMax+"_trace_bcr.pdf"),0.5,1,true);
-				final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(experimentName+"_"+statesMax+"_trace_kt_bcr.pdf"),0.5,1,true);
-				final SquareBagPlot BCRAgainstEDSM_2 = new SquareBagPlot("BCR, EDSM-2","BCR, EDSM-Markov learner",new File(experimentName+"_"+statesMax+"_trace_markov_bcr.pdf"),0.5,1,true);
+				final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(experimentName+"_"+statesMax+"_kt_markov_bcr.pdf"),0.5,1,true);
+				final SquareBagPlot BCRAgainstEDSM_1 = new SquareBagPlot("BCR, EDSM-1","BCR, EDSM-Markov learner",new File(experimentName+"_"+statesMax+"_edsm-1_markov_bcr.pdf"),0.5,1,true);
+				final SquareBagPlot BCRAgainstEDSM_2 = new SquareBagPlot("BCR, EDSM-2","BCR, EDSM-Markov learner",new File(experimentName+"_"+statesMax+"_edsm-2_markov_bcr.pdf"),0.5,1,true);
 
 				final WilcoxonPairedTest Wilcoxon_test_Structural=new WilcoxonPairedTest(new File(experimentName +"Wilcoxon_t_str.csv"));
 				final WilcoxonPairedTest Wilcoxon_Test_BCR=new WilcoxonPairedTest(new File(experimentName +"Wilcoxon_t_bcr.csv"));
@@ -683,8 +686,10 @@ public class MarkovExperiment
 				DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_StructuralVsInconsistency,resultCSV,ScoringToApply.SCORING_MARKOV+referencePresetStr,7,ScoringToApply.SCORING_MARKOV+presetStr,2,null,null);
 				DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_BCRVsInconsistency,resultCSV,ScoringToApply.SCORING_MARKOV+referencePresetStr,7,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
 				DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,ScoringToApply.SCORING_SICCO+referencePresetStr,2,ScoringToApply.SCORING_MARKOV+presetStr,2,null,null);
+				DrawGraphs.spreadsheetToBagPlot(gr_MarkovPrecisionStructuralDiff,resultCSV,ScoringToApply.SCORING_MARKOV+referencePresetStr,9,ScoringToApply.SCORING_MARKOV+presetStr,2,null,null);
 				DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,ScoringToApply.SCORING_SICCO+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
 				DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,ScoringToApply.SCORING_PTAK_1+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
+				DrawGraphs.spreadsheetToBagPlot(BCRAgainstEDSM_1,resultCSV,ScoringToApply.SCORING_EDSM_1+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
 				DrawGraphs.spreadsheetToBagPlot(BCRAgainstEDSM_2,resultCSV,ScoringToApply.SCORING_EDSM_2+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
 
 				DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,1,ScoringToApply.SCORING_SICCO+referencePresetStr,1);
@@ -704,7 +709,9 @@ public class MarkovExperiment
 					}
 				},resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,3,ScoringToApply.SCORING_MARKOV+presetStr,3);
 					*/
-				for(@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result:new DrawGraphs.RExperimentResult[]{gr_StructuralVsInconsistency,gr_BCRVsInconsistency,gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstEDSM_2, Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR})
+				for(@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result:new DrawGraphs.RExperimentResult[]{gr_StructuralVsInconsistency,gr_BCRVsInconsistency,
+						gr_MarkovPrecisionStructuralDiff,gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstEDSM_1, BCRAgainstEDSM_2,
+						Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR})
 				{
 					result.reportResults(gr);
 				}

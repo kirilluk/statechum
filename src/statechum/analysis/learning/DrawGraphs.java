@@ -562,9 +562,8 @@ public class DrawGraphs {
 
 			if (!columnIDToHeader.containsKey(id.getColumnID()))
 			{
-				if (headerRows > 0 && headerRows != id.getColumnText().length)
-					throw new IllegalArgumentException("spreadsheet "+getFileName()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid number of rows in column header, expected "+headerRows+", got "+id.getColumnText().length);
-				headerRows = id.getColumnText().length;
+				if (headerRows < id.getColumnText().length)
+					headerRows = id.getColumnText().length;
 				columnIDToHeader.put(id.getColumnID(), id.getColumnText());
 				columnIDToCellHeader.put(id.getColumnID(), id.headerValuesForEachCell());
 			}
@@ -598,7 +597,12 @@ public class DrawGraphs {
 				for(String hdr:columnHeaders)
 					for(int cnt=0;cnt<columnIDToCellHeader.get(hdr).length;++cnt)
 					{
-						wr.append(',');wr.append(LearningSupportRoutines.removeSpaces(columnIDToHeader.get(hdr)[headerRow]));
+						wr.append(',');
+						String [] headerRowValues = columnIDToHeader.get(hdr);
+						if (headerRowValues.length <= headerRow)
+							wr.append("");
+						else
+							wr.append(LearningSupportRoutines.removeSpaces(headerRowValues[headerRow]));
 					}
 				wr.append('\n');
 			}

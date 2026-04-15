@@ -1763,6 +1763,10 @@ public class DrawGraphs {
 			}
 		}
 
+		public void resetRandomSeed() {
+			eval("set.seed(0)", "failed to set random seed");
+		}
+
 		/** Requests results of statistical analysis from R. */
 		public StatisticalTestResult obtainResultFromR() {
 			List<String> drawingCommands = new LinkedList<>();

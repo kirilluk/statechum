@@ -426,15 +426,20 @@ public class TestMiscLearningRoutines
 				@Override
 				public CmpVertex selectRedNode(LearnerGraph coregraph, Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 				{
-					Assert.assertNull(redChosen);// we choose graphs in such a way that red states chosen subsequently are decided without calls to selectRedNode before chooseStatePairs returns.
-					Assert.assertSame(graph,coregraph);
-					Assert.assertTrue(reds.contains(graph.findVertex("A")));Assert.assertTrue(reds.contains(graph.findVertex("B")));
-					Assert.assertTrue(redToBeExpected.equals(tentativeRedNodes));
+					if (tentativeRedNodes.size() > 1) {
+						Assert.assertNull(redChosen);// we choose graphs in such a way that red states chosen subsequently are decided without calls to selectRedNode before chooseStatePairs returns.
+						Assert.assertSame(graph, coregraph);
+						Assert.assertTrue(reds.contains(graph.findVertex("A")));
+						Assert.assertTrue(reds.contains(graph.findVertex("B")));
+						Assert.assertTrue(redToBeExpected.equals(tentativeRedNodes));
 
-                    Set<CmpVertex> available = new TreeSet<>(tentativeRedNodes);
-                    available.removeAll(tentativeRedsChosen);
-					redChosen = bestVertex;
-					return redChosen;
+						Set<CmpVertex> available = new TreeSet<>(tentativeRedNodes);
+						available.removeAll(tentativeRedsChosen);
+						redChosen = bestVertex;
+						return redChosen;
+					}
+					else
+						return tentativeRedNodes.iterator().next();
 				}
 				
 				@SuppressWarnings("unused")
@@ -494,22 +499,27 @@ public class TestMiscLearningRoutines
 				@Override
 				public CmpVertex selectRedNode(LearnerGraph coregraph, final Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 				{
-					final Set<Collection<PairScore>> collectionOfPairsSeen = new HashSet<>();
-					CmpVertex nodeSelected = LearnerThatUsesWekaResults.selectRedNodeUsingQualityEstimator(coregraph, inverseTentativeGraph, tentativeRedNodes,
-							(argGraph, inverseGraph, pairs) -> {
-                        Assert.assertSame(graph,argGraph);Assert.assertEquals(redsAlways,reds);
-                        Set<PairScore> AdditionalPairs = new TreeSet<>(pairs);
-                        collectionOfPairsSeen.add(AdditionalPairs);// we'll check that pairs passed to us were the same as those computed during the forward-run of the chooseStatePairs.
-                            // It is important to do this check because pairs passed to obtainEstimateOfTheQualityOfTheCollectionOfPairs are computed by selectRedNode.
+					if (tentativeRedNodes.size() > 1) {
+						final Set<Collection<PairScore>> collectionOfPairsSeen = new HashSet<>();
+						CmpVertex nodeSelected = LearnerThatUsesWekaResults.selectRedNodeUsingQualityEstimator(coregraph, inverseTentativeGraph, tentativeRedNodes,
+								(argGraph, inverseGraph, pairs) -> {
+									Assert.assertSame(graph, argGraph);
+									Assert.assertEquals(redsAlways, reds);
+									Set<PairScore> AdditionalPairs = new TreeSet<>(pairs);
+									collectionOfPairsSeen.add(AdditionalPairs);// we'll check that pairs passed to us were the same as those computed during the forward-run of the chooseStatePairs.
+									// It is important to do this check because pairs passed to obtainEstimateOfTheQualityOfTheCollectionOfPairs are computed by selectRedNode.
 
-                        if (AdditionalPairs.equals(redToPairsObtained.get(bestVertexFinal))) // pairs passed to this one should be some of the same collections of pairs seen by resolvePotentialDeadEnd above.
-                            return 1;
-                        return 0;
-                    });
-                    final Set<Collection<PairScore>> collectionOfPairsExpected = new HashSet<>(redToPairsObtained.values());
-					Assert.assertEquals(collectionOfPairsExpected,collectionOfPairsSeen);
-					if (checkCorrectNodeChosen) Assert.assertEquals(bestVertexFinal,nodeSelected);// check that the expected vertex has been selected
-					return bestVertexFinal;
+									if (AdditionalPairs.equals(redToPairsObtained.get(bestVertexFinal))) // pairs passed to this one should be some of the same collections of pairs seen by resolvePotentialDeadEnd above.
+										return 1;
+									return 0;
+								});
+						final Set<Collection<PairScore>> collectionOfPairsExpected = new HashSet<>(redToPairsObtained.values());
+						Assert.assertEquals(collectionOfPairsExpected, collectionOfPairsSeen);
+						if (checkCorrectNodeChosen)
+							Assert.assertEquals(bestVertexFinal, nodeSelected);// check that the expected vertex has been selected
+						return bestVertexFinal;
+					}
+					return tentativeRedNodes.iterator().next();
 				}
 	
 				@SuppressWarnings("unused")

@@ -499,7 +499,7 @@ public class DrawGraphs {
 
 	public static class CSVExperimentResult implements SGEExperimentResult
 	{
-		protected final Map<String,Map<String,String>> rowColumnText = new TreeMap<>();
+		public final Map<String,Map<String,String>> rowColumnText = new TreeMap<>();
 		final Map<String,String []> columnIDToHeader = new TreeMap<>();// will return column values in an increasing order
 		int headerRows = -1;
 		final Map<String,String []> columnIDToCellHeader = new TreeMap<>();

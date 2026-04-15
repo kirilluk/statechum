@@ -20,14 +20,8 @@ package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Stack;
 import java.util.concurrent.atomic.AtomicLong;
 
 import statechum.Configuration;
@@ -69,19 +63,15 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
+import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
-import statechum.analysis.learning.rpnicore.EquivalenceClass;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
-import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 
+import static statechum.analysis.learning.DrawGraphs.getValueFromMapGivenRegexp;
+import static statechum.analysis.learning.DrawGraphs.obtainValueFromCell;
 import static statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.constructLearner;
 
 
@@ -193,7 +183,7 @@ public class MarkovExperiment
 
 			// Ideally, we would like to record learnt graph and only rebuilt comparison results when asked. This is
 			// not possible because without a learning process there is no record which mergers
-			// were right or not and we will not have information how long it took for a learner to complete the learn.
+			// were right or not and we will not have information how long it took for a learner to complete learning.
 			LearnerGraph ptaBuilt = firstMerge.ptaToUseForInference;
 			Learner learnerOfPairs;
 			redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
@@ -300,8 +290,114 @@ public class MarkovExperiment
 		}
 
 	}
-	
-		
+
+
+	public static class MarkovCentreLearningParameters extends MarkovLearningParameters {
+
+		public MarkovCentreLearningParameters(ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed) {
+			super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample, argSeed);
+		}
+
+		@Override
+		public String[] headerValuesForEachCell() {
+			return new String[] {"centreCorrect","centerpaths","inconsistency","inconsistency_with_practice","Time"};
+		}
+
+		@Override
+		public String getSubExperimentName() {
+			return "centre";
+		}
+	}
+
+	public static final int inconsistencyClamp = 50;
+
+	public static class MarkovCentreIdentification extends MarkovLearnerRunner {
+
+		public MarkovCentreIdentification(MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf) {
+			super(parameters, cnf);
+		}
+
+		@Override
+		public ExperimentResult<MarkovLearningParameters> runexperiment() throws Exception {
+			generateReferenceFSM();
+			saveGraph(nameReference, referenceGraph);
+
+			ExperimentResult<MarkovLearningParameters> outcome = new ExperimentResult<>(par);
+			learnerInitConfiguration.testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
+
+			LearnerGraph pta = constructPTA();
+			final MarkovModel m = new MarkovModel(par.markovParameters.chunkLen, true, true, true, false);
+			new MarkovClassifierLG(m, pta, null).updateMarkov(false);// construct Markov chain if asked for.
+			pta.clearColours();
+			assert pta.getStateNumber() == pta.getAcceptStateNumber() : "graph with negatives but onlyUsePositives is set";
+
+			final Configuration deepCopy = pta.config.copy();
+			deepCopy.setLearnerCloneGraph(true);
+			LearnerGraph ptaCopy = new LearnerGraph(deepCopy);
+			LearnerGraph.copyGraphs(pta, ptaCopy);
+
+			final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+
+			PerformFirstMerge firstMerge = new PerformFirstMerge();
+			firstMerge.ptaToUseForInference = pta;
+			if (par.markovParameters.useCentreVertex) {
+				saveGraph(namePTABEFORECENTRE, pta);
+				// This replaces firstMerge.ptaToUseForInference with a graph built by merging around the most-connected vertex
+				firstMerge.buildFirstGraph(pta, referenceGraph, par.markovParameters, m, checker);
+				if (par.usePrintf) {
+					LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(firstMerge.ptaToUseForInference);
+					System.out.println("Centre vertex: " + firstMerge.vertexWithMostTransitions + " number of transitions: " +
+							WaveBlueFringe.countTransitions(firstMerge.ptaToUseForInference,
+									inverseOfPtaAfterInitialMerge, firstMerge.vertexWithMostTransitions));
+				}
+			}
+			SampleData dataSample = new SampleData(null, null);
+			dataSample.centreCorrect = firstMerge.correctCentre;
+			dataSample.centrePathNumber = firstMerge.centrePathNumber;
+			dataSample.actualLearner = new ScoresForGraph();
+			dataSample.actualLearner.inconsistency = MarkovClassifier.computeInconsistency(firstMerge.ptaToUseForInference, null, m, checker, false);
+			outcome.samples.add(dataSample);
+
+			EDSM_MarkovLearner markovLearner;
+			switch(par.learnerToUse)
+			{
+				case SCORING_MARKOV:
+					markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,0,
+							par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, null);
+					markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+					break;
+				case SCORING_MARKOV_1:
+					markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,1,
+							par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, null);
+					markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+					break;
+				case SCORING_MARKOV_2:
+					markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,pta,2,
+							par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, null);
+					markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+					break;
+				default:
+					throw new IllegalArgumentException("Invalid learner selected: "+par.learnerToUse);
+			}
+
+			SampleData dataSampleAccountingForTestLearn = new SampleData(null,null);
+			dataSampleAccountingForTestLearn.centreCorrect = firstMerge.correctCentre;
+			dataSampleAccountingForTestLearn.centrePathNumber = firstMerge.centrePathNumber;
+			dataSampleAccountingForTestLearn.actualLearner = new ScoresForGraph();
+			dataSampleAccountingForTestLearn.actualLearner.inconsistency = dataSample.actualLearner.inconsistency;
+			outcome.samples.add(dataSampleAccountingForTestLearn);
+
+			LearnerGraph learntGraph = markovLearner.learnMachine(new LinkedList<>(), new LinkedList<>());
+			if ( AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK == learntGraph.getLearningAbortedReason()) {
+				if (MarkovClassifier.computeInconsistency(learntGraph, null, m, checker, false) < dataSampleAccountingForTestLearn.actualLearner.inconsistency) {
+					dataSampleAccountingForTestLearn.actualLearner.inconsistency = inconsistencyClamp;// if a direct learn produced a lower number, set inconsistency to max
+				    dataSampleAccountingForTestLearn.centreCorrect = false;// force centre detection to 'fail'
+				}
+			}
+			return outcome;
+		}
+	}
+
 	public static Collection<StatePair> constructPairsToMergeBasedOnSetsToMerge(Set<CmpVertex> validStates, Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA)
 	{
 		List<StatePair> pairsList = new LinkedList<>();
@@ -566,7 +662,106 @@ public class MarkovExperiment
 			}
 */
 		final int chunkSize = 3;
-		final int statesMax = statesToUse[statesToUse.length-1];// reflects the size of the largest FSM that will be generated. 
+		final int statesMax = statesToUse[statesToUse.length-1];// reflects the size of the largest FSM that will be generated.
+// IDENTIFICATION OF CENTRE VERTEX
+		final CSVExperimentResult centreCSV = new CSVExperimentResult(new File(outPathPrefix+"centre.csv"));
+		for(final int traceQuantityToUse:new int[]{1})
+		{
+			int seedForFSM = 0;
+
+			for(int states:statesToUse)
+				for(int perStateSquaredDensity100:new int[] {0,30})
+				{
+					for(int sample=0;sample<fsmSamplesPerStateNumber;++sample,++seedForFSM)
+						for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
+							for(boolean aveOrMax:new boolean[]{true}) // average divide by the divisor
+								for(double traceLengthMultiplier:new double[] {256})
+										for(double weightOfInconsistencies:new double[]{2.0})//1.0,2.0,4.0}
+											for(int wlen:new int[]{1,2,3})
+												for(int divisor:new int[]{1,2,4,8})
+												{
+													LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
+													ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+													ev.config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);// small automata hence no need for array STATETREE.STATETREE_ARRAY);
+													ev.config.setOverride_usePTAMerging(false);
+
+													MarkovCentreLearningParameters parameters = new MarkovCentreLearningParameters(ScoringToApply.SCORING_MARKOV,states, alphabetMultiplier, perStateSquaredDensity100, sample,trainingSample, seedForFSM);
+													parameters.setTraceLengthMultiplier(traceLengthMultiplier);
+													parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,statesMax,alphabetMultiplier);
+													parameters.markovParameters.setMarkovParameters(1,chunkSize,pathsOrSets,weightOfInconsistencies, aveOrMax,divisor,0,wlen);
+													parameters.setUsePrintf(experimentRunner.isInteractive());
+													MarkovCentreIdentification centreIdentificationExperiment = new MarkovCentreIdentification(parameters, ev);
+													centreIdentificationExperiment.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
+													experimentRunner.submitTask(centreIdentificationExperiment);
+												}
+				}
+			}
+
+			experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>() {
+
+				@Override
+				public void processSubResult(ExperimentResult<MarkovLearningParameters> result, RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentrunner) throws IOException
+				{// in these experiments, samples are singleton sequences because we run each of them in a separate process, in order to increase the efficiency with which all tasks are split between CPUs in an iceberg grid.
+					SampleData sm = result.samples.get(0), smClamp = result.samples.get(1);
+					ScoresForGraph data=sm.actualLearner;
+
+					StringBuffer csvLine = new StringBuffer();
+					csvLine.append(sm.centreCorrect);// 0
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.centrePathNumber);// 1
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);// 2
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(smClamp.actualLearner.inconsistency);// 3
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append("0");// add fake time value, otherwise last added value gets overwritten.
+					experimentrunner.RecordCSV(centreCSV, result.parameters, csvLine.toString());
+				}
+
+				@Override
+				public SGEExperimentResult[] getGraphs() {
+
+					return new SGEExperimentResult[]{centreCSV};
+				}
+
+			});
+
+			if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS) {
+				final DrawGraphs.RBoxPlot<String> gr_NumberOfCentreCorrect = new DrawGraphs.RBoxPlot<>("Centre Selection", "Number of correct selection", new File(outPathPrefix + statesMax + "_centreselection_numbercorrect.pdf"));
+				final DrawGraphs.RBoxPlot<String> gr_InconsistenciesForCentres = new DrawGraphs.RBoxPlot<>("Centre Selection", "Inconsistency (clamped to "+inconsistencyClamp+" )", new File(outPathPrefix + statesMax + "_centreselection_inconsistency.pdf"));
+				final DrawGraphs.RBoxPlot<String> gr_CorrectVsInconsistency = new DrawGraphs.RBoxPlot<>("Centre correctly predicted", "Inconsistency (clamped to "+inconsistencyClamp+" )", new File(outPathPrefix + statesMax + "_centrecorrect_inconsistency.pdf"));
+				final DrawGraphs.RBoxPlot<String> gr_CorrectVsInconsistencyWithPracticeLearn = new DrawGraphs.RBoxPlot<>("Centre correctly predicted", "Inconsistency P (clamped to "+inconsistencyClamp+" )", new File(outPathPrefix + statesMax + "_centrecorrect_inconsistency_P.pdf"));
+				for (int wlen : new int[]{1, 2, 3})
+					for (int d : new int[]{1, 2, 4, 8}) {
+						String centreStrategy = ScoringToApply.SCORING_MARKOV + "-1_dv=A_d=" + d + "_wl=" + wlen;
+						int count = 0;
+						for (Entry<String, Map<String, String>> rowEntry : centreCSV.rowColumnText.entrySet()) {
+							String Y = getValueFromMapGivenRegexp(rowEntry.getValue(), centreStrategy);
+							if (Y != null) {
+								boolean valid = Boolean.parseBoolean(obtainValueFromCell(Y, 0));
+								int pathsCount = Integer.parseInt(obtainValueFromCell(Y, 1));
+								if (pathsCount > 0 && valid)
+									count++;
+
+								if (pathsCount > 0) {
+									int inconsistency =  Integer.parseInt(obtainValueFromCell(Y, 2));
+									if (inconsistency > inconsistencyClamp)
+										inconsistency = inconsistencyClamp;
+
+									gr_InconsistenciesForCentres.add(wlen + "_" + d + "_" + (valid ? "T" : "F"), (double) inconsistency, valid?null:"red", null);
+									gr_CorrectVsInconsistency.add(Boolean.toString(valid), (double) inconsistency, null, null);
+									long inconsistencyWithPractice = Integer.parseInt(obtainValueFromCell(Y, 3));
+									if (inconsistencyWithPractice > inconsistencyClamp)
+										inconsistencyWithPractice = inconsistencyClamp;
+									gr_CorrectVsInconsistencyWithPracticeLearn.add(Boolean.toString(valid), (double) inconsistencyWithPractice, null, null);
+								}
+							}
+						}
+						gr_NumberOfCentreCorrect.add(wlen + "_" + d, (double) count, null, null);
+					}
+				gr_NumberOfCentreCorrect.reportResults(gr);
+				gr_InconsistenciesForCentres.reportResults(gr);
+				gr_CorrectVsInconsistency.reportResults(gr);
+				gr_CorrectVsInconsistencyWithPracticeLearn.reportResults(gr);
+			}
+// EXPERIMENT WITH ACTUAL LEARNERS
+
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
 		for(final int preset: new int[]{1})//,1,2})
 		{
@@ -596,8 +791,8 @@ public class MarkovExperiment
 										// LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
 											for(double weightOfInconsistencies:learnerKind.isMarkov()?new double[]{2.0}//1.0,2.0,4.0}
 													:new double[]{1.0})
-												for(int wlen:preset == 0?new int []{1} : new int[]{2})
-													for(int divisor:preset == 0?new int []{1} : new int[]{4})
+												for(int wlen:preset == 0?new int []{1} : new int[]{1})
+													for(int divisor:preset == 0?new int []{1} : new int[]{1,4})
 													{
 														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
 														ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
@@ -687,6 +882,7 @@ public class MarkovExperiment
 				DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_BCRVsInconsistency,resultCSV,ScoringToApply.SCORING_MARKOV+referencePresetStr,7,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
 				DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,ScoringToApply.SCORING_SICCO+referencePresetStr,2,ScoringToApply.SCORING_MARKOV+presetStr,2,null,null);
 				DrawGraphs.spreadsheetToBagPlot(gr_MarkovPrecisionStructuralDiff,resultCSV,ScoringToApply.SCORING_MARKOV+referencePresetStr,9,ScoringToApply.SCORING_MARKOV+presetStr,2,null,null);
+
 				DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,ScoringToApply.SCORING_SICCO+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
 				DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,ScoringToApply.SCORING_PTAK_1+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
 				DrawGraphs.spreadsheetToBagPlot(BCRAgainstEDSM_1,resultCSV,ScoringToApply.SCORING_EDSM_1+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);

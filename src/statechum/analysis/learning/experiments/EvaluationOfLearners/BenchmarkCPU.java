@@ -309,8 +309,8 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 				csvLine.append(difference.whetherLearningSuccessfulOrAborted);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.invalidMergers);
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.missedMergers);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.invalidMergersFraction);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.missedMergersFraction);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(difference.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());

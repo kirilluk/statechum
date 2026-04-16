@@ -29,7 +29,6 @@ import org.junit.Test;
 import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertexID;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.StateMergingStatistics;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
@@ -43,7 +42,13 @@ public class TestMergeStatistics {
 	public final void computeStatistics1()
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D / B-b->B", "computeStatistics1",config,converter);
-		StateMergingStatistics evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true);
+
+		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getInvalidMergersNearRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersNearRoot(), Configuration.fpAccuracy);
+
 		assertEquals(0.0, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
 		assertEquals(0.0, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
 	}
@@ -53,11 +58,16 @@ public class TestMergeStatistics {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
-		StateMergingStatistics evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2);
 		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();for(String name:new String[] {"A","B","C"}) reds.add(pta.findVertex(VertexID.parseID(name)));
 		evaluator.stateSelectedAsRed(pta, pta.findVertex(VertexID.parseID("E")), reds);
-		assertEquals(0.0, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
-		assertEquals(100.0, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(1, evaluator.getMissedMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getInvalidMergersNearRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersNearRoot(), Configuration.fpAccuracy);
+
+		assertEquals(0.0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(1.0, evaluator.getMissedMergersFarFromRoot(), Configuration.fpAccuracy);
 		assertEquals(3.0, evaluator.countRedsKnowingTheCorrectSolution(), Configuration.fpAccuracy);// here we account for missed mergers, hence an attempt to label E red does not increase the number of red states.
 	}
 
@@ -66,35 +76,120 @@ public class TestMergeStatistics {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
-		StateMergingStatistics evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,false);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,false,2);
 		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();for(String name:new String[] {"A","B","C"}) reds.add(pta.findVertex(VertexID.parseID(name)));
 		evaluator.stateSelectedAsRed(pta, pta.findVertex(VertexID.parseID("E")), reds);
-		assertEquals(0.0, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
-		assertEquals(100.0, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(1, evaluator.getMissedMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getInvalidMergersNearRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersNearRoot(), Configuration.fpAccuracy);
+
+		assertEquals(0.0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(1.0, evaluator.getMissedMergersFarFromRoot(), Configuration.fpAccuracy);
 		assertEquals(4.0, evaluator.countRedsKnowingTheCorrectSolution(), Configuration.fpAccuracy);// since we do not count missed mergers, all red states are reported.
 	}
 
+	@Test
+	public final void computeStatistics2c()
+	{
+		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
+		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,false,2);
+		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();for(String name:new String[] {"A","B","C"}) reds.add(pta.findVertex(VertexID.parseID(name)));
+		evaluator.stateSelectedAsRed(pta, pta.findVertex(VertexID.parseID("E")), reds);
+		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(1, evaluator.getMissedMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getInvalidMergersNearRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersNearRoot(), Configuration.fpAccuracy);
+
+		assertEquals(0.0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(1.0, evaluator.getMissedMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(4.0, evaluator.countRedsKnowingTheCorrectSolution(), Configuration.fpAccuracy);// since we do not count missed mergers, all red states are reported.
+	}
 
 	@Test
 	public final void computeStatistics3()
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
-		StateMergingStatistics evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2);
 		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();for(String name:new String[] {"A","B"}) reds.add(pta.findVertex(VertexID.parseID(name)));
 		evaluator.stateSelectedAsRed(pta, pta.findVertex(VertexID.parseID("C")), reds);
+
+		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getInvalidMergersNearRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersNearRoot(), Configuration.fpAccuracy);
+
 		assertEquals(0.0, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
 		assertEquals(0.0, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
 	}
 
 	@Test
-	public final void computeStatistics4()
+	public final void computeStatistics4a()
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
-		StateMergingStatistics evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2);
 		evaluator.pairSelectedForMerger(pta, new StatePair(pta.findVertex(VertexID.parseID("A")),pta.findVertex(VertexID.parseID("B"))));
-		assertEquals(100.0, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
+
+		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(1, evaluator.getInvalidMergersNearRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersNearRoot(), Configuration.fpAccuracy);
+
+		assertEquals(1.0, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
+		assertEquals(0.0, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
+	}
+
+	@Test
+	public final void computeStatistics4b()
+	{
+		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
+		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2);
+		evaluator.pairSelectedForMerger(pta, new StatePair(pta.findVertex(VertexID.parseID("A")),pta.findVertex(VertexID.parseID("E"))));
+
+		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getInvalidMergersNearRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersNearRoot(), Configuration.fpAccuracy);
+
+		assertEquals(0.0, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
+		assertEquals(0.0, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
+	}
+
+	@Test
+	public final void computeStatistics4c()
+	{
+		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
+		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2);
+		evaluator.pairSelectedForMerger(pta, new StatePair(pta.findVertex(VertexID.parseID("C")),pta.findVertex(VertexID.parseID("E"))));
+
+		assertEquals(1, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getInvalidMergersNearRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersNearRoot(), Configuration.fpAccuracy);
+
+		assertEquals(1.0, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
+		assertEquals(0.0, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
+	}
+
+	@Test
+	public final void computeStatistics4d()
+	{
+		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
+		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,5);
+		evaluator.pairSelectedForMerger(pta, new StatePair(pta.findVertex(VertexID.parseID("C")),pta.findVertex(VertexID.parseID("E"))));
+
+		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(1, evaluator.getInvalidMergersNearRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersNearRoot(), Configuration.fpAccuracy);
+
+		assertEquals(1.0, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
 		assertEquals(0.0, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
 	}
 
@@ -103,11 +198,19 @@ public class TestMergeStatistics {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
-		StateMergingStatistics evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true);
 		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();for(String name:new String[] {"A","B","C"}) reds.add(pta.findVertex(VertexID.parseID(name)));
 		evaluator.stateSelectedAsRed(pta, pta.findVertex(VertexID.parseID("E")), reds);
 		evaluator.pairSelectedForMerger(pta, new StatePair(pta.findVertex(VertexID.parseID("A")),pta.findVertex(VertexID.parseID("B"))));
-		assertEquals(50, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
-		assertEquals(50, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
+
+		// Here the 'depth threshold is zero hence all errors are reported as 'far away' from root.
+		assertEquals(1, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(1, evaluator.getMissedMergersFarFromRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getInvalidMergersNearRoot(), Configuration.fpAccuracy);
+		assertEquals(0, evaluator.getMissedMergersNearRoot(), Configuration.fpAccuracy);
+
+
+		assertEquals(1, evaluator.reportInvalidMergers(), Configuration.fpAccuracy);
+		assertEquals(1, evaluator.reportMissedMergers(), Configuration.fpAccuracy);
 	}
 }

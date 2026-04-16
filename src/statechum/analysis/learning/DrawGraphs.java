@@ -506,7 +506,11 @@ public class DrawGraphs {
 		protected final File file;
 
 		protected String missingValue = "";
-		
+
+		public int getHeaderRowsNumber() {
+			return headerRows;
+		}
+
 		public void setMissingValue(String val)
 		{
 			missingValue = val;

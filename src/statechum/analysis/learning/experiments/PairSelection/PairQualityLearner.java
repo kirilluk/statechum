@@ -487,8 +487,7 @@ public class PairQualityLearner
 				{// 14
 					@Override
 					public long getValue(PairScore p) {
-						long score = classifier.linearForwards.scoreForPair(p.getR(), p.getQ(), parameters.scale);
-						return score;
+                        return classifier.linearForwards.scoreForPair(p.getR(), p.getQ(), parameters.scale);
 					}
 		
 					@Override
@@ -504,8 +503,7 @@ public class PairQualityLearner
 				{// 15
 					@Override
 					public long getValue(PairScore p) {
-						long score = classifier.linearBackwards.scoreForPair(p.getR(), p.getQ(), parameters.scale);
-						return score;
+                        return classifier.linearBackwards.scoreForPair(p.getR(), p.getQ(), parameters.scale);
 					}
 		
 					@Override
@@ -522,8 +520,7 @@ public class PairQualityLearner
 			{// 16
 				@Override
 				public long getValue(PairScore p) {
-					long score = classifier.tentativeGraph.pathroutines.computeScore(p.getR(), p.getQ(), classifier.scoreNDforwardCache);
-					return score;
+                    return classifier.tentativeGraph.pathroutines.computeScore(p.getR(), p.getQ(), classifier.scoreNDforwardCache);
 				}
 	
 				@Override
@@ -539,8 +536,7 @@ public class PairQualityLearner
 			{// 17
 				@Override
 				public long getValue(PairScore p) {
-					long score = classifier.invTentativeGraph.pathroutines.computeScore(p.getR(), p.getQ(), classifier.scoreNDbackwardCache);
-					return score;
+                    return classifier.invTentativeGraph.pathroutines.computeScore(p.getR(), p.getQ(), classifier.scoreNDbackwardCache);
 				}
 	
 				@Override
@@ -557,15 +553,14 @@ public class PairQualityLearner
 			MarkovModel[] models = multi.getModels();
 			for(int i=0;i<models.length;++i)
 			{
-				if  ((parameters.bitstringOfEnabledParameters & (1 << arg)) != 0)
+				if  ((parameters.bitstringOfEnabledParameters & (1L << arg)) != 0)
 				{
 					final int multiElement = i;
 					assessorsThatUseMarkov.add(classifier.new PairRank("markov score for "+models[i]+", position "+arg)
 					{// 17
 						@Override
 						public long getValue(PairScore p) {
-							long score = classifier.measurementsObtainedFromPairs.get(p).markovScores[multiElement];
-							return score;
+                            return classifier.measurementsObtainedFromPairs.get(p).markovScores[multiElement];
 						}
 			
 						@Override
@@ -651,7 +646,6 @@ public class PairQualityLearner
 	 * @param configToUse configuration that will be used for loading
 	 * @param converter label interning converter, cannot be null but can be thrown away after loading.
 	 * @return Initial configuration and evaluation configuration.
-	 * @throws IOException
 	 */
 	public static InitialConfigurationAndData loadInitialAndPopulateInitialConfiguration(String argPTAFileName, Configuration configToUse, ConvertALabel converter) throws IOException
 	{
@@ -729,16 +723,14 @@ public class PairQualityLearner
 				@Override
 				public CmpVertex selectRedNode(@SuppressWarnings("unused") LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 				{
-					CmpVertex redVertex = tentativeRedNodes.iterator().next();
-					return redVertex;
+                    return tentativeRedNodes.iterator().next();
 				}
 
 				@Override
 				public CmpVertex resolvePotentialDeadEnd(LearnerGraph coregraph, Collection<CmpVertex> reds, List<PairScore> pairs) 
 				{
 					dataCollector.updateDatasetWithPairs(pairs, coregraph, inverseGraph, referenceGraph);
-					CmpVertex red = LearnerThatUpdatesWekaResults.this.resolvePotentialDeadEnd(coregraph, reds, pairs);
-					return red;
+                    return LearnerThatUpdatesWekaResults.this.resolvePotentialDeadEnd(coregraph, reds, pairs);
 				}
 				
 				LearnerGraph g=null;
@@ -775,7 +767,7 @@ public class PairQualityLearner
 				@Override
 				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 				{
-					Collection<Entry<Label, CmpVertex>> surroundingTransitions = null;
+					Collection<Entry<Label, CmpVertex>> surroundingTransitions;
 					if (markovMultiHelpers != null)
 						surroundingTransitions = markovMultiHelpers.getSurroundingTransitions(currentRed);
 					else
@@ -889,7 +881,7 @@ public class PairQualityLearner
 			{
 				dataCollector.fillInPairDetails(comparisonResults,p, allPairs);
 				Instance instance = dataCollector.constructInstance(comparisonResults, true);// here classification is a dummy.
-				double[] distribution =null;
+				double[] distribution;
 				try
 				{
 					distribution=classifier.distributionForInstance(instance);
@@ -1376,7 +1368,7 @@ public class PairQualityLearner
 			@Override
 			public CmpVertex selectRedNode(LearnerGraph coregraph, @SuppressWarnings("unused") Collection<CmpVertex> reds, Collection<CmpVertex> tentativeRedNodes) 
 			{
-				CmpVertex redVertex = null;
+				CmpVertex redVertex;
 				if (par.useClassifierToChooseNextRed) 
 					redVertex = LearnerThatUsesWekaResults.selectRedNodeUsingNumberOfNewRedStates(coregraph, tentativeRedNodes);
 				else 
@@ -1440,7 +1432,7 @@ public class PairQualityLearner
 			@Override
 			public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 			{
-				Collection<Entry<Label, CmpVertex>> outcome = null;
+				Collection<Entry<Label, CmpVertex>> outcome;
 				if (markovMultiHelpers != null)
 					outcome = markovMultiHelpers.getSurroundingTransitions(currentRed);
 				else
@@ -1663,9 +1655,12 @@ public class PairQualityLearner
 		public DifferenceToReference differenceStructural, differenceBCR , differenceFMeasure;
 		public DifferenceToReference nrOfstates;
 		public long inconsistency;
+		public boolean inconsistencyAlwaysPositive;
+		public double inconsistencyAverage, inconsistencySD;
 		public double fanoutPos,fanoutNeg;
 		public int ptaStateNumber;
-		public double invalidMergers, missedMergers; 
+		public int invalidMergersNearRoot, missedMergersNearRoot, invalidMergersFarFromRoot, missedMergersFarFromRoot, validMergers;
+		public double missedMergersFraction, invalidMergersFraction;
 		public LearningAbortedReason whetherLearningSuccessfulOrAborted;
 		
 		/** How many nodes there was in the original PTA. */
@@ -1688,16 +1683,16 @@ public class PairQualityLearner
 				return "UNKNOWN SCORE";
 			String outcome = "";
 			if (differenceBCR != null)
-				outcome+=String.format("BCR: %s",differenceBCR.toString());
+				outcome+=String.format("BCR: %s", differenceBCR);
 			if (differenceStructural != null)
 			{
 				if (!outcome.isEmpty()) outcome+=",";
-				outcome+=String.format("structural: %s",differenceStructural.toString());
+				outcome+=String.format("structural: %s", differenceStructural);
 			}
 			if (differenceFMeasure != null)
 			{
 				if (!outcome.isEmpty()) outcome+=",";
-				outcome+=String.format("FMeasure: %s",differenceFMeasure.toString());
+				outcome+=String.format("FMeasure: %s", differenceFMeasure);
 			}
 			return outcome;
 		}

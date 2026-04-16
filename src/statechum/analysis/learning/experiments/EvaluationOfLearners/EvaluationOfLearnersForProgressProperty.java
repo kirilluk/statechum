@@ -172,8 +172,8 @@ public class EvaluationOfLearnersForProgressProperty extends UASExperiment<Evalu
 				csvLine.append(data.whetherLearningSuccessfulOrAborted);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceBCR.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergers);
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergers);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersFraction);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersFraction);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.
 

@@ -186,22 +186,24 @@ public class MarkovExperiment
 			// were right or not and we will not have information how long it took for a learner to complete learning.
 			LearnerGraph ptaBuilt = firstMerge.ptaToUseForInference;
 			Learner learnerOfPairs;
-			redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
 			switch(par.learnerToUse)
 			{
 				case SCORING_MARKOV:
+					redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen);
 					markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaBuilt,0,
 							par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, redReducer);
 					markovLearner.setMarkov(m);markovLearner.setChecker(checker);
 					learnerOfPairs = markovLearner;
 					break;
 				case SCORING_MARKOV_1:
+					redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen);
 					markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaBuilt,1,
 							par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, redReducer);
 					markovLearner.setMarkov(m);markovLearner.setChecker(checker);
 					learnerOfPairs = markovLearner;
 					break;
 				case SCORING_MARKOV_2:
+					redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen);
 					markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaBuilt,2,
 							par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, redReducer);
 					markovLearner.setMarkov(m);markovLearner.setChecker(checker);
@@ -210,6 +212,7 @@ public class MarkovExperiment
 				default:
 					// ScoreMode.GENERAL_NOFULLMERGE is ok here because all states are accept-states,
 					// otherwise GENERAL_PLUS_NOFULLMERGE might have been a better choice.
+					redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false);
 					learnerOfPairs = constructLearner(learnerInitConfiguration,ptaBuilt, par.learnerToUse,ScoreMode.GENERAL_NOFULLMERGE,redReducer);
 					break;
 			}
@@ -243,7 +246,9 @@ public class MarkovExperiment
 			dataSample.actualLearner = WaveBlueFringe.estimateDifference(actualAutomaton,m,checker,referenceGraph,learnerInitConfiguration.testSet);
 			if (redReducer != null)
 			{
-				dataSample.actualLearner.invalidMergers = redReducer.reportInvalidMergers();dataSample.actualLearner.missedMergers = redReducer.reportMissedMergers();
+				dataSample.actualLearner.invalidMergersFarFromRoot = redReducer.getInvalidMergersFarFromRoot();dataSample.actualLearner.missedMergersFarFromRoot = redReducer.getMissedMergersFarFromRoot();
+				dataSample.actualLearner.invalidMergersNearRoot = redReducer.getInvalidMergersNearRoot();dataSample.actualLearner.missedMergersNearRoot = redReducer.getMissedMergersNearRoot();
+				dataSample.actualLearner.validMergers = redReducer.getValidMergers();
 			}
 			dataSample.actualLearner.whetherLearningSuccessfulOrAborted = actualAutomaton.getLearningAbortedReason();
 			dataSample.actualLearner.executionTime = runTime;
@@ -256,9 +261,28 @@ public class MarkovExperiment
 			dataSample.transitionsSampled = Math.round(100*(double)referenceGraph.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
 			statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifierLG(m, referenceGraph,null).evaluateCorrectnessOfMarkov(true, false);
 			dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
- 			if (markovLearner != null)
- 				dataSample.comparisonsPerformed = markovLearner.markovHelper.comparisonsPerformed;
- 			
+ 			if (markovLearner != null) {
+				dataSample.comparisonsPerformed = markovLearner.markovHelper.comparisonsPerformed;
+				boolean inconsistencyAlwaysPositive = true;
+				double average = 0;
+				for(long value:redReducer.getInconsistencyValues()) {
+					average += value;
+					if (value < 0)
+						inconsistencyAlwaysPositive = false;
+				}
+				dataSample.actualLearner.inconsistencyAlwaysPositive = inconsistencyAlwaysPositive;
+				dataSample.actualLearner.inconsistencyAverage = 0;
+				dataSample.actualLearner.inconsistencySD = 0;
+				if (redReducer.getInconsistencyValues().size() > 0) {
+					average /= redReducer.getInconsistencyValues().size();
+					dataSample.actualLearner.inconsistencyAverage = average;
+
+					double square_diff = 0;
+					for (long value : redReducer.getInconsistencyValues())
+						square_diff += (value - average) * (value - average);
+					dataSample.actualLearner.inconsistencySD = Math.sqrt(square_diff/redReducer.getInconsistencyValues().size());
+				}
+			}
 			if (par.usePrintf) {
 				if (dataSample.actualLearner.differenceBCR.getValue() < 1.0 && dataSample.actualLearner.differenceStructural.getValue() == 1.0)
 				{
@@ -763,7 +787,7 @@ public class MarkovExperiment
 // EXPERIMENT WITH ACTUAL LEARNERS
 
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
-		for(final int preset: new int[]{1})//,1,2})
+		for(final int preset: new int[]{0,1,2,3})//,1,2})
 		{
 			for(final int traceQuantityToUse:new int[]{8})
 			{
@@ -791,7 +815,7 @@ public class MarkovExperiment
 										// LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
 											for(double weightOfInconsistencies:learnerKind.isMarkov()?new double[]{2.0}//1.0,2.0,4.0}
 													:new double[]{1.0})
-												for(int wlen:preset == 0?new int []{1} : new int[]{1})
+												for(int wlen:preset == 0?new int []{1} : new int[]{1,2})
 													for(int divisor:preset == 0?new int []{1} : new int[]{1,4})
 													{
 														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
@@ -824,18 +848,24 @@ public class MarkovExperiment
 				csvLine.append(data.whetherLearningSuccessfulOrAborted);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceBCR.getValue());// 1
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());// 2
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergers);
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergers);
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());// 5
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);// 6
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);// 7
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersNearRoot);// 3
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersNearRoot); // 4
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersFarFromRoot);// 5
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersFarFromRoot); // 6
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.validMergers); // 7
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());// 8
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);// 9
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);// 10
 
 				if (result.parameters.learnerToUse.isMarkov())
 				{
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);// 8
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);// 9
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);// 10
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);// 11
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencyAverage);// 11
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencySD);// 12
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencyAlwaysPositive);// 13
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);// 14
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);// 15
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);// 16
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);// 17
 				}
 
 				if (result.parameters.markovParameters.useCentreVertex) {
@@ -855,7 +885,7 @@ public class MarkovExperiment
 			
 		});
 		int referencePreset=0;
-		for(final int preset: new int[]{0})//,1,2})
+		for(final int preset: new int[]{0,1,2,3})//,1,2})
 		{
 			if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS)
 			{// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
@@ -863,9 +893,13 @@ public class MarkovExperiment
 				String referencePresetStr="-"+referencePreset;
 				String experimentName = outPathPrefix+"preset_"+preset+"_";
 				final RBagPlot gr_StructuralVsInconsistency = new RBagPlot("Inconsistency Learnt","Structural Score, EDSM-Markov learner",new File(experimentName+statesMax+"_inconsistency_structural.pdf"));
+				final RBagPlot gr_TotalMergersVsStructuralScore = new RBagPlot("Total mergers","Structural Score, EDSM-Markov learner",new File(experimentName+statesMax+"_totalmergers_structural.pdf"));
+				final RBagPlot gr_MistakesNearRootVsStructuralScore = new RBagPlot("Mistakes near root","Structural Score, EDSM-Markov learner",new File(experimentName+statesMax+"_mistakesnearroot_structural.pdf"));
 				final RBagPlot gr_BCRVsInconsistency = new RBagPlot("Inconsistency Learnt","BCR Score, EDSM-Markov learner",new File(experimentName+statesMax+"_inconsistency_bcr.pdf"));
 				final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(experimentName+statesMax+"_sicco_structuraldiff.pdf"),0,1,true);
 				final RBagPlot gr_MarkovPrecisionStructuralDiff = new RBagPlot("Precision Markov","Structural Score, EDSM-Markov learner",new File(experimentName+statesMax+"_markovprecision_structuraldiff.pdf"));
+				final RBagPlot gr_Inconsistencies_and_SD = new RBagPlot("Inconsistency, average","Inconsistency, SD",new File(experimentName+statesMax+"_inconsistencies_sd.pdf"));
+				final DrawGraphs.RBoxPlot<String> gr_PosnegNegativeInconsistencies_Structural = new DrawGraphs.RBoxPlot<>("Inconsistency always positive", "Structural difference", new File(experimentName+statesMax+"_posneginconsistencies_structuraldiff.pdf"));
 				final SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(experimentName+statesMax+"_trace_bcr.pdf"),0.5,1,true);
 				final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(experimentName+"_"+statesMax+"_kt_markov_bcr.pdf"),0.5,1,true);
 				final SquareBagPlot BCRAgainstEDSM_1 = new SquareBagPlot("BCR, EDSM-1","BCR, EDSM-Markov learner",new File(experimentName+"_"+statesMax+"_edsm-1_markov_bcr.pdf"),0.5,1,true);
@@ -878,10 +912,29 @@ public class MarkovExperiment
 				final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 
 				final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_str.csv"));		 	 
 				// names of columns include parameters used with learners, here we ignore that and pick those that match learner names
-				DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_StructuralVsInconsistency,resultCSV,ScoringToApply.SCORING_MARKOV+referencePresetStr,7,ScoringToApply.SCORING_MARKOV+presetStr,2,null,null);
-				DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_BCRVsInconsistency,resultCSV,ScoringToApply.SCORING_MARKOV+referencePresetStr,7,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
+				DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_StructuralVsInconsistency,resultCSV,ScoringToApply.SCORING_MARKOV+referencePresetStr,10,ScoringToApply.SCORING_MARKOV+presetStr,2,null,null);
+				DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_BCRVsInconsistency,resultCSV,ScoringToApply.SCORING_MARKOV+referencePresetStr,10,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
 				DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV,ScoringToApply.SCORING_SICCO+referencePresetStr,2,ScoringToApply.SCORING_MARKOV+presetStr,2,null,null);
-				DrawGraphs.spreadsheetToBagPlot(gr_MarkovPrecisionStructuralDiff,resultCSV,ScoringToApply.SCORING_MARKOV+referencePresetStr,9,ScoringToApply.SCORING_MARKOV+presetStr,2,null,null);
+				DrawGraphs.spreadsheetToBagPlot(gr_MarkovPrecisionStructuralDiff,resultCSV,ScoringToApply.SCORING_MARKOV+referencePresetStr,15,ScoringToApply.SCORING_MARKOV+presetStr,2,null,null);
+
+				DrawGraphs.spreadsheetToBagPlot(gr_Inconsistencies_and_SD,resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,11,ScoringToApply.SCORING_MARKOV+presetStr,12,null,null);
+				for (Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+					String Y = getValueFromMapGivenRegexp(rowEntry.getValue(), ScoringToApply.SCORING_MARKOV+presetStr);
+					if (Y != null) {
+						boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
+						double value = Double.parseDouble(obtainValueFromCell(Y, 2));
+
+						gr_PosnegNegativeInconsistencies_Structural.add(Boolean.toString(alwaysPositive), value, null, null);
+						gr_TotalMergersVsStructuralScore.add(
+								Double.parseDouble(obtainValueFromCell(Y, 3))+Double.parseDouble(obtainValueFromCell(Y, 5))+Double.parseDouble(obtainValueFromCell(Y, 7)),
+								Double.parseDouble(obtainValueFromCell(Y, 2)), null, null);
+						gr_MistakesNearRootVsStructuralScore.add(
+								Double.parseDouble(obtainValueFromCell(Y, 3))+Double.parseDouble(obtainValueFromCell(Y, 4)),
+								Double.parseDouble(obtainValueFromCell(Y, 2)), null, null);
+					}
+				}
+
+
 
 				DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,ScoringToApply.SCORING_SICCO+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
 				DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,ScoringToApply.SCORING_PTAK_1+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
@@ -906,7 +959,9 @@ public class MarkovExperiment
 				},resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,3,ScoringToApply.SCORING_MARKOV+presetStr,3);
 					*/
 				for(@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result:new DrawGraphs.RExperimentResult[]{gr_StructuralVsInconsistency,gr_BCRVsInconsistency,
-						gr_MarkovPrecisionStructuralDiff,gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstEDSM_1, BCRAgainstEDSM_2,
+						gr_MarkovPrecisionStructuralDiff,gr_StructuralDiff,
+						gr_Inconsistencies_and_SD,gr_PosnegNegativeInconsistencies_Structural,gr_TotalMergersVsStructuralScore,gr_MistakesNearRootVsStructuralScore,
+						gr_BCR,BCRAgainstKtails,BCRAgainstEDSM_1, BCRAgainstEDSM_2,
 						Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR})
 				{
 					result.reportResults(gr);

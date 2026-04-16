@@ -227,7 +227,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		if (redReducer != null)
 		{
-			outcome.invalidMergers = redReducer.reportInvalidMergers();outcome.missedMergers = redReducer.reportMissedMergers();
+			outcome.invalidMergersFraction = (int)redReducer.reportInvalidMergers();outcome.missedMergersFraction = (int)redReducer.reportMissedMergers();
 		}
 		outcome.whetherLearningSuccessfulOrAborted = actualAutomaton.getLearningAbortedReason();
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
@@ -277,7 +277,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		actualAutomaton.setName(experimentName);
 		ScoresForGraph outcome = new ScoresForGraph();
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
-		outcome.invalidMergers = (double)limitedSelfLoopsUsed/totalMergers;
+		outcome.invalidMergersFraction = (double)limitedSelfLoopsUsed/totalMergers;
 //		if (redReducer != null)
 //		{
 //			outcome.invalidMergers = redReducer.reportInvalidMergers();outcome.missedMergers = redReducer.reportMissedMergers();
@@ -316,7 +316,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		if (redReducer != null)
 		{
-			outcome.invalidMergers = redReducer.reportInvalidMergers();outcome.missedMergers = redReducer.reportMissedMergers();
+			outcome.invalidMergersFraction = redReducer.reportInvalidMergers();outcome.missedMergersFraction = redReducer.reportMissedMergers();
 		}
 		outcome.whetherLearningSuccessfulOrAborted = actualAutomaton.getLearningAbortedReason();
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
@@ -392,7 +392,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		if (redReducer != null)
 		{
-			outcome.invalidMergers = redReducer.reportInvalidMergers();outcome.missedMergers = redReducer.reportMissedMergers();
+			outcome.invalidMergersFraction = redReducer.reportInvalidMergers();outcome.missedMergersFraction = redReducer.reportMissedMergers();
 		}
 		outcome.whetherLearningSuccessfulOrAborted = actualAutomaton.getLearningAbortedReason();
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
@@ -451,7 +451,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		if (redReducer != null)
 		{
-			outcome.invalidMergers = redReducer.reportInvalidMergers();outcome.missedMergers = redReducer.reportMissedMergers();
+			outcome.invalidMergersFraction = redReducer.reportInvalidMergers();outcome.missedMergersFraction = redReducer.reportMissedMergers();
 		}
 		outcome.whetherLearningSuccessfulOrAborted = actualAutomaton.getLearningAbortedReason();
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());
@@ -488,7 +488,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		outcome.differenceStructural = diffMeasure;outcome.differenceBCR = bcrMeasure;
 		if (redReducer != null)
 		{
-			outcome.invalidMergers = redReducer.reportInvalidMergers();outcome.missedMergers = redReducer.reportMissedMergers();
+			outcome.invalidMergersFraction = redReducer.reportInvalidMergers();outcome.missedMergersFraction = redReducer.reportMissedMergers();
 		}
 		outcome.whetherLearningSuccessfulOrAborted = actualAutomaton.getLearningAbortedReason();
 		outcome.nrOfstates = new PairQualityLearner.DifferenceOfTheNumberOfStates(actualAutomaton.getStateNumber() - referenceGraph.getStateNumber());

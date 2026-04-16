@@ -782,7 +782,9 @@ public class TestDrawGraphs {
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
 		w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
-		TestHelper.checkForCorrectException(() -> w.add(new TestParameters("row2","col",new String[]{"descr"},new String[]{"BCR","Diff","States"}),"a,b,c"), IllegalArgumentException.class,"different values of cell headers");
+		TestHelper.checkForCorrectException(() ->
+				w.add(new TestParameters("row2","col",new String[]{"descr"},new String[]{"BCR","Diff","States"}),"a,b,c"),
+				IllegalArgumentException.class,"different values of cell headers");
 	}
 	
 	/** Duplicate values in cell. */
@@ -791,8 +793,11 @@ public class TestDrawGraphs {
 	{
 		File output = new File(testDir,"out.csv");
 		final CSVExperimentResult w = new CSVExperimentResult(output);
+		Assert.assertEquals(-1,w.getHeaderRowsNumber());
 		w.add(new TestParameters("row","col",new String[]{"descr"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
-		TestHelper.checkForCorrectException(() -> w.add(new TestParameters("row","col2",new String[]{"descr","descr2"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d"), IllegalArgumentException.class,"with an invalid number of rows in column header");
+		Assert.assertEquals(1,w.getHeaderRowsNumber());
+		w.add(new TestParameters("row","col2",new String[]{"descr","descr2"},new String[]{"BCR","Diff","States","PTA states"}),"a,b,c,d");
+		Assert.assertEquals(2,w.getHeaderRowsNumber());
 	}
 	
 	@Test

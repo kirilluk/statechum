@@ -298,8 +298,10 @@ public class PairScoreComputation {
 		if (blue.isAccept() && computedScore < coregraph.config.getRejectPositivePairsWithScoresLessThan())
 			computedScore = -1;
 
-		if (computedScore >= 0 && scoreComputationOverride != null)
-			computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,computedScore, compatibilityScore));
+		if (computedScore >= 0 && scoreComputationOverride != null) {
+			computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue, red, computedScore, compatibilityScore));
+			compatibilityScore=scoreComputationOverride.getLastComputedCompatibilityScore();
+		}
 		return new PairScore(blue,red,computedScore, compatibilityScore);
 	}
 

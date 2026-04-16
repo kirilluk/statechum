@@ -169,8 +169,8 @@ public class CVS
 							csvLine.append(data.whetherLearningSuccessfulOrAborted);
 							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceBCR.getValue());
 							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());
-							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergers);
-							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergers);
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersFarFromRoot);
+							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersFarFromRoot);
 							CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
 	
 							if (result.parameters.learnerToUse.isMarkov())

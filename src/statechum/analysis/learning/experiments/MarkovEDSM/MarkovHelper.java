@@ -205,7 +205,7 @@ public class MarkovHelper
 
 	public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
 	{
-		if (!markovParameters.useCentreVertex)
+		if (!markovParameters.useCentreVertex || !markovParameters.blue_states_forward_and_backwards)
 			return null;// do not go backwards when evaluating transitions - we only start merging states between a PTA and a non-PTA when using a centre vertex.
 		
 		return	WaveBlueFringe.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);

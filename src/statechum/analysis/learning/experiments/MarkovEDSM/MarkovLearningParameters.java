@@ -110,9 +110,9 @@ public class MarkovLearningParameters implements ThreadResultID
 	 */
 	public String[] headerValuesForEachCell() 
 	{
-		List<String> headers = new LinkedList<>(Arrays.asList("Success","BCR","Diff","% Invalid","% Missed","States","I_Ref", "I_Lnt"));
+		List<String> headers = new LinkedList<>(Arrays.asList("Success","BCR","Diff","Invalid R","Missed R","Invalid Far","Missed Far","Valid mergers","States","I_Ref", "I_Lnt"));
 		if (learnerToUse.isMarkov())
-			headers.addAll(Arrays.asList("fracS","marPre","marRec","Comparisons"));
+			headers.addAll(Arrays.asList("dI_Ave","dI_SD","alwaysPos","fracS","marPre","marRec","Comparisons"));
 		if (markovParameters.useCentreVertex)
 			headers.addAll(Arrays.asList("centreCorrect","centerpaths"));
 		headers.addAll(Arrays.asList("%transitions","Time"));

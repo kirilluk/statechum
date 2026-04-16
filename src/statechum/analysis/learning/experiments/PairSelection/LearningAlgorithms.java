@@ -29,7 +29,6 @@ import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.analysis.learning.*;
-import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovScoreComputation;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ReferenceLearner.OverrideScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.DifferenceToReferenceDiff;
@@ -116,9 +115,9 @@ public class LearningAlgorithms
 		 */
 		void stateSelectedAsRed(LearnerGraph current, CmpVertex redVertex,	Collection<CmpVertex> reds);
 
-		/** Reports the fraction of mergers that are merging different states in a reference graph. */
+		/** Reports the number of mergers that are merging different states in a reference graph. */
 		double reportInvalidMergers();
-		/** Reports the fraction of mergers that are labelling clones of states in a reference graph as reds. */
+		/** Reports the number of mergers that are labelling clones of states in a reference graph as reds. */
 		double reportMissedMergers();
 	}
 	
@@ -128,24 +127,54 @@ public class LearningAlgorithms
 		protected final boolean reportReducedReds;
 		protected final LearnerGraph referenceGraph;
 		protected int totalReds=0;
-		// Statistics
-		protected int validMergers =0, missedMergers=0, invalidMergers=0;
+		protected int nearRootThreshold = 0;
+
+		protected ArrayList<Long> inconsistenciesInMerge = new ArrayList<>(1024);
+
+		// Statistics, part A accounts for mergers near root state, part B for all the other mergers. 'near' is only
+		// defined for Markov as depth < chunkLen (where Markov cannot make predictions).
+		protected int validMergers =0, missedMergersNearRoot =0, invalidMergersNearRoot =0, missedMergers =0, invalidMergers =0;
 		
 		@Override
 		public double reportInvalidMergers()
 		{
-			int totalMergers=validMergers+missedMergers+invalidMergers;
-			return 100.*ConfusionMatrix.divide(invalidMergers,totalMergers);
+			return invalidMergersNearRoot + invalidMergers;
 		}
 		
 		@Override
 		public double reportMissedMergers()
 		{
-			int totalMergers=validMergers+missedMergers+invalidMergers;
-			return 100.*ConfusionMatrix.divide(missedMergers,totalMergers);
+			return missedMergersNearRoot + missedMergers;
 		}
 
-		public static ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown constructReducerIfUsingSiccoScoring(LearnerGraph reference, ScoringToApply scoringMethod)
+		public List<Long> getInconsistencyValues() {
+			return inconsistenciesInMerge;
+		}
+
+		public int getInvalidMergersFarFromRoot() {
+			return invalidMergers;
+		}
+
+		public int getMissedMergersFarFromRoot() {
+			return missedMergers;
+		}
+
+		public int getInvalidMergersNearRoot() {
+			return invalidMergersNearRoot;
+		}
+
+		public int getMissedMergersNearRoot() {
+			return missedMergersNearRoot;
+		}
+
+		public int getValidMergers() {
+			return validMergers;
+		}
+
+		public static ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown constructReducerIfUsingSiccoScoring(LearnerGraph reference, ScoringToApply scoringMethod) {
+			return constructReducerIfUsingSiccoScoring(reference, scoringMethod,0);
+		}
+		public static ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown constructReducerIfUsingSiccoScoring(LearnerGraph reference, ScoringToApply scoringMethod, int depthThreshold)
 		{
 			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer;
 			switch(scoringMethod)
@@ -155,15 +184,20 @@ public class LearningAlgorithms
 			case SCORING_SICCO_PTA:
 			case SCORING_SICCO_PTARECURSIVE:
 			case SCORING_SICCO_RED:
-				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, true);
+				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, true,depthThreshold);
 				break;
 			default:
-				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, false);
+				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, false,depthThreshold);
 				break;
 			}
 			return redReducer;
 		}
-		public static StateMergingStatistics constructReducerIfUsingSiccoScoring(LearnerGraph reference, OverrideScoringToApply scoringToUse) 
+
+		public static StateMergingStatistics constructReducerIfUsingSiccoScoring(LearnerGraph reference, OverrideScoringToApply scoringToUse) {
+			return constructReducerIfUsingSiccoScoring(reference,scoringToUse,0);
+		}
+
+		public static StateMergingStatistics constructReducerIfUsingSiccoScoring(LearnerGraph reference, OverrideScoringToApply scoringToUse, int depthThreshold)
 		{
 			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer;
 			switch(scoringToUse)
@@ -173,10 +207,10 @@ public class LearningAlgorithms
 			case SCORING_SICCO_PTA:
 			case SCORING_SICCO_PTARECURSIVE:
 			case SCORING_SICCO_RED:
-				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, true);
+				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, true,depthThreshold);
 				break;
 			default:
-				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, false);
+				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, false,depthThreshold);
 				break;
 			}
 			return redReducer;
@@ -184,14 +218,18 @@ public class LearningAlgorithms
 		}
 
 		public ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(LearnerGraph graph, boolean useReducedReds) {
-			referenceGraph = graph;reportReducedReds = useReducedReds;
+			this(graph,useReducedReds,0);
+		}
+
+		public ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(LearnerGraph graph, boolean useReducedReds, int depthThreshold) {
+			referenceGraph = graph;reportReducedReds = useReducedReds;nearRootThreshold = depthThreshold;
 		}
 		
 		@Override
 		public int countRedsKnowingTheCorrectSolution() 
 		{
 			if (reportReducedReds)
-				return totalReds-missedMergers;// Sicco heuristic creates a lot of red states, expecting them to be
+				return totalReds - missedMergersNearRoot - missedMergers;// Sicco heuristic creates a lot of red states, expecting them to be
 			// merged with SAT. This may cause learner to abort on L_REDS hence we 'forgive' mistakes created
 			// by such learner, at the expense of the time taken to learn (and a possibly inflated score computed
 			// by structural difference).
@@ -201,15 +239,22 @@ public class LearningAlgorithms
 		@Override
 		public void pairSelectedForMerger(LearnerGraph graphBeforeMerge,StatePair pair) 
 		{
+			if (pair instanceof PairScore)
+				inconsistenciesInMerge.add(((PairScore)pair).getAnotherScore());
 			List<CmpVertex> vertices = new ArrayList<>(3);vertices.add(pair.getQ());vertices.add(pair.getR());
 			Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(graphBeforeMerge, vertices);
-			CmpVertex refVertBlue = referenceGraph.getVertex(stateToPath.get(pair.getQ()));
-			CmpVertex refVertRed = referenceGraph.getVertex(stateToPath.get(pair.getR()));
+			LinkedList<Label> seqB = stateToPath.get(pair.getQ());
+			CmpVertex refVertBlue = referenceGraph.getVertex(seqB);
+			LinkedList<Label> seqR = stateToPath.get(pair.getR());
+			CmpVertex refVertRed = referenceGraph.getVertex(seqR);
 			boolean blueAccept = refVertBlue != null && refVertBlue.isAccept(), redAccept = refVertRed != null && refVertRed.isAccept();
 			if (refVertBlue == refVertRed || (!blueAccept && !redAccept))
 				validMergers++;
 			else
-				invalidMergers++;
+				if (seqB.size() < nearRootThreshold || seqR.size() < nearRootThreshold)
+					invalidMergersNearRoot++;
+				else
+					invalidMergers++;
 		}
 		
 		@Override
@@ -220,13 +265,18 @@ public class LearningAlgorithms
 			List<CmpVertex> verts = new ArrayList<>(reds.size() + 2);// we ensure there is at least one spare slot left, otherwise array may choose to resize itself.
 			verts.addAll(reds);verts.add(redVertex);
 			Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(graph, verts);
-			CmpVertex refVertRed = referenceGraph.getVertex(stateToPath.get(redVertex));
-			for(CmpVertex v:reds)
+			LinkedList<Label> seqForNewRedState = stateToPath.get(redVertex);
+			CmpVertex refVertRed = referenceGraph.getVertex(seqForNewRedState);
+			for(CmpVertex v:reds) {
 				if (referenceGraph.getVertex(stateToPath.get(v)) == refVertRed)
 				{// found a different red state that corresponds to the same state in a reference graph.
-					missedMergers++;
+					if (seqForNewRedState.size() < nearRootThreshold)
+						missedMergersNearRoot++;
+					else
+						missedMergers++;
 					return;// do not proceed with other reds
 				}
+			}
 		}		
 	}
 	

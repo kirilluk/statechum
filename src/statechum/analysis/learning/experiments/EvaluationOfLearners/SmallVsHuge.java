@@ -457,8 +457,8 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				csvLine.append(difference.whetherLearningSuccessfulOrAborted);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceBCR.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.differenceStructural.getValue());
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.invalidMergers);
-				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.missedMergers);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.invalidMergersFraction);
+				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.missedMergersFraction);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(difference.nrOfstates.getValue());
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(percentageOfProhibititedLabelsPerLabel);
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(distributionOfGeneratedTraceLength);

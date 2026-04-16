@@ -117,13 +117,13 @@ public class MarkovParameters
 		switch(value)
 		{
 			case 0:// learning by not doing pre-merging, starting from root
-				setlearningParameters(false, false, false, false, false);break;
-//			case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs and hence is very slow.
-//				setlearningParameters(true, false, false, true, false);break;
-			case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs and hence is very slow.
-				setlearningParameters(true, false, false, true, true);break;
+				setlearningParameters(false, false, false, false,  false);break;
+			case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs.
+				setlearningParameters(true, false, false, true,  true);break;
 			case 2:// learning by doing pre-merging but starting from root.
-				setlearningParameters(true, false, false,  false, false);break;
+				setlearningParameters(true, false, false,  false,  false);break;
+			case 3:// learning by doing pre-merging but only looking at blue states forward rather than in both directions.
+				setlearningParameters(true, false, false,  false,  true);break;
 			// alternatives are: learning by not doing pre-merging, starting from root and using a heuristic around root
 			// or learning by not doing pre-merging, starting from root and not ranking the top IScore candidates with the fanout metric.
 			default:
@@ -137,18 +137,18 @@ public class MarkovParameters
 	public boolean mergeIdentifiedPathsAfterInference = true;
 	public boolean useMostConnectedVertexToStartLearning = false;
 	public boolean useNewScoreNearRoot = false;
-	public boolean subtractInconsistenciesOfMergedStatesFromTotal = true;
 	public double weightOfInconsistencies = 1.0;
+	public boolean blue_states_forward_and_backwards;
 
 	public void setlearningParameters(boolean useCentreVertexArg, boolean newScoreNearRoot,
 									  boolean mergeIdentifiedPathsAfterInferenceArg,
 									  boolean useMostConnectedVertexToStartLearningArg,
-									  boolean subtractInconsistenciesOfMergedStates)
+									  boolean blue_states_forward_and_backwardsArg)
 	{
 		useCentreVertex = useCentreVertexArg;useNewScoreNearRoot = newScoreNearRoot;
 		mergeIdentifiedPathsAfterInference = mergeIdentifiedPathsAfterInferenceArg;
 		useMostConnectedVertexToStartLearning = useMostConnectedVertexToStartLearningArg;
-		subtractInconsistenciesOfMergedStatesFromTotal = subtractInconsistenciesOfMergedStates;
+		blue_states_forward_and_backwards = blue_states_forward_and_backwards;
 	}
 
 	/** This method is expected to report columns associated with any possible transformation of a PTA into a
@@ -163,7 +163,7 @@ public class MarkovParameters
 		if (useCentreVertex)
 			whatToReturn.addAll(Arrays.asList(
 				(useAverageOrMax ? "Ave" : "Max"), Integer.toString(divisorForPathCount),
-                Integer.toString(expectedWLen)));//, Boolean.toString(subtractInconsistenciesOfMergedStatesFromTotal)));
+                Integer.toString(expectedWLen), Boolean.toString(blue_states_forward_and_backwards)));
 
 		for(int i=0;i<spacesAtTheEnd;++i)
 			whatToReturn.add("");
@@ -197,7 +197,7 @@ public class MarkovParameters
 
 		if (useCentreVertex)
 		{
-			outcome+="_dv="+(useAverageOrMax?"A":"M")+"_d="+divisorForPathCount+"_wl="+expectedWLen;//+"_s="+subtractInconsistenciesOfMergedStatesFromTotal;
+			outcome+="_dv="+(useAverageOrMax?"A":"M")+"_d="+divisorForPathCount+"_wl="+expectedWLen+"_b="+(blue_states_forward_and_backwards?"T":"F");
 		}
 		if (useMarkovLearner)
 			outcome+="_cl="+chunkLen+"_w="+weightOfInconsistencies;

@@ -972,40 +972,43 @@ public class MarkovExperiment
 		}
 
 
+		if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS) {
+			Map<String, AtomicInteger> learnerToHowOftenBest = new HashMap<>();
+			final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner", new File(outPathPrefix + "_" + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true);
 
-		Map<String,AtomicInteger> learnerToHowOftenBest = new HashMap<>();
-		final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(outPathPrefix+"_"+statesMax+"_sicco_structuraldiffBest.pdf"),0,1,true);
+			// Now select the best result from all those available
+			for (Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+				final LearningReport bestLearningResult = new LearningReport();
 
-		// Now select the best result from all those available
-		for (Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-			final LearningReport bestLearningResult = new LearningReport();
+				getAllValuesFromMapGivenRegexp(rowEntry.getValue(), ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
+					boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
+					boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
+					double bcr = Double.parseDouble(obtainValueFromCell(Y, 1));
+					double structural = Double.parseDouble(obtainValueFromCell(Y, 2));
+					long inconsistency = Long.parseLong(obtainValueFromCell(Y, 10));
 
-			getAllValuesFromMapGivenRegexp(rowEntry.getValue(), ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
-				boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
-				boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
-				double bcr = Double.parseDouble(obtainValueFromCell(Y, 1));
-				double structural = Double.parseDouble(obtainValueFromCell(Y, 2));
-				long inconsistency = Long.parseLong(obtainValueFromCell(Y, 10));
-
-				if (learntOK && alwaysPositive && (bestLearningResult.inconsistency < 0 || inconsistency < bestLearningResult.inconsistency)) {
-					bestLearningResult.bcr=bcr;bestLearningResult.structural = structural;bestLearningResult.inconsistency = inconsistency;
-					bestLearningResult.descr = columnText;
-				}
-			});
-			learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr,s -> new AtomicInteger(0));
-			learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
-			String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), ScoringToApply.SCORING_SICCO+"-0");
-			if (Y_Sicco != null)
-				gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)),bestLearningResult.structural,null,null);
-			else
-				System.out.println("WARNING: missing Sicco-value for "+rowEntry.getKey());
+					if (learntOK && alwaysPositive && (bestLearningResult.inconsistency < 0 || inconsistency < bestLearningResult.inconsistency)) {
+						bestLearningResult.bcr = bcr;
+						bestLearningResult.structural = structural;
+						bestLearningResult.inconsistency = inconsistency;
+						bestLearningResult.descr = columnText;
+					}
+				});
+				learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
+				learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
+				String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), ScoringToApply.SCORING_SICCO + "-0");
+				if (Y_Sicco != null)
+					gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)), bestLearningResult.structural, null, null);
+				else
+					System.out.println("WARNING: missing Sicco-value for " + rowEntry.getKey());
+			}
+			gr_StructuralDiffBest.reportResults(gr);
+			List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
+			learners.sort((o1, o2) ->
+					learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());
+			for (String l : learners)
+				System.out.println(l + " -> " + learnerToHowOftenBest.get(l).get());
 		}
-		gr_StructuralDiffBest.reportResults(gr);
-		List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
-		learners.sort((o1, o2) ->
-				learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());
-		for(String l:learners)
-			System.out.println(l+" -> "+learnerToHowOftenBest.get(l).get());
 /*		final int traceQuantityToUse = traceQuantity;
 		final int presetForBestResults = 0;
 		{

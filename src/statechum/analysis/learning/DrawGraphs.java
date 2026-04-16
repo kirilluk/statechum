@@ -865,7 +865,11 @@ public class DrawGraphs {
 				plot.add(obtainValueFromCell(X,cellWithinX), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)), colour, label);
 		}
 	}
-	
+
+	public interface ExperimentBlockForColumn {
+		void processBlock(String columnText,String block);
+	}
+
 	public static String getValueFromMapGivenRegexp(Map<String,String> map, String regexp)
 	{
 		for(Entry<String,String> entry:map.entrySet())
@@ -873,7 +877,15 @@ public class DrawGraphs {
 				return entry.getValue();
 		return null;
 	}
-	
+
+	public static String getAllValuesFromMapGivenRegexp(Map<String,String> map, String regexp,ExperimentBlockForColumn lambda)
+	{
+		for(Entry<String,String> entry:map.entrySet())
+			if (entry.getKey() == regexp || entry.getKey().matches(regexp) || entry.getKey().matches(regexp+".*"))
+				lambda.processBlock(entry.getKey(),entry.getValue());
+		return null;
+	}
+
 	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
 	 * 
 	 * @param plot R graph to update

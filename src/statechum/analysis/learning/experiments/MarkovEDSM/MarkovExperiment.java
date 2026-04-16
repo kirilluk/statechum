@@ -22,16 +22,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import statechum.Configuration;
-import statechum.GlobalConfiguration;
-import statechum.Helper;
+import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.Label;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.Learner;
 import statechum.analysis.learning.DrawGraphs.WilcoxonPairedTest;
@@ -70,8 +68,7 @@ import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 
-import static statechum.analysis.learning.DrawGraphs.getValueFromMapGivenRegexp;
-import static statechum.analysis.learning.DrawGraphs.obtainValueFromCell;
+import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.constructLearner;
 
 
@@ -554,7 +551,13 @@ public class MarkovExperiment
 			return "EDSM_Markov";
 		}
 	}	
-	
+
+	static class LearningReport {
+		double bcr = -1, structural = -1;
+		String descr = "NONE";
+		long inconsistency = -1;
+	}
+
 	public static void main(String []args)
 	{
 		String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS)+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
@@ -787,9 +790,9 @@ public class MarkovExperiment
 // EXPERIMENT WITH ACTUAL LEARNERS
 
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
-		for(final int preset: new int[]{0,1,2,3})//,1,2})
+		for(final int preset: new int[]{1})//0,1,2,3})//,1,2})
 		{
-			for(final int traceQuantityToUse:new int[]{8})
+			for(final int traceQuantityToUse:new int[]{1})
 			{
 				int seedForFSM = 0;
 
@@ -799,7 +802,7 @@ public class MarkovExperiment
 						for(int sample=0;sample<fsmSamplesPerStateNumber;++sample,++seedForFSM)
 							for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 								for(boolean aveOrMax:new boolean[]{true}) // average divide by the divisor
-									for(double traceLengthMultiplier:new double[] {32})
+									for(double traceLengthMultiplier:new double[] {256})
 										for(ScoringToApply learnerKind:
 												preset == 0?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
 													new ScoringToApply[]{
@@ -815,23 +818,23 @@ public class MarkovExperiment
 										// LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
 											for(double weightOfInconsistencies:learnerKind.isMarkov()?new double[]{2.0}//1.0,2.0,4.0}
 													:new double[]{1.0})
-												for(int wlen:preset == 0?new int []{1} : new int[]{1,2})
-													for(int divisor:preset == 0?new int []{1} : new int[]{1,4})
-													{
-														LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
-														ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
-														ev.config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);// small automata hence no need for array STATETREE.STATETREE_ARRAY);
-														ev.config.setOverride_usePTAMerging(false);
+												for(Pair<Integer,Integer> wlen_divisor:preset == 0? new Pair[]{ new Pair(1,1) }:new Pair[]{ new Pair(1,1), new Pair(1,2), new Pair(2,4) })
+												{
+													int wlen = wlen_divisor.firstElem, divisor = wlen_divisor.secondElem;
+													LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
+													ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
+													ev.config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);// small automata hence no need for array STATETREE.STATETREE_ARRAY);
+													ev.config.setOverride_usePTAMerging(false);
 
-														MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplier, perStateSquaredDensity100, sample,trainingSample, seedForFSM);
-														parameters.setTraceLengthMultiplier(traceLengthMultiplier);
-														parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,statesMax,alphabetMultiplier);
-														parameters.markovParameters.setMarkovParameters(preset,chunkSize,pathsOrSets,weightOfInconsistencies, aveOrMax,divisor,0,wlen);
-														parameters.setUsePrintf(experimentRunner.isInteractive());
-														MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);
-														learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
-														experimentRunner.submitTask(learnerRunner);
-													}
+													MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplier, perStateSquaredDensity100, sample,trainingSample, seedForFSM);
+													parameters.setTraceLengthMultiplier(traceLengthMultiplier);
+													parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,statesMax,alphabetMultiplier);
+													parameters.markovParameters.setMarkovParameters(preset,chunkSize,pathsOrSets,weightOfInconsistencies, aveOrMax,divisor,0,wlen);
+													parameters.setUsePrintf(experimentRunner.isInteractive());
+													MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);
+													learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
+													experimentRunner.submitTask(learnerRunner);
+												}
 					}
 			}
 		}
@@ -919,8 +922,7 @@ public class MarkovExperiment
 
 				DrawGraphs.spreadsheetToBagPlot(gr_Inconsistencies_and_SD,resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,11,ScoringToApply.SCORING_MARKOV+presetStr,12,null,null);
 				for (Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-					String Y = getValueFromMapGivenRegexp(rowEntry.getValue(), ScoringToApply.SCORING_MARKOV+presetStr);
-					if (Y != null) {
+					getAllValuesFromMapGivenRegexp(rowEntry.getValue(), ScoringToApply.SCORING_MARKOV+presetStr, (columnText, Y) -> {
 						boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
 						double value = Double.parseDouble(obtainValueFromCell(Y, 2));
 
@@ -931,10 +933,8 @@ public class MarkovExperiment
 						gr_MistakesNearRootVsStructuralScore.add(
 								Double.parseDouble(obtainValueFromCell(Y, 3))+Double.parseDouble(obtainValueFromCell(Y, 4)),
 								Double.parseDouble(obtainValueFromCell(Y, 2)), null, null);
-					}
+					});
 				}
-
-
 
 				DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,ScoringToApply.SCORING_SICCO+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
 				DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,ScoringToApply.SCORING_PTAK_1+referencePresetStr,1,ScoringToApply.SCORING_MARKOV+presetStr,1,null,null);
@@ -970,8 +970,42 @@ public class MarkovExperiment
 					System.out.println("\nLOG of comparisons performed: "+Math.log10(comparisonsPerformed.doubleValue())+"\n");
 			}
 		}
-		
-		
+
+
+
+		Map<String,AtomicInteger> learnerToHowOftenBest = new HashMap<>();
+		final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(outPathPrefix+"_"+statesMax+"_sicco_structuraldiffBest.pdf"),0,1,true);
+
+		// Now select the best result from all those available
+		for (Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+			final LearningReport bestLearningResult = new LearningReport();
+
+			getAllValuesFromMapGivenRegexp(rowEntry.getValue(), ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
+				boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
+				boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
+				double bcr = Double.parseDouble(obtainValueFromCell(Y, 1));
+				double structural = Double.parseDouble(obtainValueFromCell(Y, 2));
+				long inconsistency = Long.parseLong(obtainValueFromCell(Y, 10));
+
+				if (learntOK && alwaysPositive && (bestLearningResult.inconsistency < 0 || inconsistency < bestLearningResult.inconsistency)) {
+					bestLearningResult.bcr=bcr;bestLearningResult.structural = structural;bestLearningResult.inconsistency = inconsistency;
+					bestLearningResult.descr = columnText;
+				}
+			});
+			learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr,s -> new AtomicInteger(0));
+			learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
+			String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), ScoringToApply.SCORING_SICCO+"-0");
+			if (Y_Sicco != null)
+				gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)),bestLearningResult.structural,null,null);
+			else
+				System.out.println("WARNING: missing Sicco-value for "+rowEntry.getKey());
+		}
+		gr_StructuralDiffBest.reportResults(gr);
+		List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
+		learners.sort((o1, o2) ->
+				learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());
+		for(String l:learners)
+			System.out.println(l+" -> "+learnerToHowOftenBest.get(l).get());
 /*		final int traceQuantityToUse = traceQuantity;
 		final int presetForBestResults = 0;
 		{

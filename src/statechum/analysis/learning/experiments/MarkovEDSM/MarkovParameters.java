@@ -148,7 +148,7 @@ public class MarkovParameters
 		useCentreVertex = useCentreVertexArg;useNewScoreNearRoot = newScoreNearRoot;
 		mergeIdentifiedPathsAfterInference = mergeIdentifiedPathsAfterInferenceArg;
 		useMostConnectedVertexToStartLearning = useMostConnectedVertexToStartLearningArg;
-		blue_states_forward_and_backwards = blue_states_forward_and_backwards;
+		blue_states_forward_and_backwards = blue_states_forward_and_backwardsArg;
 	}
 
 	/** This method is expected to report columns associated with any possible transformation of a PTA into a

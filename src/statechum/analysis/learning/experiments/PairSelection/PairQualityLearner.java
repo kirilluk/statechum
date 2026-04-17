@@ -1728,8 +1728,9 @@ public class PairQualityLearner
 		public long transitionsSampled;
 		
 		/** %% of correct predictions by the Markov model. */
-		public long markovPrecision, markovRecall;
-		
+		public long markovTransitionPrecision, markovTransitionRecall;
+		public long markovHolePrecision, markovHoleRecall;
+
 		/** How many comparisons have been performed as part of learning. */
 		public long comparisonsPerformed;
 

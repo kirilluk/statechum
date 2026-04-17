@@ -144,7 +144,6 @@ public class RPNIUniversalLearner extends RPNILearner
 	{
 		assert ifthenAutomata != null;
 		
-		System.out.println("adding constraints");
 		boolean result = true;
 		LearnerGraph.copyGraphs(pta, outcome);
 		try {

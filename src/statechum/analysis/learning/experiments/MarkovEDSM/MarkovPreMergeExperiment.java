@@ -242,8 +242,8 @@ public class MarkovPreMergeExperiment
 				if (result.parameters.learnerToUse.isMarkov())
 				{
 					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);
-					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionPrecision);
+					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionRecall);
 					CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);
 				}
 				CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.centreCorrect);

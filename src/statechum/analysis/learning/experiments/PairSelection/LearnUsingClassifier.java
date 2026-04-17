@@ -232,8 +232,8 @@ public class LearnUsingClassifier {
 										CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());
 
 										CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);
-										CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);
-										CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);
+										CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionPrecision);
+										CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionRecall);
 
 										CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.centreCorrect);
 										CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.centrePathNumber);

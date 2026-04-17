@@ -151,8 +151,8 @@ public class CVS_With_Random_traces_Generation
 								CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);
 								CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);
 								CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);
-								CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovPrecision);
-								CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovRecall);
+								CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionPrecision);
+								CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionRecall);
 								CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);
 							}
 							CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime/1000000000.));// execution time is in nanoseconds, we only need seconds.

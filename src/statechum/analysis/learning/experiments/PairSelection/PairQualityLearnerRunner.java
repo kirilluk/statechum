@@ -173,7 +173,7 @@ public abstract class PairQualityLearnerRunner extends UASExperiment<PairQuality
 		dataSample.stateNumber = referenceGraph.getStateNumber();
 		dataSample.transitionsSampled = Math.round(100*trimmedReference.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
 		statechum.Pair<Double,Double> correctnessOfMarkov = new MarkovClassifierLG(sampleCollector.markovHelper.getModel(), referenceGraph,null).evaluateCorrectnessOfMarkov(true, false);
-		dataSample.markovPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovRecall = Math.round(100*correctnessOfMarkov.secondElem);
+		dataSample.markovTransitionPrecision = Math.round(100*correctnessOfMarkov.firstElem);dataSample.markovTransitionRecall = Math.round(100*correctnessOfMarkov.secondElem);
 		/*
 		GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData> gd = 
 				new GD<List<CmpVertex>,List<CmpVertex>,LearnerGraphNDCachedData,LearnerGraphNDCachedData>();

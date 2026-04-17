@@ -54,7 +54,6 @@ import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluation
 import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
-import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 
 import static statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.constructLearner;
 
@@ -483,11 +482,14 @@ public class MarkovExperiment
 
 		try
 		{
-//			E_MarkovCentre.runExperiment(learningGroup);
-			E_MarkovLearn.runExperiment(learningGroup);
-//			E_MarkovAlphabet.runExperiment(learningGroup);
+			E_MarkovCentre.runExperiment(learningGroup);
+			E_MarkovBaselineLearn.runExperiment(learningGroup);
+			E_MarkovAlphabet.runExperiment(learningGroup);
 			E_MarkovTraceMult.runExperiment(learningGroup);
 			E_MarkovTraceConstSize.runExperiment(learningGroup);
+			E_MarkovPrefixLen.runExperiment(learningGroup);
+			E_MarkovTraceNum.runExperiment(learningGroup);
+			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		/*
 		final RBoxPlotP<String> gr_BCRForDifferentLearners = new RBoxPlotP<String>("","BCR",new File(branch+"BCR_learner.pdf"));
 		final RBoxPlotP<String> gr_StructuralForDifferentLearners = new RBoxPlotP<String>("","structural",new File(branch+"structural_learner.pdf"));

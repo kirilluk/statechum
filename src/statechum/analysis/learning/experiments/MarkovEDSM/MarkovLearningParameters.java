@@ -25,7 +25,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 /** Describes setup of experiments using markov learning. This is different to
  * {@link MarkovParameters} that describe how to learn each automaton.
  */
-public class MarkovLearningParameters implements ThreadResultID 
+public abstract class MarkovLearningParameters implements ThreadResultID
 {
 	public ScoringToApply learnerToUse;
 	public final int states;
@@ -119,11 +119,11 @@ public class MarkovLearningParameters implements ThreadResultID
 		return headers.toArray(new String[]{});
 	}
 
-	@Override
-	public String getSubExperimentName()
-	{
-		return "em";
-	}
+//	@Override
+//	public String getSubExperimentName()
+//	{
+//		return "em";
+//	}
 
 	@Override
 	public int executionTimeInCell() 

@@ -37,12 +37,12 @@ public class E_MarkovTraceMult {
         boolean pathsOrSets = true;
         int [] traceLenMultValues = new int[] { 4,16,32, 64, 128 };
         double alphabetMultiplier = 2;
-        for (int traceLenMult:traceLenMultValues) {
-            int seedForFSM = 0;
-            int traceQuantityToUse = 8;
-            for (int states : learningGroup.statesToUse)
-                for (int perStateSquaredDensity100 : new int[]{0, 30}) {
-                    for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
+        int seedForFSM = 0;
+        for (int states : learningGroup.statesToUse)
+            for (int perStateSquaredDensity100 : new int[]{0, 30}) {
+                for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
+                    for (int traceLenMult:traceLenMultValues) {
+                        int traceQuantityToUse = 8;
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
                             for (final int preset : learnerExperiment)
                                 for (LearningAlgorithms.ScoringToApply learnerKind :
@@ -191,7 +191,7 @@ public class E_MarkovTraceMult {
                             double sicco_score = Double.parseDouble(obtainValueFromCell(Y_Sicco, 2));
                             gr_StructuralDiffBestMap.get(traceLenMult).add(sicco_score, bestLearningResult.structural, null, null);
                             StringBuilder sb = new StringBuilder();
-                            Formatter formatter = new Formatter(sb, Locale.US);formatter.format("%2d",traceLenMult);
+                            Formatter formatter = new Formatter(sb, Locale.US);formatter.format("%3d",traceLenMult);
                             gr_BestStructuralForLengthMultiplier.add(sb+"_M",bestLearningResult.structural);
                             gr_BestStructuralForLengthMultiplier.add(sb+"_S",sicco_score);
                         }

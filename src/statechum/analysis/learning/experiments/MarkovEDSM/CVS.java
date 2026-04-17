@@ -57,6 +57,18 @@ public class CVS
 	public static final String directoryNamePrefix = "cvs_from_existing_trace_june_2016";
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
+	public static class MarkovCVSParameters extends MarkovLearningParameters {
+
+		public MarkovCVSParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed) {
+			super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample, argSeed);
+		}
+
+		@Override
+		public String getSubExperimentName() {
+			return "cvs";
+		}
+	}
+
 	public static class MarkovLearnerFromPTAUsingReference extends MarkovLearnerRunner
 	{
 		private final LearnerGraph ptaToStartWith;
@@ -124,7 +136,7 @@ public class CVS
 				int seedForFSM = 0;
 				final AtomicLong comparisonsPerformed = new AtomicLong(0);
 				final int statesMax = statesToUse[statesToUse.length-1];// reflects the size of the largest FSM that will be generated. 
-				MarkovLearningParameters parExp = new MarkovLearningParameters(null,0,0,0,0,0,0);
+				MarkovLearningParameters parExp = new MarkovCVSParameters(null,0,0,0,0,0,0);
 				parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplier);
 	
 				for(int states:statesToUse)
@@ -147,7 +159,7 @@ public class CVS
 											ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 											ev.config.setOverride_usePTAMerging(false);
 				
-											MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplier, density, sample,trainingSample, seedForFSM);
+											MarkovLearningParameters parameters = new MarkovCVSParameters(learnerKind,states, alphabetMultiplier, density, sample,trainingSample, seedForFSM);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,statesMax,alphabetMultiplier);
 											parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies,aveOrMax,divisorForPathCount,0,1);

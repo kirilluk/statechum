@@ -50,9 +50,21 @@ import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.
 public class MarkovPreMergeExperiment
 {
 	
-	public static final String directoryNamePrefix = "premerge_june_2016";
+	public static final String directoryNamePrefix = "premerge";
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
-	
+
+	public static class MarkovPremergeParameters extends MarkovLearningParameters {
+
+		public MarkovPremergeParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed) {
+			super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample, argSeed);
+		}
+
+		@Override
+		public String getSubExperimentName() {
+			return "premerge";
+		}
+	}
+
 	public static void main(String []args)
 	{
 		String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS)+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
@@ -209,7 +221,7 @@ public class MarkovPreMergeExperiment
 													ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 													ev.config.setOverride_usePTAMerging(false);
 
-													MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind,states, alphabetMultiplier, density, sample,trainingSample, seedForFSM);
+													MarkovLearningParameters parameters = new MarkovPremergeParameters(learnerKind,states, alphabetMultiplier, density, sample,trainingSample, seedForFSM);
 													parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 													parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplier);
 													parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies, aveOrMax,divisor,positionOfMostConnectedVertex,wlen);

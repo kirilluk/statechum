@@ -175,14 +175,11 @@ public class E_MarkovCentre {
         int [] wlen_values = new int[]{1,2,3};
         int [] divisor_values = new int[]{1,2,4,8};
 
-        for(final int traceQuantityToUse:new int[]{1})
-        {
-            int seedForFSM = 0;
-
-            for(int states:learningGroup.statesToUse)
-                for(int perStateSquaredDensity100:new int[] {0,30})
-                {
-                    for(int sample=0;sample<learningGroup.fsmSamplesPerStateNumber;++sample,++seedForFSM)
+        int seedForFSM = 0;
+        for(int states:learningGroup.statesToUse)
+            for(int perStateSquaredDensity100:new int[] {0,30})
+                for(int sample=0;sample<learningGroup.fsmSamplesPerStateNumber;++sample,++seedForFSM)
+                    for(final int traceQuantityToUse:new int[]{1})
                         for(int trainingSample=0;trainingSample<learningGroup.trainingSamplesPerFSM;++trainingSample)
                             for(final Pair<Integer,Integer> traces_lengthmult:new Pair[]{new Pair(8,32), new Pair(1,256)})
                                     for(double weightOfInconsistencies:new double[]{2.0})//1.0,2.0,4.0}
@@ -203,8 +200,6 @@ public class E_MarkovCentre {
                                                 centreIdentificationExperiment.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                                 learningGroup.experimentRunner.submitTask(centreIdentificationExperiment);
                                             }
-                }
-        }
 
         learningGroup.experimentRunner.collectOutcomeOfExperiments(new SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>() {
 

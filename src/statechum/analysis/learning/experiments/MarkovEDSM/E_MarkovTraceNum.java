@@ -15,17 +15,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static statechum.analysis.learning.DrawGraphs.*;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
-public class E_MarkovTraceConstSize {
+public class E_MarkovTraceNum {
 
-    public static class MarkovAlphabetLearningParameters extends MarkovLearningParameters {
+    public static class MarkovTraceNumParameters extends MarkovLearningParameters {
 
-        public MarkovAlphabetLearningParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed) {
+        public MarkovTraceNumParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed) {
             super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample, argSeed);
         }
 
         @Override
         public String getSubExperimentName() {
-            return "constant_size";
+            return "traceNum";
         }
     }
 
@@ -35,14 +35,14 @@ public class E_MarkovTraceConstSize {
         final int statesMax = learningGroup.statesToUse[learningGroup.statesToUse.length-1];// reflects the size of the largest FSM that will be generated.
         boolean aveOrMax = true;// average divide by the divisor
         boolean pathsOrSets = true;
-        int [] traceLenMultValues = new int[] { 4,16,32, 64, 128, 256 };
+        int [] traceQuantityValues = new int[] { 1,2,4,8,32,64 };
         double alphabetMultiplier = 2;
+        int traceLenMult= 32;
         int seedForFSM = 0;
         for (int states : learningGroup.statesToUse)
-            for (int perStateSquaredDensity100 : new int[]{0, 30}) {
-                for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
-                    for (int traceLenMult:traceLenMultValues) {
-                        int traceQuantityToUse = 256/traceLenMult;
+            for (int perStateSquaredDensity100 : new int[]{0, 30})
+                for(int traceQuantityToUse:traceQuantityValues)
+                    for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
                             for (final int preset : learnerExperiment)
                                 for (LearningAlgorithms.ScoringToApply learnerKind :
@@ -66,7 +66,7 @@ public class E_MarkovTraceConstSize {
                                                 ev.config = learningGroup.eval.config.copy();
                                                 ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
 
-                                                MarkovAlphabetLearningParameters parameters = new MarkovAlphabetLearningParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
+                                                MarkovTraceNumParameters parameters = new MarkovTraceNumParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
                                                 parameters.setTraceLengthMultiplier(traceLenMult);
                                                 parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, statesMax, alphabetMultiplier);
                                                 parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, aveOrMax, divisor, 0, wlen);
@@ -75,8 +75,8 @@ public class E_MarkovTraceConstSize {
                                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                                 learningGroup.experimentRunner.submitTask(learnerRunner);
                                             }
-                }
-        }
+
+
 
         learningGroup.experimentRunner.collectOutcomeOfExperiments(new SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>() {
 
@@ -153,21 +153,21 @@ public class E_MarkovTraceConstSize {
 
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            final RBoxPlot<String> gr_BestStructuralForLengthMultiplier = new RBoxPlot<>("Trace length multiplier", "Structural Score, EDSM-Markov learner", new File(learningGroup.outPathPrefix + statesMax + "_mult_structural.pdf"));
+            final RBoxPlot<String> gr_BestStructuralForTraceNumber = new RBoxPlot<>("Trace number", "Structural Score, EDSM-Markov learner", new File(learningGroup.outPathPrefix + statesMax + "_tracenum_structural.pdf"));
             final Map<Integer,SquareBagPlot> gr_StructuralDiffBestMap = new TreeMap<>();
-            Map<Integer,Map<String, AtomicInteger>> learnerToHowOftenBestForAllMultipliers = new TreeMap<>();
+            Map<Integer,Map<String, AtomicInteger>> learnerToHowOftenBestForAllTraceLength = new TreeMap<>();
 
-            for(final int traceLenMult:traceLenMultValues) {
+            for(final int traceQuantityToUse:traceQuantityValues) {
                 // Now select the best result from all those available
                 for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                     String[] elems = rowEntry.getKey().split("[_=]");
                     assert elems[20].equals("tM");
-                    if (Double.parseDouble(elems[21]) == traceLenMult) {
+                    if (Double.parseDouble(elems[21]) == traceQuantityToUse) {
                         final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
-                        Map<String, AtomicInteger> learnerToHowOftenBest = learnerToHowOftenBestForAllMultipliers.computeIfAbsent(traceLenMult,aDouble -> new HashMap<>());
-                        gr_StructuralDiffBestMap.computeIfAbsent(traceLenMult,aDouble ->
+                        Map<String, AtomicInteger> learnerToHowOftenBest = learnerToHowOftenBestForAllTraceLength.computeIfAbsent(traceQuantityToUse,aDouble -> new HashMap<>());
+                        gr_StructuralDiffBestMap.computeIfAbsent(traceQuantityToUse,aDouble ->
                             new SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner",
-                                new File(learningGroup.outPathPrefix + "mult_tracelen=" + traceLenMult + " " + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true));
+                                new File(learningGroup.outPathPrefix + "tracenum_num=" + traceQuantityToUse + " " + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true));
 
 
                         getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
@@ -189,11 +189,11 @@ public class E_MarkovTraceConstSize {
                         String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_SICCO + "-0");
                         if (Y_Sicco != null) {
                             double sicco_score = Double.parseDouble(obtainValueFromCell(Y_Sicco, 2));
-                            gr_StructuralDiffBestMap.get(traceLenMult).add(sicco_score, bestLearningResult.structural, null, null);
+                            gr_StructuralDiffBestMap.get(traceQuantityToUse).add(sicco_score, bestLearningResult.structural, null, null);
                             StringBuilder sb = new StringBuilder();
-                            Formatter formatter = new Formatter(sb, Locale.US);formatter.format("%3d",traceLenMult);
-                            gr_BestStructuralForLengthMultiplier.add(sb+"_M",bestLearningResult.structural);
-                            gr_BestStructuralForLengthMultiplier.add(sb+"_S",sicco_score);
+                            Formatter formatter = new Formatter(sb, Locale.US);formatter.format("%2d",traceQuantityToUse);
+                            gr_BestStructuralForTraceNumber.add(sb+"_M",bestLearningResult.structural);
+                            gr_BestStructuralForTraceNumber.add(sb+"_S",sicco_score);
                         }
                         else
                             System.out.println("WARNING: missing Sicco-value for " + rowEntry.getKey());
@@ -202,18 +202,18 @@ public class E_MarkovTraceConstSize {
                 }
             }
 
-            for(final int traceLenMult:traceLenMultValues) {
-                System.out.println("traceLenMult Multiplier: " + traceLenMult);
+            for(final int traceQuantityToUse:traceQuantityValues) {
+                System.out.println("trace quantity: " + traceQuantityToUse);
 
-                gr_StructuralDiffBestMap.get(traceLenMult).reportResults(learningGroup.gr);
-                Map<String, AtomicInteger> learnerToHowOftenBest = learnerToHowOftenBestForAllMultipliers.get(traceLenMult);
+                gr_StructuralDiffBestMap.get(traceQuantityToUse).reportResults(learningGroup.gr);
+                Map<String, AtomicInteger> learnerToHowOftenBest = learnerToHowOftenBestForAllTraceLength.get(traceQuantityToUse);
                 List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
                 learners.sort((o1, o2) ->
                         learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());
                 for (String l : learners)
                     System.out.println(l + " -> " + learnerToHowOftenBest.get(l).get());
             }
-            gr_BestStructuralForLengthMultiplier.reportResults(learningGroup.gr);
+            gr_BestStructuralForTraceNumber.reportResults(learningGroup.gr);
         }
     }
 }

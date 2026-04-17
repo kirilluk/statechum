@@ -38,13 +38,13 @@ public class E_MarkovAlphabet {
         boolean aveOrMax = true;// average divide by the divisor
         boolean pathsOrSets = true;
         double [] alphabetMultValues = new double [] {0.5,1, 2, 4};
-        for(final double alphabetMultiplier:alphabetMultValues) {
-            for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8, 32)}) {
-                int seedForFSM = 0;
-                int traceQuantityToUse = traces_lengthmult.firstElem;
-                for (int states : learningGroup.statesToUse)
-                    for (int perStateSquaredDensity100 : new int[]{0, 30}) {
-                        for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
+        int seedForFSM = 0;
+        for (int states : learningGroup.statesToUse)
+            for (int perStateSquaredDensity100 : new int[]{0, 30}) {
+                for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
+                    for(final double alphabetMultiplier:alphabetMultValues) {
+                        for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8, 32)}) {
+                            int traceQuantityToUse = traces_lengthmult.firstElem;
                             for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
                                 for (final int preset : learnerExperiment)
                                     for (LearningAlgorithms.ScoringToApply learnerKind :

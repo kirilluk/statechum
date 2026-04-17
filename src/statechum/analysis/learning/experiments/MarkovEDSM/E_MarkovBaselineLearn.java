@@ -18,7 +18,20 @@ import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.DrawGraphs.obtainValueFromCell;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
-public class E_MarkovLearn {
+public class E_MarkovBaselineLearn {
+
+    public static class MarkovLearningBaselineParameters extends MarkovLearningParameters {
+
+        public MarkovLearningBaselineParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed) {
+            super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample, argSeed);
+        }
+
+        @Override
+        public String getSubExperimentName() {
+            return "baseline";
+        }
+    }
+
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0};//0,1,2,3
         final DrawGraphs.CSVExperimentResult resultCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + "results.csv"));
@@ -28,13 +41,13 @@ public class E_MarkovLearn {
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
 
-        for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8, 32)})//new Pair(1,256)})
-        {
-            int seedForFSM = 0;
-            int traceQuantityToUse = traces_lengthmult.firstElem;
-            for (int states : learningGroup.statesToUse)
-                for (int perStateSquaredDensity100 : new int[]{0, 30}) {
-                    for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
+        int seedForFSM = 0;
+        for (int states : learningGroup.statesToUse)
+            for (int perStateSquaredDensity100 : new int[]{0, 30}) {
+                for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
+                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8, 32)})//new Pair(1,256)})
+                    {
+                        int traceQuantityToUse = traces_lengthmult.firstElem;
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
                             for (final int preset : learnerExperiment)
                                 for (LearningAlgorithms.ScoringToApply learnerKind :
@@ -50,25 +63,25 @@ public class E_MarkovLearn {
 //														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2
                                                 })
                                     // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
-                                    for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{2, 3, 4} : new int[]{2})
-                                        for (double weightOfInconsistencies : learnerKind.isMarkov() ?
-                                                new double[]{0.25, 0.5, 1.0, 2.0, 4.0, 8.0}
-                                                : new double[]{1.0})
-                                            for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} : new Pair[]{new Pair(1, 1), new Pair(1, 2), new Pair(2, 4)}) {
-                                                int wlen = wlen_divisor.firstElem, divisor = wlen_divisor.secondElem;
-                                                ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
-                                                ev.config = learningGroup.eval.config.copy();
-                                                ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
+                                {
+                                    int chunkSizeToEvaluate = 3;
+                                    double weightOfInconsistencies = 2.0;
+                                    for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} : new Pair[]{new Pair(1, 1), new Pair(1, 2), new Pair(2, 4)}) {
+                                        int wlen = wlen_divisor.firstElem, divisor = wlen_divisor.secondElem;
+                                        ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
+                                        ev.config = learningGroup.eval.config.copy();
+                                        ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
 
-                                                MarkovLearningParameters parameters = new MarkovLearningParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
-                                                parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
-                                                parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, statesMax, alphabetMultiplier);
-                                                parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, aveOrMax, divisor, 0, wlen);
-                                                parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-                                                MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);
-                                                learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
-                                                learningGroup.experimentRunner.submitTask(learnerRunner);
-                                            }
+                                        MarkovLearningBaselineParameters parameters = new MarkovLearningBaselineParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
+                                        parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
+                                        parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, statesMax, alphabetMultiplier);
+                                        parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, aveOrMax, divisor, 0, wlen);
+                                        parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
+                                        MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);
+                                        learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
+                                        learningGroup.experimentRunner.submitTask(learnerRunner);
+                                    }
+                                }
                 }
         }
 
@@ -132,7 +145,6 @@ public class E_MarkovLearn {
                 String referencePresetStr = "-" + referencePreset;
                 String experimentName = learningGroup.outPathPrefix + "preset_" + preset + "_";
                 final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_inconsistency_structural.pdf"));
-                final DrawGraphs.RBoxPlot<String> gr_StructuralVsChunkLenWeight = new DrawGraphs.RBoxPlot<>("ChunkLen and inconsistency multiplier", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_chunkLenInconsistencyWeight_structural.pdf"));
                 final DrawGraphs.RBagPlot gr_TotalMergersVsStructuralScore = new DrawGraphs.RBagPlot("Total mergers", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_totalmergers_structural.pdf"));
                 final DrawGraphs.RBagPlot gr_MistakesNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Mistakes near root", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_mistakesnearroot_structural.pdf"));
                 final DrawGraphs.RBagPlot gr_BCRVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "BCR Score, EDSM-Markov learner", new File(experimentName + statesMax + "_inconsistency_bcr.pdf"));
@@ -172,9 +184,6 @@ public class E_MarkovLearn {
                         gr_MistakesNearRootVsStructuralScore.add(
                                 Double.parseDouble(obtainValueFromCell(Y, 3)) + Double.parseDouble(obtainValueFromCell(Y, 4)),
                                 Double.parseDouble(obtainValueFromCell(Y, 2)), null, null);
-                        String[] elems = columnText.split("[_=]");
-                        System.out.println(Arrays.toString(elems));
-                        gr_StructuralVsChunkLenWeight.add(elems[2] + "_" + elems[4], value);
                     });
                 }
 
@@ -203,7 +212,6 @@ public class E_MarkovLearn {
                 for (@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result : new DrawGraphs.RExperimentResult[]{gr_StructuralVsInconsistency, gr_BCRVsInconsistency,
                         gr_MarkovTransitionPrecisionStructuralDiff, gr_MarkovHolePrecisionStructuralDiff, gr_StructuralDiff,
                         gr_Inconsistencies_and_SD, gr_PosnegNegativeInconsistencies_Structural, gr_TotalMergersVsStructuralScore, gr_MistakesNearRootVsStructuralScore,
-                        gr_StructuralVsChunkLenWeight,
                         gr_BCR, BCRAgainstKtails, BCRAgainstEDSM_1, BCRAgainstEDSM_2,
                         Wilcoxon_Test_BCR, Wilcoxon_test_Structural, Mann_Whitney_U_Test_BCR, Mann_Whitney_U_Test_Structural, Kruskal_Wallis_Test_Structural, Kruskal_Wallis_Test_BCR}) {
                     result.reportResults(learningGroup.gr);
@@ -216,7 +224,7 @@ public class E_MarkovLearn {
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Map<String, AtomicInteger> learnerToHowOftenBest = new HashMap<>();
-            final DrawGraphs.SquareBagPlot gr_StructuralDiffBest = new DrawGraphs.SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner", new File(learningGroup.outPathPrefix + "_" + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true);
+            final DrawGraphs.SquareBagPlot gr_StructuralDiffBest = new DrawGraphs.SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner", new File(learningGroup.outPathPrefix + "_baseline" + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true);
 
             // Now select the best result from all those available
             for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {

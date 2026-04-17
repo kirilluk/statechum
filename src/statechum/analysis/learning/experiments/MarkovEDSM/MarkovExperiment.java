@@ -435,7 +435,7 @@ public class MarkovExperiment
 	}	
 
 	static class LearningReport {
-		double bcr = -1, structural = -1;
+		double bcr = 0, structural = 0;
 		String descr = "NONE";
 		long inconsistency = -1;
 	}

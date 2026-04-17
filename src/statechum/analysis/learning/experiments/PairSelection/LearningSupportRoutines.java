@@ -671,6 +671,46 @@ public class LearningSupportRoutines
  		return currBest;
  	}
 
+	/** In some cases, learning does not start from an initial vertex, therefore it is possible for an initial vertex in an outcome of inference to be incorrectly labelled.
+	 * A good example is where the initial vertex has an outgoing transition and some other vertex has a transition with the same label to the same state. In this case, it is not possible
+	 * to tell from the outcome of inference which of the two should be labelled initial so we match the whole of the initial PTA to all states in the inferred model in order to check which
+	 * of the states looks like an initial one. EDSM-PTA scoring is used because a significant amount of matches are expected and the initial PTA is a tree.
+	 *
+	 * @param graph outcome of inference
+	 * @param ptaWithInitialState PTA that inference has started from
+	 */
+//	public static CmpVertex findBestMatchForInitialVertexInGraphA(LearnerGraph graph, LearnerGraph ptaWithInitialState, MarkovModel model,  ConsistencyChecker checker)
+//	{
+//		LearnerGraph grCombined = new LearnerGraph(graph,graph.config);
+//		Collection<CmpVertex> verts = new LinkedList<>();verts.addAll(grCombined.transitionMatrix.keySet());
+//		CmpVertex otherRoot = AbstractPathRoutines.addToGraph(grCombined, ptaWithInitialState, null);
+//		CmpVertex currBest = null;
+//		long bestScore = -1;
+//		long inconsistency = Integer.MIN_VALUE;
+//
+//		for(CmpVertex v:verts)
+//		{
+//			long score = grCombined.pairscores.computeStateScore(new StatePair(otherRoot, v));
+//			if (score >= bestScore)
+//			{
+//				long inconsistencyWithV = Integer.MIN_VALUE;
+//				if (model != null && checker != null) {
+//					CmpVertex curInit = graph.getInit();
+//					graph.setInit(v);
+//					inconsistencyWithV = MarkovClassifier.computeInconsistency(graph, null, model, checker, false);
+//					graph.setInit(curInit);
+//				}
+//
+//				if (inconsistencyWithV < inconsistency || inconsistency == Integer.MIN_VALUE) {
+//					bestScore = score;
+//					currBest = v;
+//					inconsistency = inconsistencyWithV;
+//				}
+//			}
+//		}
+//		return currBest;
+//	}
+
 	/** PTA is supposed to be built using walks over a reference graph.
 	 * If these are random walks, it is possible that some transitions will not be covered.
 	 * For the learning purposes, this is significant because this could make some states more easily identifiable.

@@ -37,7 +37,7 @@ public class E_MarkovAlphabet {
         final int statesMax = learningGroup.statesToUse[learningGroup.statesToUse.length-1];// reflects the size of the largest FSM that will be generated.
         boolean aveOrMax = true;// average divide by the divisor
         boolean pathsOrSets = true;
-        double [] alphabetMultValues = new double [] {0.5,1, 2};
+        double [] alphabetMultValues = new double [] {0.5,1, 2, 4};
         for(final double alphabetMultiplier:alphabetMultValues) {
             for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8, 32)}) {
                 int seedForFSM = 0;
@@ -61,7 +61,7 @@ public class E_MarkovAlphabet {
                                                     })
                                         // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
                                         for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{3, 4} : new int[]{2})
-                                            for (double weightOfInconsistencies : learnerKind.isMarkov() ? new double[]{0.5, 1.0} : new double[]{1.0})
+                                            for (double weightOfInconsistencies : learnerKind.isMarkov() ? new double[]{0.5, 1.0, 2.0} : new double[]{1.0})
                                                 for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} : new Pair[]{new Pair(1, 1), new Pair(1, 2), new Pair(2, 4)}) {
                                                     int wlen = wlen_divisor.firstElem, divisor = wlen_divisor.secondElem;
                                                     ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
@@ -169,7 +169,7 @@ public class E_MarkovAlphabet {
                         Map<String, AtomicInteger> learnerToHowOftenBest = learnerToHowOftenBestForAllMultipliers.computeIfAbsent(alphabetMultiplier,aDouble -> new HashMap<>());
                         gr_StructuralDiffBestMap.computeIfAbsent(alphabetMultiplier,aDouble ->
                             new SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner",
-                                new File(learningGroup.outPathPrefix + "_" + alphabetMultiplier + " " + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true));
+                                new File(learningGroup.outPathPrefix + "alphabet_alphabetmult=" + alphabetMultiplier + " " + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true));
 
 
                         getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {

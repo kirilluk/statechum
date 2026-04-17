@@ -484,8 +484,10 @@ public class MarkovExperiment
 		try
 		{
 //			E_MarkovCentre.runExperiment(learningGroup);
-//			E_MarkovLearn.runExperiment(learningGroup);
-			E_MarkovAlphabet.runExperiment(learningGroup);
+			E_MarkovLearn.runExperiment(learningGroup);
+//			E_MarkovAlphabet.runExperiment(learningGroup);
+			E_MarkovTraceMult.runExperiment(learningGroup);
+			E_MarkovTraceConstSize.runExperiment(learningGroup);
 		/*
 		final RBoxPlotP<String> gr_BCRForDifferentLearners = new RBoxPlotP<String>("","BCR",new File(branch+"BCR_learner.pdf"));
 		final RBoxPlotP<String> gr_StructuralForDifferentLearners = new RBoxPlotP<String>("","structural",new File(branch+"structural_learner.pdf"));

@@ -2479,6 +2479,9 @@ public class TestMarkovLearner
 		pairTraining = cl.evaluateCorrectnessOfMarkov(false, false);
 		Assert.assertEquals(0,pairTraining.firstElem,Configuration.fpAccuracy);Assert.assertEquals(0,pairTraining.secondElem,Configuration.fpAccuracy);
 
+		statechum.Pair<Double,Double> pairHoles = cl.evaluateCorrectnessOfHolePredictionByMarkov();
+		Assert.assertEquals(17.0/19.0,pairHoles.firstElem, Configuration.fpAccuracy);
+		Assert.assertEquals(17.0/19.0,pairHoles.secondElem, Configuration.fpAccuracy);
 	}
 
 	@Test
@@ -2523,6 +2526,10 @@ public class TestMarkovLearner
 		MarkovClassifierLG eval = new MarkovClassifierLG(m, FsmParserStatechum.buildLearnerGraph("A-a->B-u-#D / B-b->G / B-e->Z","testMarkovPerformance3",config, converter),null);
 		statechum.Pair<Double,Double> pair = eval.evaluateCorrectnessOfMarkov(true, false);
 		Assert.assertEquals(1,pair.firstElem,Configuration.fpAccuracy);Assert.assertEquals(1.0/3.,pair.secondElem,Configuration.fpAccuracy);// transition a is not predicted
+
+		statechum.Pair<Double,Double> pairHoles = eval.evaluateCorrectnessOfHolePredictionByMarkov();
+		Assert.assertEquals(13.0/15.0,pairHoles.firstElem, Configuration.fpAccuracy);
+		Assert.assertEquals(1.0,pairHoles.secondElem, Configuration.fpAccuracy);
 	}
 	
 	@Test
@@ -2539,10 +2546,22 @@ public class TestMarkovLearner
 //			Assert.assertEquals(0.5, pair.secondElem, Configuration.fpAccuracy);// transition a is not predicted
 //		}
 		{
-			MarkovClassifierLG eval = new MarkovClassifierLG(m, FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-c->D-u->E", "testMarkovPerformance4", config, converter), null);
+			MarkovClassifierLG eval = new MarkovClassifierLG(m, FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-c->D-u->E", "testMarkovPerformance4a", config, converter), null);
 			statechum.Pair<Double, Double> pair = eval.evaluateCorrectnessOfMarkov(true, true);
 			Assert.assertEquals(3. / 4, pair.firstElem, Configuration.fpAccuracy);// u is predicted as negative and is indeed missing, b is correctly predicted as a positive; u after c is correctly predicted as positive and c after c is not correctly predicted.
 			Assert.assertEquals(3.0/20., pair.secondElem, Configuration.fpAccuracy);// B-b->C as well as missing B-u-# , D-u->E are the three correct predictions, out of total of 5 (states) * 4 (alphabet) possible transitions.
+
+			statechum.Pair<Double,Double> pairHoles = eval.evaluateCorrectnessOfHolePredictionByMarkov();
+			Assert.assertEquals(15.0/17.0,pairHoles.firstElem, Configuration.fpAccuracy);
+			Assert.assertEquals(15.0/16.0,pairHoles.secondElem, Configuration.fpAccuracy);
+		}
+
+		{
+			MarkovClassifierLG eval = new MarkovClassifierLG(m, FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-c->D-u->E-b-#F", "testMarkovPerformance4b", config, converter), null);
+
+			statechum.Pair<Double,Double> pairHoles = eval.evaluateCorrectnessOfHolePredictionByMarkov();
+			Assert.assertEquals(15.0/17.0,pairHoles.firstElem, Configuration.fpAccuracy);
+			Assert.assertEquals(15.0/16.0,pairHoles.secondElem, Configuration.fpAccuracy);
 		}
 	}
 	

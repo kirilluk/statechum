@@ -42,6 +42,7 @@ import statechum.DeterministicDirectedSparseGraph.VertID;
 import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine;
 import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine.PredictionForSequence;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
+import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
@@ -1333,6 +1334,76 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	/** Given that this classified is instantiate with a reference graph, determines the ration of
 	 * correct predictions by this classifier to the total number of predictions.
 	 *
+	 * @return fraction of Markov's predictions of 'holes' that are correct.
+	 */
+	public statechum.Pair<Double,Double> evaluateCorrectnessOfHolePredictionByMarkov() {
+		assert graph instanceof LearnerGraph;// we are not handling non-terminism below.
+
+		long correctPredictions = 0, numberOfPredictions = 0;
+		long numberOfHolesPredicted = 0;
+		long numberOfHolesConsidered = 0;
+		for (Entry<CmpVertex, MapWithSearch<Label, Label, TARGET_TYPE>> entry : graph.transitionMatrix.entrySet())
+			if (entry.getKey().isAccept()) {
+				Map<Label, MarkovOutcome> predictions = predictTransitionsFromState(entry.getKey(), null, model.getChunkLen(), model.pathsOrSets, null);
+
+				for(Entry<Label,MarkovOutcome> prediction:predictions.entrySet())
+				{// all predictions, both presence and absence of transitions
+					TARGET_TYPE targetList = entry.getValue().get(prediction.getKey());
+					assert prediction.getValue() != MarkovOutcome.failure;// a label is either predicted or not - failure-verdict is never added to the prediction map by predictTransitionsFromState
+
+					for(CmpVertex target:graph.getTargets(targetList))
+					{
+						if (prediction.getValue() == MarkovOutcome.negative)
+						{
+							if (target == null || !target.isAccept())
+								++correctPredictions;
+
+							++numberOfPredictions;
+						}
+					}
+				}
+
+				for(Label lbl:graph.getCache().getAlphabet()) {
+					TARGET_TYPE targetList = entry.getValue().get(lbl);
+					MarkovOutcome predictedTarget = predictions.get(lbl);
+					// Can be MarkovOutcome.positive, MarkovOutcome.negative or null (if either nothing was
+					// predicted or markov model had inconsistent predictions reported hence a prediction was
+					// labelled as a failure and not added to the label->prediction map by predictTransitionsFromState).
+
+					if (predictedTarget == null) {// this is the case where Markov has sparse data therefore thinks there is no transition.
+						if (targetList == null) // if it is a correct decision (no transition in graph)
+							++correctPredictions;
+						else
+							for(CmpVertex target:graph.getTargets(targetList))
+								if (!target.isAccept()) // where there are transitions but to reject-states
+									++correctPredictions;
+
+						++numberOfPredictions;
+					}
+
+					if (targetList == null) {
+						if (predictedTarget == null || predictedTarget == MarkovOutcome.negative)
+							++numberOfHolesPredicted;
+						++numberOfHolesConsidered;
+					}
+					else {
+						for (CmpVertex existing : graph.getTargets(targetList))
+							if (!existing.isAccept()) {// transition is present but leading to a reject-state
+								if (predictedTarget == null || predictedTarget == MarkovOutcome.negative)
+									++numberOfHolesPredicted;
+								++numberOfHolesConsidered;
+							}
+					}
+				}
+			}
+		return new statechum.Pair<>(
+				ConfusionMatrix.divide(correctPredictions, numberOfPredictions),
+				ConfusionMatrix.divide(numberOfHolesPredicted, numberOfHolesConsidered));
+	}
+
+	/** Given that this classified is instantiate with a reference graph, determines the ration of
+	 * correct predictions by this classifier to the total number of predictions.
+	 *
 	 * @param evaluatePositives whether to evaluate accuracy in relation to transitions present in the graph and leading to accept-states.
 	 * @param evaluateNegatives whether to evaluate accuracy in relation to transitions either missing in the graph or leading to reject-states.
 	 * @return fraction of Markov's predictions that are correct.
@@ -1369,7 +1440,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 						}
 					}
 				}
-				
+
 				for(Label lbl:graph.getCache().getAlphabet())
 				{
 					TARGET_TYPE targets = entry.getValue().get(lbl);

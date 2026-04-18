@@ -442,12 +442,12 @@ public class MarkovExperiment
 	public static class LearningExperimentGroupParameters {
 		DrawGraphs gr = new DrawGraphs();
 
-		final int fsmSamplesPerStateNumber = 20;
+		final int fsmSamplesPerStateNumber = 40;
 		final int trainingSamplesPerFSM = 4;
 		final double traceLengthMultiplierMax = 16;
 
 		final boolean pathsOrSets = true;
-		final int[] statesToUse = new int[]{10};
+		final int[] statesToUse = new int[]{10,20};
 
 		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner;
 

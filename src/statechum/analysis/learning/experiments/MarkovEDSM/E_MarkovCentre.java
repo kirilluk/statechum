@@ -181,7 +181,7 @@ public class E_MarkovCentre {
                 for(int sample=0;sample<learningGroup.fsmSamplesPerStateNumber;++sample,++seedForFSM)
                     for(final int traceQuantityToUse:new int[]{1})
                         for(int trainingSample=0;trainingSample<learningGroup.trainingSamplesPerFSM;++trainingSample)
-                            for(final Pair<Integer,Integer> traces_lengthmult:new Pair[]{new Pair(8,32), new Pair(1,256)})
+                            for(final Pair<Integer,Integer> traces_lengthmult:new Pair[]{new Pair(8*states/learningGroup.statesToUse[0],32), new Pair(1,256*states/learningGroup.statesToUse[0])})
                                     for(double weightOfInconsistencies:new double[]{2.0})//1.0,2.0,4.0}
                                         for(int wlen:wlen_values)
                                             for(int divisor:divisor_values)

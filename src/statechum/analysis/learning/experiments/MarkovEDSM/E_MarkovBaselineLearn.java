@@ -45,7 +45,7 @@ public class E_MarkovBaselineLearn {
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : new int[]{0, 30}) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
-                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8, 32)})//new Pair(1,256)})
+                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8*states/learningGroup.statesToUse[0], 32)})//new Pair(1,256)})
                     {
                         int traceQuantityToUse = traces_lengthmult.firstElem;
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)

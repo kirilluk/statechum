@@ -41,8 +41,9 @@ public class E_MarkovTraceNum {
         int seedForFSM = 0;
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : new int[]{0, 30})
-                for(int traceQuantityToUse:traceQuantityValues)
-                    for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
+                for(int traceQuantityToUseV:traceQuantityValues)  {
+                   int traceQuantityToUse = traceQuantityToUseV*states/learningGroup.statesToUse[0]; 
+		   for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
                             for (final int preset : learnerExperiment)
                                 for (LearningAlgorithms.ScoringToApply learnerKind :
@@ -75,7 +76,7 @@ public class E_MarkovTraceNum {
                                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                                 learningGroup.experimentRunner.submitTask(learnerRunner);
                                             }
-
+		}
 
 
         learningGroup.experimentRunner.collectOutcomeOfExperiments(new SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>() {

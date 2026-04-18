@@ -42,7 +42,7 @@ public class E_MarkovTraceMult {
             for (int perStateSquaredDensity100 : new int[]{0, 30}) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
                     for (int traceLenMult:traceLenMultValues) {
-                        int traceQuantityToUse = 8*states/learningGroup.statesToUse[0];;
+                        int traceQuantityToUse = 8*states*learningGroup.stateScale/learningGroup.statesToUse[0];
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
                             for (final int preset : learnerExperiment)
                                 for (LearningAlgorithms.ScoringToApply learnerKind :

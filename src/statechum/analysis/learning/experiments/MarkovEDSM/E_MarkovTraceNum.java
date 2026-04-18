@@ -42,7 +42,7 @@ public class E_MarkovTraceNum {
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : new int[]{0, 30})
                 for(int traceQuantityToUseV:traceQuantityValues)  {
-                   int traceQuantityToUse = traceQuantityToUseV*states/learningGroup.statesToUse[0]; 
+                   int traceQuantityToUse = traceQuantityToUseV*states*learningGroup.stateScale/learningGroup.statesToUse[0]; 
 		   for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
                             for (final int preset : learnerExperiment)

@@ -42,8 +42,8 @@ public class E_MarkovTraceConstSize {
             for (int perStateSquaredDensity100 : new int[]{0, 30}) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
                     for (int traceLenMultV:traceLenMultValues) {
-			int traceLenMult = traceLenMultV*states/learningGroup.statesToUse[0];
-                        int traceQuantityToUse = 256*states/learningGroup.statesToUse[0]/traceLenMult;
+			int traceLenMult = traceLenMultV*states*learningGroup.stateScale/learningGroup.statesToUse[0];
+                        int traceQuantityToUse = 256*states*learningGroup.stateScale/learningGroup.statesToUse[0]/traceLenMult;
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
                             for (final int preset : learnerExperiment)
                                 for (LearningAlgorithms.ScoringToApply learnerKind :

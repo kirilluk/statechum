@@ -35,7 +35,7 @@ public class E_MarkovLearnWithCentre {
     }
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
-        int[] learnerExperiment = new int[]{0,1,2,3};
+        int[] learnerExperiment = new int[]{0,1,2,3,4};
         final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "results.csv"));
         final int statesMax = learningGroup.statesToUse[learningGroup.statesToUse.length-1];// reflects the size of the largest FSM that will be generated.
         boolean aveOrMax = true;// average divide by the divisor
@@ -47,7 +47,7 @@ public class E_MarkovLearnWithCentre {
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : new int[]{0, 30}) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
-                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8, 32)})//new Pair(1,256)})
+                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8, 32),new Pair(1,256)})
                     {
                         int traceQuantityToUse = traces_lengthmult.firstElem;
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
@@ -141,7 +141,9 @@ public class E_MarkovLearnWithCentre {
 
         });
         int referencePreset = 0;
-        for (final int preset : learnerExperiment) {
+        for (final int preset : learnerExperiment)
+            for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8, 32),new Pair(1,256)})
+        {
             if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
                 String presetStr = "-" + preset;
                 String referencePresetStr = "-" + referencePreset;

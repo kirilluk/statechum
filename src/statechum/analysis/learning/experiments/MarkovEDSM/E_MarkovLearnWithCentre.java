@@ -35,7 +35,7 @@ public class E_MarkovLearnWithCentre {
     }
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
-        int[] learnerExperiment = new int[]{0,1,2,3};
+        int[] learnerExperiment = new int[]{0,1,2,4};
         final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "results.csv"));
         final int statesMax = learningGroup.statesToUse[learningGroup.statesToUse.length-1];// reflects the size of the largest FSM that will be generated.
         boolean aveOrMax = true;// average divide by the divisor

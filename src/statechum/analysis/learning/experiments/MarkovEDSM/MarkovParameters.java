@@ -124,6 +124,8 @@ public class MarkovParameters
 				setlearningParameters(true, false, false,  false,  false);break;
 			case 3:// learning by doing pre-merging but only looking at blue states forward rather than in both directions.
 				setlearningParameters(true, false, false,  false,  true);break;
+			case 4:// learning by doing pre-merging but only looking at blue states forward rather than in both directions.
+				setlearningParameters(true, false, false,  true,  false);break;
 			// alternatives are: learning by not doing pre-merging, starting from root and using a heuristic around root
 			// or learning by not doing pre-merging, starting from root and not ranking the top IScore candidates with the fanout metric.
 			default:

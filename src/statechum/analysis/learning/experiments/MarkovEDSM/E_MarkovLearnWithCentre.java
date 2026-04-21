@@ -1,7 +1,6 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.Pair;
-import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -10,12 +9,7 @@ import statechum.analysis.learning.observers.ProgressDecorator;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.*;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 
@@ -140,128 +134,85 @@ public class E_MarkovLearnWithCentre {
             }
 
         });
-        int referencePreset = 0;
-        for (final int preset : learnerExperiment)
-            for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8, 32),new Pair(1,256)})
-        {
-            if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
-                String presetStr = "-" + preset;
-                String referencePresetStr = "-" + referencePreset;
-                String experimentName = learningGroup.outPathPrefix + "with_centre_"+"preset_" + preset + "_";
-                final RBagPlot gr_StructuralVsInconsistency = new RBagPlot("Inconsistency Learnt", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_inconsistency_structural.pdf"));
-                final RBagPlot gr_TotalMergersVsStructuralScore = new RBagPlot("Total mergers", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_totalmergers_structural.pdf"));
-                final RBagPlot gr_MistakesNearRootVsStructuralScore = new RBagPlot("Mistakes near root", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_mistakesnearroot_structural.pdf"));
-                final RBagPlot gr_BCRVsInconsistency = new RBagPlot("Inconsistency Learnt", "BCR Score, EDSM-Markov learner", new File(experimentName + statesMax + "_inconsistency_bcr.pdf"));
-                final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_sicco_structuraldiff.pdf"), 0, 1, true);
-                final RBagPlot gr_MarkovTransitionPrecisionStructuralDiff = new RBagPlot("Transition precision Markov", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_markovtransitionprecision_structuraldiff.pdf"));
-                final RBagPlot gr_MarkovHolePrecisionStructuralDiff = new RBagPlot("Hole precision Markov", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_markovholeprecision_structuraldiff.pdf"));
-                final RBagPlot gr_Inconsistencies_and_SD = new RBagPlot("Inconsistency, average", "Inconsistency, SD", new File(experimentName + statesMax + "_inconsistencies_sd.pdf"));
-                final RBoxPlot<String> gr_PosnegNegativeInconsistencies_Structural = new RBoxPlot<>("Inconsistency always positive", "Structural difference", new File(experimentName + statesMax + "_posneginconsistencies_structuraldiff.pdf"));
-                final SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco", "BCR, EDSM-Markov learner", new File(experimentName + statesMax + "_trace_bcr.pdf"), 0.5, 1, true);
-                final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1", "BCR, EDSM-Markov learner", new File(experimentName + "_" + statesMax + "_kt_markov_bcr.pdf"), 0.5, 1, true);
-                final SquareBagPlot BCRAgainstEDSM_1 = new SquareBagPlot("BCR, EDSM-1", "BCR, EDSM-Markov learner", new File(experimentName + "_" + statesMax + "_edsm-1_markov_bcr.pdf"), 0.5, 1, true);
-                final SquareBagPlot BCRAgainstEDSM_2 = new SquareBagPlot("BCR, EDSM-2", "BCR, EDSM-Markov learner", new File(experimentName + "_" + statesMax + "_edsm-2_markov_bcr.pdf"), 0.5, 1, true);
-
-                final WilcoxonPairedTest Wilcoxon_test_Structural = new WilcoxonPairedTest(new File(experimentName + "Wilcoxon_t_str.csv"));
-                final WilcoxonPairedTest Wilcoxon_Test_BCR = new WilcoxonPairedTest(new File(experimentName + "Wilcoxon_t_bcr.csv"));
-                final Mann_Whitney_U_Test Mann_Whitney_U_Test_BCR = new Mann_Whitney_U_Test(new File(experimentName + "Mann_Whitney_U_Test_BCR.csv"));
-                final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural = new Mann_Whitney_U_Test(new File(experimentName + "Whitney_U_Test_str.csv"));
-                final Kruskal_Wallis Kruskal_Wallis_Test_BCR = new Kruskal_Wallis(new File(experimentName + "Kruskal_Wallis_Test_BCR.csv"));
-                final Kruskal_Wallis Kruskal_Wallis_Test_Structural = new Kruskal_Wallis(new File(experimentName + "Kruskal_Wallis_Test_str.csv"));
-                // names of columns include parameters used with learners, here we ignore that and pick those that match learner names
-                DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_StructuralVsInconsistency, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + referencePresetStr, 10, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
-                DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_BCRVsInconsistency, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + referencePresetStr, 10, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
-                DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
-                DrawGraphs.spreadsheetToBagPlot(gr_MarkovTransitionPrecisionStructuralDiff, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + referencePresetStr, 15, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
-                DrawGraphs.spreadsheetToBagPlot(gr_MarkovHolePrecisionStructuralDiff, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + referencePresetStr, 16, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
-
-                DrawGraphs.spreadsheetToBagPlot(gr_Inconsistencies_and_SD, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 11, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 12, null, null);
-                for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-                    getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, (columnText, Y) -> {
-                        boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
-                        double value = Double.parseDouble(obtainValueFromCell(Y, 2));
-
-                        gr_PosnegNegativeInconsistencies_Structural.add(Boolean.toString(alwaysPositive), value, null, null);
-                        gr_TotalMergersVsStructuralScore.add(
-                                Double.parseDouble(obtainValueFromCell(Y, 3)) + Double.parseDouble(obtainValueFromCell(Y, 5)) + Double.parseDouble(obtainValueFromCell(Y, 7)),
-                                Double.parseDouble(obtainValueFromCell(Y, 2)), null, null);
-                        gr_MistakesNearRootVsStructuralScore.add(
-                                Double.parseDouble(obtainValueFromCell(Y, 3)) + Double.parseDouble(obtainValueFromCell(Y, 4)),
-                                Double.parseDouble(obtainValueFromCell(Y, 2)), null, null);
-                    });
-                }
-
-                DrawGraphs.spreadsheetToBagPlot(gr_BCR, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
-                DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_PTAK_1 + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
-                DrawGraphs.spreadsheetToBagPlot(BCRAgainstEDSM_1, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_EDSM_1 + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
-                DrawGraphs.spreadsheetToBagPlot(BCRAgainstEDSM_2, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2 + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
-
-                DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 1);
-                DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 2);
-                DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 1);
-                DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 2);
-                DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 1);
-                DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 2);
-                final AtomicLong comparisonsPerformed = new AtomicLong(0);
-				/*
-				DrawGraphs.spreadsheetAsString((A, B) -> {
-					try {
-						comparisonsPerformed.addAndGet(Long.parseLong(A));
-					}
-					catch(NumberFormatException e) {
-						System.out.println("Failed to convert "+e);
-					}
-				},resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,3,ScoringToApply.SCORING_MARKOV+presetStr,3);
-					*/
-                for (@SuppressWarnings("rawtypes") RExperimentResult result : new RExperimentResult[]{gr_StructuralVsInconsistency, gr_BCRVsInconsistency,
-                        gr_MarkovTransitionPrecisionStructuralDiff, gr_MarkovHolePrecisionStructuralDiff, gr_StructuralDiff,
-                        gr_Inconsistencies_and_SD, gr_PosnegNegativeInconsistencies_Structural, gr_TotalMergersVsStructuralScore, gr_MistakesNearRootVsStructuralScore,
-                        gr_BCR, BCRAgainstKtails, BCRAgainstEDSM_1, BCRAgainstEDSM_2,
-                        Wilcoxon_Test_BCR, Wilcoxon_test_Structural, Mann_Whitney_U_Test_BCR, Mann_Whitney_U_Test_Structural, Kruskal_Wallis_Test_Structural, Kruskal_Wallis_Test_BCR}) {
-                    result.reportResults(learningGroup.gr);
-                }
-                if (learningGroup.experimentRunner.isInteractive())
-                    System.out.println("\nLOG of comparisons performed: " + Math.log10(comparisonsPerformed.doubleValue()) + "\n");
-            }
-        }
-
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            Map<String, AtomicInteger> learnerToHowOftenBest = new HashMap<>();
-            final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner", new File(learningGroup.outPathPrefix + "_withcentre_" + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true);
+            final RBoxPlot<String> gr_BestStructuralForDifferentPreset = new RBoxPlot<>("Trace length number and learner", "Structural Score",
+                    new File(learningGroup.outPathPrefix + statesMax + "_centre-learner_structural.pdf"));
+            gr_BestStructuralForDifferentPreset.setOtherOptions("las=2");
+            for (int traceQuantityToUse : new int[]{1, 8}) {
+                    final RBoxPlot<String> gr_PresetPerformance = new RBoxPlot<>("", "Structural Score",
+                            new File(learningGroup.outPathPrefix + statesMax + "_centre-learner_tracenum="+traceQuantityToUse+"_structural.pdf"));
+                    gr_PresetPerformance.setOtherOptions("las=2");
+                    gr_PresetPerformance.setOrderingOfLabels(Arrays.asList( new String[]{"Best","Markov","M_Both","M_Forward","R_Forward","R_Both"}));
+                    final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, Sicco", "Structural Score",
+                            new File(learningGroup.outPathPrefix + statesMax + "_centre-learner_tracenum=" + traceQuantityToUse + "_sicco_structuraldiffBest.pdf"), 0, 1, true);
 
-            // Now select the best result from all those available
-            for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-                final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
+                    String [] presetDescription = new String[]{"Markov","M_Both","R_Forward","R_Both","M_Forward"};
 
-                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
-                    boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
-                    boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
-                    double bcr = Double.parseDouble(obtainValueFromCell(Y, 1));
-                    double structural = Double.parseDouble(obtainValueFromCell(Y, 2));
-                    long inconsistency = Long.parseLong(obtainValueFromCell(Y, 10));
+                    // Now select the best result from all those available
+                    for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
 
-                    if (learntOK && alwaysPositive && (bestLearningResult.inconsistency < 0 || inconsistency < bestLearningResult.inconsistency)) {
-                        bestLearningResult.bcr = bcr;
-                        bestLearningResult.structural = structural;
-                        bestLearningResult.inconsistency = inconsistency;
-                        bestLearningResult.descr = columnText;
+                        String[] rowValues = rowEntry.getKey().split("[_=]");
+                        assert rowValues[0].equals("tQ");
+                        if (Double.parseDouble(rowValues[1]) == traceQuantityToUse) {
+                            // we are looking at specific rows
+                            final Map<Integer,MarkovExperiment.LearningReport> bestLearningResultForThisRowAndAllPresets = new TreeMap<>();
+
+                            MarkovExperiment.LearningReport bestLearningResultForThisRow = new MarkovExperiment.LearningReport();
+                            for (final int preset : learnerExperiment) {
+                                bestLearningResultForThisRowAndAllPresets.computeIfAbsent(preset, integer -> new MarkovExperiment.LearningReport());
+                                MarkovExperiment.LearningReport bestLearningResultForThisRowAndPreset = bestLearningResultForThisRowAndAllPresets.get(preset);
+
+                                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
+                                    // Here columnText is the description of the learner used, Y is the values reported by processSubResult above.
+                                    boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
+                                    boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
+                                    double bcr = Double.parseDouble(obtainValueFromCell(Y, 1));
+                                    double structural = Double.parseDouble(obtainValueFromCell(Y, 2));
+                                    long inconsistency = Long.parseLong(obtainValueFromCell(Y, 10));
+
+                                    String[] columnValues = columnText.split("[_=]");
+                                    if (learntOK && alwaysPositive && columnValues[0].equals(LearningAlgorithms.ScoringToApply.SCORING_MARKOV +"-"+ preset)) {
+                                        // Now at the columns of interest (specific preset but different parameter of Markov)
+                                        MarkovExperiment.LearningReport report = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, columnText);
+                                        bestLearningResultForThisRowAndPreset.updateIfValueBetter(report);
+                                        bestLearningResultForThisRow.updateIfValueBetter(report);
+                                    }
+                                });
+                            }
+
+                            String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_SICCO + "-0");
+                            double sicco_score = Double.parseDouble(obtainValueFromCell(Y_Sicco, 2));
+                            if (Y_Sicco != null)
+                                gr_StructuralDiffBest.add(sicco_score, bestLearningResultForThisRow.structural, null, null);
+                            else
+                                System.out.println("WARNING: missing Sicco-value for " + rowEntry.getKey());
+
+
+                            StringBuilder sb = new StringBuilder();
+                            Formatter formatter = new Formatter(sb, Locale.US);formatter.format("%1d",traceQuantityToUse);
+                            gr_BestStructuralForDifferentPreset.add(sb+"_M",bestLearningResultForThisRowAndAllPresets.get(0).structural);
+                            gr_BestStructuralForDifferentPreset.add(sb+"_MC",bestLearningResultForThisRow.structural);
+                            gr_BestStructuralForDifferentPreset.add(sb+"_S",sicco_score);
+                            for(Map.Entry<Integer, MarkovExperiment.LearningReport> entry:bestLearningResultForThisRowAndAllPresets.entrySet())
+                                gr_PresetPerformance.add(presetDescription[entry.getKey()],entry.getValue().structural);
+                            gr_PresetPerformance.add("Best",bestLearningResultForThisRow.structural);
+
+                        }
                     }
-                });
-                learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
-                learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
-                String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_SICCO + "-0");
-                if (Y_Sicco != null)
-                    gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)), bestLearningResult.structural, null, null);
-                else
-                    System.out.println("WARNING: missing Sicco-value for " + rowEntry.getKey());
+                    gr_StructuralDiffBest.reportResults(learningGroup.gr);
+                    gr_PresetPerformance.reportResults(learningGroup.gr);
             }
-            gr_StructuralDiffBest.reportResults(learningGroup.gr);
-            List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
-            learners.sort((o1, o2) ->
-                    learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());
-            for (String l : learners)
-                System.out.println(l + " -> " + learnerToHowOftenBest.get(l).get());
+            List<String> labelValuesForComparativeAnalysis = new LinkedList<>();
+            for (int traceQuantityToUse : new int[]{8, 1}) {
+                StringBuilder sb = new StringBuilder();
+                Formatter formatter = new Formatter(sb, Locale.US);formatter.format("%1d",traceQuantityToUse);
+                labelValuesForComparativeAnalysis.add(sb+"_M");
+                labelValuesForComparativeAnalysis.add(sb+"_MC");
+                labelValuesForComparativeAnalysis.add(sb+"_S");
+            }
+            gr_BestStructuralForDifferentPreset.setOrderingOfLabels(labelValuesForComparativeAnalysis);
+            gr_BestStructuralForDifferentPreset.reportResults(learningGroup.gr);
         }
     }
 }

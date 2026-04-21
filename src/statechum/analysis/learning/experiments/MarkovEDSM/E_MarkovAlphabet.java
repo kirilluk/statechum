@@ -90,26 +90,16 @@ public class E_MarkovAlphabet {
 
                     StringBuffer csvLine = new StringBuffer();
                     csvLine.append(data.whetherLearningSuccessfulOrAborted);
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(data.differenceBCR.getValue());// 1
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(data.differenceStructural.getValue());// 2
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(data.invalidMergersNearRoot);// 3
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(data.missedMergersNearRoot); // 4
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(data.invalidMergersFarFromRoot);// 5
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(data.missedMergersFarFromRoot); // 6
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(data.validMergers); // 7
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(data.nrOfstates.getValue());// 8
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(sm.inconsistencyReference);// 9
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(data.inconsistency);// 10
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceBCR.getValue());// 1
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());// 2
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersNearRoot);// 3
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersNearRoot); // 4
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersFarFromRoot);// 5
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersFarFromRoot); // 6
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.validMergers); // 7
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());// 8
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);// 9
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);// 10
 
                     if (result.parameters.learnerToUse.isMarkov()) {
                         CSVExperimentResult.addSeparator(csvLine);
@@ -133,15 +123,11 @@ public class E_MarkovAlphabet {
                     }
 
                     if (result.parameters.markovParameters.useCentreVertex) {
-                        CSVExperimentResult.addSeparator(csvLine);
-                        csvLine.append(sm.centreCorrect);
-                        CSVExperimentResult.addSeparator(csvLine);
-                        csvLine.append(sm.centrePathNumber);
+                        CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.centreCorrect);
+                        CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.centrePathNumber);
                     }
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(sm.transitionsSampled);
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(Math.round(data.executionTime / 1000000000.));// execution time is in nanoseconds, we only need seconds.
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.transitionsSampled);
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime / 1000000000.));// execution time is in nanoseconds, we only need seconds.
                     experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
                 }
 

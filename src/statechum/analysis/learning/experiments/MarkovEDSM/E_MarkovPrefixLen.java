@@ -151,7 +151,6 @@ public class E_MarkovPrefixLen {
 
                 for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                     getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, (columnText, Y) -> {
-                        boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
                         double value = Double.parseDouble(obtainValueFromCell(Y, 2));
 
                         String[] elems = columnText.split("[_=]");

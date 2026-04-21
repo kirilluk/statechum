@@ -437,6 +437,25 @@ public class MarkovExperiment
 		double bcr = 0, structural = 0;
 		String descr = "NONE";
 		long inconsistency = -1;
+
+		public LearningReport() {
+		}
+
+		public LearningReport(double bcr, double structural, long inconsistency, String descr) {
+			this.bcr = bcr;
+			this.structural = structural;
+			this.inconsistency = inconsistency;
+			this.descr = descr;
+		}
+
+		public void updateIfValueBetter(LearningReport report) {
+			if ((inconsistency < 0 && report.inconsistency >= 0) || inconsistency > report.inconsistency) {
+				bcr = report.bcr;
+				structural = report.structural;
+				inconsistency = report.inconsistency;
+				descr = report.descr;
+			}
+		}
 	}
 
 	public static class LearningExperimentGroupParameters {
@@ -482,14 +501,14 @@ public class MarkovExperiment
 
 		try
 		{
-			E_MarkovCentre.runExperiment(learningGroup);
+//			E_MarkovCentre.runExperiment(learningGroup);
 			E_MarkovBaselineLearn.runExperiment(learningGroup);
-			E_MarkovAlphabet.runExperiment(learningGroup);
-			E_MarkovTraceMult.runExperiment(learningGroup);
-			E_MarkovTraceConstSize.runExperiment(learningGroup);
-			E_MarkovPrefixLen.runExperiment(learningGroup);
-			E_MarkovTraceNum.runExperiment(learningGroup);
-			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+//			E_MarkovAlphabet.runExperiment(learningGroup);
+//			E_MarkovTraceMult.runExperiment(learningGroup);
+//			E_MarkovTraceConstSize.runExperiment(learningGroup);
+//			E_MarkovPrefixLen.runExperiment(learningGroup);
+//			E_MarkovTraceNum.runExperiment(learningGroup);
+//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		/*
 		final RBoxPlotP<String> gr_BCRForDifferentLearners = new RBoxPlotP<String>("","BCR",new File(branch+"BCR_learner.pdf"));
 		final RBoxPlotP<String> gr_StructuralForDifferentLearners = new RBoxPlotP<String>("","structural",new File(branch+"structural_learner.pdf"));

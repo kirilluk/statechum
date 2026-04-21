@@ -19,6 +19,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static statechum.analysis.learning.DrawGraphs.getValueFromMapGivenRegexp;
 import static statechum.analysis.learning.DrawGraphs.obtainValueFromCell;
@@ -134,12 +136,15 @@ public class E_MarkovCentre {
 
     static class CentreSelectionResults {
         final DrawGraphs.RBoxPlot<String> gr_NumberOfCentreCorrect;
+        final DrawGraphs.RBoxPlot<String> gr_PercentageOfCentreCorrect;
         final DrawGraphs.RBoxPlot<String> gr_InconsistenciesForCentres;
         final DrawGraphs.RBoxPlot<String> gr_CorrectVsInconsistency;
         final DrawGraphs.RBoxPlot<String> gr_CorrectVsInconsistencyWithPracticeLearn;
 
         final MarkovExperiment.LearningExperimentGroupParameters group;
-        int count = 0;
+        final Map<String, AtomicInteger> count = new TreeMap<>();
+        /* total number of values, both right and wrong */
+        final Map<String, AtomicInteger> total = new TreeMap<>();
 
         public CentreSelectionResults(MarkovExperiment.LearningExperimentGroupParameters learningGroup, int traceNum) {
             group = learningGroup;
@@ -147,6 +152,8 @@ public class E_MarkovCentre {
             String prefix = learningGroup.outPathPrefix + statesMax+"_"+traceNum+"_";
             gr_NumberOfCentreCorrect = new DrawGraphs.RBoxPlot<>("Centre Selection", "Number of correct selection",
                     new File(prefix + "centreselection_numbercorrect.pdf"));
+            gr_PercentageOfCentreCorrect = new DrawGraphs.RBoxPlot<>("Centre Selection", "% of correct selection",
+                    new File(prefix + "centreselection_percentagecorrect.pdf"));
             gr_InconsistenciesForCentres = new DrawGraphs.RBoxPlot<>("Centre Selection", "Inconsistency (clamped to "+inconsistencyClamp+" )",
                     new File(prefix + "centreselection_inconsistency.pdf"));
             gr_CorrectVsInconsistency = new DrawGraphs.RBoxPlot<>("Centre correctly predicted", "Inconsistency (clamped to "+inconsistencyClamp+" )",
@@ -157,6 +164,7 @@ public class E_MarkovCentre {
 
         public void report() {
             gr_NumberOfCentreCorrect.reportResults(group.gr);
+            gr_PercentageOfCentreCorrect.reportResults(group.gr);
             gr_InconsistenciesForCentres.reportResults(group.gr);
             gr_CorrectVsInconsistency.reportResults(group.gr);
             gr_CorrectVsInconsistencyWithPracticeLearn.reportResults(group.gr);
@@ -179,7 +187,6 @@ public class E_MarkovCentre {
         for(int states:learningGroup.statesToUse)
             for(int perStateSquaredDensity100:new int[] {0,30})
                 for(int sample=0;sample<learningGroup.fsmSamplesPerStateNumber;++sample,++seedForFSM)
-                    for(final int traceQuantityToUse:new int[]{1})
                         for(int trainingSample=0;trainingSample<learningGroup.trainingSamplesPerFSM;++trainingSample)
                             for(final Pair<Integer,Integer> traces_lengthmult:new Pair[]{new Pair(8,32), new Pair(1,256)})
                                     for(double weightOfInconsistencies:new double[]{2.0})//1.0,2.0,4.0}
@@ -193,7 +200,7 @@ public class E_MarkovCentre {
 
                                                 MarkovCentreLearningParameters parameters = new MarkovCentreLearningParameters(LearningAlgorithms.ScoringToApply.SCORING_MARKOV,states, alphabetMultiplier, perStateSquaredDensity100, sample,trainingSample, seedForFSM);
                                                 parameters.setTraceLengthMultiplier(traceLengthMultiplier);
-                                                parameters.setExperimentID(traceQuantityToUse,learningGroup.traceLengthMultiplierMax,statesMax,alphabetMultiplier);
+                                                parameters.setExperimentID(traces_lengthmult.firstElem,learningGroup.traceLengthMultiplierMax,statesMax,alphabetMultiplier);
                                                 parameters.markovParameters.setMarkovParameters(1,chunkSizeForCentreExperiments,pathsOrSets,weightOfInconsistencies, aveOrMax,divisor,0,wlen);
                                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                                 MarkovCentreIdentification centreIdentificationExperiment = new MarkovCentreIdentification(parameters, ev);
@@ -227,41 +234,57 @@ public class E_MarkovCentre {
         });
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            CentreSelectionResults [] results = new CentreSelectionResults[] {new CentreSelectionResults(learningGroup,1),new CentreSelectionResults(learningGroup,8)};
+            Map<Integer,CentreSelectionResults> results = new TreeMap<>();
 
-            for (int wlen : wlen_values)
-                for (int d : divisor_values) {
-                    String centreStrategy = LearningAlgorithms.ScoringToApply.SCORING_MARKOV + "-1_dv=A_d=" + d + "_wl=" + wlen;
+            for (Map.Entry<String, Map<String, String>> rowEntry : centreCSV.rowColumnText.entrySet()) {
+                for (int traceQuantityToUse : new int[]{1, 8}) {
+                    results.computeIfAbsent(traceQuantityToUse,integer -> new  CentreSelectionResults(learningGroup,integer));
+                    CentreSelectionResults resultsToUpdate = results.get(traceQuantityToUse);
+                    String[] rowValues = rowEntry.getKey().split("[_=]");
+                    assert rowValues[0].equals("tQ");
+                    if (Double.parseDouble(rowValues[1]) == traceQuantityToUse) {
 
-                    for (Map.Entry<String, Map<String, String>> rowEntry : centreCSV.rowColumnText.entrySet()) {
-                        String Y = getValueFromMapGivenRegexp(rowEntry.getValue(), centreStrategy);
-                        if (Y != null) {
-                            boolean valid = Boolean.parseBoolean(obtainValueFromCell(Y, 0));
-                            int pathsCount = Integer.parseInt(obtainValueFromCell(Y, 1));
+                        for (int wlen : wlen_values)
+                            for (int d : divisor_values) {
+                                String centreStrategy = LearningAlgorithms.ScoringToApply.SCORING_MARKOV + "-1_dv=A_d=" + d + "_wl=" + wlen;
+                                String Y = getValueFromMapGivenRegexp(rowEntry.getValue(), centreStrategy);
+                                if (Y != null) {
+                                    boolean centreCorrect = Boolean.parseBoolean(obtainValueFromCell(Y, 0));
+                                    int pathsCount = Integer.parseInt(obtainValueFromCell(Y, 1));
 
+                                    if (pathsCount > 0) {
+                                        int inconsistency = Integer.parseInt(obtainValueFromCell(Y, 2));
+                                        if (inconsistency > inconsistencyClamp)
+                                            inconsistency = inconsistencyClamp;
 
-                            if (pathsCount > 0) {
-                                int inconsistency =  Integer.parseInt(obtainValueFromCell(Y, 2));
-                                if (inconsistency > inconsistencyClamp)
-                                    inconsistency = inconsistencyClamp;
+                                        String parametersAsString = wlen + "_" + d;
+                                        resultsToUpdate.total.computeIfAbsent(parametersAsString, k -> new AtomicInteger(0));
+                                        resultsToUpdate.total.get(parametersAsString).incrementAndGet();
+                                        resultsToUpdate.count.computeIfAbsent(parametersAsString, k -> new AtomicInteger(0));
+                                        if (centreCorrect)
+                                            resultsToUpdate.count.get(parametersAsString).incrementAndGet();
 
-                                CentreSelectionResults resultsToUpdate = results[0];
-                                if (valid)
-                                    resultsToUpdate.count++;
-                                resultsToUpdate.gr_InconsistenciesForCentres.add(wlen + "_" + d + "_" + (valid ? "T" : "F"), (double) inconsistency, valid?null:"red", null);
-                                resultsToUpdate.gr_CorrectVsInconsistency.add(Boolean.toString(valid), (double) inconsistency, null, null);
-                                long inconsistencyWithPractice = Integer.parseInt(obtainValueFromCell(Y, 3));
-                                if (inconsistencyWithPractice > inconsistencyClamp)
-                                    inconsistencyWithPractice = inconsistencyClamp;
-                                resultsToUpdate.gr_CorrectVsInconsistencyWithPracticeLearn.add(Boolean.toString(valid), (double) inconsistencyWithPractice, null, null);
+                                        resultsToUpdate.gr_InconsistenciesForCentres.add(parametersAsString + "_" + (centreCorrect ? "T" : "F"), (double) inconsistency, centreCorrect ? null : "red", null);
+                                        resultsToUpdate.gr_CorrectVsInconsistency.add(Boolean.toString(centreCorrect), (double) inconsistency, null, null);
+                                        long inconsistencyWithPractice = Integer.parseInt(obtainValueFromCell(Y, 3));
+                                        if (inconsistencyWithPractice > inconsistencyClamp)
+                                            inconsistencyWithPractice = inconsistencyClamp;
+                                        resultsToUpdate.gr_CorrectVsInconsistencyWithPracticeLearn.add(Boolean.toString(centreCorrect), (double) inconsistencyWithPractice, null, null);
+                                    }
+                                }
                             }
-                        }
                     }
-                    for(CentreSelectionResults resultsToUpdate: results)
-                        resultsToUpdate.gr_NumberOfCentreCorrect.add(wlen + "_" + d, (double) resultsToUpdate.count, null, null);
                 }
-            for(CentreSelectionResults r : results)
-                r.report();
+            }
+
+            for(Map.Entry<Integer,CentreSelectionResults> resultsEntry: results.entrySet()) {
+                CentreSelectionResults centreResults = resultsEntry.getValue();
+                for (Map.Entry<String, AtomicInteger> entry : centreResults.count.entrySet()) {
+                    centreResults.gr_NumberOfCentreCorrect.add(entry.getKey(), (double) entry.getValue().get(), null, null);
+                    centreResults.gr_PercentageOfCentreCorrect.add(entry.getKey(), 100. * entry.getValue().get() / centreResults.total.get(entry.getKey()).get(), null, null);
+                }
+                centreResults.report();
+            }
         }
     }
 }

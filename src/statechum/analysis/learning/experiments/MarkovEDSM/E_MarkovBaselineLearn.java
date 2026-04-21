@@ -133,11 +133,15 @@ public class E_MarkovBaselineLearn {
             String presetStr = "";
             String referencePresetStr = "-" + referencePreset;
             String experimentName = learningGroup.outPathPrefix + "preset_" + 0 + "_";
-            final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_inconsistency_structural.pdf"));
-            final DrawGraphs.RBagPlot gr_TotalMergersVsStructuralScore = new DrawGraphs.RBagPlot("Total mergers", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_totalmergers_structural.pdf"));
-            final DrawGraphs.RBagPlot gr_MistakesNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Mistakes near root", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_mistakesnearroot_structural.pdf"));
+            final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score", new File(experimentName + statesMax + "_inconsistency_structural.pdf"));
+            final DrawGraphs.RBagPlot gr_BCR_vs_structural = new DrawGraphs.RBagPlot("BCR", "Structural Score", new File(experimentName + statesMax + "_bcr_structural.pdf"));
+            final DrawGraphs.RBagPlot gr_TotalMergersVsStructuralScore = new DrawGraphs.RBagPlot("Total mergers", "Structural Score", new File(experimentName + statesMax + "_totalmergers_structural.pdf"));
+            final DrawGraphs.RBagPlot gr_MistakesNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Mistakes near root", "Structural Score", new File(experimentName + statesMax + "_mistakes_nearroot_structural.pdf"));
+            final DrawGraphs.RBagPlot gr_InvalidMergersNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Invalid mergers near root", "Structural Score", new File(experimentName + statesMax + "_invalidmergers_nearroot_structural.pdf"));
+            final DrawGraphs.RBagPlot gr_MissedMergersNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Missed Mergers near root", "Structural Score", new File(experimentName + statesMax + "_missedmergers_nearroot_structural.pdf"));
             final DrawGraphs.RBagPlot gr_BCRVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "BCR Score, EDSM-Markov learner", new File(experimentName + statesMax + "_inconsistency_bcr.pdf"));
             final DrawGraphs.SquareBagPlot gr_StructuralDiff = new DrawGraphs.SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_sicco_structuraldiff.pdf"), 0, 1, true);
+            final DrawGraphs.SquareBagPlot gr_StructuralDiffLowDensity = new DrawGraphs.SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_lowdensity_sicco_structuraldiff.pdf"), 0, 1, true);
             final DrawGraphs.RBagPlot gr_MarkovTransitionPrecisionStructuralDiff = new DrawGraphs.RBagPlot("Transition precision Markov", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_markovtransitionprecision_structuraldiff.pdf"));
             final DrawGraphs.RBagPlot gr_MarkovHolePrecisionStructuralDiff = new DrawGraphs.RBagPlot("Hole precision Markov", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_markovholeprecision_structuraldiff.pdf"));
             final DrawGraphs.RBagPlot gr_Inconsistencies_and_SD = new DrawGraphs.RBagPlot("Inconsistency, average", "Inconsistency, SD", new File(experimentName + statesMax + "_inconsistencies_sd.pdf"));
@@ -155,6 +159,7 @@ public class E_MarkovBaselineLearn {
             final DrawGraphs.Kruskal_Wallis Kruskal_Wallis_Test_Structural = new DrawGraphs.Kruskal_Wallis(new File(experimentName + "Kruskal_Wallis_Test_str.csv"));
             // names of columns include parameters used with learners, here we ignore that and pick those that match learner names
             DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_StructuralVsInconsistency, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + referencePresetStr, 10, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
+            DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_BCR_vs_structural, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
             DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_BCRVsInconsistency, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + referencePresetStr, 10, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
             DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
             DrawGraphs.spreadsheetToBagPlot(gr_MarkovTransitionPrecisionStructuralDiff, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + referencePresetStr, 15, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
@@ -162,16 +167,31 @@ public class E_MarkovBaselineLearn {
 
             DrawGraphs.spreadsheetToBagPlot(gr_Inconsistencies_and_SD, resultCSV, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 11, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 12, null, null);
             for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+                String[] rowValues = rowEntry.getKey().split("[_=]");
+                assert rowValues[12].equals("d");
+
+
                 getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, (columnText, Y) -> {
                     boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
                     double value = Double.parseDouble(obtainValueFromCell(Y, 2));
-
+                    if (Double.parseDouble(rowValues[13]) == 0) {
+                        String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_SICCO + "-0");
+                        gr_StructuralDiffLowDensity.add(
+                                Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)),
+                                Double.parseDouble(obtainValueFromCell(Y, 2)), null, null);
+                    }
                     gr_PosnegNegativeInconsistencies_Structural.add(Boolean.toString(alwaysPositive), value, null, null);
                     gr_TotalMergersVsStructuralScore.add(
                             Double.parseDouble(obtainValueFromCell(Y, 3)) + Double.parseDouble(obtainValueFromCell(Y, 5)) + Double.parseDouble(obtainValueFromCell(Y, 7)),
                             Double.parseDouble(obtainValueFromCell(Y, 2)), null, null);
                     gr_MistakesNearRootVsStructuralScore.add(
                             Double.parseDouble(obtainValueFromCell(Y, 3)) + Double.parseDouble(obtainValueFromCell(Y, 4)),
+                            Double.parseDouble(obtainValueFromCell(Y, 2)), null, null);
+                    gr_InvalidMergersNearRootVsStructuralScore.add(
+                            Double.parseDouble(obtainValueFromCell(Y, 3)),
+                            Double.parseDouble(obtainValueFromCell(Y, 2)), null, null);
+                    gr_MissedMergersNearRootVsStructuralScore.add(
+                            Double.parseDouble(obtainValueFromCell(Y, 4)),
                             Double.parseDouble(obtainValueFromCell(Y, 2)), null, null);
                 });
             }
@@ -199,8 +219,9 @@ public class E_MarkovBaselineLearn {
             },resultCSV,ScoringToApply.SCORING_MARKOV+presetStr,3,ScoringToApply.SCORING_MARKOV+presetStr,3);
                 */
             for (@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result : new DrawGraphs.RExperimentResult[]{gr_StructuralVsInconsistency, gr_BCRVsInconsistency,
-                    gr_MarkovTransitionPrecisionStructuralDiff, gr_MarkovHolePrecisionStructuralDiff, gr_StructuralDiff,
-                    gr_Inconsistencies_and_SD, gr_PosnegNegativeInconsistencies_Structural, gr_TotalMergersVsStructuralScore, gr_MistakesNearRootVsStructuralScore,
+                    gr_MarkovTransitionPrecisionStructuralDiff, gr_MarkovHolePrecisionStructuralDiff, gr_StructuralDiff,gr_StructuralDiffLowDensity,gr_BCR_vs_structural,
+                    gr_Inconsistencies_and_SD, gr_PosnegNegativeInconsistencies_Structural, gr_TotalMergersVsStructuralScore,
+                    gr_MistakesNearRootVsStructuralScore,gr_MissedMergersNearRootVsStructuralScore,gr_InvalidMergersNearRootVsStructuralScore,
                     gr_BCR, BCRAgainstKtails, BCRAgainstEDSM_1, BCRAgainstEDSM_2,
                     Wilcoxon_Test_BCR, Wilcoxon_test_Structural, Mann_Whitney_U_Test_BCR, Mann_Whitney_U_Test_Structural, Kruskal_Wallis_Test_Structural, Kruskal_Wallis_Test_BCR}) {
                 result.reportResults(learningGroup.gr);
@@ -212,7 +233,9 @@ public class E_MarkovBaselineLearn {
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Map<String, AtomicInteger> learnerToHowOftenBest = new HashMap<>();
             final DrawGraphs.SquareBagPlot gr_StructuralDiffBest = new DrawGraphs.SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner", new File(learningGroup.outPathPrefix + "_baseline" + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true);
-
+            final RBoxPlot<String> gr_PerformanceOfLearners = new RBoxPlot<>("", "Structural Score",
+                    new File(learningGroup.outPathPrefix + statesMax + "_baseline_learner_structural.pdf"));
+            gr_PerformanceOfLearners.setOtherOptions("las=2");
             // Now select the best result from all those available
             for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                 final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
@@ -234,8 +257,16 @@ public class E_MarkovBaselineLearn {
                     gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)), bestLearningResult.structural, null, null);
                 else
                     System.out.println("WARNING: missing Sicco-value for " + rowEntry.getKey());
+
+//                gr_PerformanceOfLearners.add("MARKOV",bestLearningResult.structural, null, null);
+
+                for(Map.Entry<String,String> entry:rowEntry.getValue().entrySet())
+                    if (!entry.getKey().startsWith(LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString())) {
+                        String[] learnerKind = entry.getKey().split("[-]");
+                        gr_PerformanceOfLearners.add(learnerKind[0], Double.parseDouble(obtainValueFromCell(entry.getValue(), 2)), null, null);
+                    }
             }
-            gr_StructuralDiffBest.reportResults(learningGroup.gr);
+            gr_StructuralDiffBest.reportResults(learningGroup.gr);gr_PerformanceOfLearners.reportResults(learningGroup.gr);
             List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
             learners.sort((o1, o2) ->
                     learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());

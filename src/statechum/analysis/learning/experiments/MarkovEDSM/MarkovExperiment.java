@@ -437,6 +437,25 @@ public class MarkovExperiment
 		double bcr = 0, structural = 0;
 		String descr = "NONE";
 		long inconsistency = -1;
+
+		public LearningReport() {
+		}
+
+		public LearningReport(double bcr, double structural, long inconsistency, String descr) {
+			this.bcr = bcr;
+			this.structural = structural;
+			this.inconsistency = inconsistency;
+			this.descr = descr;
+		}
+
+		public void updateIfValueBetter(LearningReport report) {
+			if ((inconsistency < 0 && report.inconsistency >= 0) || inconsistency > report.inconsistency) {
+				bcr = report.bcr;
+				structural = report.structural;
+				inconsistency = report.inconsistency;
+				descr = report.descr;
+			}
+		}
 	}
 
 	public static class LearningExperimentGroupParameters {

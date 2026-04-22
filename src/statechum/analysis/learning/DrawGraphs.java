@@ -1351,7 +1351,7 @@ public class DrawGraphs {
  
 		/** Additional options for R. */
 		protected String otherOptions = "";
-		
+
 		/** Sets additional options for R. */
 		public void setOtherOptions(String str)
 		{
@@ -1638,8 +1638,8 @@ public class DrawGraphs {
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-			return Collections.singletonList( (!otherOptions.isEmpty() ?otherOptions+",":"")+boxPlotToString(data, names.size()==1?null:names,colours,
-					(!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"":""
+			return Collections.singletonList( boxPlotToString(data, names.size()==1?null:names,colours,
+					(!otherOptions.isEmpty() ?otherOptions+",":"")+((!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"":"")
 					));
 		}
 

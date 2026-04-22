@@ -1,7 +1,6 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.Pair;
-import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -15,7 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 
@@ -48,7 +46,9 @@ public class E_MarkovPrefixLen {
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : new int[]{0, 30}) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
-                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8*states*learningGroup.stateScale/learningGroup.statesToUse[0], 32)})//new Pair(1,256)})
+                {
+                    int scalingFactor = states*learningGroup.stateScale/learningGroup.statesToUse[0];
+                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8*scalingFactor, 32*scalingFactor)})
                     {
                         int traceQuantityToUse = traces_lengthmult.firstElem;
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
@@ -57,15 +57,11 @@ public class E_MarkovPrefixLen {
                                         preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-//														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2, ScoringToApply.SCORING_EDSM_4,
-//														ScoringToApply.SCORING_PTAK_1, ScoringToApply.SCORING_PTAK_2,
                                                         LearningAlgorithms.ScoringToApply.SCORING_SICCO
                                                 } :
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
-//														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2
                                                 })
-                                    // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
                                     for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{2, 3, 4} : new int[]{2})
                                         for (double weightOfInconsistencies : learnerKind.isMarkov() ?
                                                 new double[]{0.25, 0.5, 1.0, 2.0, 4.0, 8.0}
@@ -85,6 +81,7 @@ public class E_MarkovPrefixLen {
                                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                                 learningGroup.experimentRunner.submitTask(learnerRunner);
                                             }
+                        }
                 }
         }
 
@@ -141,21 +138,19 @@ public class E_MarkovPrefixLen {
             }
 
         });
-        int referencePreset = 0;
+
         for (final int preset : learnerExperiment) {
             if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
                 String presetStr = "-" + preset;
-                String referencePresetStr = "-" + referencePreset;
                 String experimentName = learningGroup.outPathPrefix + "preset_" + preset + "_";
-                final RBoxPlot<String> gr_StructuralVsChunkLenWeight = new RBoxPlot<>("ChunkLen and inconsistency multiplier", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_chunkLenInconsistencyWeight_structural.pdf"));
+                final RBoxPlot<String> gr_StructuralVsChunkLenWeight = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score", new File(experimentName + statesMax + "_prefixLenInconsistencyWeight_structural.pdf"));
 
                 for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                     getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, (columnText, Y) -> {
-                        boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
                         double value = Double.parseDouble(obtainValueFromCell(Y, 2));
 
                         String[] elems = columnText.split("[_=]");
-                        gr_StructuralVsChunkLenWeight.add(elems[2] + "_" + elems[4], value);
+                        gr_StructuralVsChunkLenWeight.add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4], value);
                     });
                 }
 
@@ -166,7 +161,7 @@ public class E_MarkovPrefixLen {
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Map<String, AtomicInteger> learnerToHowOftenBest = new HashMap<>();
-            final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner", new File(learningGroup.outPathPrefix + "_bestchunklen_and_mult_" + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true);
+            final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov", new File(learningGroup.outPathPrefix + "_bestprefixlen_and_mult_" + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true);
 
             // Now select the best result from all those available
             for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {

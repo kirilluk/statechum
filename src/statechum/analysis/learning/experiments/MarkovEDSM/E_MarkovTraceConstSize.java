@@ -154,7 +154,7 @@ public class E_MarkovTraceConstSize {
 
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            final RBoxPlot<String> gr_BestStructuralForLengthMultiplier = new RBoxPlot<>("Trace length multiplier", "Structural Score, EDSM-Markov learner", new File(learningGroup.outPathPrefix + statesMax + "_mult_structural.pdf"));
+            final RBoxPlot<String> gr_BestStructuralForLengthMultiplier = new RBoxPlot<>("Trace length multiplier", "Structural Score, EDSM-Markov learner", new File(learningGroup.outPathPrefix + statesMax + "_constsize_mult_structural.pdf"));
             final Map<Integer,SquareBagPlot> gr_StructuralDiffBestMap = new TreeMap<>();
             Map<Integer,Map<String, AtomicInteger>> learnerToHowOftenBestForAllMultipliers = new TreeMap<>();
 
@@ -168,7 +168,7 @@ public class E_MarkovTraceConstSize {
                         Map<String, AtomicInteger> learnerToHowOftenBest = learnerToHowOftenBestForAllMultipliers.computeIfAbsent(traceLenMult,aDouble -> new HashMap<>());
                         gr_StructuralDiffBestMap.computeIfAbsent(traceLenMult,aDouble ->
                             new SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner",
-                                new File(learningGroup.outPathPrefix + "mult_tracelen=" + traceLenMult + " " + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true));
+                                new File(learningGroup.outPathPrefix + "mult_tracelen=" + traceLenMult + " " + statesMax + "_constsize_sicco_structuraldiffBest.pdf"), 0, 1, true));
 
 
                         getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {

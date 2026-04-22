@@ -57,15 +57,11 @@ public class E_MarkovPrefixLen {
                                         preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-//														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2, ScoringToApply.SCORING_EDSM_4,
-//														ScoringToApply.SCORING_PTAK_1, ScoringToApply.SCORING_PTAK_2,
                                                         LearningAlgorithms.ScoringToApply.SCORING_SICCO
                                                 } :
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
-//														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2
                                                 })
-                                    // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
                                     for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{2, 3, 4} : new int[]{2})
                                         for (double weightOfInconsistencies : learnerKind.isMarkov() ?
                                                 new double[]{0.25, 0.5, 1.0, 2.0, 4.0, 8.0}
@@ -141,11 +137,10 @@ public class E_MarkovPrefixLen {
             }
 
         });
-        int referencePreset = 0;
+
         for (final int preset : learnerExperiment) {
             if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
                 String presetStr = "-" + preset;
-                String referencePresetStr = "-" + referencePreset;
                 String experimentName = learningGroup.outPathPrefix + "preset_" + preset + "_";
                 final RBoxPlot<String> gr_StructuralVsChunkLenWeight = new RBoxPlot<>("ChunkLen and inconsistency multiplier", "Structural Score, EDSM-Markov learner", new File(experimentName + statesMax + "_chunkLenInconsistencyWeight_structural.pdf"));
 
@@ -154,7 +149,7 @@ public class E_MarkovPrefixLen {
                         double value = Double.parseDouble(obtainValueFromCell(Y, 2));
 
                         String[] elems = columnText.split("[_=]");
-                        gr_StructuralVsChunkLenWeight.add(elems[2] + "_" + elems[4], value);
+                        gr_StructuralVsChunkLenWeight.add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4], value);
                     });
                 }
 

@@ -34,7 +34,7 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 	public final int seed;
 	public double alphabetMultiplier = 1;
 	public double traceLengthMultiplier = 1;
-	public int traceQuantity,statesMax;
+	public int traceQuantity;
 	public double traceLengthMultiplierMax,alphabetMultiplierMax;
 	boolean usePrintf = false;
 	public int perStateSquaredDensityMultipliedBy100 = 0;
@@ -47,9 +47,9 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 		perStateSquaredDensityMultipliedBy100 = perStateSquaredDensity10;sample = argSample;trainingSample = argTrainingSample;seed = argSeed;
 	}
 	
-	public void setExperimentID(int traceQuantity,double argTraceLengthMultiplierMax,int statesMax,double argAlphabetMultiplierMax)
+	public void setExperimentID(int traceQuantity, double argTraceLengthMultiplierMax, double argAlphabetMultiplierMax)
 	{
-		this.traceQuantity = traceQuantity;this.traceLengthMultiplierMax = argTraceLengthMultiplierMax;this.statesMax = statesMax;this.alphabetMultiplierMax = argAlphabetMultiplierMax;
+		this.traceQuantity = traceQuantity;this.traceLengthMultiplierMax = argTraceLengthMultiplierMax;this.alphabetMultiplierMax = argAlphabetMultiplierMax;
 	}
 
 	/**
@@ -57,7 +57,7 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 	 */
 	public String getExperimentID()
 	{
-		return "tQ="+traceQuantity+"_tMM="+traceLengthMultiplierMax+"_sM="+statesMax+"_aMM="+alphabetMultiplierMax;
+		return "tQ="+traceQuantity+"_tMM="+traceLengthMultiplierMax+"_aMM="+alphabetMultiplierMax;
 	}
 	
 	public void setUsePrintf(boolean value)

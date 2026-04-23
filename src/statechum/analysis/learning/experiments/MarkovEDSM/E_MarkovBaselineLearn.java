@@ -66,7 +66,7 @@ public class E_MarkovBaselineLearn {
 
                                 MarkovLearningBaselineParameters parameters = new MarkovLearningBaselineParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
                                 parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
-                                parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, statesMax, alphabetMultiplier);
+                                parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
                                 parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, aveOrMax, 0, 0, 0);
                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                 MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);

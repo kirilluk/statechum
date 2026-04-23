@@ -137,7 +137,7 @@ public class CVS
 				final AtomicLong comparisonsPerformed = new AtomicLong(0);
 				final int statesMax = statesToUse[statesToUse.length-1];// reflects the size of the largest FSM that will be generated. 
 				MarkovLearningParameters parExp = new MarkovCVSParameters(null,0,0,0,0,0,0);
-				parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax,statesMax,alphabetMultiplier);
+				parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax, alphabetMultiplier);
 	
 				for(int states:statesToUse)
 				for(int density:new int[] {0,3})
@@ -161,7 +161,7 @@ public class CVS
 				
 											MarkovLearningParameters parameters = new MarkovCVSParameters(learnerKind,states, alphabetMultiplier, density, sample,trainingSample, seedForFSM);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
-											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,statesMax,alphabetMultiplier);
+											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax, alphabetMultiplier);
 											parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies,aveOrMax,divisorForPathCount,0,1);
 											parameters.setUsePrintf(experimentRunner.isInteractive());
 											MarkovLearnerFromPTAUsingReference learnerRunner = new MarkovLearnerFromPTAUsingReference(parameters, ev,pta, getCVSReference(eval));

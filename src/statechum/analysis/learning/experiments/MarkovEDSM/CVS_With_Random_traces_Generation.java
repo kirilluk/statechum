@@ -102,7 +102,7 @@ public class CVS_With_Random_traces_Generation
 				int seedForFSM = 0;
 				final AtomicLong comparisonsPerformed = new AtomicLong(0);
 				MarkovLearningParameters parExp = new CVS.MarkovCVSParameters(null,0,0,0,0,0,0);
-				parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax,states,alphabetMultiplier);
+				parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax, alphabetMultiplier);
 				
 					final String experimentName = outPathPrefix+parExp.getExperimentID();
 					final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(experimentName+"results.csv"));
@@ -122,7 +122,7 @@ public class CVS_With_Random_traces_Generation
 				
 											MarkovLearningParameters parameters = new CVS.MarkovCVSParameters(learnerKind,states, 0, alphabetMultiplier, 0,trainingSample, seedForFSM);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
-											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax,states,alphabetMultiplier);
+											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax, alphabetMultiplier);
 											parameters.markovParameters.setMarkovParameters(preset, chunkSize, true, weightOfInconsistencies,aveOrMax, divisorForPathCount,0,1);
 											parameters.setUsePrintf(experimentRunner.isInteractive());
 											MarkovLearnerUsingReference learnerRunner = new MarkovLearnerUsingReference(parameters, ev, cvsReference);

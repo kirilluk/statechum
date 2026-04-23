@@ -1,7 +1,6 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.Pair;
-import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -12,7 +11,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 
@@ -71,7 +69,7 @@ public class E_MarkovAlphabet {
 
                                                     MarkovAlphabetLearningParameters parameters = new MarkovAlphabetLearningParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
                                                     parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
-                                                    parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, statesMax, alphabetMultiplier);
+                                                    parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
                                                     parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, aveOrMax, divisor, 0, wlen);
                                                     parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                                     MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);

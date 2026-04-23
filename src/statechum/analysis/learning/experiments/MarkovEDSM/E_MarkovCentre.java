@@ -202,7 +202,7 @@ public class E_MarkovCentre {
 
                                             MarkovCentreLearningParameters parameters = new MarkovCentreLearningParameters(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
                                             parameters.setTraceLengthMultiplier(traceLengthMultiplier);
-                                            parameters.setExperimentID(traces_lengthmult.firstElem, learningGroup.traceLengthMultiplierMax, statesMax, alphabetMultiplier);
+                                            parameters.setExperimentID(traces_lengthmult.firstElem, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
                                             parameters.markovParameters.setMarkovParameters(1, chunkSizeForCentreExperiments, pathsOrSets, weightOfInconsistencies, aveOrMax, divisor, 0, wlen);
                                             parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                             MarkovCentreIdentification centreIdentificationExperiment = new MarkovCentreIdentification(parameters, ev);

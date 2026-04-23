@@ -67,7 +67,7 @@ public class E_MarkovTraceConstSize {
 
                                                 MarkovAlphabetLearningParameters parameters = new MarkovAlphabetLearningParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
                                                 parameters.setTraceLengthMultiplier(traceLenMult);
-                                                parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, statesMax, alphabetMultiplier);
+                                                parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
                                                 parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, aveOrMax, divisor, 0, wlen);
                                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                                 MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);

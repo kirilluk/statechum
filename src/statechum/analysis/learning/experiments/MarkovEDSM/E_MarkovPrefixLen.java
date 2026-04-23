@@ -48,7 +48,7 @@ public class E_MarkovPrefixLen {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
                 {
                     int scalingFactor = states*learningGroup.stateScale/learningGroup.statesToUse[0];
-                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8*scalingFactor, 32*scalingFactor)})
+                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8 * scalingFactor, 32 )})
                     {
                         int traceQuantityToUse = traces_lengthmult.firstElem;
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
@@ -81,9 +81,9 @@ public class E_MarkovPrefixLen {
                                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                                 learningGroup.experimentRunner.submitTask(learnerRunner);
                                             }
-                        }
+                    }
                 }
-        }
+            }
 
         learningGroup.experimentRunner.collectOutcomeOfExperiments(new SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>() {
 

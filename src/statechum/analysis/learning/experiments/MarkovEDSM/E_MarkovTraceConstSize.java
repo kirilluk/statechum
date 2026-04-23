@@ -41,24 +41,22 @@ public class E_MarkovTraceConstSize {
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : new int[]{0, 30}) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
-                    for (int traceLenMultV:traceLenMultValues) {
-			int traceLenMult = traceLenMultV*states*learningGroup.stateScale/learningGroup.statesToUse[0];
-                        int traceQuantityToUse = 256*states*learningGroup.stateScale/learningGroup.statesToUse[0]/traceLenMult;
-                        for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
+                    for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
+                        for (int traceLenMultV:traceLenMultValues) {
+                            int scalingFactor = states*learningGroup.stateScale/learningGroup.statesToUse[0];
+
+                            int traceLenMult = traceLenMultV * scalingFactor;
+                            int traceQuantityToUse = 256 * scalingFactor/ traceLenMult;
                             for (final int preset : learnerExperiment)
                                 for (LearningAlgorithms.ScoringToApply learnerKind :
                                         preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-                                                        //														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2, ScoringToApply.SCORING_EDSM_4,
-                                                        //														ScoringToApply.SCORING_PTAK_1, ScoringToApply.SCORING_PTAK_2,
                                                         LearningAlgorithms.ScoringToApply.SCORING_SICCO
                                                 } :
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
-                                                        //														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2
                                                 })
-                                    // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
                                     for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{3, 4} : new int[]{2})
                                         for (double weightOfInconsistencies : learnerKind.isMarkov() ? new double[]{0.5, 1.0, 2.0} : new double[]{1.0})
                                             for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} : new Pair[]{new Pair(1, 1), new Pair(1, 2), new Pair(2, 4)}) {
@@ -76,8 +74,8 @@ public class E_MarkovTraceConstSize {
                                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                                 learningGroup.experimentRunner.submitTask(learnerRunner);
                                             }
-                }
-        }
+                        }
+           }
 
         learningGroup.experimentRunner.collectOutcomeOfExperiments(new SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>() {
 

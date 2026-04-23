@@ -43,7 +43,8 @@ public class E_MarkovAlphabet {
             for (int perStateSquaredDensity100 : new int[]{0, 30}) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
                     for(final double alphabetMultiplier:alphabetMultValues) {
-                        for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8*states*learningGroup.stateScale/learningGroup.statesToUse[0], 32)}) {
+                        int scalingFactor = states*learningGroup.stateScale/learningGroup.statesToUse[0];
+                        for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8*scalingFactor, 32 )}) {
                             int traceQuantityToUse = traces_lengthmult.firstElem;
                             for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
                                 for (final int preset : learnerExperiment)

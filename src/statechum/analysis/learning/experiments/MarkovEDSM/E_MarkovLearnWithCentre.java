@@ -43,7 +43,7 @@ public class E_MarkovLearnWithCentre {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
                 {
                     int scalingFactor = states*learningGroup.stateScale/learningGroup.statesToUse[0];
-                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8*scalingFactor, 32*scalingFactor),new Pair(1*scalingFactor,256*scalingFactor)})
+                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8*scalingFactor, 32 ),new Pair(1*scalingFactor,256*scalingFactor)})
                     {
                         int traceQuantityToUse = traces_lengthmult.firstElem;
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
@@ -52,15 +52,11 @@ public class E_MarkovLearnWithCentre {
                                         preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-//														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2, ScoringToApply.SCORING_EDSM_4,
-//														ScoringToApply.SCORING_PTAK_1, ScoringToApply.SCORING_PTAK_2,
                                                         LearningAlgorithms.ScoringToApply.SCORING_SICCO
                                                 } :
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
-//														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2
                                                 })
-                                    // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
                                 {
                                     int chunkSizeToEvaluate = 3;
                                     double weightOfInconsistencies = 2.0;
@@ -80,9 +76,9 @@ public class E_MarkovLearnWithCentre {
                                         learningGroup.experimentRunner.submitTask(learnerRunner);
                                     }
                                 }
-                        }
+                    }
                 }
-        }
+            }
 
         learningGroup.experimentRunner.collectOutcomeOfExperiments(new SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>() {
 

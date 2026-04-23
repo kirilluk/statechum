@@ -187,27 +187,29 @@ public class E_MarkovCentre {
         for(int states:learningGroup.statesToUse)
             for(int perStateSquaredDensity100:new int[] {0,30})
                 for(int sample=0;sample<learningGroup.fsmSamplesPerStateNumber;++sample,++seedForFSM)
-                        for(int trainingSample=0;trainingSample<learningGroup.trainingSamplesPerFSM;++trainingSample)
-                            for(final Pair<Integer,Integer> traces_lengthmult:new Pair[]{new Pair(8*states*learningGroup.stateScale/learningGroup.statesToUse[0],32), new Pair(1,256*states*learningGroup.stateScale/learningGroup.statesToUse[0])})
-                                    for(double weightOfInconsistencies:new double[]{2.0})//1.0,2.0,4.0}
-                                        for(int wlen:wlen_values)
-                                            for(int divisor:divisor_values)
-                                            {
-                                                ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
-                                                ev.config = learningGroup.eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states* LearningAlgorithms.maxStateNumberMultiplier);
+                        for(int trainingSample=0;trainingSample<learningGroup.trainingSamplesPerFSM;++trainingSample) {
+                            int scalingFactor = states*learningGroup.stateScale/learningGroup.statesToUse[0];
+                            for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8 * scalingFactor, 32 ),
+                                    new Pair(1, 256 * scalingFactor)})
+                                for (double weightOfInconsistencies : new double[]{2.0})//1.0,2.0,4.0}
+                                    for (int wlen : wlen_values)
+                                        for (int divisor : divisor_values) {
+                                            ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
+                                            ev.config = learningGroup.eval.config.copy();
+                                            ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
 
-                                                int traceLengthMultiplier = traces_lengthmult.secondElem;
+                                            int traceLengthMultiplier = traces_lengthmult.secondElem;
 
-                                                MarkovCentreLearningParameters parameters = new MarkovCentreLearningParameters(LearningAlgorithms.ScoringToApply.SCORING_MARKOV,states, alphabetMultiplier, perStateSquaredDensity100, sample,trainingSample, seedForFSM);
-                                                parameters.setTraceLengthMultiplier(traceLengthMultiplier);
-                                                parameters.setExperimentID(traces_lengthmult.firstElem,learningGroup.traceLengthMultiplierMax,statesMax,alphabetMultiplier);
-                                                parameters.markovParameters.setMarkovParameters(1,chunkSizeForCentreExperiments,pathsOrSets,weightOfInconsistencies, aveOrMax,divisor,0,wlen);
-                                                parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-                                                MarkovCentreIdentification centreIdentificationExperiment = new MarkovCentreIdentification(parameters, ev);
-                                                centreIdentificationExperiment.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
-                                                learningGroup.experimentRunner.submitTask(centreIdentificationExperiment);
-                                            }
-
+                                            MarkovCentreLearningParameters parameters = new MarkovCentreLearningParameters(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
+                                            parameters.setTraceLengthMultiplier(traceLengthMultiplier);
+                                            parameters.setExperimentID(traces_lengthmult.firstElem, learningGroup.traceLengthMultiplierMax, statesMax, alphabetMultiplier);
+                                            parameters.markovParameters.setMarkovParameters(1, chunkSizeForCentreExperiments, pathsOrSets, weightOfInconsistencies, aveOrMax, divisor, 0, wlen);
+                                            parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
+                                            MarkovCentreIdentification centreIdentificationExperiment = new MarkovCentreIdentification(parameters, ev);
+                                            centreIdentificationExperiment.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
+                                            learningGroup.experimentRunner.submitTask(centreIdentificationExperiment);
+                                        }
+                        }
         learningGroup.experimentRunner.collectOutcomeOfExperiments(new SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>() {
 
             @Override

@@ -461,12 +461,12 @@ public class MarkovExperiment
 	public static class LearningExperimentGroupParameters {
 		DrawGraphs gr = new DrawGraphs();
 
-		final int fsmSamplesPerStateNumber = 40;
+		final int fsmSamplesPerStateNumber = 20;
 		final int trainingSamplesPerFSM = 4;
 		final double traceLengthMultiplierMax = 16;
 
 		final boolean pathsOrSets = true;
-		final int[] statesToUse = new int[]{20};
+		final int[] statesToUse = new int[]{10,20};
 		// Scales the number of traces to account for larger automata
 		final int stateScale = statesToUse[0]/10;
 
@@ -503,14 +503,14 @@ public class MarkovExperiment
 
 		try
 		{
-			E_MarkovCentre.runExperiment(learningGroup);
 			E_MarkovBaselineLearn.runExperiment(learningGroup);
-			E_MarkovAlphabet.runExperiment(learningGroup);
-			E_MarkovTraceMult.runExperiment(learningGroup);
-			E_MarkovTraceConstSize.runExperiment(learningGroup);
-			E_MarkovPrefixLen.runExperiment(learningGroup);
-			E_MarkovTraceNum.runExperiment(learningGroup);
-			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+//			E_MarkovCentre.runExperiment(learningGroup);
+//			E_MarkovAlphabet.runExperiment(learningGroup);
+//			E_MarkovTraceMult.runExperiment(learningGroup);
+//			E_MarkovTraceConstSize.runExperiment(learningGroup);
+//			E_MarkovPrefixLen.runExperiment(learningGroup);
+//			E_MarkovTraceNum.runExperiment(learningGroup);
+//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		/*
 		final RBoxPlotP<String> gr_BCRForDifferentLearners = new RBoxPlotP<String>("","BCR",new File(branch+"BCR_learner.pdf"));
 		final RBoxPlotP<String> gr_StructuralForDifferentLearners = new RBoxPlotP<String>("","structural",new File(branch+"structural_learner.pdf"));

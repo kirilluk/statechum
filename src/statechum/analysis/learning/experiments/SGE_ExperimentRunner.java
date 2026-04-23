@@ -97,7 +97,8 @@ public class SGE_ExperimentRunner
 		RUN_PARALLEL, // this is similar to RUN_TASK but will run all tasklets corresponding to the same virtual task in parallel. This permits multiple PCs to easily run different segments of work across their CPUs.
 		 // It is important to point out that learnt graphs are recorded and evaluation can be repeated, except that run time will be reset to 0 because it is not recorded in graphs.
 		PROGRESS_INDICATOR, // used to report the %% of completed tasklets.
-		REPORT_TASKPARAMETERS // used to report which task IDs are associated with which tasklets. This is necessary to be able to debug specific tasklets.
+		REPORT_TASKPARAMETERS, // used to report which task IDs are associated with which tasklets. This is necessary to be able to debug specific tasklets.
+		REPORT_REMAINING_TASKPARAMETERS // used to report parameters of tasks that are yet to be completed
 	}
 	
 	public static class RunSubExperiment<EXPERIMENT_PARAMETERS extends ThreadResultID,RESULT extends ExperimentResult<EXPERIMENT_PARAMETERS>> 
@@ -179,6 +180,7 @@ public class SGE_ExperimentRunner
 						throw new IllegalArgumentException("the number of real tasks to run should be positive");
 					break;
 				case REPORT_TASKPARAMETERS:
+				case REPORT_REMAINING_TASKPARAMETERS:
 					if (args.length != 1)
 						throw new IllegalArgumentException("no arguments is permitted for phase "+phase);
 					virtTaskToRealTask = loadVirtTaskToReal(tmpDir);
@@ -223,6 +225,12 @@ public class SGE_ExperimentRunner
 					for(int task:entry.getValue())
 						System.out.println("{"+entry.getKey()+","+task+"} - "+taskIDToParameters.get(task).getSubExperimentName()+" [ "+taskIDToParameters.get(task).getRowID()+" , "+taskIDToParameters.get(task).getColumnID()+" ]");
 				}
+				break;
+			case REPORT_REMAINING_TASKPARAMETERS:
+				for(Entry<Integer,Set<Integer>> entry:virtTaskToRealTask.entrySet())
+					for(int task:entry.getValue())
+						if (availableTasks.contains(task))
+							System.out.println("{"+entry.getKey()+","+task+"} - "+taskIDToParameters.get(task).getSubExperimentName()+" [ "+taskIDToParameters.get(task).getRowID()+" , "+taskIDToParameters.get(task).getColumnID()+" ]");
 				break;
 			default:
 				break;
@@ -304,6 +312,7 @@ public class SGE_ExperimentRunner
 			case COUNT_TASKS:
 			case PROGRESS_INDICATOR:
 			case REPORT_TASKPARAMETERS:
+			case REPORT_REMAINING_TASKPARAMETERS:
 				break;
 			case COLLECT_RESULTS:
 			case COLLECT_AVAILABLE:
@@ -701,6 +710,7 @@ public class SGE_ExperimentRunner
 				case COUNT_TASKS:
 				case PROGRESS_INDICATOR:
 				case REPORT_TASKPARAMETERS:
+				case REPORT_REMAINING_TASKPARAMETERS:
 					updateAvailableTasks(taskCounterFromPreviousSubExperiment,taskCounter);
 					break;
 					
@@ -810,6 +820,7 @@ public class SGE_ExperimentRunner
 			case COUNT_TASKS:
 			case PROGRESS_INDICATOR:
 			case REPORT_TASKPARAMETERS:
+			case REPORT_REMAINING_TASKPARAMETERS:
 				break;
 			case COLLECT_RESULTS:
 			case COLLECT_AVAILABLE:
@@ -837,6 +848,7 @@ public class SGE_ExperimentRunner
 			case COUNT_TASKS:
 			case PROGRESS_INDICATOR:
 			case REPORT_TASKPARAMETERS:
+			case REPORT_REMAINING_TASKPARAMETERS:
 				break;
 			case COLLECT_RESULTS:
 			case COLLECT_AVAILABLE:

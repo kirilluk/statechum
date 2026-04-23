@@ -43,35 +43,37 @@ public class E_MarkovBaselineLearn {
         int seedForFSM = 0;
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : new int[]{0, 30}) {
-                for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
-                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8*states*learningGroup.stateScale/learningGroup.statesToUse[0], 32*states*learningGroup.stateScale/learningGroup.statesToUse[0])})//new Pair(1,256)})
+                for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM) {
+                    int scalingFactor = states*learningGroup.stateScale/learningGroup.statesToUse[0];
+                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8 * scalingFactor, 32 )})
                     {
                         int traceQuantityToUse = traces_lengthmult.firstElem;
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
-                                for (LearningAlgorithms.ScoringToApply learnerKind :
-                                                new LearningAlgorithms.ScoringToApply[]{
-                                                        LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-                                                        LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
-                                                        LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
-                                                        LearningAlgorithms.ScoringToApply.SCORING_SICCO
-                                                })
-                                    // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
-                                {
-                                    int chunkSizeToEvaluate = 3;
-                                    double weightOfInconsistencies = 2.0;
-                                        ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
-                                        ev.config = learningGroup.eval.config.copy();
-                                        ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
+                            for (LearningAlgorithms.ScoringToApply learnerKind :
+                                    new LearningAlgorithms.ScoringToApply[]{
+                                            LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
+                                            LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
+                                            LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
+                                            LearningAlgorithms.ScoringToApply.SCORING_SICCO
+                                    })
+                            // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
+                            {
+                                int chunkSizeToEvaluate = 3;
+                                double weightOfInconsistencies = 2.0;
+                                ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
+                                ev.config = learningGroup.eval.config.copy();
+                                ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
 
-                                        MarkovLearningBaselineParameters parameters = new MarkovLearningBaselineParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
-                                        parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
-                                        parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, statesMax, alphabetMultiplier);
-                                        parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, aveOrMax, 0, 0, 0);
-                                        parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-                                        MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);
-                                        learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
-                                        learningGroup.experimentRunner.submitTask(learnerRunner);
-                                }
+                                MarkovLearningBaselineParameters parameters = new MarkovLearningBaselineParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
+                                parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
+                                parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, statesMax, alphabetMultiplier);
+                                parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, aveOrMax, 0, 0, 0);
+                                parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
+                                MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);
+                                learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
+                                learningGroup.experimentRunner.submitTask(learnerRunner);
+                            }
+                    }
                 }
         }
 

@@ -89,22 +89,23 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	final ConvertALabel conv;
 
 	final boolean allowPartialAutomata;
-
+	final boolean permitDuplicateStates;
 	public enum HOW_TO_FIND_INITIAL_STATE {FIRST_FOUND,FIRST_ACCEPT_FOUND, USE_ISINITIAL, USE_START0}
 
 	final HOW_TO_FIND_INITIAL_STATE initial_state_locator;
 	/**
 	 * Given a textual representation of a fsm, builds a corresponding graph. Graph name is extracted from dot graph name.
 	 *
-	 * @param whatToParse     the textual representation of an FSM in the DOT language (<a href="https://www.graphviz.org/doc/info/lang.html">...</a>)
-	 * @param conf            configuration to use for node creation.
-	 * @param converter       label converter, ignored if null.
-	 * @param allowPartialAutomata whether transitions with specific string can be seen as error-transitions
-	 * @param start0          When FIRST_FOUND, will be using the first encountered state as an initial state. When FIRST_ACCEPT_FOUND, chooses first non-reject state as the initial state (if any). When USE_START0, will use __start0 to on a transition pointing to the initial state (and __start0 is not a state in our automaton but a placeholder).
+	 * @param whatToParse           the textual representation of an FSM in the DOT language (<a href="https://www.graphviz.org/doc/info/lang.html">...</a>)
+	 * @param conf                  configuration to use for node creation.
+	 * @param converter             label converter, ignored if null.
+	 * @param allowPartialAutomata  whether transitions with specific string can be seen as error-transitions
+	 * @param permitDuplicateStates
+	 * @param start0                When FIRST_FOUND, will be using the first encountered state as an initial state. When FIRST_ACCEPT_FOUND, chooses first non-reject state as the initial state (if any). When USE_START0, will use __start0 to on a transition pointing to the initial state (and __start0 is not a state in our automaton but a placeholder).
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
 	public FsmParserDot(String whatToParse, Configuration conf, final AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> gr, final ConvertALabel converter,
-						boolean allowPartialAutomata, HOW_TO_FIND_INITIAL_STATE start0) {
+						boolean allowPartialAutomata, boolean permitDuplicateStates, HOW_TO_FIND_INITIAL_STATE start0) {
 		assert conf.getTransitionMatrixImplType() != STATETREE.STATETREE_ARRAY || converter != null : "converter has to be set for an ARRAY transition matrix";
 		text = whatToParse;
 		pos = 0;
@@ -112,7 +113,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 		config = conf;
 		conv = converter;
 		lineNumber = 1;
-		this.allowPartialAutomata = allowPartialAutomata;
+		this.allowPartialAutomata = allowPartialAutomata;this.permitDuplicateStates = permitDuplicateStates;
 		initial_state_locator = start0;
 	}
 
@@ -125,7 +126,7 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
 	public FsmParserDot(String whatToParse, Configuration conf, final AbstractLearnerGraph<TARGET_TYPE, CACHE_TYPE> gr, final ConvertALabel converter) {
-		this(whatToParse, conf,gr,converter,true, FIRST_FOUND);
+		this(whatToParse, conf,gr,converter,true, false, FIRST_FOUND);
 	}
 
 	public String parseQuoted() {
@@ -159,6 +160,47 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 
 	public static boolean isTextChar(char ch) {
 		return isDigit(ch) || ch == '_' || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+	}
+
+	public String parseLiteral() {
+		StringBuilder result = new StringBuilder();
+
+		if (isFinished())
+			throwException("End of text inside literal A");
+
+		char ch = nextChar();
+		if (ch != '<')
+			throwException("Invalid start of literal");
+
+		boolean firstCharOfEndLiteral = false;
+
+		if (isFinished())
+			throwException("End of text inside literal B");
+
+		while(true) {
+			ch = nextChar();
+			if (ch == '>') {
+				if (firstCharOfEndLiteral) {
+					// end of text
+					break;
+				}
+				else
+					firstCharOfEndLiteral = true;
+			}
+			else
+			{
+				if (firstCharOfEndLiteral) {
+					result.append('>');
+					firstCharOfEndLiteral = false;
+				}
+				result.append(ch);
+			}
+
+			if (isFinished())
+				throwException("End of text inside literal C");
+		}
+
+		return result.toString();
 	}
 
 	public String parseText(boolean permitEquals) {
@@ -266,7 +308,10 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 			unget();
 			result = parseText(false);
 		} else
-			throwException("invalid character");
+			if (ch == '<')
+				result = parseLiteral();
+			else
+				throwException("invalid character");
 
 		return result;
 	}
@@ -327,8 +372,11 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	}
 
 	public void createVertex(String from) {
-		if (null != graph.transitionMatrix.findKey(VertexID.parseID(from)))
+		if (null != graph.transitionMatrix.findKey(VertexID.parseID(from))) {
+			if (permitDuplicateStates)
+				return;// state already present
 			throwException("State " + from + " already defined");
+		}
 		CmpVertex vert = AbstractLearnerGraph.generateNewCmpVertex(VertexID.parseID(from), config);
 		graph.transitionMatrix.put(vert, graph.createNewRow());
 		vert.setAccept(true);
@@ -509,14 +557,16 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	 * @param config configuration for the automaton, including kind of labels
 	 * @param conv label converter, ignored if null.
 	 * @param allowPartialAutomata whether to permit partial automat to be built
+	 * @param permitDuplicateStates whether to permit states being declared multiple times such as where there is a blank definition, subsequently followed by declaration of options.
 	 * @param how_to_find_initial_state selects algorithm to identify an initial state
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public static LearnerGraph buildLearnerGraph(String fsm, Configuration config, final ConvertALabel conv, boolean allowPartialAutomata,HOW_TO_FIND_INITIAL_STATE how_to_find_initial_state ) {
+	public static LearnerGraph buildLearnerGraph(String fsm, Configuration config, final ConvertALabel conv, boolean allowPartialAutomata,
+												 boolean permitDuplicateStates, HOW_TO_FIND_INITIAL_STATE how_to_find_initial_state ) {
 		Configuration conf = config.copy();
 		LearnerGraph graph = new LearnerGraph(conf);
 		graph.initEmpty();
-        new FsmParserDot<>(fsm, config, graph, conv, allowPartialAutomata, how_to_find_initial_state).parseGraph();
+        new FsmParserDot<>(fsm, config, graph, conv, allowPartialAutomata, permitDuplicateStates, how_to_find_initial_state).parseGraph();
 		return graph;
 	}
 
@@ -530,11 +580,12 @@ public class FsmParserDot<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,
 	 * @param how_to_find_initial_state selects algorithm to identify an initial state
 	 * @throws IllegalArgumentException if fsm cannot be parsed.
 	 */
-	public static LearnerGraphND buildLearnerGraphND(String fsm, Configuration config, final ConvertALabel conv, boolean allowPartialAutomata,HOW_TO_FIND_INITIAL_STATE how_to_find_initial_state) {
+	public static LearnerGraphND buildLearnerGraphND(String fsm, Configuration config, final ConvertALabel conv, boolean allowPartialAutomata,
+													 boolean permitDuplicateStates, HOW_TO_FIND_INITIAL_STATE how_to_find_initial_state) {
 		Configuration conf = config.copy();
 		LearnerGraphND graph = new LearnerGraphND(conf);
 		graph.initEmpty();
-        new FsmParserDot<>(fsm, config, graph, conv, allowPartialAutomata, how_to_find_initial_state).parseGraph();
+        new FsmParserDot<>(fsm, config, graph, conv, allowPartialAutomata, permitDuplicateStates, how_to_find_initial_state).parseGraph();
 		return graph;
 	}
 }

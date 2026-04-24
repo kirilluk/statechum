@@ -30,11 +30,11 @@ public class DotPlotStructuralDifference {
         String outcomeDot = Helper.loadFile(new File(args[2]));
         MapWithSearch<String,String,Integer> useExistingNumbering = new HashMapWithSearch<>(20);
         Map<LabelInputOutput,Integer> labelToNumber = new TreeMap<>();
-        LearnerGraph referenceGraphWithRejects = FsmParserDot.buildLearnerGraph(referenceDot, configAtomicPairs, null,true, howToFindInitial).
+        LearnerGraph referenceGraphWithRejects = FsmParserDot.buildLearnerGraph(referenceDot, configAtomicPairs, null,true, false, howToFindInitial).
                 transform.numberOutputsAndStates(true,"S",null,useExistingNumbering,labelToNumber);
         LearnerGraph referenceGraph = new LearnerGraph(configAtomicPairs), actualAutomaton = new LearnerGraph(configAtomicPairs);
         AbstractPathRoutines.removeRejectStates(referenceGraphWithRejects, referenceGraph);
-        LearnerGraph actualAutomatonWithRejects = FsmParserDot.buildLearnerGraph(outcomeDot, configAtomicPairs, null,true, howToFindInitial).
+        LearnerGraph actualAutomatonWithRejects = FsmParserDot.buildLearnerGraph(outcomeDot, configAtomicPairs, null,true, false, howToFindInitial).
                 transform.numberOutputsAndStates(true,"T",null,useExistingNumbering,labelToNumber);
         AbstractPathRoutines.removeRejectStates(actualAutomatonWithRejects, actualAutomaton);
         statechum.analysis.learning.linear.GD<DeterministicDirectedSparseGraph.CmpVertex, DeterministicDirectedSparseGraph.CmpVertex, LearnerGraphCachedData,LearnerGraphCachedData> gd = new statechum.analysis.learning.linear.GD<>();

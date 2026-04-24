@@ -503,7 +503,8 @@ public class MarkovExperiment
 
 		try
 		{
-			E_MarkovBaselineLearn.runExperiment(learningGroup);
+			E_MarkovCaseStudies.runExperiment(learningGroup);
+//			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovCentre.runExperiment(learningGroup);
 //			E_MarkovAlphabet.runExperiment(learningGroup);
 //			E_MarkovTraceMult.runExperiment(learningGroup);

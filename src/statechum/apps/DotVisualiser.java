@@ -20,13 +20,13 @@ public class DotVisualiser {
         configAtomicPairs.setLabelKind(Configuration.LABELKIND.LABEL_ATOMICPAIRS);
         FsmParserDot.HOW_TO_FIND_INITIAL_STATE howToFindInitial = FsmParserDot.HOW_TO_FIND_INITIAL_STATE.valueOf(args[0]);
         String referenceDot = Helper.loadFile(new File(args[1]));
-        LearnerGraph graphAToPlot = FsmParserDot.buildLearnerGraph(referenceDot, configAtomicPairs, null,true, howToFindInitial).
+        LearnerGraph graphAToPlot = FsmParserDot.buildLearnerGraph(referenceDot, configAtomicPairs, null,true, false, howToFindInitial).
                 transform.convertIO().transform.numberOutputsAndStates(true,"S",null,null, null);
 
         LearnerGraph graphBToPlot = null;
         if (args.length > 2) {
             String actualDot = Helper.loadFile(new File(args[2]));
-            graphBToPlot = FsmParserDot.buildLearnerGraph(actualDot, configAtomicPairs, null,true, howToFindInitial).
+            graphBToPlot = FsmParserDot.buildLearnerGraph(actualDot, configAtomicPairs, null,true, false, howToFindInitial).
                     transform.convertIO().transform.numberOutputsAndStates(true,"T",null,null, null);
         }
         Visualiser.updateFrame(graphAToPlot,graphBToPlot);Visualiser.waitForKey();

@@ -1020,8 +1020,9 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 				outgoing_labels_value.put(entry.getKey(),transitionTarget.isAccept()?MarkovOutcome.positive:MarkovOutcome.negative);
 			}
 		
+		List<Label> partOfTraceUsedInMarkovPredictions = new ArrayList<>(model.getPredictionLen()+2);
 		WalkThroughAllPathsOfSpecificLength(graphToUseForPrediction,vert,model.getPredictionLen(),model.pathsOrSets, pathToNewState -> {
-            List<Label> partOfTraceUsedInMarkovPredictions = new ArrayList<>();
+			partOfTraceUsedInMarkovPredictions.clear();
 
             if (model.predictionGraphInverted) {
                 for (int i = pathToNewState.size() - 1; i >= 0; --i) partOfTraceUsedInMarkovPredictions.add(pathToNewState.get(i));

@@ -28,11 +28,11 @@ public class DotStructuralDifference {
         String outcomeDot = Helper.loadFile(new File(args[1]));
         MapWithSearch<String,String,Integer> useExistingNumbering = new HashMapWithSearch<>(20);
         Map<LabelInputOutput,Integer> labelToNumber = new TreeMap<>();
-        LearnerGraph referenceGraphWithRejects = FsmParserDot.buildLearnerGraph(referenceDot, configAtomicPairs, null,true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_ACCEPT_FOUND).
+        LearnerGraph referenceGraphWithRejects = FsmParserDot.buildLearnerGraph(referenceDot, configAtomicPairs, null,true, false, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_ACCEPT_FOUND).
                 transform.numberOutputsAndStates(true,"S",null,useExistingNumbering,labelToNumber);
         LearnerGraph referenceGraph = new LearnerGraph(configAtomicPairs), actualAutomaton = new LearnerGraph(configAtomicPairs);
         AbstractPathRoutines.removeRejectStates(referenceGraphWithRejects, referenceGraph);
-        LearnerGraph actualAutomatonWithRejects = FsmParserDot.buildLearnerGraph(outcomeDot, configAtomicPairs, null,true, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_ACCEPT_FOUND).
+        LearnerGraph actualAutomatonWithRejects = FsmParserDot.buildLearnerGraph(outcomeDot, configAtomicPairs, null,true, false, FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_ACCEPT_FOUND).
                 transform.numberOutputsAndStates(true,"T",null,useExistingNumbering,labelToNumber);
         AbstractPathRoutines.removeRejectStates(actualAutomatonWithRejects, actualAutomaton);
         System.out.println(PairQualityLearner.DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, configAtomicPairs, 1).getValue());

@@ -79,6 +79,7 @@ public class GlobalConfiguration {
 		,SGE_DISABLEGRAPHSAVE // to avoid filling the filesystem, we do not save PTAs or final graphs.
 		,PATH_UASPAPER // the location of files for the UAS paper, has to be a global configuration because command-line options have to match SGE ones and leave no space for this path.
 		,PATH_EXPERIMENTRESULTS // where to store the outcome of SGE-runner experiments
+		,PATH_CASESTUDIES // where to find automata to use for case studies
 	}
 
 	/**

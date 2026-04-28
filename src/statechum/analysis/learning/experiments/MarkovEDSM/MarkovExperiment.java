@@ -27,14 +27,8 @@ import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.Learner;
-import statechum.analysis.learning.MarkovClassifier;
+import statechum.analysis.learning.*;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
-import statechum.analysis.learning.MarkovClassifierLG;
-import statechum.analysis.learning.MarkovModel;
-import statechum.analysis.learning.PairScore;
-import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
@@ -115,7 +109,7 @@ public class MarkovExperiment
 			pta.paths.augmentPTA(generator.getAllSequences(0));
 			return pta;
 		}
-		
+
 		@Override
 		public ExperimentResult<MarkovLearningParameters> runexperiment() throws Exception 
 		{
@@ -156,7 +150,7 @@ public class MarkovExperiment
 				}
 			}
 	
-			SampleData dataSample = new SampleData(null,null);
+			SampleData dataSample = new SampleData(referenceGraph,null);
 
 			EDSM_MarkovLearner markovLearner = null;
 			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer;
@@ -226,6 +220,9 @@ public class MarkovExperiment
 			LearnerGraph actualAutomaton = LearningSupportRoutines.removeRejects(learntGraph);
 			saveGraph(nameOUTCOME,actualAutomaton);
 
+//			Visualiser.updateFrame(referenceGraph,learntGraph);
+//			Visualiser.waitForKey();
+
 			dataSample.actualLearner = WaveBlueFringe.estimateDifference(actualAutomaton,m,checker,referenceGraph,learnerInitConfiguration.testSet);
 			if (redReducer != null)
 			{
@@ -241,7 +238,12 @@ public class MarkovExperiment
 			dataSample.centrePathNumber = firstMerge.centrePathNumber;
 			dataSample.fractionOfStatesIdentifiedBySingletons=Math.round(100*MarkovClassifier.calculateFractionOfStatesIdentifiedBySingletons(referenceGraph));
 			dataSample.stateNumber = referenceGraph.getStateNumber();
-			dataSample.transitionsSampled = Math.round(100*(double)referenceGraph.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
+			LearnerGraph trimmedGraph = LearningSupportRoutines.trimUncoveredTransitions(pta,referenceGraph);
+
+//			Visualiser.updateFrame(referenceGraph,trimmedGraph);
+//			Visualiser.waitForKey();
+
+			dataSample.transitionsSampled = Math.round(100*(double)trimmedGraph.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
 			statechum.Pair<Double,Double> correctnessOfTransitionPredictionsByMarkov = new MarkovClassifierLG(m, referenceGraph,null).evaluateCorrectnessOfMarkov(true, false);
 			dataSample.markovTransitionPrecision = Math.round(100*correctnessOfTransitionPredictionsByMarkov.firstElem);dataSample.markovTransitionRecall = Math.round(100*correctnessOfTransitionPredictionsByMarkov.secondElem);
 			statechum.Pair<Double,Double> correctnessOfHolePredictionsByMarkov = new MarkovClassifierLG(m, referenceGraph,null).evaluateCorrectnessOfHolePredictionByMarkov();

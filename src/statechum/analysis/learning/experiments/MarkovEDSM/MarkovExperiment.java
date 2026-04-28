@@ -19,6 +19,8 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -57,7 +59,40 @@ public class MarkovExperiment
 	
 	public static final String directoryNamePrefix = "markov";
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
-	
+
+	public static void writeCSV(File file, List<List<String>> result) {
+		FileWriter wr = null;
+
+		try {
+			wr = new FileWriter(file);
+
+			for(List<String> line:result) {
+				boolean first = true;
+				for(String elem:line) {
+					if (first)
+						first = false;
+					else
+						wr.write(",");
+					wr.append(elem);
+				}
+				wr.append("\n");
+			}
+
+		} catch (IOException e) {
+			Helper.throwUnchecked("failed to write file "+file.getAbsolutePath(), e);
+		}
+		finally
+		{
+			if (wr != null)
+				try {
+					wr.close();
+				} catch (IOException e) {
+					// ignored
+				}
+		}
+	}
+
+
 	public static class MarkovLearnerRunner extends UASExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>
 	{
 		public MarkovLearnerRunner(MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf)
@@ -463,7 +498,7 @@ public class MarkovExperiment
 	public static class LearningExperimentGroupParameters {
 		DrawGraphs gr = new DrawGraphs();
 
-		final int fsmSamplesPerStateNumber = 20;
+		final int fsmSamplesPerStateNumber = 40;
 		final int trainingSamplesPerFSM = 4;
 		final double traceLengthMultiplierMax = 16;
 

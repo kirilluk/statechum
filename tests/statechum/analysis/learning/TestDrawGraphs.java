@@ -323,11 +323,12 @@ public class TestDrawGraphs {
 		w.resetRandomSeed();
 		StringWriter s=new StringWriter();
 		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
-		String expectedFixedPart = "Method,Statistic,confidence_lo,confidence_high\nA_VarghaDelaney (A12) test (100),0.0,";
+		String expectedFixedPart = "Method,Statistic,confidence_lo,confidence_high\nA_VarghaDelaney (A12) test (100),0.6825,";
+		Assert.assertEquals(expectedFixedPart,s.toString().substring(0,expectedFixedPart.length()));
 		String[] confidence_interval = s.toString().substring(expectedFixedPart.length()).split(",");
 		Assert.assertEquals(2,confidence_interval.length);
 		Assert.assertTrue(abs(Double.parseDouble(confidence_interval[0])-1) < 0.01);// || Double.parseDouble(confidence_interval[0]) < 0.01);// result is either a 0 or a 1 (depending on a random seed in R as it selects different subsets of values).
-		Assert.assertTrue(abs(Double.parseDouble(confidence_interval[1])-1) < 0.01);
+		Assert.assertTrue(abs(Double.parseDouble(confidence_interval[1])-1) < 0.01);// || Double.parseDouble(confidence_interval[0]) < 0.01);// result is either a 0 or a 1 (depending on a random seed in R as it selects different subsets of values).
 	}
 
 	@Test

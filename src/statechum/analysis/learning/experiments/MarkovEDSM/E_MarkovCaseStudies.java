@@ -10,9 +10,7 @@ import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
-import statechum.analysis.learning.experiments.mutation.DiffExperiments;
 import statechum.analysis.learning.observers.ProgressDecorator;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
 import statechum.analysis.learning.rpnicore.FsmParserDot;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform;
@@ -21,15 +19,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static statechum.analysis.learning.DrawGraphs.*;
-import static statechum.analysis.learning.rpnicore.FsmParserDot.HOW_TO_FIND_INITIAL_STATE.FIRST_FOUND;
 import static statechum.analysis.learning.rpnicore.FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
@@ -87,8 +82,8 @@ public class E_MarkovCaseStudies {
         if (!Files.exists(Paths.get(pathToCaseStudyFiles)))
             throw new RuntimeException("Cannot load any case studies: path to case studies does not exist "+pathToCaseStudyFiles);
 
-        List<Pair<Integer,Integer> []> tracesAndLengthsForCaseStudy = new ArrayList<>();
-
+        List<Pair<Integer,Integer> []> tracesAndLengthMultForCaseStudy = new ArrayList<>();
+        List<Integer> stateNumbers = new ArrayList<>(), alphabetSize = new ArrayList<>();
         for (int casestudy=0; casestudy<caseStudies.length; casestudy++) {
             System.out.println("Loading " + caseStudies[casestudy]);
 
@@ -103,10 +98,10 @@ public class E_MarkovCaseStudies {
             LearnerGraph reference = FsmParserDot.buildLearnerGraph(referenceDot, dotConfig,
                     new Transform.InternStringLabel(), true, true, USE_START0);
             int states = reference.getStateNumber();
-
+            stateNumbers.add(states);alphabetSize.add(reference.pathroutines.computeAlphabet().size());
             Pair<Integer, Integer> [] traces_and_lengths = new Pair[]{new Pair(1, reference.getCache().getAlphabet().size()  * states * states),
                     new Pair(states, reference.getCache().getAlphabet().size() * states), new Pair(states* states, reference.getCache().getAlphabet().size() )};
-            tracesAndLengthsForCaseStudy.add(traces_and_lengths);
+            tracesAndLengthMultForCaseStudy.add(traces_and_lengths);
 
             for (final int preset : learnerExperiment)
                 for (final Pair<Integer, Integer> traces_lengthmult : traces_and_lengths)
@@ -196,9 +191,12 @@ public class E_MarkovCaseStudies {
             });
 
             if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
+                List<List<String>> outputStatistics = new ArrayList<>();
+                outputStatistics.add(new ArrayList<>(Arrays.asList("Case study","States", "Alphabet", "Traces", "Trace Length", "Use Centre","A12","A12 lo","A12 hi","Wilcoxon")));
+
                 for (int casestudy=0; casestudy<caseStudies.length; casestudy++)
                 {
-                    Pair<Integer, Integer> [] traces_and_lengths = tracesAndLengthsForCaseStudy.get(casestudy);
+                    Pair<Integer, Integer> [] traces_and_lengths = tracesAndLengthMultForCaseStudy.get(casestudy);
 
                     for (final boolean useCentre : new boolean[]{false,true})
                         for (final Pair<Integer, Integer> traces_lengthmult : traces_and_lengths) {
@@ -210,7 +208,10 @@ public class E_MarkovCaseStudies {
                                     new File(plot_filename_prefix + "_sicco_structuraldiffBest.pdf"), 0, 1, true);
                             final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, Sicco", "BCR, EDSM-Markov learner",
                                     new File(plot_filename_prefix + "_sicco_BCRBest.pdf"), 0.5, 1, true);
-
+                            final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_Structural = new DrawGraphs.WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_str.csv"));
+                            final DrawGraphs.WilcoxonPairedTest Wilcoxon_Test_BCR = new DrawGraphs.WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_bcr.csv"));
+                            final DrawGraphs.A_VarghaDelaney A12_test_Structural = new DrawGraphs.A_VarghaDelaney(new File(plot_filename_prefix + "_A12_str.csv"), 100);
+                            final DrawGraphs.A_VarghaDelaney A12_test_BCR = new DrawGraphs.A_VarghaDelaney(new File(plot_filename_prefix + "_A12_bcr.csv"), 100);
                             // Now select the best result from all those available
                             for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                                 final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
@@ -237,19 +238,42 @@ public class E_MarkovCaseStudies {
                                     if (Y_Sicco != null) {
                                         gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)), bestLearningResult.structural, null, null);
                                         gr_BcrDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 1)), bestLearningResult.bcr, null, null);
+                                        A12_test_Structural.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)), bestLearningResult.structural);
+                                        A12_test_BCR.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 1)), bestLearningResult.bcr);
+                                        Wilcoxon_test_Structural.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)), bestLearningResult.structural);
+                                        Wilcoxon_Test_BCR.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 1)), bestLearningResult.bcr);
                                     } else
                                         System.out.println("WARNING: missing Sicco-value for " + rowEntry.getKey());
                                 }
                             }
+                            StatisticalTestResult a12_bcr = A12_test_BCR.obtainResultFromR();
+                            StatisticalTestResult wilcoxon_bcr = Wilcoxon_Test_BCR.obtainResultFromR();
+
+                            List<String> row = new ArrayList<>();
+                            row.add(caseStudies[casestudy]);row.add(Integer.toString(stateNumbers.get(casestudy)));row.add(Integer.toString(alphabetSize.get(casestudy)));
+                            row.add(Integer.toString(traces_lengthmult.firstElem));row.add(Integer.toString(traces_lengthmult.secondElem*stateNumbers.get(casestudy)));
+                            row.add(useCentre?"Centre":"");
+                            NumberFormat f_A12 = new DecimalFormat("0.00");
+                            NumberFormat f_Wilcoxon = new DecimalFormat("0.00E00");
+
+                            row.add(f_A12.format(a12_bcr.statistic));row.add(f_A12.format(a12_bcr.confidence_lo));row.add(f_A12.format(a12_bcr.confidence_hi));
+                            row.add(f_Wilcoxon.format(wilcoxon_bcr.pvalue));
+                            outputStatistics.add(row);
 
                             gr_StructuralDiffBest.reportResults(learningGroup.gr);gr_BcrDiffBest.reportResults(learningGroup.gr);
+                            A12_test_Structural.reportResults(learningGroup.gr);A12_test_BCR.reportResults(learningGroup.gr);
+                            Wilcoxon_test_Structural.reportResults(learningGroup.gr);Wilcoxon_Test_BCR.reportResults(learningGroup.gr);
+
                             List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
                             learners.sort((o1, o2) ->
                                     learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());
                             for (String l : learners)
                                 System.out.println(l + " -> " + learnerToHowOftenBest.get(l).get());
                         }
+
+
                 }
+                MarkovExperiment.writeCSV(new File(learningGroup.outPathPrefix + "casestudies_statistics.csv"),outputStatistics);
             }
         }
 }

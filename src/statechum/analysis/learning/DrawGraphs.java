@@ -1048,6 +1048,7 @@ public class DrawGraphs {
 			}
 		}
 	}
+
 	public interface MergeObjects
 	{
 		/** Called to merge the provided object into that represented by a provider of this interface. */
@@ -1800,7 +1801,12 @@ public class DrawGraphs {
 				STR.statistic = StatisticalTestResult.valueAsDouble(engine.eval(variableName));
 			else
 			{
-				STR.statistic = StatisticalTestResult.valueAsDouble(engine.eval(variableName+"[0]"));
+				String A_value = engine.eval("rownames("+variableName+")").asString();
+				int lastSpace = A_value.lastIndexOf(' ');
+				if (lastSpace < 0)
+					throw new IllegalArgumentException("A12 value is expected to be formatted in a form 'A = ' by R but it was not");
+
+				STR.statistic = Double.parseDouble(A_value.substring(lastSpace + 1));
 				STR.confidence_lo = StatisticalTestResult.valueAsDouble(engine.eval(variableName+"[1]"));
 				STR.confidence_hi = StatisticalTestResult.valueAsDouble(engine.eval(variableName+"[2]"));
 			}
@@ -2006,12 +2012,12 @@ public class DrawGraphs {
 	public static class StatisticalTestResult
 	{
 		/** Data to be displayed. */
-		double statistic=0.;
-		double pvalue=0.;
+        public double statistic=0.;
+		public double pvalue=0.;
 		String alternative;
 		double parameter=0.;
-		double confidence_lo=0.;
-		double confidence_hi=0.;
+		public double confidence_lo=0.;
+		public double confidence_hi=0.;
 		
 		public static double valueAsDouble(REXP val)
 		{

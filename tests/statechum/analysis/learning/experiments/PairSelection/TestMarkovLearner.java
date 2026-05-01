@@ -179,7 +179,7 @@ public class TestMarkovLearner
 	}	
 
 	@Test
-	public void testCreateMarkovMatrix2()
+	public void testCreateMarkovMatrix2a()
 	{
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter), minusStrings = new HashSet<>();
@@ -255,7 +255,7 @@ public class TestMarkovLearner
 		final Set<List<Label>> plusStrings = new HashSet<>(), minusStrings = new HashSet<>();
 		TestHelper.checkForCorrectException(
 				() -> m.createMarkovLearner(plusStrings, minusStrings,false),
-				IllegalArgumentException.class, "empty");
+				IllegalArgumentException.class, "empty trace data");
 	}
 	
 	@Test
@@ -265,9 +265,101 @@ public class TestMarkovLearner
 		final Set<List<Label>> plusStrings = new HashSet<>(), minusStrings = buildSet(new String[][] { new String[]{},new String[]{} },config,converter);
 		TestHelper.checkForCorrectException(
 				() -> m.createMarkovLearner(plusStrings, minusStrings,false),
-				IllegalArgumentException.class, "empty");
+				IllegalArgumentException.class, "empty trace data");
 	}
-	
+
+
+	@Test
+	public void testCreateMarkovMatrixPositive1a()
+	{
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
+		Assert.assertEquals(3,matrix.size());
+
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblA,lblU)));// unchanged since we only reverse the part before the verdict which is a singleton for chunklen 2
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Collections.singletonList(lblA)));
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Collections.singletonList(lblU)));
+	}
+
+	@Test
+	public void testCreateMarkovMatrixPositive1b()
+	{
+		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","u","b"} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
+		Assert.assertEquals(6,matrix.size());
+
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblU,lblA,lblB)));// reverse of the string
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Collections.singletonList(lblA)));
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Collections.singletonList(lblU)));
+	}
+
+	// uses an empty trace
+	@Test
+	public void testCreateMarkovMatrixPositive2a()
+	{
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","u"},new String[]{} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
+		Assert.assertEquals(3,matrix.size());
+
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblA,lblU)));// unchanged since we reverse a prefix only
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Collections.singletonList(lblA)));
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Collections.singletonList(lblU)));
+	}
+
+	// uses an empty trace
+	@Test
+	public void testCreateMarkovMatrixPositive2b()
+	{
+		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","u","b"},new String[]{} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
+		Assert.assertEquals(6,matrix.size());
+
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblU,lblA,lblB)));// reverse of the string (except for the verdict element "b"
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Collections.singletonList(lblA)));
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Collections.singletonList(lblU)));
+	}
+
+	@Test
+	public void testCreateMarkovMatrixPositive3()
+	{
+		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","u"},new String[]{} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,true);
+		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
+		Assert.assertTrue(matrix.isEmpty());
+	}
+
+	@Test
+	public void testCreateMarkovMatrixPositive4a()
+	{
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","u"},new String[]{} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,true);
+		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
+		Assert.assertEquals(1,matrix.size());
+
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblA,lblU)));// unchanged because we reverse a prefix which is of length 1
+	}
+
+	@Test
+	public void testCreateMarkovMatrixPositive4b()
+	{
+		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","u","b"},new String[]{} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,true);
+		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
+		Assert.assertEquals(1,matrix.size());
+
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblU,lblA,lblB)));// reverse of the string
+	}
 	/** Nothing to add because there not enough evidence. */
 	@Test
 	public void testConstructExtendedGraph1()
@@ -433,7 +525,7 @@ public class TestMarkovLearner
 	
 	/** No outgoing from B, hence no inconsistencies. */
 	@Test
-	public void testCheckFanoutInconsistency1a()
+	public void testCheckFanoutInconsistency1a_general()
 	{
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
@@ -442,7 +534,19 @@ public class TestMarkovLearner
 		
 		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),new MarkovClassifier.DifferentPredictionsInconsistency()));
 	}
-	
+
+	/** No outgoing from B, hence no inconsistencies. */
+	@Test
+	public void testCheckFanoutInconsistency1a_positive()
+	{
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->B / T-b->T-u->T","testCheckFanoutInconsistency1a",config, converter);
+
+		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+	}
+
 	/** One from B with inconsistent predictions. */
 	@Test
 	public void testCheckFanoutInconsistency1b1()
@@ -506,16 +610,28 @@ public class TestMarkovLearner
 	
 	/** Transition d exists as positive but should be absent according to Markov. */
 	@Test
-	public void testCheckFanoutInconsistency1d()
+	public void testCheckFanoutInconsistency1d_general()
 	{
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"}},config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->B / B-d->F / T-b->T-u->T-d->T","testCheckFanoutInconsistency1d",config, converter);
-		
+
 		Assert.assertEquals(1,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),new MarkovClassifier.DifferentPredictionsInconsistency()));
 	}
-	
+
+	/** Transition d exists as positive but should be absent according to Markov. */
+	@Test
+	public void testCheckFanoutInconsistency1d_positive()
+	{
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->B / B-d->F / T-b->T-u->T-d->T","testCheckFanoutInconsistency1d",config, converter);
+
+		Assert.assertEquals(2,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+	}
+
 	/** Transition b exists as negative but should be present as positive according to Markov. */
 	@Test
 	public void testCheckFanoutInconsistency1e()
@@ -541,33 +657,62 @@ public class TestMarkovLearner
 		Assert.assertEquals(4.,MarkovClassifier.computeInconsistency(graph,  null, m, new MarkovClassifier.DifferentPredictionsInconsistency(), false),Configuration.fpAccuracy);// inconsistencies detected are mostly due to state T
 	}
 	
-	/** Two inconsistencies, transition u and transition b which should not exist after c. */
+	/** State B has two incoming transitions, a and c.
+	 * a predicts outgoing b as + and u as -
+	 * c predicts outgoing u as + and b as null
+	 * Thus two inconsistencies, transition u (which should lead to reject-state) and transition b which should not exist after c. */
 	@Test
-	public void testCheckFanoutInconsistency2()
+	public void testCheckFanoutInconsistency2_general()
 	{
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
-		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter),
+				minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->B-b->C / B-u->F / T-b->T-u->T","testCheckFanoutInconsistency2",config, converter);
 		
 		Assert.assertEquals(2,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),new MarkovClassifier.DifferentPredictionsInconsistency()));
 	}
-	
-	/** One inconsistency: transition u. */
+
+	/** Two inconsistencies, transition u (not predicted after a) and transition b which should not exist after c. */
 	@Test
-	public void testCheckFanoutInconsistency3()
+	public void testCheckFanoutInconsistency2_positive()
 	{
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
-		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","u"} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->B-b->C / B-u->F / T-b->T-u->T","testCheckFanoutInconsistency2",config, converter);
+
+		Assert.assertEquals(2,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+	}
+
+	/** One inconsistency: transition u, predicted as negative, present as positive, the first time observed like that, recorded as a failure hence non-prediction by a is not considered. */
+	@Test
+	public void testCheckFanoutInconsistency3_general()
+	{
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter),
+				minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
 		m.createMarkovLearner(plusStrings, minusStrings,false);
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->B-u->C / T-b->T-u->T","testCheckFanoutInconsistency3",config, converter);
 		
 		Assert.assertEquals(1,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),new MarkovClassifier.DifferentPredictionsInconsistency()));
 	}
-	
+
+	/** One inconsistency: transition u. */
+	@Test
+	public void testCheckFanoutInconsistency3_positive()
+	{
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->B-u->C / T-b->T-u->T","testCheckFanoutInconsistency3",config, converter);
+
+		Assert.assertEquals(2,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+	}
+
 	/** No inconsistencies since there are very few paths. */
 	@Test
-	public void testCheckFanoutInconsistency4()
+	public void testCheckFanoutInconsistency4_general()
 	{
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
@@ -577,6 +722,20 @@ public class TestMarkovLearner
 		
 		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),new MarkovClassifier.DifferentPredictionsInconsistency()));// everything as expected.
 		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("D"),new MarkovClassifier.DifferentPredictionsInconsistency()));// missing reject-transition with label u is ignored because we are only considering actual outgoing transitions
+	}
+
+	/** No inconsistencies since there are very few paths. */
+	@Test
+	public void testCheckFanoutInconsistency4_positive()
+	{
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / T-b->T-u->T","testCheckFanoutInconsistency4",config, converter);
+
+
+		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));// everything as expected.
+		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("D"),null));// missing reject-transition with label u is ignored because we are only considering actual outgoing transitions
 	}
 
 	/** Tests that creating a model from PTA and from initial traces gives the same result. */
@@ -594,11 +753,13 @@ public class TestMarkovLearner
 		Assert.assertEquals(m.computeOccurrenceMatrix(),mOther.computeOccurrenceMatrix());
 	}
 		
-	/** Tests that creating a model from PTA and from initial traces gives almost the same result. The difference is in PTA-based construction mis-counting the number of times shorter traces occur since it
-	 * can see that they exist but not the number of tails they lead to. This is left in because I do not use specific values occurrence counts. 
+	/** Tests that creating a model from PTA and from initial traces gives almost the same result.
+	 * The difference is in PTA-based construction mis-counting the number of times shorter traces occur since it
+	 * can see that they exist but not the number of tails they lead to.
+	 * This is left in because I do not use specific values occurrence counts.
 	 */
 	@Test
-	public void testMarkovUpdate1_prefixclosed()
+	public void testMarkovUpdate1_prefixclosed_general()
 	{
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
@@ -618,9 +779,35 @@ public class TestMarkovLearner
 		Assert.assertEquals(mOccurrenceMatrix,mOtherOccurrenceMatrix);
 	}
 
+	/** Tests that creating a model from PTA and from initial traces gives almost the same result.
+	 * The difference is in PTA-based construction mis-counting the number of times shorter traces occur since it
+	 * can see that they exist but not the number of tails they lead to.
+	 * This is left in because I do not use specific values occurrence counts.
+	 */
+	@Test
+	public void testMarkovUpdate1_prefixclosed_positive()
+	{
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+
+		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);
+		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		new MarkovClassifierLG(mOther,graph,null).updateMarkov(false);
+		Assert.assertEquals(m.computePredictionMatrix(),mOther.computePredictionMatrix());
+
+		// Workaround around a deficiency in the calculation of occurrences of prefixes by the PTA-based construction of Markov model.
+		Assert.assertEquals(new UpdatablePairInteger(1, 0), m.computeOccurrenceMatrix().get(Collections.singletonList(lblA)));
+		Assert.assertEquals(new UpdatablePairInteger(1, 0), mOther.computeOccurrenceMatrix().get(Collections.singletonList(lblA)));
+
+		Map<List<Label>,UpdatablePairInteger> mOccurrenceMatrix = m.computeOccurrenceMatrix(), mOtherOccurrenceMatrix = mOther.computeOccurrenceMatrix();
+		mOccurrenceMatrix.remove(Collections.singletonList(lblA));mOtherOccurrenceMatrix.remove(Collections.singletonList(lblA));
+		Assert.assertEquals(mOccurrenceMatrix,mOtherOccurrenceMatrix);
+	}
+
 	/** Tests that creating a model from PTA and from initial traces give the same result. */
 	@Test
-	public void testMarkovUpdate2()
+	public void testMarkovUpdate2_general()
 	{
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter), minusStrings = buildSet(new String[][] {},config,converter);
@@ -631,10 +818,26 @@ public class TestMarkovLearner
 		Assert.assertEquals(m.computePredictionMatrix(),mOther.computePredictionMatrix());
 		Assert.assertEquals(m.computeOccurrenceMatrix(),mOther.computeOccurrenceMatrix());
 	}
+
+	/** Tests that creating a model from PTA and from initial traces give the same result. */
+	@Test
+	public void testMarkovUpdate2_positive()
+	{
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"},new String[]{"c","b"},new String[]{"c","u"} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,true);
+
+		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);
+		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(new ArrayList<>(),true);
+		new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
+		Assert.assertEquals(m.computePredictionMatrix(),mOther.computePredictionMatrix());
+		Assert.assertEquals(m.computeOccurrenceMatrix(),mOther.computeOccurrenceMatrix());
+	}
 	
 	/** Tests that creating a model from PTA and from initial traces give the same result. */
 	@Test
-	public void testMarkovUpdate3()
+	public void testMarkovUpdate3_general()
 	{
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
 		Set<List<Label>> plusStrings = buildSet(new String[][] {},config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
@@ -648,7 +851,21 @@ public class TestMarkovLearner
 
 	/** Tests that creating a model from PTA and from initial traces give the same result. */
 	@Test
-	public void testMarkovUpdate4()
+	public void testMarkovUpdate3_positive()
+	{
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] {},config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,true);
+
+		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);
+		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
+		Assert.assertEquals(m.computePredictionMatrix(),mOther.computePredictionMatrix());
+		Assert.assertEquals(m.computeOccurrenceMatrix(),mOther.computeOccurrenceMatrix());
+	}
+
+	/** Tests that creating a model from PTA and from initial traces give the same result. */
+	@Test
+	public void testMarkovUpdate4_general()
 	{
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
 		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"} },config,converter), minusStrings = buildSet(new String[][] { new String[]{"a","u"} },config,converter);
@@ -659,7 +876,21 @@ public class TestMarkovLearner
 		Assert.assertEquals(m.computePredictionMatrix(),mOther.computePredictionMatrix());
 		Assert.assertEquals(m.computeOccurrenceMatrix(),mOther.computeOccurrenceMatrix());
 	}
-	
+
+	/** Tests that creating a model from PTA and from initial traces give the same result. */
+	@Test
+	public void testMarkovUpdate4_positive()
+	{
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","b"} },config,converter);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,true);
+
+		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);
+		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
+		Assert.assertEquals(m.computePredictionMatrix(),mOther.computePredictionMatrix());
+		Assert.assertEquals(m.computeOccurrenceMatrix(),mOther.computeOccurrenceMatrix());
+	}
+
 	@Test
 	/* Tests for exploration of paths. */
 	public void testExplorePaths1()
@@ -1062,7 +1293,7 @@ public class TestMarkovLearner
 	}
 	
 	@Test
-	public void testPredictTransitionsFromStatesForward1()
+	public void testPredictTransitionsFromStatesForward1_general()
 	{
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
 		Assert.assertTrue(m.computePredictionMatrix().isEmpty());
@@ -1071,15 +1302,27 @@ public class TestMarkovLearner
 		Map<CmpVertex, Map<Label, MarkovOutcome>> predictions = new MarkovClassifierLG(m, graph2,null).predictTransitions();
 		Assert.assertTrue(predictions.isEmpty());// empty Markov means no predictions.
 	}
-	
+
 	@Test
-	public void testPredictTransitionsFromStatesForward2a()
+	public void testPredictTransitionsFromStatesForward1_positive()
+	{
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(new ArrayList<>(),false);// makes it into a 'positive-forward' Markov, making subsequent inconsistency computation faster
+		Assert.assertTrue(m.computePredictionMatrix().isEmpty());
+
+		final LearnerGraph graph2 = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->A","testCheckFanoutInconsistencySideways4",config, converter);
+		Map<CmpVertex, Map<Label, MarkovOutcome>> predictions = new MarkovClassifierLG(m, graph2,null).predictTransitions();
+		Assert.assertTrue(predictions.isEmpty());// empty Markov means no predictions.
+	}
+
+	@Test
+	public void testPredictTransitionsFromStatesForward2a_general()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
 		new MarkovClassifierLG(m,graph,null).updateMarkov(true);
 		Assert.assertEquals(4,m.computePredictionMatrix().size());
-		
+
 		final LearnerGraph graph2 = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->A/ T-u->T-b->T","testPredictTransitionsFromStatesForward2",config, converter);
 		Map<CmpVertex, Map<Label, MarkovOutcome>> predictions = new MarkovClassifierLG(m, graph2,null).predictTransitions();
 		Assert.assertEquals(2,predictions.size());Assert.assertEquals(2,predictions.get(graph2.findVertex("A")).size());Assert.assertEquals(2,predictions.get(graph2.findVertex("B")).size());
@@ -1089,8 +1332,26 @@ public class TestMarkovLearner
 		Assert.assertEquals(MarkovOutcome.positive,predictions.get(graph2.findVertex("B")).get(lblB));
 	}
 
-	
-	/** Very similar to {@link #testPredictTransitionsFromStatesForward2a()} except that the graph to predict from has a single state and even that reject. */
+	@Test
+	public void testPredictTransitionsFromStatesForward2a_forward()
+	{
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C / B-u->D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(new ArrayList<>(),false);// makes it into a 'positive-forward' Markov, making subsequent inconsistency computation faster
+		new MarkovClassifierLG(m,graph,null).updateMarkov(true);
+		Assert.assertEquals(4,m.computePredictionMatrix().size());
+
+		final LearnerGraph graph2 = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->A/ T-u->T-b->T","testPredictTransitionsFromStatesForward2",config, converter);
+		Map<CmpVertex, Map<Label, MarkovOutcome>> predictions = new MarkovClassifierLG(m, graph2,null).predictTransitions();
+		Assert.assertEquals(2,predictions.size());Assert.assertEquals(2,predictions.get(graph2.findVertex("A")).size());Assert.assertEquals(2,predictions.get(graph2.findVertex("B")).size());
+		Assert.assertEquals(MarkovOutcome.positive,predictions.get(graph2.findVertex("A")).get(lblU));// because c is looping in the A state
+		Assert.assertEquals(MarkovOutcome.positive,predictions.get(graph2.findVertex("A")).get(lblC));
+		Assert.assertEquals(MarkovOutcome.positive,predictions.get(graph2.findVertex("B")).get(lblU));
+		Assert.assertNull(predictions.get(graph2.findVertex("B")).get(lblA));
+		Assert.assertEquals(MarkovOutcome.positive,predictions.get(graph2.findVertex("B")).get(lblB));
+	}
+
+	/** Very similar to {@link #testPredictTransitionsFromStatesForward2a_general()} except that the graph to predict from has a single state and even that reject. */
 	@Test
 	public void testPredictTransitionsFromStatesForward2b()
 	{
@@ -1107,13 +1368,28 @@ public class TestMarkovLearner
 	}
 	
 	@Test
-	public void testPredictTransitionsFromStatesForward3()
+	public void testPredictTransitionsFromStatesForward3_general()
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
 		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
 		new MarkovClassifierLG(m,graph,null).updateMarkov(true);
 		Assert.assertEquals(4,m.computePredictionMatrix().size());
 		
+		final LearnerGraph graph2 = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->A/ T-a->T-u->T-b->T","testPredictTransitionsFromStatesForward2",config, converter);
+		LearnerGraph extendedGraph = new MarkovClassifierLG(m,graph2,null).constructMarkovTentative();
+		Assert.assertNull(WMethod.checkM(FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->A / A-u->E / B-b->C / B-u-#D","testPredictTransitionsFromStatesForward3",config, converter), extendedGraph));
+		Assert.assertNotNull(extendedGraph.findVertex("T"));// extended graph starts as a replica of an original one.
+	}
+
+	@Test
+	public void testPredictTransitionsFromStatesForward3_forward()
+	{
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C / B-u-#D / A-c->E-u->F / E-c->G","testUpdateMarkovSideways3",config, converter);
+		MarkovModel m = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		m.createMarkovFromPositiveDataAndGenerateInversePredictions(new ArrayList<>(),false);// makes it into a 'positive-forward' Markov, making subsequent inconsistency computation faster
+		new MarkovClassifierLG(m,graph,null).updateMarkov(true);
+		Assert.assertEquals(4,m.computePredictionMatrix().size());
+
 		final LearnerGraph graph2 = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->A/ T-a->T-u->T-b->T","testPredictTransitionsFromStatesForward2",config, converter);
 		LearnerGraph extendedGraph = new MarkovClassifierLG(m,graph2,null).constructMarkovTentative();
 		Assert.assertNull(WMethod.checkM(FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->A / A-u->E / B-b->C / B-u-#D","testPredictTransitionsFromStatesForward3",config, converter), extendedGraph));
@@ -1180,7 +1456,7 @@ public class TestMarkovLearner
 		TestHelper.checkForCorrectException(() -> new MarkovClassifierLG(m, graph2,null).predictTransitionsFromState(graph2.getInit(), Collections.singletonList(lblC),m.getChunkLen(),true, null), IllegalArgumentException.class, "cannot be made by extension");
 	}
 	
-	/** Almost the same as {@link TestMarkovLearner#testPredictTransitionsFromStatesForward2a()} except that the path beyond is empty rather than null. */
+	/** Almost the same as {@link TestMarkovLearner#testPredictTransitionsFromStatesForward2a_general()} ()} except that the path beyond is empty rather than null. */
 	@Test
 	public void testPredictTransitionsFromStatesWithPathBeyondCurrentState3()
 	{
@@ -1196,7 +1472,7 @@ public class TestMarkovLearner
 		Assert.assertEquals(MarkovOutcome.positive,outgoing_labels_probabilities.get(lblB));
 	}
 
-	/** Almost the same as {@link #testPredictTransitionsFromStatesForward2a()} except that the path beyond is not empty. Transition <i>d</i> from A to B is not present in Markov, so routinely there will be no prediction. Nevertheless,
+	/** Almost the same as {@link #testPredictTransitionsFromStatesForward2a_general()} ()} except that the path beyond is not empty. Transition <i>d</i> from A to B is not present in Markov, so routinely there will be no prediction. Nevertheless,
 	 * there is one because we assume that the considered paths leading to the state B of interest all start with label b. 
 	 */
 	@Test
@@ -1214,7 +1490,7 @@ public class TestMarkovLearner
 		Assert.assertEquals(MarkovOutcome.positive,outgoing_labels_probabilities.get(lblB));
 	}
 
-	/** Almost the same as {@link TestMarkovLearner#testPredictTransitionsFromStatesForward2a} except that the path beyond is not empty. Transition <i>d</i> from A to B is not present in Markov, so routinely there will be no prediction. Nevertheless,
+	/** Almost the same as {@link TestMarkovLearner#testPredictTransitionsFromStatesForward2a_general()} except that the path beyond is not empty. Transition <i>d</i> from A to B is not present in Markov, so routinely there will be no prediction. Nevertheless,
 	 * there is one because we assume that the considered paths leading to the state B of interest all start with paths a b. 
 	 */
 	@Test

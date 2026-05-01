@@ -251,7 +251,9 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * permits elements such sets to be represented as sequences.
 	 * @param callback what to call for each discovered path.
 	 */
-	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void WalkThroughAllPathsOfSpecificLength(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength,final boolean pathsOrSets,ForEachCollectionOfPaths callback)
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
+	void WalkThroughAllPathsOfSpecificLength(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength,
+											 final boolean pathsOrSets,ForEachCollectionOfPaths callback)
 	{
 		if (pathsOrSets)
 			WalkThroughAllPathsOfSpecificLength_Sequences(graph,vert,pathLength,callback);
@@ -267,7 +269,9 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * @param pathLength length of paths to explore
 	 * @param callback what to call for each discovered path.
 	 */
-	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> void WalkThroughAllPathsOfSpecificLength_Sets(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength,ForEachCollectionOfPaths callback)
+	public static <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
+	void WalkThroughAllPathsOfSpecificLength_Sets(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph, CmpVertex vert,int pathLength,
+												  ForEachCollectionOfPaths callback)
 	{
 		// Considering that there is a total order on the labels, the algorithm picks the smallest 
 		// letter for any given set of letters first, then the higher letter etc.
@@ -830,9 +834,11 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * @return map from labels to predictions.
 	 */
 	@SuppressWarnings("unchecked")
-	public Map<Label, MarkovOutcome> predictTransitionsFromState(CmpVertex vert, final List<Label> pathBeyondCurrentState, int chunkLength,final boolean pathsOrSets, final Collection<List<Label>> pathsOfInterest)
+	public Map<Label, MarkovOutcome> predictTransitionsFromState(CmpVertex vert, final List<Label> pathBeyondCurrentState, int chunkLength,
+																 final boolean pathsOrSets, final Collection<List<Label>> pathsOfInterest)
 	{
 		assert vert.isAccept();
+
 		int lengthOfPathBeyond = pathBeyondCurrentState == null?0:pathBeyondCurrentState.size();
 		if (lengthOfPathBeyond+1 > chunkLength)
 			throw new IllegalArgumentException("supplied pathBeyondCurrentState is too long and does not permit exploration");
@@ -847,11 +853,13 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
                 pathsOfInterest.add(pathToNewState);
 
             List<Label> partOfTraceUsedInMarkovPredictions = new ArrayList<>(pathToNewState.size());
-            if (model.predictionGraphInverted) {
-				// Here pathToNewState is defined in an inverted graph hence following transitions backwards.
+            if (model.predictionGraphInverted && !model.getPredictionFromOnlySequencesForward()) {
+				// Here pathToNewState is defined in an inverted graph (because walking through paths backwards
+				// but Markov is expected to store paths forward due to !model.getPredictionFromOnlySequencesForward()) hence following transitions backwards.
 				// We thus add characters to partOfTraceUsedInMarkovPredictions in an opposite order.
                 for (int i = pathToNewState.size() - 1; i >= 0; --i) partOfTraceUsedInMarkovPredictions.add(pathToNewState.get(i));
-                if (pathBeyondCurrentState != null) for (int i = pathBeyondCurrentState.size() - 1; i >= 0; --i) partOfTraceUsedInMarkovPredictions.add(pathBeyondCurrentState.get(i));
+                if (pathBeyondCurrentState != null)
+					for (int i = pathBeyondCurrentState.size() - 1; i >= 0; --i) partOfTraceUsedInMarkovPredictions.add(pathBeyondCurrentState.get(i));
 				// pathBeyondCurrentState reflects transitions we already predicted and we extend the predictions to subsequent transitions.
             } else {
                 partOfTraceUsedInMarkovPredictions.addAll(pathToNewState);
@@ -908,8 +916,8 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		    	for(List<Label> pathToUseWithMarkovToPredictOutgoing:markovPathsToUpdate)
 		    	{
 					List<Label> pathToUpdateInMarkov= new ArrayList<>(pathToUseWithMarkovToPredictOutgoing.size());
-					if (model.predictionGraphInverted)
-					{
+					if (model.predictionGraphInverted && !model.getPredictionFromOnlySequencesForward())
+					{// if we are walking paths backward (model.predictionGraphInverted) but Markov is storing them forwards (!model.getPredictionFromOnlySequencesForward())
 						for(int i=pathToUseWithMarkovToPredictOutgoing.size()-1;i>=0;--i) pathToUpdateInMarkov.add(pathToUseWithMarkovToPredictOutgoing.get(i));
 					}
 					else
@@ -953,7 +961,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	/** Determines how consistent a graph is compared to the data in the Markov model.
 	 * @param checker Consistency checker to use for predictions, usually based on a static method from {@link MarkovOutcome}.
 	 * @param displayTrace whether to display details of the computation performed
-	 * @return true the number of inconsistencies
+	 * @return the number of inconsistencies
 	 */
 	public long computeConsistency(ConsistencyChecker checker, boolean displayTrace)
 	{
@@ -1008,7 +1016,13 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	{
 		if (!vert.isAccept())
 			return 0;// reject-vertices cannot have outgoing transitions (we are considering prefix-closed languages) and hence a score of zero makes good sense.
-		
+
+		if (model.getPredictionFromOnlySequencesForward()) {
+			if (checker != null)
+				throw new IllegalArgumentException("Forward only implements an equivalent of DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes hence checker should be null");
+			return model.markovMatrix.computeForwardInconsistency(graphToUseForPrediction, graph, vert, model.getPredictionLen());
+		}
+
 		final Collection<Label> outgoingLabels = checker.obtainAlphabet(graphToCheckForConsistency,vert);
 		final Map<Label,MarkovOutcome> outgoing_labels_value= new HashMap<>();
 		//for(Label l:alphabet) outgoing_labels_probabilities.put(l, UpdatableOutcome.unknown);

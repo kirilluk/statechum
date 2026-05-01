@@ -17,21 +17,20 @@
  */
 package statechum.analysis.learning;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.lang.reflect.Array;
+import java.util.*;
 
+import statechum.DeterministicDirectedSparseGraph;
 import statechum.Label;
 import statechum.Trace;
 import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine.PredictionForSequence;
+import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
+import statechum.analysis.learning.rpnicore.CachedData;
+import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.model.testset.PTAExploration;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
+import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 
 /** Describes a non-probabilistic Markov model, where for every path we know either that, 
  * <ul>
@@ -134,9 +133,46 @@ public class MarkovModel
 					currentNode.setState(new PredictionForSequence());*/
 			return (PredictionForSequence)currentNode.getState();
 		}
-		
+
+		/** A very specific implementation for 'forward inconsistency' computation that is intended to be efficient. */
+		protected  <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
+		long computeForwardInconsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> reverse, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> forward,
+										 Collection<CmpVertex> collectionStateReverse, CmpVertex consideredStateForward,
+										 int step, Map<Label,PTASequenceEngine.Node> row) {
+			long inconsistency = 0;
+
+			if (step <= 0) {// got to the end of path in reverse graph, take transitions going forward from the graph to be evaluated and check each of them against the Markov PTA.
+				for(Map.Entry<Label,TARGET_TYPE> entryForward:forward.transitionMatrix.get(consideredStateForward).entrySet()) {
+					PTASequenceEngine.Node nextNode = row == null ? null : row.get(entryForward.getKey());
+					PredictionForSequence curPrediction = (PredictionForSequence) (nextNode == null ? null : nextNode.getState());
+					if (curPrediction == null || !curPrediction.prediction.isPositive)// if not predicted or predicated as negative, increase inconsistency
+						++inconsistency;
+				}
+			}
+			else // if not at the end of a walk, recurse
+			{
+				Map<Label,List<CmpVertex>> labelToTargets = new TreeMap<>();
+				for (CmpVertex curReverse : collectionStateReverse)
+					for (Map.Entry<Label, TARGET_TYPE> entry : reverse.transitionMatrix.get(curReverse).entrySet())
+						labelToTargets.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).addAll(reverse.getTargets(entry.getValue()));
+
+				for(Map.Entry<Label,List<CmpVertex>> entry : labelToTargets.entrySet()) {
+						PTASequenceEngine.Node nextNode = row == null ? null : row.get(entry.getKey());
+						inconsistency += computeForwardInconsistency(reverse, forward, entry.getValue(),
+								consideredStateForward, step - 1, nextNode == null ? null : pta.get(nextNode));
+				}
+			}
+			return inconsistency;
+		}
+
+		public  <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
+		long computeForwardInconsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> reverse, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> forward,
+										 CmpVertex curState, int step) {
+			return computeForwardInconsistency(reverse,forward, Arrays.asList(curState),curState,step,pta.get(init));
+		}
 	}
-	
+
+
 	public final MarkovMatrixEngine markovMatrix;
 	
 	/** Contains the number of times a specific path was encountered. Would usually be prefix-closed by construction. 
@@ -162,6 +198,13 @@ public class MarkovModel
 	}
 	
 	private final int chunkLength;
+
+	private boolean predictionFromOnlySequencesForward;
+
+	boolean getPredictionFromOnlySequencesForward()
+	{
+		return predictionFromOnlySequencesForward;
+	}
 
 	public final boolean predictForwardOrSideways,directionForwardOrInverse;
 
@@ -397,18 +440,51 @@ public class MarkovModel
 			UpdatablePairInteger other = (UpdatablePairInteger) obj;
 			if (firstElem != other.firstElem)
 				return false;
-			if (secondElem != other.secondElem)
-				return false;
-			return true;
-		}
+            return secondElem == other.secondElem;
+        }
 	}
-	
+
+	/** Constructs Markov matrix with sequences that are a reverse of a 'normal' Markov matrix. The intention is to use such a matrix
+	 * with the computeForwardInconsistency method, expecting them. The intended benefit is much better performance since it is
+	 * optimized for the specific use case.
+	 *
+	 * @param pos collection of positive sequences
+	 * @param onlyLongest if set, only add traces of <i>chunkLen</i> to Markov matrix. Where false, all prefixes are added as well.
+	 */
+	public void createMarkovFromPositiveDataAndGenerateInversePredictions(Collection<List<Label>> pos, boolean onlyLongest) {
+		if (!predictForwardOrSideways || !directionForwardOrInverse || !pathsOrSets)
+			throw new IllegalArgumentException("This Markov matrix can only be used to predict events forward by looking at past sequences");
+
+		predictionFromOnlySequencesForward = true;// sequences will be stored reversed in the PTA
+
+		// going through all positive traces
+		//and partitioning each positive traces into a list of events ( a list of labels based on the chunk length)
+		for(List<Label> positive_trace:pos)
+		{
+			Trace current_positive_trace=new Trace(positive_trace, true);
+			for(int i=onlyLongest?chunkLength-1:0;i<chunkLength;i++)
+			{
+				List<Trace> List_traces=splitTrace(current_positive_trace,i+1);
+				for (Trace tracePos:List_traces) {
+					List<Label> sequence = new ArrayList<>(tracePos.getList().subList(0, tracePos.getList().size()-1));
+					Collections.reverse(sequence);
+					sequence.add(tracePos.getList().get(tracePos.getList().size()-1));
+					markovMatrix.getPredictionAndCreateNewOneIfNecessary(sequence).occurrence.add(1,0);
+				}
+			}
+		}
+
+		convertOccurrenceMatrixToPTA();
+	}
+
 	/** Constructs the tables used by the learner, from positive and negative traces. Only builds Markov model in the direction of traces.
 	 * 
 	 * @param onlyLongest if set, only add traces of <i>chunkLen</i> to Markov matrix. Where false, all prefixes are added as well.
 	 */
 	public void createMarkovLearner(Collection<List<Label>> pos,Collection<List<Label>> neg, boolean onlyLongest)
 	{
+		predictionFromOnlySequencesForward = false;// sequences will be stored as-is in the PTA
+
 		int traceLength = 0;
 		Set<Label> alphabet = new HashSet<Label>();
 		for(List<Label> p:pos) 
@@ -456,14 +532,18 @@ public class MarkovModel
 				}
 			}
 		}
-		
-		// Construct a matrix from trace data, including marking of conflicting data as invalid (conflicts arise where a path is too short). 
-		// A prefix of either a positive/ a negative/ a failure (where there are some states from which a shorter 
-		// sequence is rejected but from other states a longer one is accepted. This is detected because with onlyLongest being false, 
-		// all strict prefixes of a trace (plus whole trace if positive) will be added as positives 
-		// so if there was a shorter trace labelled as a negative, there will be a both a positive counter 
+
+		convertOccurrenceMatrixToPTA();
+	}
+
+	private void convertOccurrenceMatrixToPTA() {
+		// Construct a matrix from trace data, including marking of conflicting data as invalid (conflicts arise where a path is too short).
+		// A prefix of either a positive/ a negative/ a failure (where there are some states from which a shorter
+		// sequence is rejected but from other states a longer one is accepted. This is detected because with onlyLongest being false,
+		// all strict prefixes of a trace (plus whole trace if positive) will be added as positives
+		// so if there was a shorter trace labelled as a negative, there will be a both a positive counter
 		// and a negative one above zero leading to a failure-prediction).
-		
+
 		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(markovMatrix) {
 			@Override
 			public Boolean newUserObject() {
@@ -471,27 +551,27 @@ public class MarkovModel
 			}
 
 			@Override
-			public void nodeEntered(PTAExplorationNode currentNode, @SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
+			public void nodeEntered(PTAExplorationNode currentNode, @SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit)
 			{
 				PredictionForSequence prediction = (PredictionForSequence)currentNode.getState();
 				if (prediction.occurrence.firstElem > 0 && prediction.occurrence.secondElem > 0)
 					prediction.prediction = MarkovOutcome.failure;
 				else
-				if (prediction.occurrence.firstElem > 0) 
+				if (prediction.occurrence.firstElem > 0)
 					prediction.prediction = MarkovOutcome.positive;
 				else
-				if (prediction.occurrence.secondElem > 0) 
+				if (prediction.occurrence.secondElem > 0)
 					prediction.prediction = MarkovOutcome.negative;
 			}
 
 			@Override
-			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit) 
+			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit)
 			{
 				nodeEntered(currentNode, pathToInit);
 			}
 
 			@Override
-			public void nodeLeft(@SuppressWarnings("unused") PTAExplorationNode currentNode,	@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit) 
+			public void nodeLeft(@SuppressWarnings("unused") PTAExplorationNode currentNode,	@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit)
 			{
 				// nothing to do here.
 			}
@@ -502,6 +582,8 @@ public class MarkovModel
 
 	/** Predictions are used to predict labels following a prefix (both positive and negative predictions).
 	 * This function reports values stored in the markov matrix as far as predictions are concerned.
+	 * It does not care for whether these values contain reverse strings followed by prediction characters
+	 * such as when getPredictionFromOnlySequencesForward() is true.
 	 */
 	public Map<List<Label>, MarkovOutcome> computePredictionMatrix()
 	{

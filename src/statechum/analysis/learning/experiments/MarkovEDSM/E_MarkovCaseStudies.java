@@ -273,7 +273,7 @@ public class E_MarkovCaseStudies {
 
 
                 }
-                MarkovExperiment.writeCSV(new File(learningGroup.outPathPrefix + "casestudies_statistics.csv"),outputStatistics);
+                DrawGraphs.writeTEX(new File(learningGroup.outPathPrefix + "casestudies_statistics.tex"),outputStatistics,true);
             }
         }
 }

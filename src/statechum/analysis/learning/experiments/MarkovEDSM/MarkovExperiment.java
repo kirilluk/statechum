@@ -60,37 +60,7 @@ public class MarkovExperiment
 	public static final String directoryNamePrefix = "markov";
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
 
-	public static void writeCSV(File file, List<List<String>> result) {
-		FileWriter wr = null;
 
-		try {
-			wr = new FileWriter(file);
-
-			for(List<String> line:result) {
-				boolean first = true;
-				for(String elem:line) {
-					if (first)
-						first = false;
-					else
-						wr.write(",");
-					wr.append(elem);
-				}
-				wr.append("\n");
-			}
-
-		} catch (IOException e) {
-			Helper.throwUnchecked("failed to write file "+file.getAbsolutePath(), e);
-		}
-		finally
-		{
-			if (wr != null)
-				try {
-					wr.close();
-				} catch (IOException e) {
-					// ignored
-				}
-		}
-	}
 
 
 	public static class MarkovLearnerRunner extends UASExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>

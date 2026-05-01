@@ -2069,5 +2069,116 @@ public class DrawGraphs {
 			return STR;
 		}
 	}
+
+
+	public static String formatTEX(List<List<String>> result, boolean firstAlignmentLeftArg) {
+		if (result == null || result.size() < 2)
+			throw new IllegalArgumentException("Not enough data to format a table");
+
+		StringBuilder sb = new StringBuilder();
+		boolean firstLine = true;
+		int elemNumber = -1;
+		for(List<String> line:result) {
+			if (firstLine) {
+				boolean firstAlignment = firstAlignmentLeftArg;
+				sb.append("\\begin{tabular}{|");
+				for(String elem:line) {
+					if (firstAlignment) {
+						sb.append(" l");
+						firstAlignment = false;
+					} else
+						sb.append(" c");
+
+					sb.append(" |");
+				}
+				sb.append("}\\\\hline\n");
+				elemNumber = line.size();
+				firstLine = false;
+
+				boolean firstItem = true;
+				for(String elem:line) {
+					if (firstItem)
+						firstItem = false;
+					else
+						sb.append(" & ");
+					sb.append(elem);
+				}
+				sb.append("\\\\\\hline\\hline");
+			}
+			else {
+				if (elemNumber != line.size())
+					throw new IllegalArgumentException("expected " + line.size() + " elements in " + result.get(0) + " but got " + line);
+
+				boolean firstItem = true;
+				for (String elem : line) {
+					if (firstItem) {
+						firstItem = false;
+						sb.append("\n");
+					}
+					else
+						sb.append(" & ");
+					sb.append(elem);
+				}
+				sb.append("\\\\");
+			}
+
+		}
+		sb.append("\\hline\n\\end{tabular}\n");
+
+		return sb.toString();
+	}
+
+	public static void writeTEX(File file, List<List<String>> result, boolean firstAlignmentLeftArg) {
+		FileWriter wr = null;
+
+		try {
+			wr = new FileWriter(file);
+
+
+		} catch (IOException e) {
+			Helper.throwUnchecked("failed to write file "+file.getAbsolutePath(), e);
+		}
+		finally
+		{
+			if (wr != null)
+				try {
+					wr.close();
+				} catch (IOException e) {
+					// ignored
+				}
+		}
+	}
+
+	public static void writeCSV(File file, List<List<String>> result) {
+		FileWriter wr = null;
+
+		try {
+			wr = new FileWriter(file);
+
+			for(List<String> line:result) {
+				boolean first = true;
+				for(String elem:line) {
+					if (first)
+						first = false;
+					else
+						wr.write(",");
+					wr.append(elem);
+				}
+				wr.append("\n");
+			}
+
+		} catch (IOException e) {
+			Helper.throwUnchecked("failed to write file "+file.getAbsolutePath(), e);
+		}
+		finally
+		{
+			if (wr != null)
+				try {
+					wr.close();
+				} catch (IOException e) {
+					// ignored
+				}
+		}
+	}
 }
 

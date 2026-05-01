@@ -1396,4 +1396,55 @@ public class TestDrawGraphs {
         }));
 	}
 
+
+	@Test
+	public final void testFormatTex1() {
+		List<List<String>> data = new ArrayList<>();
+		data.add(Arrays.asList("headerA","headerB","headerC"));
+		data.add(Arrays.asList("dataA","dataB","dataC"));
+		data.add(Arrays.asList("dataD","dataE","dataF"));
+		String got = DrawGraphs.formatTEX(data,true);
+		Assert.assertEquals("\\begin{tabular}{| l | c | c |}\\\\hline\n" +
+				"headerA & headerB & headerC\\\\\\hline\\hline\n" +
+				"dataA & dataB & dataC\\\\\n" +
+				"dataD & dataE & dataF\\\\\\hline\n" +
+				"\\end{tabular}\n",got);
+	}
+
+	@Test
+	public final void testFormatTex2() {
+		List<List<String>> data = new ArrayList<>();
+		data.add(Arrays.asList("headerA","headerB","headerC"));
+		data.add(Arrays.asList("dataA","dataB","dataC"));
+		data.add(Arrays.asList("dataD","dataE","dataF"));
+		String got = DrawGraphs.formatTEX(data,false);
+		Assert.assertEquals("\\begin{tabular}{| c | c | c |}\\\\hline\n" +
+				"headerA & headerB & headerC\\\\\\hline\\hline\n" +
+				"dataA & dataB & dataC\\\\\n" +
+				"dataD & dataE & dataF\\\\\\hline\n" +
+				"\\end{tabular}\n",got);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public final void testFormatTex_err1()
+	{
+		List<List<String>> data = new ArrayList<>();
+		data.add(Arrays.asList("headerA","headerB","headerC"));
+		data.add(Arrays.asList("dataA","dataB"));
+		data.add(Arrays.asList("dataD","dataE","dataF"));
+		DrawGraphs.formatTEX(data,false);
+	}
+	@Test(expected = IllegalArgumentException.class)
+	public final void testFormatTex_err2()
+	{
+		List<List<String>> data = new ArrayList<>();
+		DrawGraphs.formatTEX(data,false);
+	}
+	@Test(expected = IllegalArgumentException.class)
+	public final void testFormatTex_err3()
+	{
+		List<List<String>> data = new ArrayList<>();
+		data.add(Arrays.asList("headerA","headerB","headerC"));
+		DrawGraphs.formatTEX(data,false);
+	}
 }

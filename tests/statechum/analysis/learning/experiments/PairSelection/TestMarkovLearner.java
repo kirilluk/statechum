@@ -698,7 +698,9 @@ public class TestMarkovLearner
 		Assert.assertEquals(1,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),new MarkovClassifier.DifferentPredictionsInconsistency()));
 	}
 
-	/** One inconsistency: transition u. */
+	/** One inconsistency: transition u. This case is different to the general one because we have a
+	 * negative case for general and only focus on positives for the positive case.
+	 */
 	@Test
 	public void testCheckFanoutInconsistency3_positive()
 	{
@@ -736,6 +738,91 @@ public class TestMarkovLearner
 
 		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));// everything as expected.
 		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("D"),null));// missing reject-transition with label u is ignored because we are only considering actual outgoing transitions
+	}
+
+	/** Tests the case of non-deterministic inverse graph */
+	@Test
+	public void testCheckFanoutInconsistency5()
+	{// aa and ac both predicts b, ac predicts u. Inconsistency 1 because aa does not predict u.
+		MarkovModel m_general = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","a","b"},new String[]{"a","c","b"},new String[]{"a","c","u"} },config,converter),
+				minusStrings = buildSet(new String[][] {},config,converter);
+		m_general.createMarkovLearner(plusStrings, minusStrings,false);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("S-a->A-a->B / A-c->B-u->C / T-a->A","testCheckFanoutInconsistency5",config, converter);
+
+		Assert.assertEquals(1,new MarkovClassifierLG(m_general,graph,null).checkFanoutInconsistency(graph.findVertex("B"),new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+
+		MarkovModel m_positive = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m_positive.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		Assert.assertEquals(1,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+	}
+
+	/** Tests the case of non-deterministic inverse graph */
+	@Test
+	public void testCheckFanoutInconsistency6()
+	{// aa and ac both predicts b, ac predicts u, inconsistency 0 because all incoming paths (aa and ac) predict b.
+		MarkovModel m_general = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","a","b"},new String[]{"a","c","b"},new String[]{"a","c","u"} },config,converter),
+				minusStrings = buildSet(new String[][] {},config,converter);
+		m_general.createMarkovLearner(plusStrings, minusStrings,false);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("S-a->A-a->B / A-c->B-b->C / T-a->A / U-a->A","testCheckFanoutInconsistency6",config, converter);
+
+		Assert.assertEquals(0,new MarkovClassifierLG(m_general,graph,null).checkFanoutInconsistency(graph.findVertex("B"),new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+
+		MarkovModel m_positive = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m_positive.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		Assert.assertEquals(0,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+	}
+
+	/** Tests the case of non-deterministic inverse graph */
+	@Test
+	public void testCheckFanoutInconsistency7()
+	{// aa and ac both predicts b, ac predicts u, inconsistency 0 because all incoming paths (aa and ac) predict b.
+		MarkovModel m_general = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","a","b"},new String[]{"a","c","b"},new String[]{"a","c","u"} },config,converter),
+				minusStrings = buildSet(new String[][] {},config,converter);
+		m_general.createMarkovLearner(plusStrings, minusStrings,false);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("S-a->A-a->B / A-c->B-b->C / T-a->A / U-a->A / N-a->M-c->B","testCheckFanoutInconsistency7",config, converter);
+
+		Assert.assertEquals(0,new MarkovClassifierLG(m_general,graph,null).checkFanoutInconsistency(graph.findVertex("B"),new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+
+		MarkovModel m_positive = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m_positive.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		Assert.assertEquals(0,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+	}
+
+	/** Tests the case of non-deterministic inverse graph */
+	@Test
+	public void testCheckFanoutInconsistency8()
+	{// aa and ac both predicts b, ac predicts u, inconsistency 0 because although cc does not predict b, it is not part of Markov model and thus never seen.
+		MarkovModel m_general = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","a","b"},new String[]{"a","c","b"},new String[]{"a","c","u"} },config,converter),
+				minusStrings = buildSet(new String[][] {},config,converter);
+		m_general.createMarkovLearner(plusStrings, minusStrings,false);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("S-a->A-a->B / A-c->B-b->C / T-a->A / U-a->A / N-c->M-c->B","testCheckFanoutInconsistency8",config, converter);
+
+		Assert.assertEquals(1,new MarkovClassifierLG(m_general,graph,null).checkFanoutInconsistency(graph.findVertex("B"),new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+
+		MarkovModel m_positive = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m_positive.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		Assert.assertEquals(1,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+	}
+
+	/** Tests the case of non-deterministic inverse graph */
+	@Test
+	public void testCheckFanoutInconsistency9()
+	{// aa and ac both predicts b, ac predicts u, inconsistency 1 because cc does not predict b (it was seen and predicts u).
+		MarkovModel m_general = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		Set<List<Label>> plusStrings = buildSet(new String[][] { new String[]{"a","a","b"},new String[]{"a","c","b"},new String[]{"c","c","u"},new String[]{"a","c","u"} },config,converter),
+				minusStrings = buildSet(new String[][] {},config,converter);
+		m_general.createMarkovLearner(plusStrings, minusStrings,false);
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("S-a->A-a->B / A-c->B-b->C / T-a->A / U-a->A / N-c->M-c->B","testCheckFanoutInconsistency9",config, converter);
+
+		Assert.assertEquals(1,new MarkovClassifierLG(m_general,graph,null).checkFanoutInconsistency(graph.findVertex("B"),new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+
+		MarkovModel m_positive = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m_positive.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
+		Assert.assertEquals(1,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
 	}
 
 	/** Tests that creating a model from PTA and from initial traces gives the same result. */

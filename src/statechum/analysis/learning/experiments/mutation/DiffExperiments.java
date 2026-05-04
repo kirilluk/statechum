@@ -635,7 +635,6 @@ public class DiffExperiments {
 						// specified number of states per multiplier, by randomly adding transitions.
 						// This is done before all other tasks, to ensure that after minimisation and adding
 						// transitions to ensure connectivity we get an automaton with expected number of states.
-						final Set<Label> alphabetObtained = machine.pathroutines.computeAlphabet();
 						CmpVertex possibleStates [] = machine.transitionMatrix.keySet().toArray(new CmpVertex[]{});
 						
 						while( (double)machine.pathroutines.countEdges()/machine.transitionMatrix.size() < perStateMultiplier)
@@ -654,7 +653,7 @@ public class DiffExperiments {
 						
 							if (sourceVertex == null || targetVertex == null )
 								break;
-                            Set<Label> inputsPossible = new TreeSet<>(alphabetObtained);inputsPossible.removeAll(machine.transitionMatrix.get(sourceVertex).keySet());
+                            Set<Label> inputsPossible = new TreeSet<>(gen.getPossibleAlphabet());inputsPossible.removeAll(machine.transitionMatrix.get(sourceVertex).keySet());
 							Label[] possibleElementsOfAlphabet = inputsPossible.toArray(new Label[]{});
 							Label possibleLabel = null;
 							if (possibleElementsOfAlphabet.length == 1)

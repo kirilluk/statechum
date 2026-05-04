@@ -78,7 +78,7 @@ public class MarkovExperiment
 			// density refers to the number of transitions per state. It is defined as a multiplier of a number
 			// of states because we would like 100% to refer to a fully-connected graph (which is hence useless
 			// as it accepts everything).
-			final double density = (double) (par.states * par.perStateSquaredDensityMultipliedBy100) / 100;
+			final double density = (double) (par.states * par.perStateSquaredDensityMultipliedBy100) / 100.;
 			MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
 			
 			try {
@@ -138,7 +138,8 @@ public class MarkovExperiment
 			LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 
 //			LearnerGraph trimmedReference = LearningSupportRoutines.trimUncoveredTransitions(pta,referenceGraph);
-			final ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+			final ConsistencyChecker checker = new //MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting();
+					MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 			long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(referenceGraph, null, m, checker,false);
 
 			PerformFirstMerge firstMerge = new PerformFirstMerge();firstMerge.ptaToUseForInference=pta;
@@ -473,7 +474,7 @@ public class MarkovExperiment
 		final double traceLengthMultiplierMax = 16;
 
 		final boolean pathsOrSets = true;
-		final int[] statesToUse = new int[]{10,20};
+		final int[] statesToUse = new int[]{10};
 		// Scales the number of traces to account for larger automata
 		final int stateScale = statesToUse[0]/10;
 
@@ -510,8 +511,8 @@ public class MarkovExperiment
 
 		try
 		{
-			E_MarkovCaseStudies.runExperiment(learningGroup);
-//			E_MarkovBaselineLearn.runExperiment(learningGroup);
+//			E_MarkovCaseStudies.runExperiment(learningGroup);
+			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovCentre.runExperiment(learningGroup);
 //			E_MarkovAlphabet.runExperiment(learningGroup);
 //			E_MarkovTraceMult.runExperiment(learningGroup);

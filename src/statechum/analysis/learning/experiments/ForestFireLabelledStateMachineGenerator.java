@@ -49,18 +49,22 @@ public class ForestFireLabelledStateMachineGenerator extends ForestFireStateMach
 			double forwards, double backwards, double argSelfloop, double argParallel, int alphabetSize, 
 			int seed,Configuration conf,ConvertALabel converter)
 	{
-		super(forwards, backwards,argSelfloop,seed,conf,converter);this.parallel=(int)(1/argParallel);
+		super(forwards, backwards,argSelfloop,seed,conf,converter);this.parallel=argParallel;
 		this.alphabet=generateAlphabet(alphabetSize);
 	}
-	
+
 	public ForestFireLabelledStateMachineGenerator(
 			double forwards, double backwards, double argSelfloop, double argParallel, Set<Label> argAlphabet, 
 			int seed,Configuration conf,ConvertALabel converter)
 	{
-		super(forwards, backwards, argSelfloop, seed,conf,converter);this.parallel=(int)(1/argParallel);
+		super(forwards, backwards, argSelfloop, seed,conf,converter);this.parallel=argParallel;
 		this.alphabet=argAlphabet;
 	}
-	
+
+	public Set<Label> getPossibleAlphabet() {
+		return alphabet;
+	}
+
 	@Override
 	protected boolean addEdge(DeterministicVertex v, DeterministicVertex random)
 	{

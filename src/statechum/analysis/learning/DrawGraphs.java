@@ -1049,6 +1049,88 @@ public class DrawGraphs {
 		}
 	}
 
+	public static class DataSelection {
+		final CSVExperimentResult whereFrom;
+		final int states;
+		final int perStateSquaredDensity100;
+
+		/** Creates an instance of data source containing a spreadsheet and selection criteria for automata.
+		 * @param whereFrom spreadsheet to get data from
+		 * @param states automata with that number of states to select
+		 * @param perStateSquaredDensity100 density to select
+		 */
+		public DataSelection(CSVExperimentResult whereFrom, int states, int perStateSquaredDensity100) {
+			this.whereFrom = whereFrom;
+			this.states = states;
+			this.perStateSquaredDensity100 = perStateSquaredDensity100;
+		}
+
+		public interface ProcessExperimentEntry {
+			void processPair(String X, String Y);
+		}
+
+		public void iterateThroughData(String columnX,String columnY, ProcessExperimentEntry lambda) {
+			for (Map.Entry<String, Map<String, String>> rowEntry : whereFrom.rowColumnText.entrySet()) {
+				String[] rowValues = rowEntry.getKey().split("[_=]");
+				assert rowValues[10].equals("d");
+				assert rowValues[6].equals("S");
+				if (Double.parseDouble(rowValues[11]) == perStateSquaredDensity100 && Integer.parseInt(rowValues[7]) == states) {
+					String X = getValueFromMapGivenRegexp(rowEntry.getValue(), columnX);
+					String Y = getValueFromMapGivenRegexp(rowEntry.getValue(), columnY);
+					if (X != null && Y != null)
+						lambda.processPair(X,Y);
+				}
+			}
+		}
+	}
+
+	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
+	 *
+	 * @param plot R graph to update
+	 * @param columnX column for the horizontal values.
+	 * @param columnY column for the vertical values.
+	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
+	 * @param label label to add with each value.
+	 */
+	public static void spreadsheetToBagPlot(RBagPlot plot, DataSelection source, String columnX, int cellWithinX, String columnY, int cellWithinY, String colour, String label)
+	{
+		source.iterateThroughData(columnX,columnY,(X, Y) ->
+					plot.add(Double.parseDouble(obtainValueFromCell(X, cellWithinX)), Double.parseDouble(obtainValueFromCell(Y, cellWithinY)), colour, label)
+		);
+	}
+
+	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
+	 *
+	 * @param plot R graph to update
+	 * @param source data to process
+	 * @param columnX column for the horizontal values.
+	 * @param columnY column for the vertical values.
+	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
+	 * @param label label to add with each value.
+	 */
+	public static void spreadsheetToBagPlotNoZeroYValues(RBagPlot plot, DataSelection source, String columnX, int cellWithinX, String columnY, int cellWithinY, String colour, String label)
+	{
+		source.iterateThroughData(columnX,columnY,(X, Y) -> {
+			double value = Double.parseDouble(obtainValueFromCell(Y, cellWithinY));
+			if (value > 0.)
+				plot.add(Double.parseDouble(obtainValueFromCell(X, cellWithinX)), value, colour, label);
+		});
+	}
+
+	public static void spreadsheetAsDouble(RStatisticalAnalysis analysis,DataSelection source, String columnX, int cellWithinX, String columnY, int cellWithinY)
+	{
+		source.iterateThroughData(columnX,columnY,(X, Y) ->
+				analysis.add(Double.parseDouble(obtainValueFromCell(X,cellWithinX)), Double.parseDouble(obtainValueFromCell(Y,cellWithinY)))
+		);
+	}
+
+	public static void spreadsheetAsString(AggregateStringValues agg,DataSelection source, String columnX, int cellWithinX, String columnY, int cellWithinY)
+	{
+		source.iterateThroughData(columnX,columnY,(X, Y) ->
+			agg.merge(X == null?null:obtainValueFromCell(X,cellWithinX),Y == null?null:obtainValueFromCell(Y,cellWithinY))
+		);
+	}
+
 	public interface MergeObjects
 	{
 		/** Called to merge the provided object into that represented by a provider of this interface. */

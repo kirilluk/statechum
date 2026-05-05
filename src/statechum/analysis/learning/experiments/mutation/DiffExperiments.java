@@ -631,6 +631,11 @@ public class DiffExperiments {
 					
 					if (perStateMultiplier > 0)
 					{
+						// First of all, ensure the machine is connected, if this adds enough transitions we do not need to add more.
+
+						if (generateConnected)
+							addTransitionsToEnsureMachineIsConnected(machine, gen.getPossibleAlphabet(), connectTransitions);
+
 						// The purpose of this part is to increase the number of transitions until it matches the
 						// specified number of states per multiplier, by randomly adding transitions.
 						// This is done before all other tasks, to ensure that after minimisation and adding
@@ -668,58 +673,33 @@ public class DiffExperiments {
 					
 					if (generateConnected)
 					{
-						// First, add transitions from states that do not lead anywhere
-						final Set<CmpVertex> deadendStates = machine.pathroutines.computeReachableStatesFromWhichInitIsNotReachable();
-						final Set<Label> alphabetObtained = machine.pathroutines.computeAlphabet();
-						for(CmpVertex v:deadendStates)
-						{
-                            Set<CmpVertex> visited = new HashSet<>(machine.transitionMatrix.keySet());visited.removeAll(machine.transitionMatrix.get(v).values());visited.remove(v);
-							CmpVertex[] possibleStates = visited.toArray(new CmpVertex[]{});
-							CmpVertex chosenState = null;
-							assert possibleStates.length > 0;// at least the initial state is not reachable
-							if (possibleStates.length < 2)
-								chosenState = possibleStates[0];
-							else
-								chosenState = possibleStates[connectTransitions.nextInt(possibleStates.length)];
-
-                            Set<Label> inputsPossible = new TreeSet<>(alphabetObtained);inputsPossible.removeAll(machine.transitionMatrix.get(v).keySet());
-							Label[] possibleElementsOfAlphabet = inputsPossible.toArray(new Label[]{});
-							Label possibleLabel = null;
-							if (possibleElementsOfAlphabet.length == 1)
-								possibleLabel = possibleElementsOfAlphabet[0];
-							else
-								if (possibleElementsOfAlphabet.length > 1)
-									possibleLabel = possibleElementsOfAlphabet[connectTransitions.nextInt(possibleElementsOfAlphabet.length)];
-							if (possibleLabel != null)
-								machine.addTransition(machine.transitionMatrix.get(v),possibleLabel, chosenState);
-							// if we cannot find a label because there are too many transitions from the state of interest, ignore this state and it will be removed by calling removeReachableStatesFromWhichInitIsNotReachable
-						}
+						addTransitionsToEnsureMachineIsConnected(machine, gen.getPossibleAlphabet(), connectTransitions);
 
 						// Now remove states from which the initial state cannot be reached.
 						LearnerGraph trimmedMachine = new LearnerGraph(config);
 						machine.pathroutines.removeReachableStatesFromWhichInitIsNotReachable(trimmedMachine);
 						machine = trimmedMachine.paths.reduce();
 					}
-					
+
 					machine.setName("forestfire_"+counter);
 					int machineSize = machine.getStateNumber();
 					sizeSequence.add(machineSize);
-					
-					int obtainedDifference = Math.abs(machineSize - actualTargetSize); 
+
+					int obtainedDifference = Math.abs(machineSize - actualTargetSize);
 					if(obtainedDifference <= error)
 					{
 						found = true;
 						break;
 					}
-					
+
 					if (obtainedDifference < bestMachineStateNumber)
 					{
-						bestMachine = machine;bestMachineStateNumber = obtainedDifference; 
+						bestMachine = machine;bestMachineStateNumber = obtainedDifference;
 					}
-					
+
 					diff+= machineSize - actualTargetSize;
 				}
-				
+
 				if(!found)
 				{
 					if (diff/phaseSize > Math.max(20,error)) // too many additional states, with a clamp of 10 for small machines
@@ -734,7 +714,7 @@ public class DiffExperiments {
 					++artificialTargetSize;
 				}
 			}
-			
+
 			LearnerGraphND outcome = new LearnerGraphND(machine.config);AbstractLearnerGraph.copyGraphs(machine,outcome);
 			return outcome;
 		}
@@ -753,6 +733,35 @@ public class DiffExperiments {
 			return total / sizeSequence.size();
 		}
  */
-	
+
+	}
+
+	private static void addTransitionsToEnsureMachineIsConnected(LearnerGraph machine, Set<Label> alphabet, Random connectTransitions) {
+		// First, add transitions from states that do not lead anywhere
+		final Set<CmpVertex> deadendStates = machine.pathroutines.computeReachableStatesFromWhichInitIsNotReachable();
+		for(CmpVertex v:deadendStates)
+		{
+			Set<CmpVertex> visited = new HashSet<>(machine.transitionMatrix.keySet());
+			visited.removeAll(machine.transitionMatrix.get(v).values());visited.remove(v);
+			CmpVertex[] possibleStates = visited.toArray(new CmpVertex[]{});
+			CmpVertex chosenState = null;
+			assert possibleStates.length > 0;// at least the initial state is not reachable
+			if (possibleStates.length < 2)
+				chosenState = possibleStates[0];
+			else
+				chosenState = possibleStates[connectTransitions.nextInt(possibleStates.length)];
+
+			Set<Label> inputsPossible = new TreeSet<>(alphabet);inputsPossible.removeAll(machine.transitionMatrix.get(v).keySet());
+			Label[] possibleElementsOfAlphabet = inputsPossible.toArray(new Label[]{});
+			Label possibleLabel = null;
+			if (possibleElementsOfAlphabet.length == 1)
+				possibleLabel = possibleElementsOfAlphabet[0];
+			else
+				if (possibleElementsOfAlphabet.length > 1)
+					possibleLabel = possibleElementsOfAlphabet[connectTransitions.nextInt(possibleElementsOfAlphabet.length)];
+			if (possibleLabel != null)
+				machine.addTransition(machine.transitionMatrix.get(v),possibleLabel, chosenState);
+			// if we cannot find a label because there are too many transitions from the state of interest, ignore this state and it will be removed by calling removeReachableStatesFromWhichInitIsNotReachable
+		}
 	}
 }

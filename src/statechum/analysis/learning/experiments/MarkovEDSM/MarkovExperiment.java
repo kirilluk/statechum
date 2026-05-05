@@ -474,7 +474,7 @@ public class MarkovExperiment
 		final double traceLengthMultiplierMax = 16;
 
 		final boolean pathsOrSets = true;
-		final int[] statesToUse = new int[]{10};
+		final int[] statesToUse = new int[]{10, 20};
 		// Scales the number of traces to account for larger automata
 		final int stateScale = statesToUse[0]/10;
 

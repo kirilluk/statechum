@@ -177,7 +177,7 @@ public class E_MarkovCaseStudies {
                         CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.centrePathNumber);
                     }
                     CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.referenceGraph.pathroutines.computeAlphabet().size());
-                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(100. * ConfusionMatrix.divide(sm.referenceGraph.getStateNumber(),sm.referenceGraph.pathroutines.countEdges())));
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(100. * ConfusionMatrix.divide(sm.referenceGraph.pathroutines.countEdges(),sm.referenceGraph.getStateNumber()*sm.referenceGraph.getStateNumber())));
                     CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.transitionsSampled);
                     CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime / 1000000000.));// execution time is in nanoseconds, we only need seconds.
                     experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());

@@ -55,6 +55,11 @@ public class E_MarkovBaselineLearn {
                                             LearningAlgorithms.ScoringToApply.SCORING_SICCO
                                     })
                             // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
+
+//                                for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{3, 4} : new int[]{2})
+//                                    for (double weightOfInconsistencies : learnerKind.isMarkov() ?
+//                                            new double[]{0.25, 0.5, 1.0, 2.0, 4.0, 8.0}
+//                                            : new double[]{1.0})
                             {
                                 int chunkSizeToEvaluate = 3;
                                 double weightOfInconsistencies = 1.0;

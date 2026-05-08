@@ -178,6 +178,7 @@ public class E_MarkovCentre {
         boolean aveOrMax = true;// average divide by the divisor
         final int chunkSizeForCentreExperiments = 3;
         int alphabetMultiplier = 2;
+        boolean penaliseMissingPaths = true;
         boolean pathsOrSets = true;
 
         int [] wlen_values = new int[]{1,2,3};
@@ -203,7 +204,7 @@ public class E_MarkovCentre {
                                             MarkovCentreLearningParameters parameters = new MarkovCentreLearningParameters(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
                                             parameters.setTraceLengthMultiplier(traceLengthMultiplier);
                                             parameters.setExperimentID(traces_lengthmult.firstElem, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
-                                            parameters.markovParameters.setMarkovParameters(1, chunkSizeForCentreExperiments, pathsOrSets, weightOfInconsistencies, aveOrMax, divisor, 0, wlen);
+                                            parameters.markovParameters.setMarkovParameters(1, chunkSizeForCentreExperiments, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, divisor, 0, wlen);
                                             parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                             MarkovCentreIdentification centreIdentificationExperiment = new MarkovCentreIdentification(parameters, ev);
                                             centreIdentificationExperiment.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).

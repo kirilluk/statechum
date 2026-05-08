@@ -126,9 +126,9 @@ public class MarkovExperiment
 			
 			LearnerGraph pta = constructPTA();
 	
-			final MarkovModel m= new MarkovModel(par.markovParameters.chunkLen,true,true,true,false);
-
-			new MarkovClassifierLG(m, pta,null).updateMarkov(false);// construct Markov chain if asked for.
+			final MarkovModel markovModel = new MarkovModel(par.markovParameters.chunkLen,true,true,true,false);
+			markovModel.createMarkovFromPositiveDataAndGenerateInversePredictions(new ArrayList<>(),true);// use the new 'positive' version of fanout inconsistency computation.
+			new MarkovClassifierLG(markovModel, pta,null).updateMarkov(false);
 			
 			pta.clearColours();
 
@@ -138,16 +138,17 @@ public class MarkovExperiment
 			LearnerGraph ptaCopy = new LearnerGraph(deepCopy);LearnerGraph.copyGraphs(pta, ptaCopy);
 
 //			LearnerGraph trimmedReference = LearningSupportRoutines.trimUncoveredTransitions(pta,referenceGraph);
-			final ConsistencyChecker checker = new //MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting();
-					MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
-			long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(referenceGraph, null, m, checker,false);
+			final ConsistencyChecker checker = par.markovParameters.penaliseMissingPaths?
+					new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes() :
+					new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting();
+			long inconsistencyForTheReferenceGraph = MarkovClassifier.computeInconsistency(referenceGraph, null, markovModel, checker,false);
 
 			PerformFirstMerge firstMerge = new PerformFirstMerge();firstMerge.ptaToUseForInference=pta;
 			if (par.markovParameters.useCentreVertex)
 			{
 				saveGraph(namePTABEFORECENTRE,pta);
 				// This replaces firstMerge.ptaToUseForInference with a graph built by merging around the most-connected vertex
-				firstMerge.buildFirstGraph(pta, referenceGraph, par.markovParameters, m, checker);
+				firstMerge.buildFirstGraph(pta, referenceGraph, par.markovParameters, markovModel, checker);
 				if (par.usePrintf) {
 					LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(firstMerge.ptaToUseForInference);
 					System.out.println("Centre vertex: " + firstMerge.vertexWithMostTransitions + " number of transitions: " +
@@ -175,21 +176,21 @@ public class MarkovExperiment
 					redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen);
 					markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaBuilt,0,
 							par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, redReducer);
-					markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+					markovLearner.setMarkov(markovModel);markovLearner.setChecker(checker);
 					learnerOfPairs = markovLearner;
 					break;
 				case SCORING_MARKOV_1:
 					redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen);
 					markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaBuilt,1,
 							par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, redReducer);
-					markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+					markovLearner.setMarkov(markovModel);markovLearner.setChecker(checker);
 					learnerOfPairs = markovLearner;
 					break;
 				case SCORING_MARKOV_2:
 					redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen);
 					markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaBuilt,2,
 							par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, redReducer);
-					markovLearner.setMarkov(m);markovLearner.setChecker(checker);
+					markovLearner.setMarkov(markovModel);markovLearner.setChecker(checker);
 					learnerOfPairs = markovLearner;
 					break;
 				default:
@@ -229,7 +230,7 @@ public class MarkovExperiment
 //			Visualiser.updateFrame(referenceGraph,learntGraph);
 //			Visualiser.waitForKey();
 
-			dataSample.actualLearner = WaveBlueFringe.estimateDifference(actualAutomaton,m,checker,referenceGraph,learnerInitConfiguration.testSet);
+			dataSample.actualLearner = WaveBlueFringe.estimateDifference(actualAutomaton,markovModel,checker,referenceGraph,learnerInitConfiguration.testSet);
 			if (redReducer != null)
 			{
 				dataSample.actualLearner.invalidMergersFarFromRoot = redReducer.getInvalidMergersFarFromRoot();dataSample.actualLearner.missedMergersFarFromRoot = redReducer.getMissedMergersFarFromRoot();
@@ -238,7 +239,7 @@ public class MarkovExperiment
 			}
 			dataSample.actualLearner.whetherLearningSuccessfulOrAborted = actualAutomaton.getLearningAbortedReason();
 			dataSample.actualLearner.executionTime = runTime;
-			dataSample.inconsistencyReference = MarkovClassifier.computeInconsistency(referenceGraph, null, m, checker,false);
+			dataSample.inconsistencyReference = MarkovClassifier.computeInconsistency(referenceGraph, null, markovModel, checker,false);
 			dataSample.referenceLearner = zeroScore;
 			dataSample.centreCorrect = firstMerge.correctCentre;
 			dataSample.centrePathNumber = firstMerge.centrePathNumber;
@@ -250,9 +251,9 @@ public class MarkovExperiment
 //			Visualiser.waitForKey();
 
 			dataSample.transitionsSampled = Math.round(100*(double)trimmedGraph.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
-			statechum.Pair<Double,Double> correctnessOfTransitionPredictionsByMarkov = new MarkovClassifierLG(m, referenceGraph,null).evaluateCorrectnessOfMarkov(true, false);
+			statechum.Pair<Double,Double> correctnessOfTransitionPredictionsByMarkov = new MarkovClassifierLG(markovModel, referenceGraph,null).evaluateCorrectnessOfMarkov(true, false);
 			dataSample.markovTransitionPrecision = Math.round(100*correctnessOfTransitionPredictionsByMarkov.firstElem);dataSample.markovTransitionRecall = Math.round(100*correctnessOfTransitionPredictionsByMarkov.secondElem);
-			statechum.Pair<Double,Double> correctnessOfHolePredictionsByMarkov = new MarkovClassifierLG(m, referenceGraph,null).evaluateCorrectnessOfHolePredictionByMarkov();
+			statechum.Pair<Double,Double> correctnessOfHolePredictionsByMarkov = new MarkovClassifierLG(markovModel, referenceGraph,null).evaluateCorrectnessOfHolePredictionByMarkov();
 			dataSample.markovHolePrecision = Math.round(100*correctnessOfHolePredictionsByMarkov.firstElem);dataSample.markovHoleRecall = Math.round(100*correctnessOfHolePredictionsByMarkov.secondElem);
  			if (markovLearner != null) {
 				dataSample.comparisonsPerformed = markovLearner.markovHelper.comparisonsPerformed;

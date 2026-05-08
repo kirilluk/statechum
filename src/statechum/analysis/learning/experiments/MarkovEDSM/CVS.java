@@ -117,7 +117,7 @@ public class CVS
 		final int chunkSize = 3;
 		final int[] statesToUse = new int[]{5,10,20,40};
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
-		
+		boolean penaliseMissingPaths = true;
 		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
@@ -162,7 +162,7 @@ public class CVS
 											MarkovLearningParameters parameters = new MarkovCVSParameters(learnerKind,states, alphabetMultiplier, density, sample,trainingSample, seedForFSM);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax, alphabetMultiplier);
-											parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies,aveOrMax,divisorForPathCount,0,1);
+											parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies,penaliseMissingPaths,aveOrMax,divisorForPathCount,0,1);
 											parameters.setUsePrintf(experimentRunner.isInteractive());
 											MarkovLearnerFromPTAUsingReference learnerRunner = new MarkovLearnerFromPTAUsingReference(parameters, ev,pta, getCVSReference(eval));
 											learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).

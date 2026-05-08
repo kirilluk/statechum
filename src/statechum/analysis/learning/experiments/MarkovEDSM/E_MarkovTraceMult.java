@@ -35,6 +35,7 @@ public class E_MarkovTraceMult {
         final int statesMax = learningGroup.statesToUse[learningGroup.statesToUse.length-1];// reflects the size of the largest FSM that will be generated.
         boolean aveOrMax = true;// average divide by the divisor
         boolean pathsOrSets = true;
+        boolean penaliseMissingPaths = true;
         int [] traceLenMultValues = new int[] { 4,16,32, 64, 128 };
         double alphabetMultiplier = 2;
         int seedForFSM = 0;
@@ -70,7 +71,7 @@ public class E_MarkovTraceMult {
                                                 MarkovAlphabetLearningParameters parameters = new MarkovAlphabetLearningParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
                                                 parameters.setTraceLengthMultiplier(traceLenMult);
                                                 parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
-                                                parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, aveOrMax, divisor, 0, wlen);
+                                                parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, divisor, 0, wlen);
                                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                                 MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);
                                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).

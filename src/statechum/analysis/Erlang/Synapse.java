@@ -923,7 +923,7 @@ public class Synapse implements Runnable {
 															pta.paths.augmentPTA(seq,true,false,null);
 														for(List<Label> seq:sMinus)
 															pta.paths.augmentPTA(seq,false,false,null);
-														MarkovParameters markovParameters = new MarkovParameters(0, 3,true, 1, true,1,0,1);
+														MarkovParameters markovParameters = new MarkovParameters(0, 3,true, 1, true,true,1,0,1);
 														final MarkovModel m= new MarkovModel(markovParameters.chunkLen,true,true,true,false);
 
 														new MarkovClassifier<CmpVertex,LearnerGraphCachedData>(m, pta, null).updateMarkov(false);// construct Markov chain if asked for.
@@ -986,7 +986,7 @@ public class Synapse implements Runnable {
 																ptaInitial.paths.augmentPTA(seq,true,false,null);
 															//for(List<Label> seq:sMinus)
 															//	ptaInitial.paths.augmentPTA(seq,false,false,null);
-															MarkovParameters markovParameters = new MarkovParameters(0, 3,true, 1, true,1,0,1);
+															MarkovParameters markovParameters = new MarkovParameters(0, 3,true, 1, true,true,1,0,1);
 															final MarkovModel m= new MarkovModel(markovParameters.chunkLen,true,true,true,false);
 
 															final MarkovClassifierLG ptaClassifier = new MarkovClassifierLG(m, ptaInitial,null);ptaClassifier.updateMarkov(false);

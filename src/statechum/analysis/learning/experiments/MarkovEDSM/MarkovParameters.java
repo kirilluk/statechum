@@ -29,7 +29,20 @@ public class MarkovParameters
 
 	public int divisorForPathCount=1,expectedWLen=1;
 	public int whichMostConnectedVertex = 0;
-	
+
+	/** When evaluating whether a transition that was added to a state due to a merge is supposed to be there or not,
+	 * we would check whether it was predicted by the Markov model. Where a transition is not predicted by
+	 * some incoming path, two cases are possible, either there is a path in Markov table that is not known
+	 * to predict such a transition or where there is not even a path in the table corresponding to an
+	 * incoming path. An argument to penalise such mergers (creating paths that are not in the table) is that
+	 * if we never saw such a path, probably it should not exist and the merge was a mistake. An alternative
+	 * explanation is that path is missing because the table is very incomplete (which it would be for large values of chunkLen) and
+	 * thus no penalty should be awarded. In experiments with random 10 and 20-state automata and density 10% ... 30%, penalising
+	 * missing paths gives slightly better results although a better strategy is to try both (penalising and not penalising) and pick
+	 * the outcome with the smaller inconsistency, even if the two inconsistency values are computed in a different way.
+ 	 */
+	public boolean penaliseMissingPaths = true;
+
 	/** If true, we are looking at sequences of transitions to/from a state of interest. 
 	 * If false, we are looking for sets of labels on transitions into/out of a state of interest. Both are 
 	 * represented as paths because we need to do a lookup in a collection of paths and numbering of labels 
@@ -60,6 +73,7 @@ public class MarkovParameters
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + chunkLen;
+		result = prime * result + (penaliseMissingPaths ? 1231 : 1237);
 		result = prime * result + divisorForPathCount;
 		result = prime * result + expectedWLen;
 		result = prime * result + preset;
@@ -86,6 +100,8 @@ public class MarkovParameters
 			return false;
 		if (pathsOrSets != other.pathsOrSets)
 			return false;
+		if (penaliseMissingPaths != other.penaliseMissingPaths)
+			return false;
 		if (divisorForPathCount != other.divisorForPathCount)
 			return false;
 		if (expectedWLen != other.expectedWLen)
@@ -99,14 +115,14 @@ public class MarkovParameters
         return whichMostConnectedVertex == other.whichMostConnectedVertex;
     }
 
-	public MarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, double weight, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
+	public MarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, double weight, boolean addPenaltyForMissingPaths, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
 	{
-		setMarkovParameters(pr,chunkLength,argPathsOrSets,weight,aveOrMax,divisor,mostConnectedVertex,wlen);
+		setMarkovParameters(pr,chunkLength,argPathsOrSets,weight,addPenaltyForMissingPaths,aveOrMax,divisor,mostConnectedVertex,wlen);
 	}
 	
-	public void setMarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, double weight, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
+	public void setMarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, double weight, boolean addPenaltyForMissingPaths, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
 	{
-		chunkLen=chunkLength;pathsOrSets = argPathsOrSets;preset = pr;weightOfInconsistencies = weight;
+		chunkLen=chunkLength;pathsOrSets = argPathsOrSets;preset = pr;weightOfInconsistencies = weight;penaliseMissingPaths = addPenaltyForMissingPaths;
 		useAverageOrMax = aveOrMax;divisorForPathCount = divisor;
 		whichMostConnectedVertex = mostConnectedVertex;expectedWLen=wlen;
 		setPresetLearningParameters(preset);
@@ -174,7 +190,7 @@ public class MarkovParameters
 	
 	public List<String> getColumnListOnlyForMarkov()
 	{
-        return new ArrayList<>(Arrays.asList(Integer.toString(chunkLen), Double.toString(weightOfInconsistencies)));
+        return new ArrayList<>(Arrays.asList(Integer.toString(chunkLen), Double.toString(weightOfInconsistencies),Boolean.toString(penaliseMissingPaths)));
 	}
 	
 	public List<String> getColumnListForMarkovLearner()
@@ -202,7 +218,7 @@ public class MarkovParameters
 			outcome+="_dv="+(useAverageOrMax?"A":"M")+"_d="+divisorForPathCount+"_wl="+expectedWLen+"_b="+(blue_states_forward_and_backwards?"T":"F");
 		}
 		if (useMarkovLearner)
-			outcome+="_cl="+chunkLen+"_w="+weightOfInconsistencies;
+			outcome+="_cl="+chunkLen+"_w="+weightOfInconsistencies+"_m="+penaliseMissingPaths;
 		
 		return outcome;
 	}

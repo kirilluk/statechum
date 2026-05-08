@@ -224,7 +224,7 @@ public class MarkovPreMergeExperiment
 													MarkovLearningParameters parameters = new MarkovPremergeParameters(learnerKind,states, alphabetMultiplier, density, sample,trainingSample, seedForFSM);
 													parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 													parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax, alphabetMultiplier);
-													parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies, aveOrMax,divisor,positionOfMostConnectedVertex,wlen);
+													parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies, true, aveOrMax,divisor,positionOfMostConnectedVertex,wlen);
 													parameters.setUsePrintf(experimentRunner.isInteractive());
 													MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(parameters, ev);
 													learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).

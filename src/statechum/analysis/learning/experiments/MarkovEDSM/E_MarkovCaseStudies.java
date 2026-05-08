@@ -75,7 +75,7 @@ public class E_MarkovCaseStudies {
         final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "results_casestudies.csv"));
         boolean aveOrMax = true;// average divide by the divisor
         int trainingSamplesPerFSM = 40;// these are fixed automata hence we can try many different values to see how inference performs.
-        boolean pathsOrSets = true;
+        boolean pathsOrSets = true, penaliseMissingPaths = true;
         String pathToCaseStudyFiles = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_CASESTUDIES);
         if (null == pathToCaseStudyFiles ||  pathToCaseStudyFiles.isEmpty())
             throw new RuntimeException("Cannot load any case studies: path to case studies is not defined");
@@ -131,7 +131,7 @@ public class E_MarkovCaseStudies {
                                         MarkovLearningBaselineParameters parameters = new MarkovLearningBaselineParameters(learnerKind, states, 0, 0, casestudy, trainingSample, 0);
                                         parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
                                         parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, 0);
-                                        parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, aveOrMax, wlen_divisor.secondElem, 0, wlen_divisor.firstElem);
+                                        parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, wlen_divisor.secondElem, 0, wlen_divisor.firstElem);
                                         parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                         MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(parameters, ev);
                                         learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).

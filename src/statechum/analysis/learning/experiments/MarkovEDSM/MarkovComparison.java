@@ -104,7 +104,7 @@ public class MarkovComparison {
     public static DrawGraphs.CSVExperimentResult runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         final DrawGraphs.CSVExperimentResult resultCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + "results.csv"));
         boolean aveOrMax = true;// average divide by the divisor
-
+        boolean penaliseMissingPaths = true;
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
         int [] densities = new int[]{0, 20, 30};
@@ -133,7 +133,7 @@ public class MarkovComparison {
                                 E_MarkovBaselineLearn.MarkovLearningBaselineParameters parameters = new E_MarkovBaselineLearn.MarkovLearningBaselineParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
                                 parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
                                 parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
-                                parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, aveOrMax, 0, 0, 0);
+                                parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, 0, 0, 0);
                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                 MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev) {
                                     @Override

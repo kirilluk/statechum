@@ -1018,9 +1018,12 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 			return 0;// reject-vertices cannot have outgoing transitions (we are considering prefix-closed languages) and hence a score of zero makes good sense.
 
 		if (model.getPredictionFromOnlySequencesForward()) {
-			if (checker != null)
-				throw new IllegalArgumentException("Forward only implements an equivalent of DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes hence checker should be null");
-			return model.markovMatrix.computeForwardInconsistency(graphToUseForPrediction, graph, vert, model.getPredictionLen());
+			boolean penaliseMissingPaths = checker instanceof  DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes;
+			if (!(checker instanceof  DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes) &&
+			 !(checker instanceof DifferentPredictionsInconsistencyNoBlacklisting))
+				throw new IllegalArgumentException("Forward only implements an equivalent of DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes or DifferentPredictionsInconsistencyNoBlacklisting");
+
+			return model.markovMatrix.computeForwardInconsistency(graphToUseForPrediction, graph, vert, model.getPredictionLen(),penaliseMissingPaths);
 		}
 
 		final Collection<Label> outgoingLabels = checker.obtainAlphabet(graphToCheckForConsistency,vert);

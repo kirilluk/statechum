@@ -544,7 +544,10 @@ public class TestMarkovLearner
 		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->B / T-b->T-u->T","testCheckFanoutInconsistency1a",config, converter);
 
-		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting()));
 	}
 
 	/** One from B with inconsistent predictions. */
@@ -629,7 +632,10 @@ public class TestMarkovLearner
 		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->B / B-d->F / T-b->T-u->T-d->T","testCheckFanoutInconsistency1d",config, converter);
 
-		Assert.assertEquals(2,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+		Assert.assertEquals(2,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+		Assert.assertEquals(2,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting()));
 	}
 
 	/** Transition b exists as negative but should be present as positive according to Markov. */
@@ -682,7 +688,10 @@ public class TestMarkovLearner
 		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->B-b->C / B-u->F / T-b->T-u->T","testCheckFanoutInconsistency2",config, converter);
 
-		Assert.assertEquals(2,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+		Assert.assertEquals(2,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+		Assert.assertEquals(2,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting()));
 	}
 
 	/** One inconsistency: transition u, predicted as negative, present as positive, the first time observed like that, recorded as a failure hence non-prediction by a is not considered. */
@@ -709,7 +718,10 @@ public class TestMarkovLearner
 		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B / A-c->B-u->C / T-b->T-u->T","testCheckFanoutInconsistency3",config, converter);
 
-		Assert.assertEquals(2,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+		Assert.assertEquals(2,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+		Assert.assertEquals(2,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting()));
 	}
 
 	/** No inconsistencies since there are very few paths. */
@@ -736,8 +748,15 @@ public class TestMarkovLearner
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->D-b->C / A-c->B-b->C / B-u->E / T-b->T-u->T","testCheckFanoutInconsistency4",config, converter);
 
 
-		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));// everything as expected.
-		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("D"),null));// missing reject-transition with label u is ignored because we are only considering actual outgoing transitions
+		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+                new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));// everything as expected.
+		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("D"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));// missing reject-transition with label u is ignored because we are only considering actual outgoing transitions
+
+		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+                new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting()));// everything as expected.
+		Assert.assertEquals(0,new MarkovClassifierLG(m,graph,null).checkFanoutInconsistency(graph.findVertex("D"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting()));// missing reject-transition with label u is ignored because we are only considering actual outgoing transitions
 	}
 
 	/** Tests the case of non-deterministic inverse graph */
@@ -754,7 +773,10 @@ public class TestMarkovLearner
 
 		MarkovModel m_positive = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
 		m_positive.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
-		Assert.assertEquals(1,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+		Assert.assertEquals(1,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+		Assert.assertEquals(1,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting()));
 	}
 
 	/** Tests the case of non-deterministic inverse graph */
@@ -771,7 +793,10 @@ public class TestMarkovLearner
 
 		MarkovModel m_positive = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
 		m_positive.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
-		Assert.assertEquals(0,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+		Assert.assertEquals(0,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+		Assert.assertEquals(0,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting()));
 	}
 
 	/** Tests the case of non-deterministic inverse graph */
@@ -788,7 +813,10 @@ public class TestMarkovLearner
 
 		MarkovModel m_positive = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
 		m_positive.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
-		Assert.assertEquals(0,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+		Assert.assertEquals(0,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+		Assert.assertEquals(0,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting()));
 	}
 
 	/** Tests the case of non-deterministic inverse graph */
@@ -805,7 +833,10 @@ public class TestMarkovLearner
 
 		MarkovModel m_positive = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
 		m_positive.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
-		Assert.assertEquals(1,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+		Assert.assertEquals(1,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+		Assert.assertEquals(0,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting()));// paths cc is missing in the Markov model hence does not predict b but in this instance (DifferentPredictionsInconsistencyNoBlacklisting) we ignore it.
 	}
 
 	/** Tests the case of non-deterministic inverse graph */
@@ -822,7 +853,10 @@ public class TestMarkovLearner
 
 		MarkovModel m_positive = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
 		m_positive.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,false);
-		Assert.assertEquals(1,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),null));
+		Assert.assertEquals(1,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes()));
+		Assert.assertEquals(1,new MarkovClassifierLG(m_positive,graph,null).checkFanoutInconsistency(graph.findVertex("B"),
+				new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting()));
 	}
 
 	/** Tests that creating a model from PTA and from initial traces gives the same result. */
@@ -880,6 +914,7 @@ public class TestMarkovLearner
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);
 		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		mOther.createMarkovFromPositiveDataAndGenerateInversePredictions(new ArrayList<>(),false);
 		new MarkovClassifierLG(mOther,graph,null).updateMarkov(false);
 		Assert.assertEquals(m.computePredictionMatrix(),mOther.computePredictionMatrix());
 
@@ -901,7 +936,8 @@ public class TestMarkovLearner
 		m.createMarkovLearner(plusStrings, minusStrings,true);
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
-		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
+		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
 		Assert.assertEquals(m.computePredictionMatrix(),mOther.computePredictionMatrix());
 		Assert.assertEquals(m.computeOccurrenceMatrix(),mOther.computeOccurrenceMatrix());
 	}
@@ -916,7 +952,7 @@ public class TestMarkovLearner
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);
 		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
-		m.createMarkovFromPositiveDataAndGenerateInversePredictions(new ArrayList<>(),true);
+		mOther.createMarkovFromPositiveDataAndGenerateInversePredictions(new ArrayList<>(),false);
 		new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
 		Assert.assertEquals(m.computePredictionMatrix(),mOther.computePredictionMatrix());
 		Assert.assertEquals(m.computeOccurrenceMatrix(),mOther.computeOccurrenceMatrix());
@@ -931,7 +967,8 @@ public class TestMarkovLearner
 		m.createMarkovLearner(plusStrings, minusStrings,true);
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
-		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
+		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
 		Assert.assertEquals(m.computePredictionMatrix(),mOther.computePredictionMatrix());
 		Assert.assertEquals(m.computeOccurrenceMatrix(),mOther.computeOccurrenceMatrix());
 	}
@@ -945,7 +982,9 @@ public class TestMarkovLearner
 		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,true);
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);
-		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
+		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		mOther.createMarkovFromPositiveDataAndGenerateInversePredictions(new ArrayList<>(),false);
+		new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
 		Assert.assertEquals(m.computePredictionMatrix(),mOther.computePredictionMatrix());
 		Assert.assertEquals(m.computeOccurrenceMatrix(),mOther.computeOccurrenceMatrix());
 	}
@@ -959,7 +998,8 @@ public class TestMarkovLearner
 		m.createMarkovLearner(plusStrings, minusStrings,true);
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);graph.paths.augmentPTA(minusStrings, false, false);
-		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
+		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
 		Assert.assertEquals(m.computePredictionMatrix(),mOther.computePredictionMatrix());
 		Assert.assertEquals(m.computeOccurrenceMatrix(),mOther.computeOccurrenceMatrix());
 	}
@@ -973,7 +1013,9 @@ public class TestMarkovLearner
 		m.createMarkovFromPositiveDataAndGenerateInversePredictions(plusStrings,true);
 
 		final LearnerGraph graph = new LearnerGraph(config);graph.paths.augmentPTA(plusStrings, true, false);
-		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
+		MarkovModel mOther = new MarkovModel(2,true, true,true,markovPTAUseMatrix);
+		mOther.createMarkovFromPositiveDataAndGenerateInversePredictions(new ArrayList<>(),false);
+		new MarkovClassifierLG(mOther,graph,null).updateMarkov(true);
 		Assert.assertEquals(m.computePredictionMatrix(),mOther.computePredictionMatrix());
 		Assert.assertEquals(m.computeOccurrenceMatrix(),mOther.computeOccurrenceMatrix());
 	}

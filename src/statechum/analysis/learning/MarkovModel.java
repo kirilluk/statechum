@@ -138,15 +138,19 @@ public class MarkovModel
 		protected  <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
 		long computeForwardInconsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> reverse, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> forward,
 										 Collection<CmpVertex> collectionStateReverse, CmpVertex consideredStateForward,
-										 int step, Map<Label,PTASequenceEngine.Node> row) {
+										 int step, Map<Label,PTASequenceEngine.Node> row, boolean penaliseMissingPaths) {
 			long inconsistency = 0;
 
 			if (step <= 0) {// got to the end of path in reverse graph, take transitions going forward from the graph to be evaluated and check each of them against the Markov PTA.
-				for(Map.Entry<Label,TARGET_TYPE> entryForward:forward.transitionMatrix.get(consideredStateForward).entrySet()) {
-					PTASequenceEngine.Node nextNode = row == null ? null : row.get(entryForward.getKey());
-					PredictionForSequence curPrediction = (PredictionForSequence) (nextNode == null ? null : nextNode.getState());
-					if (curPrediction == null || !curPrediction.prediction.isPositive)// if not predicted or predicated as negative, increase inconsistency
-						++inconsistency;
+				if (penaliseMissingPaths || row != null) {// if row is null, it means that a path entering a state of interest
+					// (consideredStateForward) does exist in the Markov table. If penaliseMissingPaths is true, we penalise this,
+					// if not, we ignore such missing paths.
+					for (Map.Entry<Label, TARGET_TYPE> entryForward : forward.transitionMatrix.get(consideredStateForward).entrySet()) {
+						PTASequenceEngine.Node nextNode = row == null ? null : row.get(entryForward.getKey());
+						PredictionForSequence curPrediction = (PredictionForSequence) (nextNode == null ? null : nextNode.getState());
+						if (curPrediction == null || !curPrediction.prediction.isPositive)// if not predicted or predicated as negative, increase inconsistency
+							++inconsistency;
+					}
 				}
 			}
 			else // if not at the end of a walk, recurse
@@ -159,7 +163,7 @@ public class MarkovModel
 				for(Map.Entry<Label,List<CmpVertex>> entry : labelToTargets.entrySet()) {
 						PTASequenceEngine.Node nextNode = row == null ? null : row.get(entry.getKey());
 						inconsistency += computeForwardInconsistency(reverse, forward, entry.getValue(),
-								consideredStateForward, step - 1, nextNode == null ? null : pta.get(nextNode));
+								consideredStateForward, step - 1, nextNode == null ? null : pta.get(nextNode),penaliseMissingPaths);
 				}
 			}
 			return inconsistency;
@@ -167,8 +171,8 @@ public class MarkovModel
 
 		public  <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
 		long computeForwardInconsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> reverse, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> forward,
-										 CmpVertex curState, int step) {
-			return computeForwardInconsistency(reverse,forward, Arrays.asList(curState),curState,step,pta.get(init));
+										 CmpVertex curState, int step, boolean penaliseMissingPaths) {
+			return computeForwardInconsistency(reverse,forward, Arrays.asList(curState),curState,step,pta.get(init), penaliseMissingPaths);
 		}
 	}
 

@@ -32,7 +32,7 @@ public class E_MarkovBaselineLearn {
         }
     }
 
-    public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
+    public static DrawGraphs.CSVExperimentResult runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         final DrawGraphs.CSVExperimentResult resultCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + "results.csv"));
         boolean aveOrMax = true;// average divide by the divisor
         boolean penaliseMissingPaths = true;
@@ -293,5 +293,6 @@ public class E_MarkovBaselineLearn {
                         System.out.println(l + " -> " + learnerToHowOftenBest.get(l).get());
                 }
         }
+        return resultCSV;
     }
 }

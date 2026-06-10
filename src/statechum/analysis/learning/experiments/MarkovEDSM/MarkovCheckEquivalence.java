@@ -56,7 +56,9 @@ public class MarkovCheckEquivalence {
             String pathToResult = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_EXPERIMENTRESULTS) + File.separator;
             final DrawGraphs.RBagPlot gr_Time = new DrawGraphs.RBagPlot(experimentsToCompare[0], experimentsToCompare[1],
                     new File(pathToResult+"time_difference.pdf"));
+            final DrawGraphs.RBoxPlot<String> time_fast_divided_by_original = new DrawGraphs.RBoxPlot<>("Fast/Original", "Value", new File(pathToResult + "TimeFastDividedByOriginal.pdf"));
             boolean differenceObserved = false;
+            int countAabove = 0,countBabove=0;
             for (Map.Entry<String, Map<String, String>> rowEntryA : twoExperiments.get(0).rowColumnText.entrySet()) {
                 Map<String, String> entryB = twoExperiments.get(1).rowColumnText.get(rowEntryA.getKey());
                 String cellsA = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString());
@@ -70,7 +72,16 @@ public class MarkovCheckEquivalence {
                 double valueStructuralB = Double.parseDouble(obtainValueFromCell(cellsB, 2));
                 double timeB = Double.parseDouble(obtainValueFromCell(cellsB, timeCell));
 
-                gr_Time.add(timeA, timeB);
+                if (timeA > 5 || timeB > 5) {
+                    gr_Time.add(timeA, timeB);
+                    if (timeA > timeB)
+                        countAabove++;
+                    if (timeA < timeB)
+                        countBabove++;
+
+                    time_fast_divided_by_original.add("F/O",timeA/timeB);
+                }
+
                 if (abs(valueBCRB-valueBCRA) > 1e-6) {
                     System.out.println("Difference: " + rowEntryA.getKey() + " between " + valueBCRA + " and " + valueBCRB);
                     differenceObserved = true;
@@ -81,9 +92,10 @@ public class MarkovCheckEquivalence {
                 }
             }
 
-            gr_Time.reportResults(gr);
+            gr_Time.reportResults(gr);time_fast_divided_by_original.reportResults(gr);
             if (!differenceObserved)
                 System.out.println("No difference in BCR or structural scores");
+            System.out.println("CountAabove: " + countAabove+ ", countBabove: " + countBabove);
         }
 
         DrawGraphs.end();

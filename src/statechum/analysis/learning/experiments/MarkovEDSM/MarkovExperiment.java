@@ -475,7 +475,7 @@ public class MarkovExperiment
 		final double traceLengthMultiplierMax = 16;
 
 		final boolean pathsOrSets = true;
-		final int[] statesToUse = new int[]{10, 20};
+		final int[] statesToUse = new int[]{40};
 		// Scales the number of traces to account for larger automata
 		final int stateScale = statesToUse[0]/10;
 
@@ -497,7 +497,7 @@ public class MarkovExperiment
 
 		learningGroup.outPathPrefix = outDir + File.separator;
 		learningGroup.eval = UASExperiment.constructLearnerInitConfiguration();
-		learningGroup.eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);// small automata hence no need for array STATETREE.STATETREE_ARRAY);
+		learningGroup.eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);// small automata hence no need for array STATETREE.STATETREE_ARRAY);
 		//STATETREE_ARRAY);
 		learningGroup.eval.config.setLearnerScoreMode(ScoreMode.GENERAL_NOFULLMERGE);
 		learningGroup.eval.config.setTimeOut(3600000L*16L);// timeout for tasks, in milliseconds, equivalent to 16hrs runtime for an old Xeon 5670 @ 2.93Ghz, modern E5/i7 are 3x faster.

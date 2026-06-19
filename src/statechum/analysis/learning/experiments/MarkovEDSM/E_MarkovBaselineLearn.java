@@ -39,7 +39,7 @@ public class E_MarkovBaselineLearn {
 
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
-        int [] densities = new int[]{0, 20, 30};
+        int [] densities = new int[]{ 20, 30};
         int seedForFSM = 0;
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : densities) {

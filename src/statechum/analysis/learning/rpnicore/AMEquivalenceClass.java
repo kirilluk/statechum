@@ -28,6 +28,7 @@ import statechum.GlobalConfiguration;
 import statechum.JUConstants;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
+import statechum.collections.ArrayMapWithSearchPos;
 
 public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>> 
 	implements Comparable<EquivalenceClass<TARGET_TYPE,CACHE_TYPE>>, EquivalenceClass<TARGET_TYPE, CACHE_TYPE>
@@ -59,8 +60,8 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	public AMEquivalenceClass(int number, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> graph)
 	{
 		ClassNumber=number;coregraph=graph;
-		outgoingTransitions = //coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? // I cannot always rely on array-maps because some labels might not be numbered.
-				//new ArrayMapWithSearchPos<Label,Object>(5) : 
+		outgoingTransitions = coregraph.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY? // I cannot always rely on array-maps because some labels might not be numbered.
+				new ArrayMapWithSearchPos<>(5) :
 				new TreeMap<>();
 	}
 	

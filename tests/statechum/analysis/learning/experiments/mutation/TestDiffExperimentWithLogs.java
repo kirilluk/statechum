@@ -127,6 +127,7 @@ public class TestDiffExperimentWithLogs {
 					int alphabet = states/2;
 					
 					MachineGenerator mg = new MachineGenerator(states, 40, states/10);
+					mg.setParallelChance(0);
 					int mutationsPerStage = (states/2) / 2;
 					ProgressIndicator progress = new ProgressIndicator(""+states, mutationStages*experimentsPerMutationCategory);
 					for(int mutationStage = 0;mutationStage<mutationStages;mutationStage++)

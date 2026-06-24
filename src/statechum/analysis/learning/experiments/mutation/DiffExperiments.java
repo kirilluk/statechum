@@ -604,8 +604,12 @@ public class DiffExperiments {
 			generateLabelsNoRepeat = value;
 		}
 		protected double selfloopChance = 0.2;
+		protected double parallelChance = 0.2;
 		public void setSelfloopChance(double value) {
 			selfloopChance = value;
+		}
+		public void setParallelChance(double value) {
+			parallelChance = value;
 		}
 		public MachineGenerator(int target, int phaseArg, int errorArg)
 		{
@@ -625,8 +629,8 @@ public class DiffExperiments {
 				for(int i = 0; i< phaseSize; i++){
 					ForestFireLabelledStateMachineGenerator gen = generateLabelsNoRepeat?
 							// a number of experiments were conducted with these set for 0.365,0.3
-							new ForestFireLabelledNoRepeatStateMachineGenerator	(0.31,0.385,selfloopChance,0.2,alphabet,counter ^ i,config,converter):
-							new ForestFireLabelledStateMachineGenerator			(0.31,0.385,selfloopChance,0.2,alphabet,counter ^ i,config,converter);
+							new ForestFireLabelledNoRepeatStateMachineGenerator	(0.31,0.385,selfloopChance,parallelChance,alphabet,counter ^ i,config,converter):
+							new ForestFireLabelledStateMachineGenerator			(0.31,0.385,selfloopChance,parallelChance,alphabet,counter ^ i,config,converter);
 					machine = gen.buildMachine(artificialTargetSize);
 					
 					if (perStateMultiplier > 0)

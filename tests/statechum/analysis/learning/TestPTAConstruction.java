@@ -18,6 +18,7 @@
 
 package statechum.analysis.learning;
 
+import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildCollection;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
 import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraph;
@@ -96,7 +97,7 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 		checkM(expectedPTA,actualC, config,converter);
 	}
 	
-	public static PTASequenceEngine buildPTA(Set<List<Label>> plusStrings,Set<List<Label>> minusStrings)
+	public static PTASequenceEngine buildPTA(Collection<List<Label>> plusStrings,Collection<List<Label>> minusStrings)
 	{
 		final Boolean accept = Boolean.TRUE, reject = Boolean.FALSE;
 		boolean theOnlyStateReject = false;
@@ -136,7 +137,7 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 	}
 
 	/** Checks if a PTA constructed is consistent with provided sequences. */
-	private void checkPTAConsistency(PTASequenceEngine engine,Set<List<Label>> sequences, boolean accept)
+	private void checkPTAConsistency(PTASequenceEngine engine,Collection<List<Label>> sequences, boolean accept)
 	{
 		SequenceSet initSeq = engine.new SequenceSet();initSeq.setIdentity();
 		int leafNumber = engine.getDebugDataMapDepth(null).size();
@@ -370,7 +371,12 @@ public class TestPTAConstruction extends TestWithMultipleConfigurations
 	private void checkPTAconstruction(String[][] arrayPlusStrings,String [][] arrayMinusStrings, String expectedPTA, boolean expectMaxAutomataToBeTheSameAsPTA)
 	{
 		Configuration conf = mainConfiguration.copy();
-		Set<List<Label>> plusStrings = buildSet(arrayPlusStrings,conf,converter), minusStrings = buildSet(arrayMinusStrings,conf,converter);
+		// Here we cannot use sets of sequences because when used with StringLabelInt, we get different hash code compared to StringLabel and thus
+		// sets return elements in a different order (no surprise here); turns out, testPTAConstruction6 relies on the longer negative sequence to be
+		// added after the shorter sequence in order to test for an exception being thrown.
+		// For this reason, we ensure our collections of test sequences match those specified
+		// in the tests by using LinkedList which is achieved by calling buildCollection rather than buildSet.
+		Collection<List<Label>> plusStrings = buildCollection(arrayPlusStrings,conf,converter), minusStrings = buildCollection(arrayMinusStrings,conf,converter);
 		LearnerGraph actualA = null, actualC =null, actualD = null, actualE = null, actualF = null;
 		IllegalArgumentException eA = null, eC = null, eD = null, eE = null, eF = null;
 		try

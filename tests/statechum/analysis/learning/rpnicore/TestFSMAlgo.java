@@ -500,7 +500,25 @@ public class TestFSMAlgo extends TestWithMultipleConfigurations
 		}
 		return result;
 	}
-	
+
+	/** Builds a collection of sequences from a two-dimensional array, where each element corresponds to a sequence. The ordering
+	 * of the sequences matches the ordering of elements in the provided data array.
+	 * @param data source data
+	 * @return a set of sequences to apply to an RPNI learner
+	 */
+	public static Collection<List<Label>> buildCollection(String [][] data,Configuration config, ConvertALabel converter)
+	{
+		Collection<List<Label>> result = new LinkedList<>();
+		for(String []seq:data)
+		{
+			List<Label> labelSeq = new LinkedList<>();
+			for(String s:seq)
+				labelSeq.add(AbstractLearnerGraph.generateNewLabel(s,config,converter));
+			result.add(labelSeq);
+		}
+		return result;
+	}
+
 	/** Builds a set of sequences from a two-dimensional array, where each element corresponds to a sequence.
 	 * 
 	 * @param data source data

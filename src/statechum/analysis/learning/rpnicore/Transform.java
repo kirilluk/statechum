@@ -1192,10 +1192,13 @@ public class Transform
 		@Override
 		public synchronized Label convertLabelToLabel(Label label)
 		{
+			if (label instanceof StringLabelInt)
+				return label;
+
 			Label outcome = labelDatabase.get(label);
 			if (outcome == null)
 			{
-				outcome = new StringLabelInt(label.toErlangTerm(), nextID++);labelDatabase.put(outcome,outcome);
+				outcome = new StringLabelInt(label.toErlangTerm(), nextID++);labelDatabase.put(label,outcome);
 			}
 			return outcome;
 		}

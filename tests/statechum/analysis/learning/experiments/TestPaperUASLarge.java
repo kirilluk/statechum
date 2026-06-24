@@ -26,26 +26,14 @@ import statechum.analysis.learning.rpnicore.WMethod;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 
-@RunWith(ParameterizedWithName.class)
 public class TestPaperUASLarge extends TestWithMultipleConfigurations
 {
 
 	protected ExperimentPaperUAS2 paper;
-	
-	@Parameters
-	public static Collection<Object[]> data() 
+
+	public TestPaperUASLarge()
 	{
-		return TestWithMultipleConfigurations.data();
-	}
-	
-	public static String parametersToString(Configuration config)
-	{
-		return TestWithMultipleConfigurations.parametersToString(config);
-	}
-	
-	public TestPaperUASLarge(Configuration conf)
-	{
-		super(conf);
+		super(configArray);
 	}
 	
 	@Before
@@ -58,9 +46,7 @@ public class TestPaperUASLarge extends TestWithMultipleConfigurations
 	@Test
 	public void testMergerOnLargePTA() throws IOException
 	{
-		Configuration configToLoadWith = mainConfiguration.copy();configToLoadWith.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);
-		ConvertALabel labelConverter = converter;if (labelConverter == null) labelConverter = new Transform.InternStringLabel();
-		InitialConfigurationAndData initialConfigurationData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.veryLargePTAFileName, configToLoadWith, labelConverter);
+		InitialConfigurationAndData initialConfigurationData = PairQualityLearner.loadInitialAndPopulateInitialConfiguration(PairQualityLearner.veryLargePTAFileName, mainConfiguration, converter);
 		LearnerGraph hugeGraph = new LearnerGraph(initialConfigurationData.initial.graph,mainConfiguration);LearnerGraph smallGraph = new LearnerGraph(initialConfigurationData.learnerInitConfiguration.graph,mainConfiguration);
 		
 		System.out.println("Huge: "+hugeGraph.getStateNumber()+" states, "+(hugeGraph.getStateNumber()-hugeGraph.getAcceptStateNumber())+" reject states");

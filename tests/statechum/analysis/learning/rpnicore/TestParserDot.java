@@ -731,7 +731,7 @@ public class TestParserDot {
         gr.transitionMatrix.put(vert, gr.createNewRow());
         gr.addTransition(
                 gr.transitionMatrix.get(gr.findVertex(DeterministicDirectedSparseGraph.VertexID.parseID("b"))),
-                AbstractLearnerGraph.generateNewLabel("q\n",gr.config,null),vert);
+                AbstractLearnerGraph.generateNewLabel("q\n",gr.config,converter),vert);
         Assert.assertNull(WMethod.checkM(gr, gr.findVertex("a"),graph,graph.findVertex("a"), WMethod.VERTEX_COMPARISON_KIND.NONE,false));
     }
 

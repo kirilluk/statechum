@@ -66,7 +66,7 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 	public void BeforeTests()
 	{
 		paper = new ExperimentPaperUAS2();paper.learnerInitConfiguration.config = mainConfiguration;
-		paper.learnerInitConfiguration.setLabelConverter( paper.learnerInitConfiguration.config.getTransitionMatrixImplType() == STATETREE.STATETREE_ARRAY?new Transform.InternStringLabel():null );
+		paper.learnerInitConfiguration.setLabelConverter( converter );
 	}
 	
 	/** Empty traces */
@@ -553,7 +553,8 @@ public class TestPaperUAS extends TestWithMultipleConfigurations
 		{
 			Map<Integer,Set<List<Label>>> uav3Positive4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),true);
 			Map<Integer,Set<List<Label>>> uav3Negative4 = constructCollectionOfTraces(tr4.tracesForUAVandFrame.get("UAV3"),false);
-			Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa", "aa", "bb", "cc", "aa"}}, mainConfiguration, converter), uav3Positive4.get(0));
+			Set<List<Label>> expected = TestFSMAlgo.buildSet(new String[][]{new String[]{"aa", "aa", "bb", "cc", "aa"}}, mainConfiguration, converter);
+			Assert.assertEquals(expected, uav3Positive4.get(0));
 			Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa", "aa", "bb", "cc", "aa", "gg", "aa"}}, mainConfiguration, converter), uav3Positive4.get(1));// all positive traces are prefixes of negatives and are thus not included
 			Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa", "aa", "bb", "cc", "nn", "rr"}, new String[]{"aa", "zz"}}, mainConfiguration, converter), uav3Negative4.get(0));
 			Assert.assertEquals(TestFSMAlgo.buildSet(new String[][]{new String[]{"aa", "aa", "bb", "cc", "nn", "rr"}, new String[]{"aa", "zz"}, new String[]{"aa", "aa", "bb", "cc", "aa", "gg", "Rnn", "Rrr"}}, mainConfiguration, converter), uav3Negative4.get(1));

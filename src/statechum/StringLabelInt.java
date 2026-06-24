@@ -18,20 +18,36 @@
  */
 package statechum;
 
+import java.util.Objects;
+
 public class StringLabelInt extends StringLabel
 {
-	   /** The unique identifier of this label, made public because it is final. */
-	   public final int number;
-	   
-	   @Override
-	   public int toInt()
-	   {
-		   return number;
-	   }
-	   
-	   public StringLabelInt(String l, int num) 
-	   {
-		   super(l);number=num;
-	   }
+   /** The unique identifier of this label, made public because it is final. */
+   public final int number;
 
+   @Override
+   public int toInt()
+   {
+	   return number;
+   }
+
+   public StringLabelInt(String l, int num)
+   {
+	   super(l);number=num;
+   }
+
+	@Override
+	public boolean equals(Object o) {
+		if (o == null) return false;
+		if (getClass() != o.getClass())
+			throw new IllegalArgumentException("StringLabelInt should only be compared with StringLabelInt");
+
+		StringLabelInt that = (StringLabelInt) o;
+		return number == that.number;
+	}
+
+	@Override
+	public int hashCode() {
+		return number;
+	}
 }

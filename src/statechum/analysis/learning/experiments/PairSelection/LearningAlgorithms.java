@@ -1814,16 +1814,19 @@ public class LearningAlgorithms
 					{// both states can make a transition
 						if (!AbstractLearnerGraph.checkCompatible(redEntry.getValue(),nextBlueState,gr.pairCompatibility))
 							return -1;// definitely incompatible states, fail regardless whether we should look for a single or all paths. 
-						
-						anyMatched = true;// mark that in the current wave, we've seen at least one matched pair of transitions.
-						
+
 						if (currentExplorationDepth < k)
 						{// if our current depth is less than the one to explore, make subsequent steps.
 							StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
 							currentExplorationBoundary.offer(nextStatePair);
 						}
-						// If we did not take the above condition (aka reached the maximal depth to explore), we still cannot break out of a loop even if we have anyPath
-						// set to true, because there could be transitions leading to states with different accept-conditions, hence explore all matched transitions.						
+						else
+							anyMatched = true;// mark that in the last (k-th) wave we've seen at least one matched pair of transitions.
+
+						// If we did not take the condition currentExplorationDepth < k (aka reached the maximal depth to explore),
+						// we still cannot break out of a loop even if we have anyPath
+						// set to true, because there could be transitions leading to states with different accept-conditions,
+						// hence explore all matched transitions.
 					}
 					else
 					{

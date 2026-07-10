@@ -1815,13 +1815,19 @@ public class LearningAlgorithms
 						if (!AbstractLearnerGraph.checkCompatible(redEntry.getValue(),nextBlueState,gr.pairCompatibility))
 							return -1;// definitely incompatible states, fail regardless whether we should look for a single or all paths. 
 
+                        anyMatched = true;// mark that we've seen at least one matched pair of transitions.
+                        // This will be set to true for each step we make. Every time our currentExplorationDepth < k,
+                        // the next pair of states will be pushed onto the stack. For this reason, we can be sure
+                        // that if there are no more transitions to take in a wave, we will still have a pair when we
+                        // start this wave and thus anyMatched will be reset to false. This means that inability to
+                        // follow k transitions for any value of anyPath leads to anyMatched being false by the time
+                        // the main loop 'while(true)' terminates.
+
 						if (currentExplorationDepth < k)
 						{// if our current depth is less than the one to explore, make subsequent steps.
 							StatePair nextStatePair = new StatePair(nextBlueState,redEntry.getValue());
 							currentExplorationBoundary.offer(nextStatePair);
 						}
-						else
-							anyMatched = true;// mark that in the last (k-th) wave we've seen at least one matched pair of transitions.
 
 						// If we did not take the condition currentExplorationDepth < k (aka reached the maximal depth to explore),
 						// we still cannot break out of a loop even if we have anyPath
@@ -1845,7 +1851,7 @@ public class LearningAlgorithms
 			}
 		}
 		
-		return anyMatched || k == 0?0:-1;// if no transitions matched in a wave, this means that we reached tail-end of a graph before exhausting the exploration depth, thus the score is -1.
+		return anyMatched || k == 0?k:-1;// if no transitions matched in a wave, this means that we reached tail-end of a graph before exhausting the exploration depth, thus the score is -1.
 	}
 
 	private static LearnerGraph traditionalKtailsHelper(Collection<List<Label>> positive, Collection<List<Label>> negative, int k,Configuration config) throws IncompatibleStatesException

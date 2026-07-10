@@ -958,32 +958,34 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		testConfig.setKlimit(1);
 		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-a-#N / U-b-#Q", "testKtails2",testConfig,getLabelConverter());
+
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("N")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("N")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("N"),fsm.findVertex("M")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("N"),fsm.findVertex("M")), false));
-		
+
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("U")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("U")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("U"),fsm.findVertex("M")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("U"),fsm.findVertex("M")), false));
-		
+
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("N"),fsm.findVertex("Q")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("N"),fsm.findVertex("Q")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("Q"),fsm.findVertex("N")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("Q"),fsm.findVertex("N")), false));
-		
+
 		// the following are all reject because C and N have different accept-conditions.
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("U")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("U")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("U"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("U"),fsm.findVertex("B")), false));
-		
+
+
 		// now we label C with the same condition as Q, things should improve 
 		fsm.findVertex("C").setAccept(fsm.findVertex("Q").isAccept());
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("U")), true));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("U")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("U")), false));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("U"),fsm.findVertex("B")), true));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("U"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("U"),fsm.findVertex("B")), false));
 		
 		fsm.findVertex("B").setAccept(false);
@@ -993,9 +995,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("U"),fsm.findVertex("B")), false));
 
 		fsm.findVertex("U").setAccept(false);
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("U")), true));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("U")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("U")), false));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("U"),fsm.findVertex("B")), true));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("U"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("U"),fsm.findVertex("B")), false));
 	}
 	
@@ -1005,10 +1007,11 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		testConfig.setKlimit(1);
 		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N / M-c->P", "testKtails3a",testConfig,getLabelConverter());
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), false));
+
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), false));
 	}	
 	
 	// only the first step matches, nothing is found on the second step.
@@ -1052,56 +1055,68 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		testConfig.setKlimit(2);
 		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-b->E / B-c->F-a->G-b->H / M-b->N ", "testKtails4",testConfig,getLabelConverter());
+
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), false));
 
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("C"),fsm.findVertex("F")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("C"),fsm.findVertex("F")), false));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("F"),fsm.findVertex("C")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("F"),fsm.findVertex("C")), false));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("C"),fsm.findVertex("F")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("C"),fsm.findVertex("F")), false));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("F"),fsm.findVertex("C")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("F"),fsm.findVertex("C")), false));
 
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("F")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("F")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("F")), false));// B->F does not match anything
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("F"),fsm.findVertex("A")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("F"),fsm.findVertex("A")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("F"),fsm.findVertex("A")), false));// B->F does not match anything
-	}	
-	
+	}
+
 	@Test
-	public final void testKtails5()
+	public final void testKtails5a()
 	{
 		testConfig.setKlimit(2);
 		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-c->P-a->A", "testKtails5",testConfig,getLabelConverter());
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), false));
-	}	
-	
-	/** A match. */
+	}
+
+    @Test
+    public final void testKtails5b()
+    {
+        testConfig.setKlimit(3);
+        LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-c->P-a->A", "testKtails5",testConfig,getLabelConverter());
+        Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
+        Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
+        Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
+        Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), false));
+    }
+
+    /** A match. */
 	@Test
 	public final void testKtails6()
 	{
 		testConfig.setKlimit(2);
 		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a->Q / M-c->P-a->S", "testKtails6",testConfig,getLabelConverter());
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), false));
-	}	
-	
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), false));
+	}
+
 	/** Only matches for any path. */
 	@Test
 	public final void testKtails7()
 	{
 		testConfig.setKlimit(2);
 		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a->Q / M-c->P-a->S / N-b->R", "testKtails7",testConfig,getLabelConverter());
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), false));
-	}	
+	}
 
 	/** Only matches for any path. */
 	@Test
@@ -1109,9 +1124,10 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	{
 		testConfig.setKlimit(2);
 		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-a->D-d->E / B-c->F-a->G-e->H / M-b->N-a->Q / M-c->P-a->S / P-b->R", "testKtails8",testConfig,getLabelConverter());
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
+
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("M"),fsm.findVertex("B")), false));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("B"),fsm.findVertex("M")), false));
 	}	
 
@@ -1175,49 +1191,86 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("D"),fsm.findVertex("G")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("D"),fsm.findVertex("G")), false));
 
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("C"),fsm.findVertex("F")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("C"),fsm.findVertex("F")), false));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("C"),fsm.findVertex("F")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("C"),fsm.findVertex("F")), false));
 
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));// -1 because b does not match anything
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("C")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("C")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("C")), false));// -1 because b does not match anything
 	}
 
 	/** Matches both any and all paths. */
 	@Test
-	public final void testKtails14()
+	public final void testKtails14a()
 	{
-		testConfig.setKlimit(2);
+		testConfig.setKlimit(1);
 		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->F-a->G-a->H / T-a->C-a->D-a->E", "testKtails14",testConfig,getLabelConverter());
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("T")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("T")), false));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("T"),fsm.findVertex("A")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("T"),fsm.findVertex("A")), false));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("T")), true));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("T")), false));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("T"),fsm.findVertex("A")), true));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("T"),fsm.findVertex("A")), false));
 	}
-	
+
+    /** Matches both any and all paths. */
+    @Test
+    public final void testKtails14b()
+    {
+        testConfig.setKlimit(2);
+        LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->F-a->G-a->H / T-a->C-a->D-a->E", "testKtails14",testConfig,getLabelConverter());
+        Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("T")), true));
+        Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("T")), false));
+        Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("T"),fsm.findVertex("A")), true));
+        Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("T"),fsm.findVertex("A")), false));
+    }
+
+    /** Matches both any and all paths. */
+    @Test
+    public final void testKtails14c()
+    {
+        testConfig.setKlimit(3);
+        LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->F-a->G-a->H / T-a->C-a->D-a->E", "testKtails14",testConfig,getLabelConverter());
+        Assert.assertEquals(3,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("T")), true));
+        Assert.assertEquals(3,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("T")), false));
+        Assert.assertEquals(3,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("T"),fsm.findVertex("A")), true));
+        Assert.assertEquals(3,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("T"),fsm.findVertex("A")), false));
+    }
+
+    /** Matches both any and all paths. */
+    @Test
+    public final void testKtails14d()
+    {
+        testConfig.setKlimit(4);
+        LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->F-a->G-a->H / T-a->C-a->D-a->E", "testKtails14",testConfig,getLabelConverter());
+        Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("T")), true));
+        Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A"),fsm.findVertex("T")), false));
+        Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("T"),fsm.findVertex("A")), true));
+        Assert.assertEquals(-1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("T"),fsm.findVertex("A")), false));
+    }
+
 	/** Matches both any and all paths. */
 	@Test
 	public final void testKtails15a()
 	{
 		testConfig.setKlimit(2);
 		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A1-a->F1 / A1-b->C1-b->D1 / A1-c->B1-a->E1 / A2-a->F2 / A2-b->C2-b->D2 / A2-c->B2-a->E2", "testKtails15a",testConfig,getLabelConverter());
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), false));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), false));
+//        new Visualiser(0).update(null,fsm);Visualiser.waitForKey();
+        Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), false));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), false));
 		
 		fsm.findVertex("C1").setAccept(false);fsm.findVertex("C2").setAccept(false);
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), false));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), false));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), false));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), false));
 
 		fsm.findVertex("D1").setAccept(false);fsm.findVertex("D2").setAccept(false);
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), false));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), false));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), false));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), true));
+		Assert.assertEquals(2,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), false));
 	}
 	
 	/** Same as testKtails15 but F1/F2 are incompatible. */
@@ -1291,10 +1344,13 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		fsm.findVertex("C1").setAccept(false);fsm.findVertex("C2").setAccept(false);
 		
 		fsm.findVertex("D1").setAccept(false);
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), false));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), true));
-		Assert.assertEquals(0,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), false));
+
+//        new Visualiser(0).update(null,fsm);Visualiser.waitForKey();
+
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), true));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A1"),fsm.findVertex("A2")), false));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), true));
+		Assert.assertEquals(1,fsm.pairscores.computeStateScoreKTails(new StatePair(fsm.findVertex("A2"),fsm.findVertex("A1")), false));
 	}
 	
 	@Test

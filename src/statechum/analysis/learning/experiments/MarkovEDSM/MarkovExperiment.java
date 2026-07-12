@@ -19,8 +19,6 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -193,6 +191,14 @@ public class MarkovExperiment
 					markovLearner.setMarkov(markovModel);markovLearner.setChecker(checker);
 					learnerOfPairs = markovLearner;
 					break;
+
+                case SCORING_CHEAT_STATISTICS:
+                    redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen);
+                    markovLearner = new Cheat_for_Statistics(learnerInitConfiguration,ptaBuilt,0,
+                            par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, redReducer,referenceGraph);
+                    markovLearner.setMarkov(markovModel);markovLearner.setChecker(checker);
+                    learnerOfPairs = markovLearner;
+                    break;
 				default:
 					// ScoreMode.GENERAL_NOFULLMERGE is ok here because all states are accept-states,
 					// otherwise GENERAL_PLUS_NOFULLMERGE might have been a better choice.
@@ -421,7 +427,9 @@ public class MarkovExperiment
 			return copy;
 		}
 
-		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold, MarkovParameters markovPars,Configuration.ScoreMode scoreMode, StateMergingStatistics redReducer)
+		public EDSM_MarkovLearner(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, int threshold,
+                                  MarkovParameters markovPars,Configuration.ScoreMode scoreMode,
+                                  StateMergingStatistics redReducer)
 		{
 			super(constructConfiguration(evalCnf,scoreMode,threshold), argInitialPTA,null, redReducer);// null means that we expect our ChooseStatePairs to completely replace the one in the parent class.
 			markovHelper = new MarkovHelper(markovPars);
@@ -441,6 +449,40 @@ public class MarkovExperiment
 			return "EDSM_Markov";
 		}
 	}	
+
+    public static class Cheat_for_Statistics extends EDSM_MarkovLearner {
+        final LearnerGraph referenceGraph;
+        public Cheat_for_Statistics(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold,
+                                    MarkovParameters markovPars, ScoreMode scoreMode, StateMergingStatistics redReducer,
+                                    LearnerGraph ref) {
+            super(evalCnf, argInitialPTA, threshold, markovPars, scoreMode, redReducer);
+            referenceGraph = ref;
+        }
+
+        @Override
+        public long overrideScoreComputation(PairScore p) {
+            List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
+            int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
+            markovHelper.computeScoreBasedOnInconsistencies(p);
+            lastComputedCompatibilityScore = markovHelper.getLastComputedInconsistency();
+
+
+            Set<CmpVertex> statesOfInterest = new HashSet<>();
+            statesOfInterest.add(p.getQ());statesOfInterest.add(p.getR());
+            Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(referenceGraph, statesOfInterest);
+            CmpVertex blue = referenceGraph.getVertex(stateToPath.get(p.getQ()));
+            assert blue != null;
+            CmpVertex red = referenceGraph.getVertex(stateToPath.get(p.getR()));
+            assert red != null;
+            return blue == red?1000:-1;
+        }
+
+        @Override
+        public String toString()
+        {
+            return "Cheat_statistics";
+        }
+    }
 
 	static class LearningReport {
 		double bcr = 0, structural = 0;

@@ -493,7 +493,14 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		mergedVertex.setColour(currentColour == JUConstants.NONE?null:currentColour);
 		if (setOrigState)
 			mergedVertex.setOrigState(sourceVertex);
-		
+            // In principle, it would be more accurate to write
+			// mergedVertex.setOrigState(sourceVertex.getOrigState() == null?sourceVertex:sourceVertex.getOrigState());
+            // in order to associate states with the original PTA states (that would have null getOrigState() values),
+            // however even this is not a reliable way to identify incorrect mergers. For instance, in merging
+            // two collections of states, each of which was merged part-incorrectly, we might chance on a pair
+            // that is being merged correctly, despite most other states in the two collections being merged
+            // incorrectly.
+
 		return mergedVertex;
 	}
 	

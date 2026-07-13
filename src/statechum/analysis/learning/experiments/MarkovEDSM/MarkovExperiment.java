@@ -30,6 +30,7 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
@@ -57,9 +58,7 @@ public class MarkovExperiment
 	
 	public static final String directoryNamePrefix = "markov";
 	public static final String directoryExperimentResult = "experimentresult"+File.separator;
-
-
-
+	public static final String directoryExperimentStatistics = "experimentstatistics"+File.separator;
 
 	public static class MarkovLearnerRunner extends UASExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>
 	{
@@ -112,6 +111,8 @@ public class MarkovExperiment
 			pta.paths.augmentPTA(generator.getAllSequences(0));
 			return pta;
 		}
+
+		long startTime = 0;
 
 		@Override
 		public ExperimentResult<MarkovLearningParameters> runexperiment() throws Exception 
@@ -192,9 +193,9 @@ public class MarkovExperiment
 					learnerOfPairs = markovLearner;
 					break;
 
-                case SCORING_CHEAT_STATISTICS:
+                case SCORING_ORACLE_STATISTICS:
                     redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen);
-                    markovLearner = new Cheat_for_Statistics(learnerInitConfiguration,ptaBuilt,0,
+                    markovLearner = new LearnerRelyingOnOracle(learnerInitConfiguration,ptaBuilt,0,
                             par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, redReducer,referenceGraph);
                     markovLearner.setMarkov(markovModel);markovLearner.setChecker(checker);
                     learnerOfPairs = markovLearner;
@@ -207,7 +208,7 @@ public class MarkovExperiment
 					break;
 			}
 
-			long startTime = LearningSupportRoutines.getThreadTime();
+			startTime = LearningSupportRoutines.getThreadTime();
 			LearnerGraph learntGraph = learnerOfPairs.learnMachine(new LinkedList<>(), new LinkedList<>());
 			if (firstMerge.verticesToMergeBasedOnInitialPTA != null && par.markovParameters.mergeIdentifiedPathsAfterInference)
 			{	// This accounts for learning from PTA where certain states are going to be eventually
@@ -245,6 +246,9 @@ public class MarkovExperiment
 			}
 			dataSample.actualLearner.whetherLearningSuccessfulOrAborted = actualAutomaton.getLearningAbortedReason();
 			dataSample.actualLearner.executionTime = runTime;
+
+			if (markovLearner instanceof LearnerRelyingOnOracle)
+				dataSample.actualLearner.mergeStatistics = ((LearnerRelyingOnOracle)markovLearner).getStatistics();
 			dataSample.inconsistencyReference = MarkovClassifier.computeInconsistency(referenceGraph, null, markovModel, checker,false);
 			dataSample.referenceLearner = zeroScore;
 			dataSample.centreCorrect = firstMerge.correctCentre;
@@ -450,15 +454,42 @@ public class MarkovExperiment
 		}
 	}	
 
-    public static class Cheat_for_Statistics extends EDSM_MarkovLearner {
+    public static class LearnerRelyingOnOracle extends EDSM_MarkovLearner {
         final LearnerGraph referenceGraph;
-        public Cheat_for_Statistics(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold,
-                                    MarkovParameters markovPars, ScoreMode scoreMode, StateMergingStatistics redReducer,
-                                    LearnerGraph ref) {
+		final List<PairQualityLearner.PairScoreValue> statistics = new  ArrayList<>();
+
+		public List<PairQualityLearner.PairScoreValue> getStatistics() {
+			return statistics;
+		}
+
+        public LearnerRelyingOnOracle(LearnerEvaluationConfiguration evalCnf, LearnerGraph argInitialPTA, int threshold,
+									  MarkovParameters markovPars, ScoreMode scoreMode, StateMergingStatistics redReducer,
+									  LearnerGraph ref) {
             super(evalCnf, argInitialPTA, threshold, markovPars, scoreMode, redReducer);
             referenceGraph = ref;
         }
 
+		@Override
+		public void initComputation(LearnerGraph graph) {
+			super.initComputation(graph);
+			long runTime = LearningSupportRoutines.getThreadTime()-startTime;
+			long runTimeSec = Math.round(runTime / 1000000000.);
+//			System.out.println(runTimeSec+" - "+statistics.size());
+		}
+
+		/** The purpose of this method is to compute scores. For this very learner, scores are obtained by comparison of pairs against a
+		 * reference graph. This is needed to go through a 'perfect' inference process, guided by knowing the correct answer, and
+		 * recording scores and inconsistencies in order to evaluate the relation between the two. Using a 'real' learner for the purpose of
+		 * collecting such statistics is hard without knowing how to 'offset' inconsistencies against scores
+		 * (because it will either merge too much or too little, giving a heavily skewed distribution), but importantly it is vital to be able
+		 * to tell whether a merge is correct or not: if we simply merge states that appear plausible, some mergers could be correct and some
+		 * will not be. Therefore, we'll find ourselves dealing with cases where we merge two sets of states and some pairs between these sets
+		 * are correct mergers and some are not and even figuring out which are which is hard since a short path from the root to any of these
+		 * states might not match any path in a reference automaton.
+		 *
+		 * @param p pair which score is to be returned.
+		 * @return the score for this pair.
+		 */
         @Override
         public long overrideScoreComputation(PairScore p) {
             List<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();//coregraph.getStateNumber()+1);// to ensure arraylist does not reallocate when we fill in the last element
@@ -466,21 +497,24 @@ public class MarkovExperiment
             markovHelper.computeScoreBasedOnInconsistencies(p);
             lastComputedCompatibilityScore = markovHelper.getLastComputedInconsistency();
 
-
             Set<CmpVertex> statesOfInterest = new HashSet<>();
             statesOfInterest.add(p.getQ());statesOfInterest.add(p.getR());
-            Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(referenceGraph, statesOfInterest);
+            Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(coregraph, statesOfInterest);
             CmpVertex blue = referenceGraph.getVertex(stateToPath.get(p.getQ()));
             assert blue != null;
             CmpVertex red = referenceGraph.getVertex(stateToPath.get(p.getR()));
             assert red != null;
-            return blue == red?1000:-1;
+
+			boolean correctMerge = blue == red;
+
+			statistics.add(new PairQualityLearner.PairScoreValue(correctMerge,genScore,lastComputedCompatibilityScore));
+            return correctMerge?1000:-1;
         }
 
         @Override
         public String toString()
         {
-            return "Cheat_statistics";
+            return "OracleBasedLearner_Statistics";
         }
     }
 
@@ -555,7 +589,8 @@ public class MarkovExperiment
 		try
 		{
 //			E_MarkovCaseStudies.runExperiment(learningGroup);
-			E_MarkovBaselineLearn.runExperiment(learningGroup);
+//			E_MarkovBaselineLearn.runExperiment(learningGroup);
+			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			E_MarkovCentre.runExperiment(learningGroup);
 //			E_MarkovAlphabet.runExperiment(learningGroup);
 //			E_MarkovTraceMult.runExperiment(learningGroup);

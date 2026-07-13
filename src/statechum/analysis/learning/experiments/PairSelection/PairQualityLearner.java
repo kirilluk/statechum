@@ -1647,7 +1647,30 @@ public class PairQualityLearner
 		}
 	}
 	
-	
+
+	public static class PairScoreValue {
+		public boolean validMerge;
+		public long score, inconsistency;
+
+		public PairScoreValue(boolean validMerge, long score, long inconsistency) {
+			this.validMerge = validMerge;
+			this.score = score;
+			this.inconsistency = inconsistency;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (!(o instanceof PairScoreValue)) return false;
+			PairScoreValue that = (PairScoreValue) o;
+			return validMerge == that.validMerge && score == that.score && inconsistency == that.inconsistency;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(validMerge, score, inconsistency);
+		}
+	}
+
 	/** This one holds two values and picks one that is not null. Where both are present, BCR is given preference.
 	 */
 	public static class ScoresForGraph implements DifferenceToReference
@@ -1662,7 +1685,10 @@ public class PairQualityLearner
 		public int invalidMergersNearRoot, missedMergersNearRoot, invalidMergersFarFromRoot, missedMergersFarFromRoot, validMergers;
 		public double missedMergersFraction, invalidMergersFraction;
 		public LearningAbortedReason whetherLearningSuccessfulOrAborted;
-		
+
+		/** Scores from all evaluated pairs. */
+		public List<PairScoreValue> mergeStatistics;
+
 		/** How many nodes there was in the original PTA. */
 		public long ptaTotalNodes = 0;
 		/** How many tail nodes there was in the original PTA. */

@@ -446,7 +446,7 @@ public class DrawGraphs {
 				+(pdfCompression?",compress=FALSE":"") // disable pdf compression if enabled
 				+")","redirection to pdf("+file.getAbsolutePath()+") failed");
 		for(String cmd:drawingCommand)
-			eval(cmd,"failed to run "+cmd);
+			eval(cmd, "failed to run " + cmd);
 		eval("dev.off()","failed to write to "+file.getAbsolutePath());
 	}
 

@@ -27,6 +27,7 @@ import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine.PredictionForS
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
+import statechum.collections.ArrayMapWithSearchPos;
 import statechum.model.testset.PTAExploration;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
@@ -155,10 +156,13 @@ public class MarkovModel
 			}
 			else // if not at the end of a walk, recurse
 			{
-				Map<Label,List<CmpVertex>> labelToTargets = new TreeMap<>();
+				// Using LinkedHashMap gives better performance compared to TreeMap
+//				Map<Label,List<CmpVertex>> labelToTargets = new TreeMap<>();// for prefix len 3, 40 states and 20% density this gives 275 sec.
+				Map<Label,List<CmpVertex>> labelToTargets = new LinkedHashMap<>();// for prefix len 3, 40 states and 20% density this gives 280 sec, same case for prefix len 4 is 984 sec.
+//				Map<Label,List<CmpVertex>> labelToTargets = new ArrayMapWithSearchPos<>(reverse.transitionMatrix.size());// for prefix len 3, 40 states and 20% density this gives 380 sec v.s. LinkedHashSet which gives 280 sec.
 				for (CmpVertex curReverse : collectionStateReverse)
 					for (Map.Entry<Label, TARGET_TYPE> entry : reverse.transitionMatrix.get(curReverse).entrySet())
-						labelToTargets.computeIfAbsent(entry.getKey(), k -> new ArrayList<>()).addAll(reverse.getTargets(entry.getValue()));
+						labelToTargets.computeIfAbsent(entry.getKey(), k -> new LinkedList<>()).addAll(reverse.getTargets(entry.getValue()));
 
 				for(Map.Entry<Label,List<CmpVertex>> entry : labelToTargets.entrySet()) {
 						PTASequenceEngine.Node nextNode = row == null ? null : row.get(entry.getKey());
@@ -172,7 +176,8 @@ public class MarkovModel
 		public  <TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_TYPE,CACHE_TYPE>>
 		long computeForwardInconsistency(AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> reverse, AbstractLearnerGraph<TARGET_TYPE,CACHE_TYPE> forward,
 										 CmpVertex curState, int step, boolean penaliseMissingPaths) {
-			return computeForwardInconsistency(reverse,forward, Arrays.asList(curState),curState,step,pta.get(init), penaliseMissingPaths);
+			// Using LinkedList below avoids a good amount of time spent inside ArrayList.iterator
+			return computeForwardInconsistency(reverse,forward, new LinkedList<>(Arrays.asList(curState)),curState,step,pta.get(init), penaliseMissingPaths);
 		}
 	}
 

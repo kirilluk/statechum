@@ -699,5 +699,76 @@ public class MarkovModel
 	    }
 	   	return chunks;
 	}
-	
+
+	/** Markov matrix is usually built from traces, however in order to evaluate whether an automaton can be
+	 * realistically learnt it helps to assume that a very big PTA will be computed (based on all possible paths of prefix-length)
+	 * and then we can compute inconsistency against this graph. It will usually be non-zero because many paths would not
+	 * uniquely identify states. If this inconsistency is large, this means we do not have a reliable 'homing' to
+	 * an automaton of interest. We could also compare this inconsistency with that of other (random) automata and if it is
+	 * similar, conclude that an automaton with a particular structure cannot effectively be learnt using Markov heuristic.
+	 *
+	 * @param gr automaton from which to compute Markov Matrix, assuming the case that all chunkLen-long transitions were present in a PTA.
+	 */
+	public void buildMarkovMatrixFromAutomaton(LearnerGraph gr) {
+		if (!predictForwardOrSideways || !directionForwardOrInverse || !pathsOrSets)
+			throw new IllegalArgumentException("This Markov matrix can only be used to predict events forward by looking at past sequences");
+
+		predictionFromOnlySequencesForward = true;// sequences will be stored reversed in the PTA
+
+		for(CmpVertex vert:gr.transitionMatrix.keySet()) {
+			if (!vert.isAccept())
+				throw new IllegalArgumentException("All states should be accept-states");
+			buildMarkovMatrixFromAutomaton(gr, vert);
+		}
+
+		convertOccurrenceMatrixToPTA();
+	}
+
+	protected void buildMarkovMatrixFromAutomaton(LearnerGraph gr, CmpVertex startingState) {
+		int currentExplorationDepth = 1;// when we look at transitions from the initial pair of states, this is depth 1.
+
+		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<>();// FIFO queue
+		Queue<List<Label>> currentPathBoundary = new LinkedList<>();
+
+		if (currentExplorationDepth <= chunkLength) {
+			currentExplorationBoundary.add(startingState);
+
+			currentPathBoundary.offer(new LinkedList<>());
+//			PTASequenceEngine.Node currentNode = set.crossWithSequence(sequence).getTheOnlyElement();
+		}
+		currentExplorationBoundary.offer(null);
+		currentPathBoundary.offer(null);
+
+
+		while (true) // we'll do a break at the end of the last wave
+		{
+			CmpVertex currentState = currentExplorationBoundary.remove();
+			List<Label> currentPath = currentPathBoundary.remove();
+
+			if (currentState == null) {// we got to the end of a wave
+				if (currentExplorationBoundary.isEmpty())
+					break;// we are at the end of the last wave, stop looping.
+
+				// mark the end of a wave.
+				currentExplorationBoundary.offer(null);
+				currentPathBoundary.offer(null);
+				currentExplorationDepth++;
+			} else {
+				Map<Label, CmpVertex> transitionsFromState = gr.transitionMatrix.get(currentState);
+
+				// if our current depth is less than the one to explore, make subsequent steps.
+				for (Map.Entry<Label, CmpVertex> transition : transitionsFromState.entrySet()) {
+					List<Label> newPath = new LinkedList<>(currentPath);newPath.add(transition.getKey());
+					if (currentExplorationDepth < chunkLength) {
+						currentExplorationBoundary.offer(transition.getValue());
+						currentPathBoundary.offer(newPath);
+					}
+					else {
+						Collections.reverse(newPath);
+						markovMatrix.getPredictionAndCreateNewOneIfNecessary(newPath).occurrence.add(1, 0);
+					}
+				}
+			}
+		}
+	}
 }

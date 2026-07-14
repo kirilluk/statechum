@@ -360,6 +360,91 @@ public class TestMarkovLearner
 
 		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblU,lblA,lblB)));// reverse of the string
 	}
+
+	@Test
+	public void testCreateMarkovMatrixFromAutomatonPositive0a()
+	{
+		final LearnerGraph graph = new LearnerGraph(config);graph.initEmpty();
+		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m.buildMarkovMatrixFromAutomaton(graph);
+		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
+		Assert.assertEquals(0,matrix.size());
+	}
+
+	@Test
+	public void testCreateMarkovMatrixFromAutomatonPositive0b()
+	{
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B","testCreateMarkovMatrixFromAutomatonPositive1",config, converter);
+		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m.buildMarkovMatrixFromAutomaton(graph);
+		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
+		Assert.assertEquals(0,matrix.size());
+	}
+
+	@Test
+	public void testCreateMarkovMatrixFromAutomatonPositive1()
+	{
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->A","testCreateMarkovMatrixFromAutomatonPositive1",config, converter);
+		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m.buildMarkovMatrixFromAutomaton(graph);
+		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
+		Assert.assertEquals(1,matrix.size());
+
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblA,lblA,lblA)));
+	}
+
+	@Test
+	public void testCreateMarkovMatrixFromAutomatonPositive2()
+	{
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->B","testCreateMarkovMatrixFromAutomatonPositive2",config, converter);
+		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m.buildMarkovMatrixFromAutomaton(graph);
+		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
+		Assert.assertEquals(2,matrix.size());
+
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblB,lblA)));// paths are reversed
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblB,lblB)));
+	}
+
+	@Test
+	public void testCreateMarkovMatrixFromAutomatonPositive3()
+	{
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->B / A-c->A","testCreateMarkovMatrixFromAutomatonPositive3",config, converter);
+		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m.buildMarkovMatrixFromAutomaton(graph);
+		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
+		Assert.assertEquals(5,matrix.size());
+
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblB,lblA)));// paths are reversed
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblB,lblB)));
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblA,lblC)));
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblC,lblC,lblC)));
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblA,lblC,lblC)));
+	}
+
+	@Test
+	public void testCreateMarkovMatrixFromAutomatonPositive4()
+	{
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-c->D / C-d->D","testCreateMarkovMatrixFromAutomatonPositive3",config, converter);
+		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m.buildMarkovMatrixFromAutomaton(graph);
+		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
+		Assert.assertEquals(2,matrix.size());
+
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblC,lblB,lblA)));// paths are reversed
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblD,lblB,lblA)));
+	}
+
+	@Test
+	public void testCreateMarkovMatrixFromAutomatonPositive5()
+	{
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b-#C","testCreateMarkovMatrixFromAutomatonPositive5",config, converter);
+		final MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		TestHelper.checkForCorrectException(() ->
+				m.buildMarkovMatrixFromAutomaton(graph), IllegalArgumentException.class, "All states should be accept-states");
+
+	}
+
 	/** Nothing to add because there not enough evidence. */
 	@Test
 	public void testConstructExtendedGraph1()

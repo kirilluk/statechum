@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.directoryExperimentStatistics;
+import static statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.sanitiseFileName;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovScoreVsInconsistency {
@@ -42,12 +43,11 @@ public class E_MarkovScoreVsInconsistency {
         boolean [] penaliseMissingPathsValues = {true,false};
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
-        int [] densities = new int[]{ 20 };
+        int [] densities = new int[]{ 0 };
         int [] chunkSizeValues = new int[]{3, 4};
-        int seedForFSM = 0;
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : densities) {
-                for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM) {
+                for (int sample = 0,seedForFSM = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM) {
                     for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(states, 2*states )})
                     {
                         int traceQuantityToUse = traces_lengthmult.firstElem;
@@ -123,7 +123,7 @@ public class E_MarkovScoreVsInconsistency {
                 for(PairQualityLearner.PairScoreValue value:data.mergeStatistics)
                     pairs.add(new OtpErlangTuple(new OtpErlangObject[]{
                             new OtpErlangBoolean(value.validMerge),new OtpErlangLong(value.score),new OtpErlangLong(value.inconsistency)}));
-                System.out.println("Pairs : "+pairs.size()+" runtime: "+Math.round(data.executionTime / 1000000000.));
+//                System.out.println("Pairs : "+pairs.size()+" runtime: "+Math.round(data.executionTime / 1000000000.));
                 String statisticsFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(learningGroup.outPathPrefix + directoryExperimentStatistics,learnStatistics,result.parameters);
                 try (FileWriter statisticsFile = new FileWriter(statisticsFileName)) {
                     statisticsFile.write(ErlangLabel.dumpErlangObject(new OtpErlangList(pairs.toArray(new OtpErlangObject[0]))));
@@ -138,21 +138,21 @@ public class E_MarkovScoreVsInconsistency {
         });
         int referencePreset = 0;
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
-            seedForFSM = 0;
-            for (final boolean penaliseMissingPaths:penaliseMissingPathsValues)
             for (int states : learningGroup.statesToUse)
                 for (int perStateSquaredDensity100 : densities) {
 //                    String experimentName = learningGroup.outPathPrefix + "statistics_"+states+"_"+perStateSquaredDensity100+"_";
-                    final Map<Integer,ScatterPlot> gr_ScoreVsInconsistency = new TreeMap<>();
-                    for (final int chunkSizeToEvaluate : chunkSizeValues) {
-                        gr_ScoreVsInconsistency.put(chunkSizeToEvaluate, new ScatterPlot("Inconsistency", "Score",
-                                new File(learningGroup.outPathPrefix + "statistics_" + states + "_" + perStateSquaredDensity100 + "_" + chunkSizeToEvaluate + "_"+penaliseMissingPaths+"_score_vs_inconsistency.pdf")));
-                    }
-                    for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM) {
+//                    final Map<Integer,ScatterPlot> gr_ScoreVsInconsistency = new TreeMap<>();
+//                    for (final int chunkSizeToEvaluate : chunkSizeValues) {
+//                        gr_ScoreVsInconsistency.put(chunkSizeToEvaluate, new ScatterPlot("Inconsistency", "Score",
+//                                new File(learningGroup.outPathPrefix + "statistics_" + states + "_" + perStateSquaredDensity100 + "_" + chunkSizeToEvaluate + "_"+penaliseMissingPaths+"_score_vs_inconsistency.pdf")));
+//                    }
+                    for (int sample = 0,seedForFSM = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM) {
                         for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(states, 2 * states)}) {
                             int traceQuantityToUse = traces_lengthmult.firstElem;
                             for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
-                                for (final int chunkSizeToEvaluate : chunkSizeValues) {
+                                for (final int chunkSizeToEvaluate : chunkSizeValues)
+                                for (final boolean penaliseMissingPaths:penaliseMissingPathsValues)
+                                {
                                     LearningAlgorithms.ScoringToApply learnerKind = LearningAlgorithms.ScoringToApply.SCORING_ORACLE_STATISTICS;
                                     double weightOfInconsistencies = 1.0;
                                     ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
@@ -164,7 +164,8 @@ public class E_MarkovScoreVsInconsistency {
                                     parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
                                     parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, 0, 0, 0);
                                     parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-
+                                    String pathName = learningGroup.outPathPrefix + directoryExperimentStatistics+sanitiseFileName(parameters.getSubExperimentName())+"-"+
+                                            sanitiseFileName(parameters.getRowID());
                                     String statisticsFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(
                                             learningGroup.outPathPrefix + directoryExperimentStatistics,learnStatistics,parameters);
                                     String fileContents = null;
@@ -174,6 +175,9 @@ public class E_MarkovScoreVsInconsistency {
                                         // ignore error, we'll know that file was not read because fileContents will be null.
                                     }
                                     if (fileContents != null) {
+                                        ScatterPlot gr_ScoreVsInconsistency = new ScatterPlot("Inconsistency", "Score",
+                                           new File(pathName + File.separator+"statistics_" + states + "_" + perStateSquaredDensity100 + "_" + chunkSizeToEvaluate + "_"+penaliseMissingPaths+"_score_vs_inconsistency.pdf"));
+
                                         OtpErlangObject listOfPairsAsObject = ErlangLabel.parseText(fileContents);
                                         if (!(listOfPairsAsObject instanceof OtpErlangList))
                                             throw new IllegalArgumentException(statisticsFileName + " is not a list of type OtpErlangLists, got " + listOfPairsAsObject.getClass().getName());
@@ -185,16 +189,18 @@ public class E_MarkovScoreVsInconsistency {
                                             long inconsistency = ((OtpErlangLong) pair.elementAt(2)).longValue();
 
                                             if (score < 100 && inconsistency < 1000)
-                                                gr_ScoreVsInconsistency.get(chunkSizeToEvaluate).add((double) inconsistency, (double) score, validMerge ? "green" : "red", null);
+                                                gr_ScoreVsInconsistency.add((double) inconsistency, (double) score, validMerge ? "green" : "red", null);
+//                                                gr_ScoreVsInconsistency.get(chunkSizeToEvaluate).add((double) inconsistency, (double) score, validMerge ? "green" : "red", null);
                                         }
+
+                                        gr_ScoreVsInconsistency.reportResults(learningGroup.gr);
                                     }
                                 }
                         }
                     }
-                    for (final int chunkSizeToEvaluate : chunkSizeValues) {
-
-                        gr_ScoreVsInconsistency.get(chunkSizeToEvaluate).reportResults(learningGroup.gr);
-                    }
+//                    for (final int chunkSizeToEvaluate : chunkSizeValues) {
+//                        gr_ScoreVsInconsistency.get(chunkSizeToEvaluate).reportResults(learningGroup.gr);
+//                    }
                 }
         }
 

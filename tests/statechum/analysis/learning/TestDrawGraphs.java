@@ -374,7 +374,7 @@ public class TestDrawGraphs {
 
 	@Test
 	public void testLogisticRegressionR0() {
-		checkForCorrectException(() -> constructPredictiveCoefficientsString(new LinkedList<>(),"text"),IllegalArgumentException.class,"no data to learn from");
+		checkForCorrectException(() -> constructPredictiveCoefficientsString(new LinkedList<>(),"text","a"),IllegalArgumentException.class,"no data to learn from");
 	}
 	@Test
 	public void testLogisticRegressionR1() {
@@ -382,7 +382,7 @@ public class TestDrawGraphs {
 				new PairQualityLearner.PairScoreValue(true,10,1),
 				new PairQualityLearner.PairScoreValue(false,1,10)
 				);
-		Assert.assertEquals("fit3=speedglm::speedglm(formula = validity ~ score + inconsistency,family = binomial(),data=data.frame(validity=c(1,0),score=c(10,1),inconsistency=c(1,10)))",constructPredictiveCoefficientsString(values,"fit3"));
+		Assert.assertEquals(Arrays.asList("datavalues=data.frame(validity=c(1,0),score=c(10,1),inconsistency=c(1,10))","fit3=speedglm::speedglm(formula = validity ~ score + inconsistency,family = binomial(),data=datavalues)"),constructPredictiveCoefficientsString(values,"fit3","datavalues"));
 	}
 
 	@Test
@@ -392,7 +392,7 @@ public class TestDrawGraphs {
 				new PairQualityLearner.PairScoreValue(true,10,1),
 				new PairQualityLearner.PairScoreValue(false,1,10)
 		);
-		DrawGraphs.LogisticRegression regression = new DrawGraphs.LogisticRegression(values,"fit");
+		DrawGraphs.LogisticRegression regression = new DrawGraphs.LogisticRegression(values,"fit","pairscores");
 		Assert.assertEquals("-28.803,5.237,NaN",regression.reportCoefficients());
 		Assert.assertTrue(regression.evaluate(100,3));
 		Assert.assertFalse(regression.evaluate(2,300));
@@ -408,7 +408,7 @@ public class TestDrawGraphs {
 				new PairQualityLearner.PairScoreValue(false,0,100),
 				new PairQualityLearner.PairScoreValue(false,5,20)
 		);
-		DrawGraphs.LogisticRegression regression = new DrawGraphs.LogisticRegression(values,"fit");
+		DrawGraphs.LogisticRegression regression = new DrawGraphs.LogisticRegression(values,"fit","pairvalues");
 		Assert.assertEquals("-17.732,4.224,-1.322",regression.reportCoefficients());
 		Assert.assertTrue(regression.evaluate(100,3));
 		Assert.assertFalse(regression.evaluate(2,300));

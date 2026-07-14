@@ -2154,11 +2154,11 @@ public class DrawGraphs {
 		}
 	}
 
-	public static String constructPredictiveCoefficientsString(List<PairQualityLearner.PairScoreValue> values, String varName) {
+	public static List<String> constructPredictiveCoefficientsString(List<PairQualityLearner.PairScoreValue> values, String fitVarName,String frameVarName) {
 		if (values.isEmpty())
 			throw new IllegalArgumentException("no data to learn from");
 
-		StringBuilder commands = new StringBuilder(varName+"=speedglm::speedglm(formula = validity ~ score + inconsistency,family = binomial(),data=data.frame(");
+		StringBuilder commands = new StringBuilder(frameVarName+"=data.frame(");
 		StringBuilder validityBuilder = new StringBuilder("validity=c("),
 				scoreBuilder = new StringBuilder("score=c("),inconsistencyBuilder = new StringBuilder("inconsistency=c(");
 		boolean first=true;
@@ -2179,8 +2179,11 @@ public class DrawGraphs {
 		inconsistencyBuilder.append(')');
 		commands.append(validityBuilder);commands.append(',');
 		commands.append(scoreBuilder);commands.append(',');
-		commands.append(inconsistencyBuilder);commands.append("))");
-		return commands.toString();
+		commands.append(inconsistencyBuilder);commands.append(")");
+
+		StringBuilder fitCommand = new StringBuilder(fitVarName);
+		fitCommand.append("=speedglm::speedglm(formula = validity ~ score + inconsistency,family = binomial(),data=");fitCommand.append(frameVarName);fitCommand.append(')');
+		return Arrays.asList(commands.toString(),fitCommand.toString());
 	}
 
 	public static class LogisticRegression {
@@ -2188,11 +2191,12 @@ public class DrawGraphs {
 		double threshold = 0.5;
 		double logThreshold = -Math.log(1/threshold - 1);
 
-		public LogisticRegression(List<PairQualityLearner.PairScoreValue> values, String varName) {
-			eval(constructPredictiveCoefficientsString(values,varName),"failed to run logistic regression");
-			intercept = valueAsDouble(engine.eval(varName+"$coefficients[\"(Intercept)\"]"));
-			score = valueAsDouble(engine.eval(varName+"$coefficients[\"score\"]"));
-			inconsistency = valueAsDouble(engine.eval(varName+"$coefficients[\"inconsistency\"]"));
+		public LogisticRegression(List<PairQualityLearner.PairScoreValue> values, String fitVarName,String frameVarName) {
+			for(String cmd:constructPredictiveCoefficientsString(values,fitVarName,frameVarName))
+				eval(cmd,"failed to run logistic regression");
+			intercept = valueAsDouble(engine.eval(fitVarName+"$coefficients[\"(Intercept)\"]"));
+			score = valueAsDouble(engine.eval(fitVarName+"$coefficients[\"score\"]"));
+			inconsistency = valueAsDouble(engine.eval(fitVarName+"$coefficients[\"inconsistency\"]"));
 		}
 
 		/** Given a score and inconsistency, evaluates a given pair.

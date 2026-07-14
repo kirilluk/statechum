@@ -104,6 +104,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -130,6 +131,7 @@ import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
 import statechum.StatechumXML.StringSequenceWriter;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
@@ -1880,7 +1882,7 @@ public class DrawGraphs {
 			for (String cmd : drawingCommands)
 				eval(cmd, "failed to run " + cmd);
 			if (confidenceValuesNumber == 0)
-				STR.statistic = StatisticalTestResult.valueAsDouble(engine.eval(variableName));
+				STR.statistic = valueAsDouble(engine.eval(variableName));
 			else
 			{
 				String A_value = engine.eval("rownames("+variableName+")").asString();
@@ -1889,8 +1891,8 @@ public class DrawGraphs {
 					throw new IllegalArgumentException("A12 value is expected to be formatted in a form 'A = ' by R but it was not");
 
 				STR.statistic = Double.parseDouble(A_value.substring(lastSpace + 1));
-				STR.confidence_lo = StatisticalTestResult.valueAsDouble(engine.eval(variableName+"[1]"));
-				STR.confidence_hi = StatisticalTestResult.valueAsDouble(engine.eval(variableName+"[2]"));
+				STR.confidence_lo = valueAsDouble(engine.eval(variableName+"[1]"));
+				STR.confidence_hi = valueAsDouble(engine.eval(variableName+"[2]"));
 			}
 			return STR;
 		}
@@ -2088,6 +2090,23 @@ public class DrawGraphs {
 		}
 	}
 
+	public static double valueAsDouble(REXP val)
+	{
+		switch(val.getType())
+		{
+			case REXP.XT_INT:
+			case REXP.XT_ARRAY_INT:
+				return val.asInt();
+			case REXP.XT_DOUBLE:
+			case REXP.XT_ARRAY_DOUBLE:
+				return val.asDouble();
+			case REXP.XT_NULL:
+				return 0;
+			default:
+				throw new IllegalArgumentException("value "+val+" is not an integer or a double, got type "+val.getType());
+		}
+	}
+
 	/**
 	 * Records the outcome of statistical analysis, extracted from R.
 	 */
@@ -2101,24 +2120,7 @@ public class DrawGraphs {
 		public double confidence_lo=0.;
 		public double confidence_hi=0.;
 		
-		public static double valueAsDouble(REXP val)
-		{
-			switch(val.getType())
-			{
-			case REXP.XT_INT:
-			case REXP.XT_ARRAY_INT:
-				return val.asInt();
-			case REXP.XT_DOUBLE:
-			case REXP.XT_ARRAY_DOUBLE:
-				return val.asDouble();
-			case REXP.XT_NULL:
-				return 0;
-			default:
-				throw new IllegalArgumentException("value "+val+" is not an integer or a double");			
-			}
-		}
-		
-		/** Using a supplied list of commands, obtains a result. 
+		/** Using a supplied list of commands, obtains a result.
 		 * 
 		 * @param drawingCommands commands to run, the outcome of the last one is reported.
 		 * @param varName the variable used to assign the outcome in the commands executed.
@@ -2149,6 +2151,68 @@ public class DrawGraphs {
 			if (!found)
 				throw new IllegalArgumentException("expected to use method \""+ expectedMethods +"\" but got \""+methodName+"\"");
 			return STR;
+		}
+	}
+
+	public static String constructPredictiveCoefficientsString(List<PairQualityLearner.PairScoreValue> values, String varName) {
+		if (values.isEmpty())
+			throw new IllegalArgumentException("no data to learn from");
+
+		StringBuilder commands = new StringBuilder(varName+"=speedglm::speedglm(formula = validity ~ score + inconsistency,family = binomial(),data=data.frame(");
+		StringBuilder validityBuilder = new StringBuilder("validity=c("),
+				scoreBuilder = new StringBuilder("score=c("),inconsistencyBuilder = new StringBuilder("inconsistency=c(");
+		boolean first=true;
+		for(PairQualityLearner.PairScoreValue value:values) {
+			if (!first) {
+				validityBuilder.append(',');
+				scoreBuilder.append(',');
+				inconsistencyBuilder.append(',');
+			}
+			else
+				first =  false;
+			validityBuilder.append(value.validMerge?"1":"0");
+			scoreBuilder.append(value.score);
+			inconsistencyBuilder.append(value.inconsistency);
+		}
+		validityBuilder.append(')');
+		scoreBuilder.append(')');
+		inconsistencyBuilder.append(')');
+		commands.append(validityBuilder);commands.append(',');
+		commands.append(scoreBuilder);commands.append(',');
+		commands.append(inconsistencyBuilder);commands.append("))");
+		return commands.toString();
+	}
+
+	public static class LogisticRegression {
+		double intercept,score,inconsistency;
+		double threshold = 0.5;
+		double logThreshold = -Math.log(1/threshold - 1);
+
+		public LogisticRegression(List<PairQualityLearner.PairScoreValue> values, String varName) {
+			eval(constructPredictiveCoefficientsString(values,varName),"failed to run logistic regression");
+			intercept = valueAsDouble(engine.eval(varName+"$coefficients[\"(Intercept)\"]"));
+			score = valueAsDouble(engine.eval(varName+"$coefficients[\"score\"]"));
+			inconsistency = valueAsDouble(engine.eval(varName+"$coefficients[\"inconsistency\"]"));
+		}
+
+		/** Given a score and inconsistency, evaluates a given pair.
+		 * The expression is 1/(1+exp(-(intercept+scoreValue*score+inconsistencyValue*inconsistency))) > threshold
+		 * which means intercept+scoreValue*score+inconsistencyValue*inconsistency > -ln(1/threshold - 1)
+		 * @param scoreValue score
+		 * @param inconsistencyValue inconsistency
+		 * @return whether logistic regression believes it to be a valid merge.
+		 */
+		public boolean evaluate(long scoreValue, long inconsistencyValue) {
+			double curValue = 0;
+			if (!Double.isNaN(intercept)) curValue += intercept;
+			if (!Double.isNaN(score)) curValue += scoreValue*score;
+			if (!Double.isNaN(inconsistency)) curValue += inconsistencyValue*inconsistency;
+			return curValue > logThreshold;
+		}
+
+		public String reportCoefficients() {
+			DecimalFormat df = new DecimalFormat("#.###");
+			return String.format("%s,%s,%s",df.format(intercept),df.format(score),df.format(inconsistency));
 		}
 	}
 

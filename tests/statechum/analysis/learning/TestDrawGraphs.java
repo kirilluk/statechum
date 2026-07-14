@@ -30,8 +30,10 @@ import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.DrawGraphs.StatisticalTestResult;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 import static statechum.analysis.learning.DrawGraphs.buildStringMapFromStringPairs;
+import static statechum.analysis.learning.DrawGraphs.constructPredictiveCoefficientsString;
 
 public class TestDrawGraphs {
 
@@ -369,7 +371,50 @@ public class TestDrawGraphs {
 		Assert.assertEquals("Method,Statistic,P-value,parameter\nKruskal-Wallis rank sum test,2.0,0.36787944117144233,2.0\n",s.toString());
 		//System.out.println(result.statistic+" "+result.pvalue+" "+result.alternative+" "+result.parameter+" ");
 	}
-	
+
+	@Test
+	public void testLogisticRegressionR0() {
+		checkForCorrectException(() -> constructPredictiveCoefficientsString(new LinkedList<>(),"text"),IllegalArgumentException.class,"no data to learn from");
+	}
+	@Test
+	public void testLogisticRegressionR1() {
+		List<PairQualityLearner.PairScoreValue> values = Arrays.asList(
+				new PairQualityLearner.PairScoreValue(true,10,1),
+				new PairQualityLearner.PairScoreValue(false,1,10)
+				);
+		Assert.assertEquals("fit3=speedglm::speedglm(formula = validity ~ score + inconsistency,family = binomial(),data=data.frame(validity=c(1,0),score=c(10,1),inconsistency=c(1,10)))",constructPredictiveCoefficientsString(values,"fit3"));
+	}
+
+	@Test
+	public void testLogisticRegression1() {
+		new DrawGraphs();// loads the R library
+		List<PairQualityLearner.PairScoreValue> values = Arrays.asList(
+				new PairQualityLearner.PairScoreValue(true,10,1),
+				new PairQualityLearner.PairScoreValue(false,1,10)
+		);
+		DrawGraphs.LogisticRegression regression = new DrawGraphs.LogisticRegression(values,"fit");
+		Assert.assertEquals("-28.803,5.237,NaN",regression.reportCoefficients());
+		Assert.assertTrue(regression.evaluate(100,3));
+		Assert.assertFalse(regression.evaluate(2,300));
+	}
+
+	@Test
+	public void testLogisticRegression2() {
+		new DrawGraphs();// loads the R library
+		List<PairQualityLearner.PairScoreValue> values = Arrays.asList(
+				new PairQualityLearner.PairScoreValue(true,10,1),
+				new PairQualityLearner.PairScoreValue(true,20,5),
+				new PairQualityLearner.PairScoreValue(false,1,10),
+				new PairQualityLearner.PairScoreValue(false,0,100),
+				new PairQualityLearner.PairScoreValue(false,5,20)
+		);
+		DrawGraphs.LogisticRegression regression = new DrawGraphs.LogisticRegression(values,"fit");
+		Assert.assertEquals("-17.732,4.224,-1.322",regression.reportCoefficients());
+		Assert.assertTrue(regression.evaluate(100,3));
+		Assert.assertFalse(regression.evaluate(2,300));
+		Assert.assertFalse(regression.evaluate(8,300));
+	}
+
 	public static class TestParameters implements ThreadResultID
 	{
 		public String rowID, columnID;

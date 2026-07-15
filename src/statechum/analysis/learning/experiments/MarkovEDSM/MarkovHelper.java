@@ -180,7 +180,7 @@ public class MarkovHelper
 		{			
 			currentInconsistency = MarkovClassifier.computeInconsistencyOfAMerger(coregraph, verticesToMerge, inconsistenciesPerVertex, markovModel, cl, markovConsistencyChecker);
 			
-			score=Math.round(genScore-markovParameters.weightOfInconsistencies*currentInconsistency);
+			score=Math.round(genScore-markovParameters.weightOfInconsistencies.weight*currentInconsistency-markovParameters.weightOfInconsistencies.offset);
 			lastComputedInconsistency = currentInconsistency;
 
 			if (markovParameters.useNewScoreNearRoot && genScore <= 1) // could do with 2 but it does not make a difference.

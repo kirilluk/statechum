@@ -55,8 +55,8 @@ public class MarkovPreMergeExperiment
 
 	public static class MarkovPremergeParameters extends MarkovLearningParameters {
 
-		public MarkovPremergeParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed) {
-			super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample, argSeed);
+		public MarkovPremergeParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample) {
+			super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample);
 		}
 
 		@Override
@@ -203,12 +203,10 @@ public class MarkovPreMergeExperiment
 		final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results.csv"));
 		for(final int preset: new int[]{1,0})
 		{
-			int seedForFSM = 0;
-
 			for(int states:statesToUse)
 				for(int density:new int[] {0,30})
 				{
-					for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
+					for(int sample=0;sample<samplesPerFSM;++sample)
 						for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 							for(boolean aveOrMax:new boolean[]{false})
 								for(int wlen:new int[]{1,2})
@@ -221,7 +219,7 @@ public class MarkovPreMergeExperiment
 													ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 													ev.config.setOverride_usePTAMerging(false);
 
-													MarkovLearningParameters parameters = new MarkovPremergeParameters(learnerKind,states, alphabetMultiplier, density, sample,trainingSample, seedForFSM);
+													MarkovLearningParameters parameters = new MarkovPremergeParameters(learnerKind,states, alphabetMultiplier, density, sample,trainingSample);
 													parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 													parameters.setExperimentID(traceQuantity,traceLengthMultiplierMax, alphabetMultiplier);
 													parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies, true, aveOrMax,divisor,positionOfMostConnectedVertex,wlen);

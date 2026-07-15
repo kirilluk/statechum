@@ -19,8 +19,8 @@ public class E_MarkovTraceMult {
 
     public static class MarkovAlphabetLearningParameters extends MarkovLearningParameters {
 
-        public MarkovAlphabetLearningParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed) {
-            super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample, argSeed);
+        public MarkovAlphabetLearningParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample) {
+            super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample);
         }
 
         @Override
@@ -38,10 +38,9 @@ public class E_MarkovTraceMult {
         boolean penaliseMissingPaths = true;
         int [] traceLenMultValues = new int[] { 4,16,32, 64, 128 };
         double alphabetMultiplier = 2;
-        int seedForFSM = 0;
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : new int[]{0, 30}) {
-                for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
+                for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample)
                     for (int traceLenMult:traceLenMultValues) {
                         int scalingFactor = states*learningGroup.stateScale/learningGroup.statesToUse[0];
                         int traceQuantityToUse = 8*scalingFactor;
@@ -68,7 +67,7 @@ public class E_MarkovTraceMult {
                                                 ev.config = learningGroup.eval.config.copy();
                                                 ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
 
-                                                MarkovAlphabetLearningParameters parameters = new MarkovAlphabetLearningParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
+                                                MarkovAlphabetLearningParameters parameters = new MarkovAlphabetLearningParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample);
                                                 parameters.setTraceLengthMultiplier(traceLenMult);
                                                 parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
                                                 parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, divisor, 0, wlen);

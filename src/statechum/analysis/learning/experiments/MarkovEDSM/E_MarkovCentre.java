@@ -29,8 +29,8 @@ public class E_MarkovCentre {
 
     public static class MarkovCentreLearningParameters extends MarkovLearningParameters {
 
-        public MarkovCentreLearningParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed) {
-            super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample, argSeed);
+        public MarkovCentreLearningParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample) {
+            super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample);
         }
 
         @Override
@@ -184,10 +184,9 @@ public class E_MarkovCentre {
         int [] wlen_values = new int[]{1,2,3};
         int [] divisor_values = new int[]{1,2,4,8};
 
-        int seedForFSM = 0;
         for(int states:learningGroup.statesToUse)
             for(int perStateSquaredDensity100:new int[] {0,30})
-                for(int sample=0;sample<learningGroup.fsmSamplesPerStateNumber;++sample,++seedForFSM)
+                for(int sample=0;sample<learningGroup.fsmSamplesPerStateNumber;++sample)
                         for(int trainingSample=0;trainingSample<learningGroup.trainingSamplesPerFSM;++trainingSample) {
                             int scalingFactor = states*learningGroup.stateScale/learningGroup.statesToUse[0];
                             for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8 * scalingFactor, 32 ),
@@ -201,7 +200,7 @@ public class E_MarkovCentre {
 
                                             int traceLengthMultiplier = traces_lengthmult.secondElem;
 
-                                            MarkovCentreLearningParameters parameters = new MarkovCentreLearningParameters(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
+                                            MarkovCentreLearningParameters parameters = new MarkovCentreLearningParameters(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample);
                                             parameters.setTraceLengthMultiplier(traceLengthMultiplier);
                                             parameters.setExperimentID(traces_lengthmult.firstElem, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
                                             parameters.markovParameters.setMarkovParameters(1, chunkSizeForCentreExperiments, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, divisor, 0, wlen);

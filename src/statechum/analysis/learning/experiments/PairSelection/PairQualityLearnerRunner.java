@@ -18,11 +18,7 @@
 
 package statechum.analysis.learning.experiments.PairSelection;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 import statechum.Label;
 import statechum.analysis.learning.MarkovClassifier;
@@ -61,7 +57,9 @@ public abstract class PairQualityLearnerRunner extends UASExperiment<PairQuality
 		ExperimentResult<PairQualityParameters> outcome = new ExperimentResult<PairQualityParameters>(par);
 		
 		ConstructRandomFSM fsmConstruction = new ConstructRandomFSM();
-		fsmConstruction.generateFSM(new Random(par.seed*31+par.states), tracesAlphabet, par.states, -1,par.seed, par.pickUniqueFromInitial, learnerInitConfiguration);
+		int seed = Objects.hash(par.sample,par.attempt,par.states);
+
+		fsmConstruction.generateFSM(new Random(seed), tracesAlphabet, par.states, -1,seed, par.pickUniqueFromInitial, learnerInitConfiguration);
 		referenceGraph = fsmConstruction.referenceGraph;
 		
 		final Collection<List<Label>> testSet = LearningAlgorithms.buildEvaluationSet(referenceGraph);
@@ -70,7 +68,7 @@ public abstract class PairQualityLearnerRunner extends UASExperiment<PairQuality
 		
 		if (par.pickUniqueFromInitial)
 		{
-			final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.seed*31+par.attempt*par.states),5,referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial})));
+			final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(seed),5,referenceGraph.getVertex(Arrays.asList(new Label[]{fsmConstruction.uniqueFromInitial})));
 			generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 									
 					@Override
@@ -98,7 +96,7 @@ public abstract class PairQualityLearnerRunner extends UASExperiment<PairQuality
 		}
 		else
 		{// not using unique from initial
-			final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.seed*31+par.attempt*par.states),5,null);
+			final RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(seed),5,null);
 			generator.generateRandomPosNeg(tracesToGenerate, 1, false, new RandomLengthGenerator() {
 					
 					@Override

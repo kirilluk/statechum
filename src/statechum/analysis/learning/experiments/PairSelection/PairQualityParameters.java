@@ -35,8 +35,7 @@ public class PairQualityParameters implements ThreadResultID
 	int traceQuantity, traceLengthMultiplier;
 	double trainingDataMultiplier;
 	int tracesAlphabetMultiplier;
-	int seed;
-	
+
 	/** True means using classifier, false means learning classifier. */
 	boolean usingClassifierRatherThanLearningClassifier = true;
 	
@@ -51,7 +50,6 @@ public class PairQualityParameters implements ThreadResultID
 		traceQuantity = a.traceQuantity;traceLengthMultiplier = a.traceLengthMultiplier;
 		trainingDataMultiplier = a.trainingDataMultiplier;
 		tracesAlphabetMultiplier = a.tracesAlphabetMultiplier;
-		seed = a.seed;
 		usingClassifierRatherThanLearningClassifier = a.usingClassifierRatherThanLearningClassifier;
 		column = a.column;
 		innerLearner = a.innerLearner;
@@ -89,9 +87,9 @@ public class PairQualityParameters implements ThreadResultID
 		pairQualityCounter = c;
 	}
 
-	public PairQualityParameters(int argStates,int argSample, int argAttempt, int argSeed) 
+	public PairQualityParameters(int argStates,int argSample, int argAttempt)
 	{
-		states = argStates;sample=argSample;attempt=argAttempt;seed = argSeed;
+		states = argStates;sample=argSample;attempt=argAttempt;
 	}
 	
 	public String getExperimentID()
@@ -110,13 +108,13 @@ public class PairQualityParameters implements ThreadResultID
 	@Override
 	public String getRowID()
 	{
-		return getExperimentID()+"_S"+states+"_sa="+sample+"_se="+seed+"_"+(innerLearner == null?"":("_"+innerLearner.getRowID()));
+		return getExperimentID()+"_S"+states+"_sa="+sample+"_"+(innerLearner == null?"":("_"+innerLearner.getRowID()));
 	}
 
 	@Override
 	public String[] getColumnText() 
 	{
-		List<String> values = new ArrayList<String>();values.add(column);values.addAll(dataCollectorParameters.getColumnList());
+		List<String> values = new ArrayList<>();values.add(column);values.addAll(dataCollectorParameters.getColumnList());
 		return values.toArray(new String[]{});
 	}
 
@@ -131,7 +129,7 @@ public class PairQualityParameters implements ThreadResultID
 	@Override
 	public String[] headerValuesForEachCell() 
 	{
-		List<String> cellHeader = new ArrayList<String>();cellHeader.addAll(Arrays.asList(cellheaderStd));
+        List<String> cellHeader = new ArrayList<>(Arrays.asList(cellheaderStd));
 		
 		if (pairQualityCounter != null)
 			cellHeader.add("PairQuality");

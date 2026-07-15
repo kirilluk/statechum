@@ -25,8 +25,8 @@ public class E_MarkovScoreVsInconsistency {
 
     public static class MarkovLearningStatisticsParameters extends MarkovLearningParameters {
 
-        public MarkovLearningStatisticsParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed) {
-            super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample, argSeed);
+        public MarkovLearningStatisticsParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample) {
+            super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample);
         }
 
         @Override
@@ -48,7 +48,7 @@ public class E_MarkovScoreVsInconsistency {
         int [] chunkSizeValues = new int[]{3, 4};
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : densities) {
-                for (int sample = 0,seedForFSM = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM) {
+                for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample) {
                     for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(states, 2*states )})
                     {
                         int traceQuantityToUse = traces_lengthmult.firstElem;
@@ -62,7 +62,7 @@ public class E_MarkovScoreVsInconsistency {
                                 ev.config = learningGroup.eval.config.copy();
                                 ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
 
-                                MarkovLearningStatisticsParameters parameters = new MarkovLearningStatisticsParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
+                                MarkovLearningStatisticsParameters parameters = new MarkovLearningStatisticsParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample);
                                 parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
                                 parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
                                 parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, 0, 0, 0);
@@ -147,7 +147,7 @@ public class E_MarkovScoreVsInconsistency {
 //                        gr_ScoreVsInconsistency.put(chunkSizeToEvaluate, new ScatterPlot("Inconsistency", "Score",
 //                                new File(learningGroup.outPathPrefix + "statistics_" + states + "_" + perStateSquaredDensity100 + "_" + chunkSizeToEvaluate + "_"+penaliseMissingPaths+"_score_vs_inconsistency.pdf")));
 //                    }
-                    for (int sample = 0,seedForFSM = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM) {
+                    for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample) {
                         for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(states, 2 * states)}) {
                             int traceQuantityToUse = traces_lengthmult.firstElem;
                             for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
@@ -160,7 +160,7 @@ public class E_MarkovScoreVsInconsistency {
                                     ev.config = learningGroup.eval.config.copy();
                                     ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
 
-                                    MarkovLearningStatisticsParameters parameters = new MarkovLearningStatisticsParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
+                                    MarkovLearningStatisticsParameters parameters = new MarkovLearningStatisticsParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample);
                                     parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
                                     parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
                                     parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, 0, 0, 0);

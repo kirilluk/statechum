@@ -760,7 +760,7 @@ public class ConstructClassifier
 					final int traceQuantity=10;
 					for(final boolean useUnique:new boolean[]{false})
 					{
-						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
+						PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0);
 						DataCollectorParameters dataCollectorParameters = new DataCollectorParameters(ifDepth,markovParameters,false,(1 << 13) | (1 << 12) | (1 << 0) | (0xfffff << 14));
 						dataCollectorParameters.depthToTrim=5;
 						parExperiment.setExperimentParameters(false,dataCollectorParameters, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
@@ -773,7 +773,7 @@ public class ConstructClassifier
 							for(int sample=0;sample<Math.round(samplesPerFSM*trainingDataMultiplier);++sample)
 								for(int attempt=0;attempt<2;++attempt)
 								{
-									final PairQualityParameters parameters = new PairQualityParameters(states,sample,attempt,1+numberOfTasks);
+									final PairQualityParameters parameters = new PairQualityParameters(states,sample,attempt);
 									parameters.setExperimentParameters(false,dataCollectorParameters, onlyPositives, useUnique, alphabetMultiplier, traceQuantity, lengthMultiplier, trainingDataMultiplier);
 									parameters.setColumn("LearnClassifier");
 									// Important: there should be an instance of data collector per instance of learner runner because markov helpers are stateful and

@@ -59,8 +59,8 @@ public class CVS
 
 	public static class MarkovCVSParameters extends MarkovLearningParameters {
 
-		public MarkovCVSParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed) {
-			super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample, argSeed);
+		public MarkovCVSParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample) {
+			super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample);
 		}
 
 		@Override
@@ -133,10 +133,9 @@ public class CVS
 	
 				LearnerGraph pta = tool.getPTA();
 				final int traceQuantityToUse = traceQuantity;
-				int seedForFSM = 0;
 				final AtomicLong comparisonsPerformed = new AtomicLong(0);
 				final int statesMax = statesToUse[statesToUse.length-1];// reflects the size of the largest FSM that will be generated. 
-				MarkovLearningParameters parExp = new MarkovCVSParameters(null,0,0,0,0,0,0);
+				MarkovLearningParameters parExp = new MarkovCVSParameters(null,0,0,0,0,0);
 				parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax, alphabetMultiplier);
 	
 				for(int states:statesToUse)
@@ -145,7 +144,7 @@ public class CVS
 					final String experimentName = outPathPrefix+parExp.getExperimentID()+"_states="+ states+"_";
 					final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(experimentName+"results.csv"));
 					
-					for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
+					for(int sample=0;sample<samplesPerFSM;++sample)
 						for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 							for(boolean aveOrMax:new boolean[]{true,false})
 								for(int divisorForPathCount:new int[]{1,2,4})
@@ -159,7 +158,7 @@ public class CVS
 											ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 											ev.config.setOverride_usePTAMerging(false);
 				
-											MarkovLearningParameters parameters = new MarkovCVSParameters(learnerKind,states, alphabetMultiplier, density, sample,trainingSample, seedForFSM);
+											MarkovLearningParameters parameters = new MarkovCVSParameters(learnerKind,states, alphabetMultiplier, density, sample, trainingSample);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax, alphabetMultiplier);
 											parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies,penaliseMissingPaths,aveOrMax,divisorForPathCount,0,1);

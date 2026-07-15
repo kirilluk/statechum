@@ -108,10 +108,9 @@ public class MarkovComparison {
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
         int [] densities = new int[]{0, 20, 30};
-        int seedForFSM = 0;
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : densities) {
-                for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM) {
+                for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample) {
                     for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(states, 2*states )})
                     {
                         int traceQuantityToUse = traces_lengthmult.firstElem;
@@ -130,7 +129,7 @@ public class MarkovComparison {
                                 ev.config = learningGroup.eval.config.copy();
                                 ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
 
-                                E_MarkovBaselineLearn.MarkovLearningBaselineParameters parameters = new E_MarkovBaselineLearn.MarkovLearningBaselineParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
+                                E_MarkovBaselineLearn.MarkovLearningBaselineParameters parameters = new E_MarkovBaselineLearn.MarkovLearningBaselineParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample);
                                 parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
                                 parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
                                 parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, 0, 0, 0);

@@ -4,21 +4,26 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Added a good number of comments and made markov experiments rely on ScoringToApply enumeration rather than LearnerToUseEnum.">
+    <list default="true" id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="Added offset to the computation of inconsistency. &#10;Automata seed is not computed as a hash of seed, density and number of states. This permits this number to effectively be equal to sample number and thus I can vary densities and state numbers without affecting seeds of the relevant automata.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/Configuration.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/Configuration.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Synapse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/Erlang/Synapse.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/LearnerWithLabelRefinementViaPta.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/LearnerWithLabelRefinementViaPta.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/BenchmarkCPU.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/EvaluationOfLearners/BenchmarkCPU.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/I2cexperiment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/I2cexperiment.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/CVS.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/CVS.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/CVS_With_Random_traces_Generation.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/CVS_With_Random_traces_Generation.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovAlphabet.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovAlphabet.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovBaselineLearn.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovBaselineLearn.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovCentre.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovCentre.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovLearnWithCentre.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovLearnWithCentre.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovPrefixLen.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovPrefixLen.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovScoreVsInconsistency.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovScoreVsInconsistency.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovTraceConstSize.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovTraceConstSize.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovTraceMult.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovTraceMult.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovTraceNum.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/E_MarkovTraceNum.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovComparison.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovComparison.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovExperiment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovExperiment.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovLearningParameters.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovLearningParameters.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovParameters.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovParameters.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovPreMergeExperiment.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/MarkovEDSM/MarkovPreMergeExperiment.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/ConstructClassifier.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/ConstructClassifier.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearnUsingClassifier.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearnUsingClassifier.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestMarkov_i2c.java" beforeDir="false" afterPath="$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/PairSelection/TestMarkov_i2c.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityParameters.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityParameters.java" afterDir="false" />
     </list>
     <list id="abe277ff-7557-42fc-a200-8389e91e5ff2" name="Changes to accelerate large graph learning tests" comment="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
     <option name="SHOW_DIALOG" value="false" />
@@ -37,7 +42,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="master" />
+        <entry key="$PROJECT_DIR$" value="2da934bb1e4e25860ce9f29952ba3cb8e3baac66" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -70,6 +75,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Application.CompareMarkovExperiments COLLECT_RESULTS.executor": "Run",
     "Application.DotComparator.executor": "Run",
     "Application.DotVisualiser (1).executor": "Run",
     "Application.DotVisualiser Bluetooth outcome.executor": "Run",
@@ -79,10 +85,24 @@
     "Application.RunDotExperiment against known.executor": "Run",
     "Application.RunDotExperiment using Task List.executor": "Run",
     "Application.RunDotExperiment.executor": "Run",
+    "Application.RunMarkovExperiment COLLECT_AVAILABLE.executor": "Run",
+    "Application.RunMarkovExperiment COLLECT_RESULTS.executor": "Run",
+    "Application.RunMarkovExperiment COUNT_TASKS 1.executor": "Run",
+    "Application.RunMarkovExperiment COUNT_TASKS 10000.executor": "Run",
+    "Application.RunMarkovExperiment PROGRESS.executor": "Run",
+    "Application.RunMarkovExperiment REPORT_REMAINING_TASKPARAMETERS.executor": "Run",
+    "Application.RunMarkovExperiment RUN_PARALLEL 1.executor": "Run",
+    "Application.RunMarkovExperiment RUN_TASK.executor": "Run",
+    "Application.RunMarkovExperiment.executor": "Run",
+    "Application.RunMarkovExperimentEquivalence (COLLECT_RESULTS).executor": "Run",
+    "Application.Visualiser trimmed.executor": "Run",
+    "Application.Visualiser.executor": "Run",
+    "Application.benchmarkCPU - runcomparison.executor": "Run",
     "Application.benchmarkCPU.executor": "Run",
     "Application.experimentProgressProperty.executor": "Run",
     "Application.experimentUAS1.executor": "Run",
     "Application.experimentUAS2.executor": "Run",
+    "JUnit.AllTests$LengthyTests.executor": "Run",
     "JUnit.ErlangTests.executor": "Run",
     "JUnit.FastTests$BasicTests.executor": "Run",
     "JUnit.FastTests$SmtTests.executor": "Run",
@@ -90,6 +110,25 @@
     "JUnit.TestAll (using OTP24).executor": "Run",
     "JUnit.TestAll (using OTP25).executor": "Run",
     "JUnit.TestAll - OpenJDK 18 - UMFPACK Jan 23.executor": "Run",
+    "JUnit.TestDiffExperimentWithLogs.checkLogs.executor": "Run",
+    "JUnit.TestDiffExperimentWithLogs.executor": "Debug",
+    "JUnit.TestDrawGraphs (1).executor": "Run",
+    "JUnit.TestDrawGraphs.executor": "Run",
+    "JUnit.TestDrawGraphs.testCSVwriteFileFail3.executor": "Run",
+    "JUnit.TestDrawGraphs.testFormatTex1.executor": "Run",
+    "JUnit.TestDrawGraphs.testFormatTex2.executor": "Run",
+    "JUnit.TestDrawGraphs.testFormatTex_err1.executor": "Run",
+    "JUnit.TestDrawGraphs.testFormatTex_err2.executor": "Run",
+    "JUnit.TestDrawGraphs.testFormatTex_err3.executor": "Run",
+    "JUnit.TestDrawGraphs.testLogisticRegression1 (1).executor": "Debug",
+    "JUnit.TestDrawGraphs.testLogisticRegression1.executor": "Run",
+    "JUnit.TestDrawGraphs.testLogisticRegression2.executor": "Debug",
+    "JUnit.TestDrawGraphs.testLogisticRegressionR1.executor": "Run",
+    "JUnit.TestDrawGraphs.testVarghaDelaney_Test.executor": "Run",
+    "JUnit.TestDrawGraphs.testVarghaDelaney_Test2.executor": "Run",
+    "JUnit.TestDrawGraphs.testVarghaDelaney_Test3.executor": "Run",
+    "JUnit.TestDrawGraphs.testVarghaDelaney_Test4.executor": "Run",
+    "JUnit.TestDrawGraphs.testVarghaDelaney_TestToString.executor": "Run",
     "JUnit.TestErlangModule.executor": "Run",
     "JUnit.TestErlangModule.testLoadModule2.executor": "Run",
     "JUnit.TestErlangRunner.executor": "Run",
@@ -100,12 +139,50 @@
     "JUnit.TestLabelParser.testTraceParser1.executor": "Run",
     "JUnit.TestLabelParser.testTraceParser5c.executor": "Run",
     "JUnit.TestLearnFromTracesUsingMarkov.executor": "Run",
+    "JUnit.TestLearnFromTracesUsingMarkov.testInconsistencyComputation.executor": "Run",
+    "JUnit.TestLearnFromTracesUsingMarkov.testInconsistencyComputation_general.executor": "Run",
+    "JUnit.TestLearnFromTracesUsingMarkov.testInconsistencyComputation_positive.executor": "Run",
     "JUnit.TestLearnerFromLargePTA.executor": "Run",
+    "JUnit.TestMarkovLearner (1).executor": "Run",
+    "JUnit.TestMarkovLearner (2).executor": "Run",
+    "JUnit.TestMarkovLearner (3).executor": "Run",
     "JUnit.TestMarkovLearner.executor": "Run",
+    "JUnit.TestMarkovLearner.testCheckFanoutInconsistency1d_general.executor": "Debug",
+    "JUnit.TestMarkovLearner.testCheckFanoutInconsistency2.executor": "Debug",
+    "JUnit.TestMarkovLearner.testCheckFanoutInconsistency2_positive.executor": "Run",
+    "JUnit.TestMarkovLearner.testCheckFanoutInconsistency3_positive.executor": "Run",
+    "JUnit.TestMarkovLearner.testCheckFanoutInconsistency5 (1).executor": "Run",
+    "JUnit.TestMarkovLearner.testCheckFanoutInconsistency5.executor": "Run",
+    "JUnit.TestMarkovLearner.testCheckFanoutInconsistency8.executor": "Debug",
+    "JUnit.TestMarkovLearner.testCheckFanoutInconsistencySideways1_a.executor": "Debug",
     "JUnit.TestMarkovLearner.testConstructSurroundingTransitions0 (1).executor": "Run",
     "JUnit.TestMarkovLearner.testConstructSurroundingTransitions0.executor": "Run",
+    "JUnit.TestMarkovLearner.testCreateMarkovMatrix3a.executor": "Run",
+    "JUnit.TestMarkovLearner.testCreateMarkovMatrixFromAutomatonPositive1 (1).executor": "Debug",
+    "JUnit.TestMarkovLearner.testCreateMarkovMatrixFromAutomatonPositive1.executor": "Run",
+    "JUnit.TestMarkovLearner.testCreateMarkovMatrixFromAutomatonPositive3.executor": "Run",
+    "JUnit.TestMarkovLearner.testCreateMarkovMatrixPositive1a.executor": "Debug",
+    "JUnit.TestMarkovLearner.testCreateMarkovMatrixPositive1b.executor": "Debug",
+    "JUnit.TestMarkovLearner.testCreateMarkovMatrixPositive2b.executor": "Debug",
+    "JUnit.TestMarkovLearner.testMarkovPerformance0 (1).executor": "Run",
+    "JUnit.TestMarkovLearner.testMarkovPerformance0.executor": "Debug",
+    "JUnit.TestMarkovLearner.testMarkovPerformance1.executor": "Run",
+    "JUnit.TestMarkovLearner.testMarkovPerformance2.executor": "Debug",
+    "JUnit.TestMarkovLearner.testMarkovPerformance3.executor": "Debug",
+    "JUnit.TestMarkovLearner.testMarkovPerformance4.executor": "Run",
+    "JUnit.TestMarkovLearner.testMarkovUpdate2_positive.executor": "Run",
+    "JUnit.TestMarkovLearner.testPredictTransitionsFromStatesForward2a_forward.executor": "Run",
     "JUnit.TestMarkov_i2c.executor": "Run",
+    "JUnit.TestMarkov_i2c.testLearneri2c.executor": "Run",
+    "JUnit.TestMarkov_i2c.testLearneri2c_positive.executor": "Debug",
     "JUnit.TestMealyScoring.executor": "Debug",
+    "JUnit.TestMergeStatistics.computeStatistics2a.executor": "Debug",
+    "JUnit.TestMergeStatistics.computeStatistics4c.executor": "Debug",
+    "JUnit.TestMergeStatistics.executor": "Run",
+    "JUnit.TestMiscLearningRoutines.TestDecisionProcedureForRedStates1.executor": "Run",
+    "JUnit.TestMiscLearningRoutines.executor": "Run",
+    "JUnit.TestPTAConstruction.executor": "Run",
+    "JUnit.TestPTAConstruction.testPTAconstruction6.executor": "Run",
     "JUnit.TestPaperUAS (1).executor": "Run",
     "JUnit.TestPaperUAS.executor": "Run",
     "JUnit.TestPaperUAS.testLoad1a (1).executor": "Run",
@@ -113,8 +190,11 @@
     "JUnit.TestPaperUAS.testLoad3a1.executor": "Run",
     "JUnit.TestPaperUAS.testLoad3a1Tmp.executor": "Run",
     "JUnit.TestPaperUAS.testLoad3f.executor": "Run",
+    "JUnit.TestPaperUAS.testLoadByConcatenation3.executor": "Run",
     "JUnit.TestPaperUAS.testLoadOldPaper.executor": "Debug",
+    "JUnit.TestPaperUAS.testWritePairsToXML1a.executor": "Run",
     "JUnit.TestPaperUASLarge.executor": "Run",
+    "JUnit.TestPaperUASLarge.testMergerOnLargePTA.executor": "Debug",
     "JUnit.TestParserDot (1).executor": "Run",
     "JUnit.TestParserDot.executor": "Run",
     "JUnit.TestParserDot.testConvertToIOPairsAndComplete1.executor": "Run",
@@ -141,6 +221,8 @@
     "JUnit.TestParserDot.testParse2.executor": "Run",
     "JUnit.TestParserDot.testParse2b.executor": "Run",
     "JUnit.TestParserDot.testParse2c.executor": "Run",
+    "JUnit.TestParserDot.testParse3b.executor": "Run",
+    "JUnit.TestParserDot.testParse6b4.executor": "Run",
     "JUnit.TestParserDot.testParse9b.executor": "Run",
     "JUnit.TestParserDot.testParse9c.executor": "Run",
     "JUnit.TestParserDot.testParseLabel1.executor": "Run",
@@ -158,9 +240,12 @@
     "JUnit.TestRpniLearner.executor": "Run",
     "JUnit.TestRpniLearner.testEvaluateProgressProperty1.executor": "Run",
     "JUnit.TestRpniLearner.testEvaluateProgressProperty3a.executor": "Run",
+    "JUnit.TestRpniLearner.testKtails15f.executor": "Debug",
     "JUnit.TestSGE_ExperimentRunner.testRun1a.executor": "Run",
     "JUnit.TestSmtLabelRepresentation$TestFeaturesOfAbstractStates.testAddNewPathAndUpdateMap.executor": "Run",
     "JUnit.TestSmtLabelRepresentation.testCreateConjunctionEmpty2.executor": "Run",
+    "JUnit.TestSynapse.testEunitSynapseTests1_fsmlearn.executor": "Run",
+    "JUnit.TestSynapse.testRunSynapse1.executor": "Run",
     "JUnit.TestTransform.executor": "Run",
     "JUnit.TestTransform.testQuanteKoschke2.executor": "Run",
     "JUnit.TestWMethod.executor": "Run",
@@ -170,11 +255,11 @@
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "master",
+    "git-widget-placeholder": "broken/markov__experiments__2026",
     "ignore.virus.scanning.warn.message": "true",
     "jdk.selected.JAVA_MODULE": "1.8",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "D:/experiment/statechum-master/lib/modified_typer/typer_monolithic",
+    "last_opened_file_path": "D:/experiment/statechum-master/stanage",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -183,12 +268,14 @@
     "project.structure.last.edited": "Modules",
     "project.structure.proportion": "0.15",
     "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "reference.projectsettings.compiler.javacompiler",
+    "settings.editor.selected.configurable": "vcs.Mercurial",
+    "two.files.diff.last.used.file": "D:/experiment/statechum-master/tmp/markov-supposedly_original_computation/results.csv",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\experiment\statechum-master\stanage" />
       <recent name="D:\experiment\statechum-master\lib\modified_typer\typer_monolithic" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
@@ -207,14 +294,14 @@
       <recent name="statechum" />
     </key>
     <key name="CopyClassDialog.RECENTS_KEY">
+      <recent name="statechum.analysis.learning.experiments.MarkovEDSM" />
       <recent name="statechum.apps" />
       <recent name="statechum.analysis.learning.experiments.EvaluationOfLearners" />
       <recent name="org.junit.runners" />
       <recent name="statechum" />
-      <recent name="statechum.analysis.Erlang.Signatures" />
     </key>
   </component>
-  <component name="RunManager" selected="Application.benchmarkCPU">
+  <component name="RunManager" selected="JUnit.TestAll (using OTP25)">
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -266,6 +353,19 @@
       <option name="PATTERN" value="" />
       <option name="USE_PATTERN" value="false" />
       <method v="2" />
+    </configuration>
+    <configuration name="CompareMarkovExperiments COLLECT_RESULTS" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.MarkovEDSM.MarkovComparison" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="COLLECT_RESULTS" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -DPATH_CASESTUDIES=&quot;D:\\experiment\\case_studies&quot;" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
     </configuration>
     <configuration name="DotComparator" type="Application" factoryName="Application">
       <option name="MAIN_CLASS_NAME" value="statechum.apps.DotStructuralDifference" />
@@ -339,13 +439,162 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="RunMarkovExperiment COLLECT_AVAILABLE" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="COLLECT_AVAILABLE" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -DSGE_EXECUTIONTIME_SCALING=1" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunMarkovExperiment COLLECT_RESULTS" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="COLLECT_RESULTS" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -DPATH_CASESTUDIES=&quot;D:\\experiment\\case_studies&quot;" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunMarkovExperiment COUNT_TASKS 1" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="COUNT_TASKS 1" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -DSGE_EXECUTIONTIME_SCALING=1 -DPATH_CASESTUDIES=&quot;D:\\experiment\\case_studies&quot;" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunMarkovExperiment COUNT_TASKS 10000" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="COUNT_TASKS 10000" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -DSGE_EXECUTIONTIME_SCALING=1" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunMarkovExperiment PROGRESS" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="PROGRESS_INDICATOR" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -DSGE_EXECUTIONTIME_SCALING=1 -DPATH_CASESTUDIES=&quot;D:\\experiment\\case_studies&quot;" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunMarkovExperiment REPORT_REMAINING_TASKPARAMETERS" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="REPORT_REMAINING_TASKPARAMETERS" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -DSGE_EXECUTIONTIME_SCALING=1" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunMarkovExperiment RUN_PARALLEL 1" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="RUN_PARALLEL 1" />
+      <option name="VM_PARAMETERS" value="-ea -Xmx45000M -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=12 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -DSGE_EXECUTIONTIME_SCALING=1 -DPATH_CASESTUDIES=&quot;D:\\experiment\\case_studies&quot;" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunMarkovExperiment RUN_TASK" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="RUN_TASK 1" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -DSGE_EXECUTIONTIME_SCALING=1 -DPATH_CASESTUDIES=&quot;D:\\experiment\\case_studies&quot;" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="RunMarkovExperimentEquivalence (COLLECT_RESULTS)" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.MarkovEDSM.MarkovCheckEquivalence" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="COLLECT_RESULTS" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -DPATH_CASESTUDIES=&quot;D:\\experiment\\case_studies&quot;" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Visualiser trimmed" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.apps.GraphMLVisualiserTrimmed" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="D:\experiment\statechum-master\tmp\markov\experimentdata\em-tQ=8_tMM=16.0_sM=10_aMM=2.0_S=10_m=2.0_d=0_sa=10_tS=2_se=10_tM=32.0\pta-MARKOV-0_cl=3_w=2.0" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs -Xmx25500m" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Visualiser" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="statechum.apps.GraphMLVisualiser" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="D:\experiment\statechum-master\tmp\markov\experimentdata\em-tQ=8_tMM=16.0_sM=10_aMM=2.0_S=10_m=2.0_d=0_sa=10_tS=2_se=10_tM=32.0\reference-MARKOV-0_cl=3_w=2.0 D:\experiment\statechum-master\tmp\markov\experimentdata\em-tQ=8_tMM=16.0_sM=10_aMM=2.0_S=10_m=2.0_d=0_sa=10_tS=2_se=10_tM=32.0\outcome-MARKOV-0_cl=3_w=2.0" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs -Xmx25500m" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="benchmarkCPU - runcomparison" type="Application" factoryName="Application">
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.2.2" />
+      </envs>
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.EvaluationOfLearners.ComputeExecutionTimeCorrectionValue" />
+      <module name="XMachineTool" />
+      <option name="PROGRAM_PARAMETERS" value="xeon_platinum_8358" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_office_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.2.2\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <option name="WORKING_DIRECTORY" value="$MODULE_WORKING_DIR$" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="benchmarkCPU" type="Application" factoryName="Application">
       <envs>
         <env name="R_HOME" value="D:\soft\R\R-4.2.2" />
       </envs>
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.EvaluationOfLearners.BenchmarkCPU" />
       <module name="XMachineTool" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_office_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.2.2\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <option name="PROGRAM_PARAMETERS" value="COLLECT_RESULTS" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_office_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.2.2\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -DSGE_EXECUTIONTIME_SCALING=1 -Xmx25500m " />
       <option name="WORKING_DIRECTORY" value="$MODULE_WORKING_DIR$" />
       <method v="2">
         <option name="Make" enabled="true" />
@@ -518,10 +767,10 @@
       <option name="MAIN_CLASS_NAME" value="statechum.AllTests" />
       <option name="METHOD_NAME" value="" />
       <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.2.2\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <envs>
-        <env name="R_HOME" value="D:\soft\R\R-4.2.2" />
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.2.2\bin\x64" />
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
       </envs>
       <method v="2">
         <option name="Make" enabled="true" />
@@ -632,6 +881,48 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="TestDrawGraphs (1)" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.TestDrawGraphs" />
+      <option name="METHOD_NAME" value="testLogisticRegression1" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="TestDrawGraphs.testLogisticRegression2" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.learning" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.TestDrawGraphs" />
+      <option name="METHOD_NAME" value="testLogisticRegression2" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="TestLearnFromTracesUsingMarkov" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -644,10 +935,10 @@
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.PairSelection.TestLearnFromTracesUsingMarkov" />
       <option name="METHOD_NAME" value="" />
       <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.2.2\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <envs>
-        <env name="R_HOME" value="D:\soft\R\R-4.2.2" />
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.2.2\bin\x64" />
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
       </envs>
       <method v="2">
         <option name="Make" enabled="true" />
@@ -676,65 +967,6 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="TestMarkovLearner" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.experiments.PairSelection" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.PairSelection.TestMarkovLearner" />
-      <option name="METHOD_NAME" value="" />
-      <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.2.2\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <envs>
-        <env name="R_HOME" value="D:\soft\R\R-4.2.2" />
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.2.2\bin\x64" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestMarkovLearner.testConstructSurroundingTransitions0 (1)" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.experiments.PairSelection" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.PairSelection.TestMarkovLearner" />
-      <option name="METHOD_NAME" value="testConstructSurroundingTransitions0" />
-      <option name="TEST_OBJECT" value="method" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.2.2\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
-      <option name="PARAMETERS" value="[0,using matrix]" />
-      <envs>
-        <env name="R_HOME" value="D:\soft\R\R-4.2.2" />
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.2.2\bin\x64" />
-      </envs>
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="TestMarkovLearner.testConstructSurroundingTransitions0" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="XMachineTool" />
-      <extension name="coverage">
-        <pattern>
-          <option name="PATTERN" value="statechum.analysis.learning.experiments.PairSelection.*" />
-          <option name="ENABLED" value="true" />
-        </pattern>
-      </extension>
-      <option name="PACKAGE_NAME" value="statechum.analysis.learning.experiments.PairSelection" />
-      <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.PairSelection.TestMarkovLearner" />
-      <option name="METHOD_NAME" value="testConstructSurroundingTransitions0" />
-      <option name="TEST_OBJECT" value="method" />
-      <method v="2">
-        <option name="Make" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="TestMarkov_i2c" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
       <module name="XMachineTool" />
       <extension name="coverage">
@@ -747,10 +979,10 @@
       <option name="MAIN_CLASS_NAME" value="statechum.analysis.learning.experiments.PairSelection.TestMarkov_i2c" />
       <option name="METHOD_NAME" value="" />
       <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.2.2\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
       <envs>
-        <env name="R_HOME" value="D:\soft\R\R-4.2.2" />
-        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.2.2\bin\x64" />
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
       </envs>
       <method v="2">
         <option name="Make" enabled="true" />
@@ -793,6 +1025,28 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="TestSynapse.testEunitSynapseTests1_fsmlearn" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="XMachineTool" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="statechum.analysis.learning.observers.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="statechum.analysis.Erlang" />
+      <option name="MAIN_CLASS_NAME" value="statechum.analysis.Erlang.TestSynapse" />
+      <option name="METHOD_NAME" value="testEunitSynapseTests1_fsmlearn" />
+      <option name="TEST_OBJECT" value="method" />
+      <option name="VM_PARAMETERS" value="-ea -DVIZ_CONFIG=kirill_home_w64 -DVIZ_DIR=resources/graphLayout -Dthreadnum=8 -Djava.library.path=linear/.libs;smt/.libs;&quot;D:\\soft\\R\\R-4.3.3\\library\\rJava\\jri\\x64&quot; -DLTL2BA=lib/ltl2ba-1.1/ltl2ba.exe -DERLANGHOME=&quot;D:\\soft\\Erlang OTP 25.1.2&quot; -DERLANGOUTPUT_ENABLED=true -Xmx25500m" />
+      <option name="PARAMETERS" value="[0,Synapse long node names]" />
+      <envs>
+        <env name="R_HOME" value="D:\soft\R\R-4.3.3" />
+        <env name="Path" value="C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;D:\experiment\yices-1.0.36\lib;D:\soft\R\R-4.3.3\bin\x64" />
+      </envs>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
     <configuration default="true" type="JetRunConfigurationType">
       <method v="2">
         <option name="Make" enabled="true" />
@@ -809,11 +1063,24 @@
       <item itemvalue="Application.experimentUAS1" />
       <item itemvalue="Application.experimentUAS2" />
       <item itemvalue="Application.benchmarkCPU" />
+      <item itemvalue="Application.benchmarkCPU - runcomparison" />
       <item itemvalue="Application.experimentProgressProperty" />
       <item itemvalue="Application.DotVisualiser" />
+      <item itemvalue="Application.Visualiser" />
+      <item itemvalue="Application.Visualiser trimmed" />
       <item itemvalue="Application.DotVisualiser Bluetooth outcome" />
       <item itemvalue="Application.DotVisualiser (1)" />
       <item itemvalue="Application.RunDotExperiment" />
+      <item itemvalue="Application.RunMarkovExperiment COUNT_TASKS 1" />
+      <item itemvalue="Application.RunMarkovExperiment COUNT_TASKS 10000" />
+      <item itemvalue="Application.RunMarkovExperiment RUN_PARALLEL 1" />
+      <item itemvalue="Application.RunMarkovExperiment RUN_TASK" />
+      <item itemvalue="Application.RunMarkovExperiment COLLECT_RESULTS" />
+      <item itemvalue="Application.RunMarkovExperimentEquivalence (COLLECT_RESULTS)" />
+      <item itemvalue="Application.CompareMarkovExperiments COLLECT_RESULTS" />
+      <item itemvalue="Application.RunMarkovExperiment COLLECT_AVAILABLE" />
+      <item itemvalue="Application.RunMarkovExperiment PROGRESS" />
+      <item itemvalue="Application.RunMarkovExperiment REPORT_REMAINING_TASKPARAMETERS" />
       <item itemvalue="Application.RunDotExperiment using Task List" />
       <item itemvalue="Application.RunDotExperiment Large" />
       <item itemvalue="Application.RunDotExperiment Large (1)" />
@@ -833,18 +1100,18 @@
       <item itemvalue="JUnit.Run All tests with old OTP" />
       <item itemvalue="JUnit.TestParserDot" />
       <item itemvalue="JUnit.TestLearnFromTracesUsingMarkov" />
-      <item itemvalue="JUnit.TestMarkovLearner" />
-      <item itemvalue="JUnit.TestMarkovLearner.testConstructSurroundingTransitions0" />
-      <item itemvalue="JUnit.TestMarkovLearner.testConstructSurroundingTransitions0 (1)" />
       <item itemvalue="JUnit.TestMarkov_i2c" />
+      <item itemvalue="JUnit.TestSynapse.testEunitSynapseTests1_fsmlearn" />
+      <item itemvalue="JUnit.TestDrawGraphs (1)" />
+      <item itemvalue="JUnit.TestDrawGraphs.testLogisticRegression2" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="JUnit.TestMarkovLearner" />
-        <item itemvalue="JUnit.TestMarkovLearner.testConstructSurroundingTransitions0 (1)" />
-        <item itemvalue="JUnit.TestMarkovLearner.testConstructSurroundingTransitions0" />
+        <item itemvalue="JUnit.TestSynapse.testEunitSynapseTests1_fsmlearn" />
         <item itemvalue="JUnit.TestMarkov_i2c" />
         <item itemvalue="JUnit.TestLearnFromTracesUsingMarkov" />
+        <item itemvalue="JUnit.TestDrawGraphs (1)" />
+        <item itemvalue="JUnit.TestDrawGraphs.testLogisticRegression2" />
       </list>
     </recent_temporary>
   </component>
@@ -857,6 +1124,9 @@
     </attachedChunks>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="5822eaff-5c05-43d7-a49e-b8582541c6fd" name="Changes" comment="" />
@@ -889,7 +1159,14 @@
       <workItem from="1755015145427" duration="16405000" />
       <workItem from="1755102462486" duration="20839000" />
       <workItem from="1755194747895" duration="5285000" />
-      <workItem from="1773751293817" duration="144690000" />
+      <workItem from="1773751293817" duration="346541000" />
+      <workItem from="1776371946199" duration="19514000" />
+      <workItem from="1776444895478" duration="225122000" />
+      <workItem from="1778266976507" duration="12363000" />
+      <workItem from="1780942121559" duration="10682000" />
+      <workItem from="1781096108055" duration="54775000" />
+      <workItem from="1782319569869" duration="85157000" />
+      <workItem from="1784135956403" duration="3907000" />
     </task>
     <task id="LOCAL-00001" summary="split modified_typer into modular (as was used in old Debian distribution) and monolithic (current distribution of typer).">
       <created>1651266068784</created>
@@ -1024,175 +1301,247 @@
       <option name="project" value="LOCAL" />
       <updated>1686774603264</updated>
     </task>
-    <task id="LOCAL-00020" summary="Modernised a number of experiments. Commented out part of HandleLowLevelFunction that was both broken and not covered by tests.">
+    <task id="LOCAL-00073" summary="Misc experiments">
       <option name="closed" value="true" />
-      <created>1714167188520</created>
-      <option name="number" value="00020" />
-      <option name="presentableId" value="LOCAL-00020" />
+      <created>1777055964247</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
       <option name="project" value="LOCAL" />
-      <updated>1714167188520</updated>
+      <updated>1777055964247</updated>
     </task>
-    <task id="LOCAL-00021" summary="Minor changes, functionality almost identical but documentation improved.">
+    <task id="LOCAL-00074" summary="Added dot-based case studies">
       <option name="closed" value="true" />
-      <created>1716518469227</created>
-      <option name="number" value="00021" />
-      <option name="presentableId" value="LOCAL-00021" />
+      <created>1777067111869</created>
+      <option name="number" value="00074" />
+      <option name="presentableId" value="LOCAL-00074" />
       <option name="project" value="LOCAL" />
-      <updated>1716518469227</updated>
+      <updated>1777067111869</updated>
     </task>
-    <task id="LOCAL-00022" summary="Minor changes before cleanup - intending to remove redundant ExperimentPaperUAS.java">
+    <task id="LOCAL-00075" summary="With a case study.">
       <option name="closed" value="true" />
-      <created>1717039422851</created>
-      <option name="number" value="00022" />
-      <option name="presentableId" value="LOCAL-00022" />
+      <created>1777391673585</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
       <option name="project" value="LOCAL" />
-      <updated>1717039422851</updated>
+      <updated>1777391673585</updated>
     </task>
-    <task id="LOCAL-00023" summary="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.">
+    <task id="LOCAL-00076" summary="Case study now produces a nice CSV with statistics. Updated how I plan to run baseline experiments.">
       <option name="closed" value="true" />
-      <created>1753192678576</created>
-      <option name="number" value="00023" />
-      <option name="presentableId" value="LOCAL-00023" />
+      <created>1777407021972</created>
+      <option name="number" value="00076" />
+      <option name="presentableId" value="LOCAL-00076" />
       <option name="project" value="LOCAL" />
-      <updated>1753192678576</updated>
+      <updated>1777407021972</updated>
     </task>
-    <task id="LOCAL-00024" summary="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.&#10;Minor other improvements such as a missing assertion in generatePosNegTestHelper.">
+    <task id="LOCAL-00077" summary="Case study now produces a nice CSV with statistics. Updated how I plan to run baseline experiments.">
       <option name="closed" value="true" />
-      <created>1753209128661</created>
-      <option name="number" value="00024" />
-      <option name="presentableId" value="LOCAL-00024" />
+      <created>1777407504927</created>
+      <option name="number" value="00077" />
+      <option name="presentableId" value="LOCAL-00077" />
       <option name="project" value="LOCAL" />
-      <updated>1753209128661</updated>
+      <updated>1777407504927</updated>
     </task>
-    <task id="LOCAL-00025" summary="Extended support for dot format, minor other changes.">
+    <task id="LOCAL-00078" summary="Added formatting case studies results as a tabular environment.">
       <option name="closed" value="true" />
-      <created>1754263676283</created>
-      <option name="number" value="00025" />
-      <option name="presentableId" value="LOCAL-00025" />
+      <created>1777642810332</created>
+      <option name="number" value="00078" />
+      <option name="presentableId" value="LOCAL-00078" />
       <option name="project" value="LOCAL" />
-      <updated>1754263676283</updated>
+      <updated>1777642810332</updated>
     </task>
-    <task id="LOCAL-00026" summary="Further extension of support for dot format, added apps to visualise dot and to numerically evaluate the difference between dot files.">
+    <task id="LOCAL-00079" summary="Re-wrote inconsistency computation to make it more efficient, unfortunately it makes very little difference to the end-result. Possibly will do better with longer prefixes.">
       <option name="closed" value="true" />
-      <created>1754374369803</created>
-      <option name="number" value="00026" />
-      <option name="presentableId" value="LOCAL-00026" />
+      <created>1777664975514</created>
+      <option name="number" value="00079" />
+      <option name="presentableId" value="LOCAL-00079" />
       <option name="project" value="LOCAL" />
-      <updated>1754374369803</updated>
+      <updated>1777664975514</updated>
     </task>
-    <task id="LOCAL-00027" summary="Revised dot support to handle reject-states">
+    <task id="LOCAL-00080" summary="Added most complex tests for the positive version of checkFanoutInconsistency">
       <option name="closed" value="true" />
-      <created>1754431659703</created>
-      <option name="number" value="00027" />
-      <option name="presentableId" value="LOCAL-00027" />
+      <created>1777904621644</created>
+      <option name="number" value="00080" />
+      <option name="presentableId" value="LOCAL-00080" />
       <option name="project" value="LOCAL" />
-      <updated>1754431659703</updated>
+      <updated>1777904621644</updated>
     </task>
-    <task id="LOCAL-00028" summary="Revised dot support to handle reject-states">
+    <task id="LOCAL-00081" summary="Corrections to interpretation of paramaters in random automata generation. Reporting results can be made sensitive to density and number of states.">
       <option name="closed" value="true" />
-      <created>1754432308547</created>
-      <option name="number" value="00028" />
-      <option name="presentableId" value="LOCAL-00028" />
+      <created>1777926359823</created>
+      <option name="number" value="00081" />
+      <option name="presentableId" value="LOCAL-00081" />
       <option name="project" value="LOCAL" />
-      <updated>1754432308547</updated>
+      <updated>1777926359823</updated>
     </task>
-    <task id="LOCAL-00029" summary="Revised dot support to handle reject-states">
+    <task id="LOCAL-00082" summary="Corrections to interpretation of paramaters in random automata generation. Reporting results can be made sensitive to density and number of states.">
       <option name="closed" value="true" />
-      <created>1754432355405</created>
-      <option name="number" value="00029" />
-      <option name="presentableId" value="LOCAL-00029" />
+      <created>1777978413085</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
       <option name="project" value="LOCAL" />
-      <updated>1754432355405</updated>
+      <updated>1777978413085</updated>
     </task>
-    <task id="LOCAL-00030" summary="Revised LabelInputOutput handling in relation to comparing graphs.">
+    <task id="LOCAL-00083" summary="Corrections to interpretation of paramaters in random automata generation. Reporting results can be made sensitive to density and number of states.">
       <option name="closed" value="true" />
-      <created>1754787528023</created>
-      <option name="number" value="00030" />
-      <option name="presentableId" value="LOCAL-00030" />
+      <created>1778005637369</created>
+      <option name="number" value="00083" />
+      <option name="presentableId" value="LOCAL-00083" />
       <option name="project" value="LOCAL" />
-      <updated>1754787528025</updated>
+      <updated>1778005637369</updated>
     </task>
-    <task id="LOCAL-00031" summary="Revised LabelInputOutput handling in relation to comparing graphs. Minor other corrections.">
+    <task id="LOCAL-00084" summary="Random automata generation updated to ensure that transitions added to ensure connectivity are drawing from the full set of labels permitted, otherwise the initial machine might have a small subset of an alphabet it is supposed to have and labels on transitions to ensure connectivity stick to that. In addition, we add transitions for connectivity before adding additional transitions to ensure the requested density is met. This makes it more likely that additional transitions do not need to be added.">
       <option name="closed" value="true" />
-      <created>1754789730041</created>
-      <option name="number" value="00031" />
-      <option name="presentableId" value="LOCAL-00031" />
+      <created>1778007610617</created>
+      <option name="number" value="00084" />
+      <option name="presentableId" value="LOCAL-00084" />
       <option name="project" value="LOCAL" />
-      <updated>1754789730041</updated>
+      <updated>1778007610617</updated>
     </task>
-    <task id="LOCAL-00032" summary="Documented why mapB can be null in WMethod.java, very minor change to Transform">
+    <task id="LOCAL-00085" summary="Now correctly reports density in experiment results.">
       <option name="closed" value="true" />
-      <created>1755015905698</created>
-      <option name="number" value="00032" />
-      <option name="presentableId" value="LOCAL-00032" />
+      <created>1778007709302</created>
+      <option name="number" value="00085" />
+      <option name="presentableId" value="LOCAL-00085" />
       <option name="project" value="LOCAL" />
-      <updated>1755015905698</updated>
+      <updated>1778007709302</updated>
     </task>
-    <task id="LOCAL-00033" summary="Mealy score computation is now much faster.&#10;Minor tweaks to Jung-based ui.">
+    <task id="LOCAL-00086" summary="Added a comparison between two different runs of Markov, aiminig to determine whether penalising paths completely missing in a Markov table (the default) is better than ignoring them. Turns out it is indeed better but picking best inconsistency between the two (even though they are computed differently) gives an improvement. At the very least, we can avoid most learning failures.">
       <option name="closed" value="true" />
-      <created>1755037799427</created>
-      <option name="number" value="00033" />
-      <option name="presentableId" value="LOCAL-00033" />
+      <created>1778100615410</created>
+      <option name="number" value="00086" />
+      <option name="presentableId" value="LOCAL-00086" />
       <option name="project" value="LOCAL" />
-      <updated>1755037799427</updated>
+      <updated>1778100615410</updated>
     </task>
-    <task id="LOCAL-00034" summary="Cleaned up some IdeaJ warnings.">
+    <task id="LOCAL-00087" summary="Added a comparison between two different runs of Markov, aiminig to determine whether penalising paths completely missing in a Markov table (the default) is better than ignoring them. Turns out it is indeed better but picking best inconsistency between the two (even though they are computed differently) gives an improvement. At the very least, we can avoid most learning failures.">
       <option name="closed" value="true" />
-      <created>1755037971726</created>
-      <option name="number" value="00034" />
-      <option name="presentableId" value="LOCAL-00034" />
+      <created>1778101107770</created>
+      <option name="number" value="00087" />
+      <option name="presentableId" value="LOCAL-00087" />
       <option name="project" value="LOCAL" />
-      <updated>1755037971726</updated>
+      <updated>1778101107770</updated>
     </task>
-    <task id="LOCAL-00035" summary="Added Mealy scorer tests.">
+    <task id="LOCAL-00088" summary="Whether paths that are missing in Markov model are penalised or not is now a parameter to the Markov learner. Switched computations to use the improved-performance learner, however results differ to what there was before.">
       <option name="closed" value="true" />
-      <created>1755039246960</created>
-      <option name="number" value="00035" />
-      <option name="presentableId" value="LOCAL-00035" />
+      <created>1778266418854</created>
+      <option name="number" value="00088" />
+      <option name="presentableId" value="LOCAL-00088" />
       <option name="project" value="LOCAL" />
-      <updated>1755039246960</updated>
+      <updated>1778266418855</updated>
     </task>
-    <task id="LOCAL-00036" summary="Added methods to output-complete graph and export automata as dot files, accounting for Mealy, non-determinism and colouring of states">
+    <task id="LOCAL-00089" summary="Added checking of results for equivalence between two learner versions.">
       <option name="closed" value="true" />
-      <created>1755124124728</created>
-      <option name="number" value="00036" />
-      <option name="presentableId" value="LOCAL-00036" />
+      <created>1781099925129</created>
+      <option name="number" value="00089" />
+      <option name="presentableId" value="LOCAL-00089" />
       <option name="project" value="LOCAL" />
-      <updated>1755124124728</updated>
+      <updated>1781099925129</updated>
     </task>
-    <task id="LOCAL-00037" summary="Revised loading of dot graphs to support missing graph name.">
+    <task id="LOCAL-00090" summary="Made sure output file names comply with the convention from 8 May 26.">
       <option name="closed" value="true" />
-      <created>1755130853543</created>
-      <option name="number" value="00037" />
-      <option name="presentableId" value="LOCAL-00037" />
+      <created>1781110675287</created>
+      <option name="number" value="00090" />
+      <option name="presentableId" value="LOCAL-00090" />
       <option name="project" value="LOCAL" />
-      <updated>1755130853543</updated>
+      <updated>1781110675287</updated>
     </task>
-    <task id="LOCAL-00038" summary="Updated to handle OTP25, Erlang tests pass.">
+    <task id="LOCAL-00091" summary="Updated computation of how much faster reimplemented inconsistency computation is for baseline cases.">
       <option name="closed" value="true" />
-      <created>1773777620296</created>
-      <option name="number" value="00038" />
-      <option name="presentableId" value="LOCAL-00038" />
+      <created>1781111700007</created>
+      <option name="number" value="00091" />
+      <option name="presentableId" value="LOCAL-00091" />
       <option name="project" value="LOCAL" />
-      <updated>1773777620296</updated>
+      <updated>1781111700007</updated>
     </task>
-    <task id="LOCAL-00039" summary="Very minor changes, mostly just added comments.">
+    <task id="LOCAL-00092" summary="Changed matrix to array - this halves the execution time for larger automata. Current version only looks at 40 states and densities of 20 and 30.">
       <option name="closed" value="true" />
-      <created>1774040375458</created>
-      <option name="number" value="00039" />
-      <option name="presentableId" value="LOCAL-00039" />
+      <created>1781898400298</created>
+      <option name="number" value="00092" />
+      <option name="presentableId" value="LOCAL-00092" />
       <option name="project" value="LOCAL" />
-      <updated>1774040375458</updated>
+      <updated>1781898400298</updated>
     </task>
-    <task id="LOCAL-00040" summary="Added a good number of comments and made markov experiments rely on ScoringToApply enumeration rather than LearnerToUseEnum.">
+    <task id="LOCAL-00093" summary="Revised tests to handle speedup to inconsistency computation. checkLogs test currently fails.">
       <option name="closed" value="true" />
-      <created>1775158553196</created>
-      <option name="number" value="00040" />
-      <option name="presentableId" value="LOCAL-00040" />
+      <created>1782303014822</created>
+      <option name="number" value="00093" />
+      <option name="presentableId" value="LOCAL-00093" />
       <option name="project" value="LOCAL" />
-      <updated>1775158553196</updated>
+      <updated>1782303014822</updated>
     </task>
-    <option name="localTasksCounter" value="41" />
+    <task id="LOCAL-00094" summary="Checklog tests now pass">
+      <option name="closed" value="true" />
+      <created>1782319545304</created>
+      <option name="number" value="00094" />
+      <option name="presentableId" value="LOCAL-00094" />
+      <option name="project" value="LOCAL" />
+      <updated>1782319545304</updated>
+    </task>
+    <task id="LOCAL-00095" summary="Updated k-tails (any)">
+      <option name="closed" value="true" />
+      <created>1783614402077</created>
+      <option name="number" value="00095" />
+      <option name="presentableId" value="LOCAL-00095" />
+      <option name="project" value="LOCAL" />
+      <updated>1783614402078</updated>
+    </task>
+    <task id="LOCAL-00096" summary="Added reporting of scores and inconsistency values for the oracle-based learner.">
+      <option name="closed" value="true" />
+      <created>1783968394520</created>
+      <option name="number" value="00096" />
+      <option name="presentableId" value="LOCAL-00096" />
+      <option name="project" value="LOCAL" />
+      <updated>1783968394520</updated>
+    </task>
+    <task id="LOCAL-00097" summary="Added reports of inconsistency and scores for individual experiments rather than trying to aggregate them across experiments.">
+      <option name="closed" value="true" />
+      <created>1784049601730</created>
+      <option name="number" value="00097" />
+      <option name="presentableId" value="LOCAL-00097" />
+      <option name="project" value="LOCAL" />
+      <updated>1784049601730</updated>
+    </task>
+    <task id="LOCAL-00098" summary="Added construction of Markov matrix from learnergraph">
+      <option name="closed" value="true" />
+      <created>1784053646239</created>
+      <option name="number" value="00098" />
+      <option name="presentableId" value="LOCAL-00098" />
+      <option name="project" value="LOCAL" />
+      <updated>1784053646239</updated>
+    </task>
+    <task id="LOCAL-00099" summary="Added support for logistic regression on pairs.">
+      <option name="closed" value="true" />
+      <created>1784060681619</created>
+      <option name="number" value="00099" />
+      <option name="presentableId" value="LOCAL-00099" />
+      <option name="project" value="LOCAL" />
+      <updated>1784060681619</updated>
+    </task>
+    <task id="LOCAL-00100" summary="Logistic regression now keeps the original data in a separate variable.">
+      <option name="closed" value="true" />
+      <created>1784063220688</created>
+      <option name="number" value="00100" />
+      <option name="presentableId" value="LOCAL-00100" />
+      <option name="project" value="LOCAL" />
+      <updated>1784063220688</updated>
+    </task>
+    <task id="LOCAL-00101" summary="Add confusion matrix construction for both logistic regression and score/inconsistency &gt;= offset. The latter beats the former nearly always for 40 states and density 0 and 20.">
+      <option name="closed" value="true" />
+      <created>1784129714653</created>
+      <option name="number" value="00101" />
+      <option name="presentableId" value="LOCAL-00101" />
+      <option name="project" value="LOCAL" />
+      <updated>1784129714653</updated>
+    </task>
+    <task id="LOCAL-00102" summary="Added offset to the computation of inconsistency. &#10;Automata seed is not computed as a hash of seed, density and number of states. This permits this number to effectively be equal to sample number and thus I can vary densities and state numbers without affecting seeds of the relevant automata.">
+      <option name="closed" value="true" />
+      <created>1784139324249</created>
+      <option name="number" value="00102" />
+      <option name="presentableId" value="LOCAL-00102" />
+      <option name="project" value="LOCAL" />
+      <updated>1784139324250</updated>
+    </task>
+    <option name="localTasksCounter" value="103" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -1214,11 +1563,7 @@
   <component name="Vcs.Log.Tabs.Properties">
     <option name="OPEN_GENERIC_TABS">
       <map>
-        <entry key="a55dd8ee-9955-42a6-b0bf-88d0e78fad4d" value="TOOL_WINDOW" />
         <entry key="105d41e1-d730-4e1e-9b57-c229af640a6a" value="TOOL_WINDOW" />
-        <entry key="efc6efe8-7bd3-474b-a5f2-236dafc0ecc0" value="TOOL_WINDOW" />
-        <entry key="e80241f0-93d5-4a3e-979a-a65cd2e14f99" value="TOOL_WINDOW" />
-        <entry key="3bb09286-c75e-4ec1-b691-a15701f46dc8" value="TOOL_WINDOW" />
       </map>
     </option>
     <option name="TAB_STATES">
@@ -1248,108 +1593,16 @@
             </State>
           </value>
         </entry>
-        <entry key="3bb09286-c75e-4ec1-b691-a15701f46dc8">
-          <value>
-            <State>
-              <option name="FILTERS">
-                <map>
-                  <entry key="branch">
-                    <value>
-                      <list>
-                        <option value="HEAD" />
-                      </list>
-                    </value>
-                  </entry>
-                  <entry key="roots">
-                    <value>
-                      <list>
-                        <option value="$PROJECT_DIR$" />
-                      </list>
-                    </value>
-                  </entry>
-                </map>
-              </option>
-              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
-            </State>
-          </value>
-        </entry>
         <entry key="MAIN">
           <value>
-            <State />
-          </value>
-        </entry>
-        <entry key="a55dd8ee-9955-42a6-b0bf-88d0e78fad4d">
-          <value>
             <State>
-              <option name="FILTERS">
+              <option name="COLUMN_ID_WIDTH">
                 <map>
-                  <entry key="branch">
-                    <value>
-                      <list>
-                        <option value="HEAD" />
-                      </list>
-                    </value>
-                  </entry>
-                  <entry key="roots">
-                    <value>
-                      <list>
-                        <option value="$PROJECT_DIR$" />
-                      </list>
-                    </value>
-                  </entry>
+                  <entry key="Table.Default.Author.ColumnIdWidth" value="101" />
+                  <entry key="Table.Default.Date.ColumnIdWidth" value="139" />
+                  <entry key="Table.GitHub.CommitStatus.ColumnIdWidth" value="65" />
                 </map>
               </option>
-              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
-            </State>
-          </value>
-        </entry>
-        <entry key="e80241f0-93d5-4a3e-979a-a65cd2e14f99">
-          <value>
-            <State>
-              <option name="FILTERS">
-                <map>
-                  <entry key="branch">
-                    <value>
-                      <list>
-                        <option value="HEAD" />
-                      </list>
-                    </value>
-                  </entry>
-                  <entry key="roots">
-                    <value>
-                      <list>
-                        <option value="$PROJECT_DIR$" />
-                      </list>
-                    </value>
-                  </entry>
-                </map>
-              </option>
-              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
-            </State>
-          </value>
-        </entry>
-        <entry key="efc6efe8-7bd3-474b-a5f2-236dafc0ecc0">
-          <value>
-            <State>
-              <option name="FILTERS">
-                <map>
-                  <entry key="branch">
-                    <value>
-                      <list>
-                        <option value="HEAD" />
-                      </list>
-                    </value>
-                  </entry>
-                  <entry key="roots">
-                    <value>
-                      <list>
-                        <option value="$PROJECT_DIR$" />
-                      </list>
-                    </value>
-                  </entry>
-                </map>
-              </option>
-              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
             </State>
           </value>
         </entry>
@@ -1357,41 +1610,36 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Renamed ParameterizedWithName's package to junit_runners in order for it to be different to JUnit's since when running under Eclipse it causes security error given that JUnit package is signed and ParameterizedWithName is not. In addition, made sure that construction of vertices does not pass an existing vertex to DeterministicVertex as an ID - even a single attempt to compareTo between DeterministicVertex with StringVertex as ID and another ID appears to reduce the performance of subsequent computations by around 10%. Miscellaneous cleanup." />
-    <MESSAGE value="Moved Harmony to separate directory, currently using old collections. All (including lengthy) tests pass." />
-    <MESSAGE value="Misc cleanup" />
-    <MESSAGE value="Halved the time it takes to run TestLearnerFromLargePTA. The reason it was taking hours is because during refactoring a long time ago I removed a condition to run extra checks only for a small matrix. Running them for a large matrix takes a while but it is reasonable to run them hence halving the time they run is good news." />
-    <MESSAGE value="Corrected a couple of tests - they were failing due to the conversion from string names to vertex numbers. Previously this was not noticable but now I'm using array-based collections in checkM so such things stand out." />
-    <MESSAGE value="Builds with new umfpack and passes tests." />
-    <MESSAGE value="Modernised a number of experiments. Commented out part of HandleLowLevelFunction that was both broken and not covered by tests." />
-    <MESSAGE value="Minor changes, functionality almost identical but documentation improved." />
-    <MESSAGE value="Minor changes before cleanup - intending to remove redundant ExperimentPaperUAS.java" />
-    <MESSAGE value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful." />
-    <MESSAGE value="Experiments with walks using limited-loops (where a walk is not attempting a self-loop more than once before moving to a different state). Attempts to merge states that violate this property rejected, that is, where after a merge any existing walk does not satisfy limited-loop. This certainly blocks some invalid mergers but not anywhere enough to be helpful.&#10;Minor other improvements such as a missing assertion in generatePosNegTestHelper." />
-    <MESSAGE value="Extended support for dot format, minor other changes." />
-    <MESSAGE value="Further extension of support for dot format, added apps to visualise dot and to numerically evaluate the difference between dot files." />
-    <MESSAGE value="Revised dot support to handle reject-states" />
-    <MESSAGE value="Revised LabelInputOutput handling in relation to comparing graphs." />
-    <MESSAGE value="Revised LabelInputOutput handling in relation to comparing graphs. Minor other corrections." />
-    <MESSAGE value="Documented why mapB can be null in WMethod.java, very minor change to Transform" />
-    <MESSAGE value="Mealy score computation is now much faster.&#10;Minor tweaks to Jung-based ui." />
-    <MESSAGE value="Cleaned up some IdeaJ warnings." />
-    <MESSAGE value="Added Mealy scorer tests." />
-    <MESSAGE value="Added methods to output-complete graph and export automata as dot files, accounting for Mealy, non-determinism and colouring of states" />
-    <MESSAGE value="Revised loading of dot graphs to support missing graph name." />
-    <MESSAGE value="Updated to handle OTP25, Erlang tests pass." />
-    <MESSAGE value="Very minor changes, mostly just added comments." />
-    <MESSAGE value="Added a good number of comments and made markov experiments rely on ScoringToApply enumeration rather than LearnerToUseEnum." />
-    <option name="LAST_COMMIT_MESSAGE" value="Added a good number of comments and made markov experiments rely on ScoringToApply enumeration rather than LearnerToUseEnum." />
+    <MESSAGE value="Added dot-based case studies" />
+    <MESSAGE value="With a case study." />
+    <MESSAGE value="Case study now produces a nice CSV with statistics. Updated how I plan to run baseline experiments." />
+    <MESSAGE value="Added formatting case studies results as a tabular environment." />
+    <MESSAGE value="Re-wrote inconsistency computation to make it more efficient, unfortunately it makes very little difference to the end-result. Possibly will do better with longer prefixes." />
+    <MESSAGE value="Added most complex tests for the positive version of checkFanoutInconsistency" />
+    <MESSAGE value="Corrections to interpretation of paramaters in random automata generation. Reporting results can be made sensitive to density and number of states." />
+    <MESSAGE value="Random automata generation updated to ensure that transitions added to ensure connectivity are drawing from the full set of labels permitted, otherwise the initial machine might have a small subset of an alphabet it is supposed to have and labels on transitions to ensure connectivity stick to that. In addition, we add transitions for connectivity before adding additional transitions to ensure the requested density is met. This makes it more likely that additional transitions do not need to be added." />
+    <MESSAGE value="Now correctly reports density in experiment results." />
+    <MESSAGE value="Added a comparison between two different runs of Markov, aiminig to determine whether penalising paths completely missing in a Markov table (the default) is better than ignoring them. Turns out it is indeed better but picking best inconsistency between the two (even though they are computed differently) gives an improvement. At the very least, we can avoid most learning failures." />
+    <MESSAGE value="Whether paths that are missing in Markov model are penalised or not is now a parameter to the Markov learner. Switched computations to use the improved-performance learner, however results differ to what there was before." />
+    <MESSAGE value="Added checking of results for equivalence between two learner versions." />
+    <MESSAGE value="Made sure output file names comply with the convention from 8 May 26." />
+    <MESSAGE value="Updated computation of how much faster reimplemented inconsistency computation is for baseline cases." />
+    <MESSAGE value="Changed matrix to array - this halves the execution time for larger automata. Current version only looks at 40 states and densities of 20 and 30." />
+    <MESSAGE value="Revised tests to handle speedup to inconsistency computation. checkLogs test currently fails." />
+    <MESSAGE value="Checklog tests now pass" />
+    <MESSAGE value="Updated k-tails (any)" />
+    <MESSAGE value="Added reporting of scores and inconsistency values for the oracle-based learner." />
+    <MESSAGE value="Added reports of inconsistency and scores for individual experiments rather than trying to aggregate them across experiments." />
+    <MESSAGE value="Added construction of Markov matrix from learnergraph" />
+    <MESSAGE value="Added support for logistic regression on pairs." />
+    <MESSAGE value="Logistic regression now keeps the original data in a separate variable." />
+    <MESSAGE value="Add confusion matrix construction for both logistic regression and score/inconsistency &gt;= offset. The latter beats the former nearly always for 40 states and density 0 and 20." />
+    <MESSAGE value="Added offset to the computation of inconsistency. &#10;Automata seed is not computed as a hash of seed, density and number of states. This permits this number to effectively be equal to sample number and thus I can vary densities and state numbers without affecting seeds of the relevant automata." />
+    <option name="LAST_COMMIT_MESSAGE" value="Added offset to the computation of inconsistency. &#10;Automata seed is not computed as a hash of seed, density and number of states. This permits this number to effectively be equal to sample number and thus I can vary densities and state numbers without affecting seeds of the relevant automata." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/tests/statechum/analysis/Erlang/TestPrettyPrintTraces.java</url>
-          <line>46</line>
-          <option name="timeStamp" value="60" />
-        </line-breakpoint>
         <line-breakpoint type="java-line">
           <url>file://$PROJECT_DIR$/tests/collections/TestMapWithSearch.java</url>
           <line>1759</line>
@@ -1408,24 +1656,9 @@
           <option name="timeStamp" value="93" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/tests/statechum/TestHelper.java</url>
-          <line>42</line>
-          <option name="timeStamp" value="102" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java</url>
-          <line>269</line>
-          <option name="timeStamp" value="140" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/LearnerGraphND.java</url>
           <line>211</line>
           <option name="timeStamp" value="155" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/lib/jung-1.7.6/src/edu/uci/ics/jung/visualization/GraphZoomScrollPane.java</url>
-          <line>280</line>
-          <option name="timeStamp" value="178" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/linear/GD.java</url>
@@ -1444,12 +1677,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/Transform.java</url>
-          <line>1333</line>
+          <line>1336</line>
           <option name="timeStamp" value="190" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestParserDot.java</url>
-          <line>1415</line>
+          <line>1505</line>
           <option name="timeStamp" value="191" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="java-line">
@@ -1457,7 +1690,112 @@
           <line>102</line>
           <option name="timeStamp" value="192" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestMergeStatistics.java</url>
+          <line>62</line>
+          <option name="timeStamp" value="284" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/learning/rpnicore/TestMergeStatistics.java</url>
+          <line>167</line>
+          <option name="timeStamp" value="287" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningSupportRoutines.java</url>
+          <line>710</line>
+          <option name="timeStamp" value="331" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/LearningSupportRoutines.java</url>
+          <line>700</line>
+          <option name="timeStamp" value="332" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java</url>
+          <line>313</line>
+          <option name="timeStamp" value="392" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/FsmParserDot.java</url>
+          <line>42</line>
+          <option name="timeStamp" value="393" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>jar://$PROJECT_DIR$/lib/colt.jar!/cern/jet/random/Distributions.class</url>
+          <line>93</line>
+          <option name="timeStamp" value="457" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/experiments/ForestFireNDStateMachineGenerator.java</url>
+          <line>138</line>
+          <option name="timeStamp" value="462" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/PairOfPaths.java</url>
+          <line>116</line>
+          <option name="timeStamp" value="466" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/TestPaperUAS.java</url>
+          <line>556</line>
+          <option name="timeStamp" value="469" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/learning/TestPTAConstruction.java</url>
+          <line>460</line>
+          <option name="timeStamp" value="470" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/learning/TestPTAConstruction.java</url>
+          <line>445</line>
+          <option name="timeStamp" value="471" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/rpnicore/PathRoutines.java</url>
+          <line>285</line>
+          <option name="timeStamp" value="472" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/experiments/PairSelection/PairQualityLearner.java</url>
+          <line>658</line>
+          <option name="timeStamp" value="475" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/observers/ProgressDecorator.java</url>
+          <line>310</line>
+          <option name="timeStamp" value="476" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/observers/ProgressDecorator.java</url>
+          <line>305</line>
+          <option name="timeStamp" value="477" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/statechum/analysis/learning/MarkovClassifier.java</url>
+          <line>1023</line>
+          <option name="timeStamp" value="478" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/mutation/TestDiffExperimentWithLogs.java</url>
+          <line>177</line>
+          <option name="timeStamp" value="479" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/tests/statechum/analysis/learning/experiments/mutation/TestDiffExperimentWithLogs.java</url>
+          <line>95</line>
+          <option name="timeStamp" value="481" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
+    <pin-to-top-manager>
+      <pinned-members>
+        <PinnedItemInfo parentTag="statechum.analysis.learning.rpnicore.LearnerGraph" memberName="transitionMatrix" />
+      </pinned-members>
+    </pin-to-top-manager>
+    <watches-manager>
+      <configuration name="JUnit">
+        <watch expression="m.markovMatrix.pta" />
+      </configuration>
+    </watches-manager>
   </component>
 </project>

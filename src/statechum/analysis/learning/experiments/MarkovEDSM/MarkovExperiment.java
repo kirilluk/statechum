@@ -80,7 +80,7 @@ public class MarkovExperiment
 			
 			try {
 				// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
-				referenceGraph = mg.nextMachine(alphabet, density,par.seed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
+				referenceGraph = mg.nextMachine(alphabet, density,Objects.hash(par.sample,par.perStateSquaredDensityMultipliedBy100,par.states), learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
 			} catch (IncompatibleStatesException e) {
 				Helper.throwUnchecked("failed to generate graph", e);
 			}
@@ -277,7 +277,7 @@ public class MarkovExperiment
 				dataSample.actualLearner.inconsistencyAlwaysPositive = inconsistencyAlwaysPositive;
 				dataSample.actualLearner.inconsistencyAverage = 0;
 				dataSample.actualLearner.inconsistencySD = 0;
-				if (redReducer.getInconsistencyValues().size() > 0) {
+				if (!redReducer.getInconsistencyValues().isEmpty()) {
 					average /= redReducer.getInconsistencyValues().size();
 					dataSample.actualLearner.inconsistencyAverage = average;
 

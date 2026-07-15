@@ -87,7 +87,7 @@ public class LearnUsingClassifier {
 						for(final boolean useUnique:new boolean[]{false})
 						{
 							final PredictionEvaluation predictionQuality=new PredictionEvaluation();
-							PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0, 0);
+							PairQualityParameters parExperiment = new PairQualityParameters(0, 0, 0);
 							DataCollectorParameters collectorPars = new DataCollectorParameters(ifDepth, markovParameters, false,DataCollectorParameters.enabledAll());
 							parExperiment.setExperimentParameters(true,collectorPars, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 							// load the classifier from serialised representation
@@ -116,12 +116,11 @@ public class LearnUsingClassifier {
 
 								final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(outPathPrefix+"results"+selection+".csv"));
 
-								int seedForFSM = 0;
 								for(int states:new int[]{20})
-									for(int sample=0;sample<samplesPerFSM;++sample,++seedForFSM)
+									for(int sample=0;sample<samplesPerFSM;++sample)
 										for(int trainingSample=0;trainingSample<trainingSamplesPerFSM;++trainingSample)
 										{
-											final PairQualityParameters pars = new PairQualityParameters(states, sample, trainingSample,seedForFSM);
+											final PairQualityParameters pars = new PairQualityParameters(states, sample, trainingSample);
 											pars.setExperimentParameters(true,collectorPars, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 											pars.setInnerParameters(parametersInnerLearner);
 											pars.dataCollectorParameters.markovParameters.setMarkovParameters(0,3,true,1.0,true,false,2,0,1);
@@ -217,7 +216,6 @@ public class LearnUsingClassifier {
 												learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
 												experimentRunner.submitTask(learnerRunner);
 											}*/
-											++seedForFSM;
 										}
 
 								processSubExperimentResult<PairQualityParameters,ExperimentResult<PairQualityParameters>> resultHandler = new processSubExperimentResult<PairQualityParameters,ExperimentResult<PairQualityParameters>>() {

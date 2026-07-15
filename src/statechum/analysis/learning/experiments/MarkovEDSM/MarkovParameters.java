@@ -17,20 +17,17 @@
  */
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
-public class MarkovParameters 
-{
-	public int chunkLen=3,preset=0;
+public class MarkovParameters {
+	public int chunkLen = 3, preset = 0;
 	public boolean useAverageOrMax = true;
 
-	public int divisorForPathCount=1,expectedWLen=1;
+	public int divisorForPathCount = 1, expectedWLen = 1;
 	public int whichMostConnectedVertex = 0;
 
-	/** When evaluating whether a transition that was added to a state due to a merge is supposed to be there or not,
+	/**
+	 * When evaluating whether a transition that was added to a state due to a merge is supposed to be there or not,
 	 * we would check whether it was predicted by the Markov model. Where a transition is not predicted by
 	 * some incoming path, two cases are possible, either there is a path in Markov table that is not known
 	 * to predict such a transition or where there is not even a path in the table corresponding to an
@@ -40,31 +37,33 @@ public class MarkovParameters
 	 * thus no penalty should be awarded. In experiments with random 10 and 20-state automata and density 10% ... 30%, penalising
 	 * missing paths gives slightly better results although a better strategy is to try both (penalising and not penalising) and pick
 	 * the outcome with the smaller inconsistency, even if the two inconsistency values are computed in a different way.
- 	 */
+	 */
 	public boolean penaliseMissingPaths = true;
 
-	/** If true, we are looking at sequences of transitions to/from a state of interest. 
-	 * If false, we are looking for sets of labels on transitions into/out of a state of interest. Both are 
-	 * represented as paths because we need to do a lookup in a collection of paths and numbering of labels 
+	/**
+	 * If true, we are looking at sequences of transitions to/from a state of interest.
+	 * If false, we are looking for sets of labels on transitions into/out of a state of interest. Both are
+	 * represented as paths because we need to do a lookup in a collection of paths and numbering of labels
 	 * permits elements such sets to be represented as sequences.
 	 */
 	public boolean pathsOrSets = true;
 
-	public MarkovParameters()
-	{}
-	
+	public MarkovParameters() {
+	}
+
 	@SuppressWarnings("CopyConstructorMissesField") // missing fields are created from preset by setPresetLearningParameters
-    public MarkovParameters(MarkovParameters a)
-	{
-		chunkLen = a.chunkLen;preset = a.preset;
+	public MarkovParameters(MarkovParameters a) {
+		chunkLen = a.chunkLen;
+		preset = a.preset;
 		useAverageOrMax = a.useAverageOrMax;
-		divisorForPathCount = a.divisorForPathCount;expectedWLen = a.expectedWLen;
+		divisorForPathCount = a.divisorForPathCount;
+		expectedWLen = a.expectedWLen;
 		whichMostConnectedVertex = a.whichMostConnectedVertex;
 		pathsOrSets = a.pathsOrSets;
 
 		setPresetLearningParameters(preset);
 	}
-	
+
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
@@ -79,7 +78,7 @@ public class MarkovParameters
 		result = prime * result + preset;
 		result = prime * result + (useAverageOrMax ? 1231 : 1237);
 		result = prime * result + (pathsOrSets ? 1231 : 1237);
-        result = prime * result + Double.hashCode(weightOfInconsistencies);
+		result = prime * result + weightOfInconsistencies.hashCode();
 		result = prime * result + whichMostConnectedVertex;
 		return result;
 	}
@@ -110,17 +109,43 @@ public class MarkovParameters
 			return false;
 		if (useAverageOrMax != other.useAverageOrMax)
 			return false;
-		if (Double.doubleToLongBits(weightOfInconsistencies) != Double.doubleToLongBits(other.weightOfInconsistencies))
+		if (!weightOfInconsistencies.equals(other.weightOfInconsistencies))
 			return false;
-        return whichMostConnectedVertex == other.whichMostConnectedVertex;
-    }
-
-	public MarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, double weight, boolean addPenaltyForMissingPaths, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
-	{
-		setMarkovParameters(pr,chunkLength,argPathsOrSets,weight,addPenaltyForMissingPaths,aveOrMax,divisor,mostConnectedVertex,wlen);
+		return whichMostConnectedVertex == other.whichMostConnectedVertex;
 	}
-	
+
+	public MarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, WeightAndOffsetOfInconsistencies weight, boolean addPenaltyForMissingPaths, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen) {
+		setMarkovParameters(pr, chunkLength, argPathsOrSets, weight, addPenaltyForMissingPaths, aveOrMax, divisor, mostConnectedVertex, wlen);
+	}
+
+	public static class WeightAndOffsetOfInconsistencies {
+		final double offset;
+		final double weight;
+
+		public WeightAndOffsetOfInconsistencies(double weight,double offset) {
+			this.offset = offset;
+			this.weight = weight;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (!(o instanceof WeightAndOffsetOfInconsistencies)) return false;
+			WeightAndOffsetOfInconsistencies that = (WeightAndOffsetOfInconsistencies) o;
+			return Double.compare(offset, that.offset) == 0 && Double.compare(weight, that.weight) == 0;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(offset, weight);
+		}
+	}
+
 	public void setMarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, double weight, boolean addPenaltyForMissingPaths, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
+	{
+		setMarkovParameters(pr, chunkLength, argPathsOrSets, new WeightAndOffsetOfInconsistencies(weight, 0), addPenaltyForMissingPaths, aveOrMax, divisor, mostConnectedVertex, wlen);
+	}
+
+	public void setMarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, WeightAndOffsetOfInconsistencies weight, boolean addPenaltyForMissingPaths, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
 	{
 		chunkLen=chunkLength;pathsOrSets = argPathsOrSets;preset = pr;weightOfInconsistencies = weight;penaliseMissingPaths = addPenaltyForMissingPaths;
 		useAverageOrMax = aveOrMax;divisorForPathCount = divisor;
@@ -155,7 +180,7 @@ public class MarkovParameters
 	public boolean mergeIdentifiedPathsAfterInference = true;
 	public boolean useMostConnectedVertexToStartLearning = false;
 	public boolean useNewScoreNearRoot = false;
-	public double weightOfInconsistencies = 1.0;
+	public WeightAndOffsetOfInconsistencies weightOfInconsistencies = new WeightAndOffsetOfInconsistencies(1,0);
 	public boolean blue_states_forward_and_backwards;
 
 	public void setlearningParameters(boolean useCentreVertexArg, boolean newScoreNearRoot,
@@ -190,7 +215,7 @@ public class MarkovParameters
 	
 	public List<String> getColumnListOnlyForMarkov()
 	{
-        return new ArrayList<>(Arrays.asList(Integer.toString(chunkLen), Double.toString(weightOfInconsistencies),Boolean.toString(penaliseMissingPaths)));
+        return new ArrayList<>(Arrays.asList(Integer.toString(chunkLen), Double.toString(weightOfInconsistencies.offset), Double.toString(weightOfInconsistencies.weight),Boolean.toString(penaliseMissingPaths)));
 	}
 	
 	public List<String> getColumnListForMarkovLearner()

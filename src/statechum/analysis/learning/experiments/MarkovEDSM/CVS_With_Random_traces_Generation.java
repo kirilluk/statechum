@@ -100,9 +100,8 @@ public class CVS_With_Random_traces_Generation
 			for(final int preset: new int[]{0})//0,1,2})
 			{
 				final int traceQuantityToUse = traceQuantity;
-				int seedForFSM = 0;
 				final AtomicLong comparisonsPerformed = new AtomicLong(0);
-				MarkovLearningParameters parExp = new CVS.MarkovCVSParameters(null,0,0,0,0,0,0);
+				MarkovLearningParameters parExp = new CVS.MarkovCVSParameters(null,0,0,0,0,0);
 				parExp.setExperimentID(traceQuantity,traceLengthMultiplierMax, alphabetMultiplier);
 				
 					final String experimentName = outPathPrefix+parExp.getExperimentID();
@@ -121,7 +120,7 @@ public class CVS_With_Random_traces_Generation
 											ev.config = eval.config.copy();ev.config.setOverride_maximalNumberOfStates(states*LearningAlgorithms.maxStateNumberMultiplier);
 											ev.config.setOverride_usePTAMerging(false);
 				
-											MarkovLearningParameters parameters = new CVS.MarkovCVSParameters(learnerKind,states, 0, alphabetMultiplier, 0,trainingSample, seedForFSM);
+											MarkovLearningParameters parameters = new CVS.MarkovCVSParameters(learnerKind,states, 0, alphabetMultiplier, 0,trainingSample);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax, alphabetMultiplier);
 											parameters.markovParameters.setMarkovParameters(preset, chunkSize, true, weightOfInconsistencies,penaliseMissingPaths,aveOrMax, divisorForPathCount,0,1);

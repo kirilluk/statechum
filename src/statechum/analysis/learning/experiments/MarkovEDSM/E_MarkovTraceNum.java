@@ -19,8 +19,8 @@ public class E_MarkovTraceNum {
 
     public static class MarkovTraceNumParameters extends MarkovLearningParameters {
 
-        public MarkovTraceNumParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample, int argSeed) {
-            super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample, argSeed);
+        public MarkovTraceNumParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample) {
+            super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample);
         }
 
         @Override
@@ -39,13 +39,12 @@ public class E_MarkovTraceNum {
         int [] traceQuantityValues = new int[] { 1,2,4,8,32,64 };
         double alphabetMultiplier = 2;
         int traceLenMult= 32;
-        int seedForFSM = 0;
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : new int[]{0, 30})
                 for(int traceQuantityToUseV:traceQuantityValues)  {
                     int scalingFactor = states*learningGroup.stateScale/learningGroup.statesToUse[0];
                     int traceQuantityToUse = traceQuantityToUseV*scalingFactor;
-		            for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample, ++seedForFSM)
+		            for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample)
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
                             for (final int preset : learnerExperiment)
                                 for (LearningAlgorithms.ScoringToApply learnerKind :
@@ -69,7 +68,7 @@ public class E_MarkovTraceNum {
                                                 ev.config = learningGroup.eval.config.copy();
                                                 ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
 
-                                                MarkovTraceNumParameters parameters = new MarkovTraceNumParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample, seedForFSM);
+                                                MarkovTraceNumParameters parameters = new MarkovTraceNumParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample);
                                                 parameters.setTraceLengthMultiplier(traceLenMult);
                                                 parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
                                                 parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, divisor, 0, wlen);

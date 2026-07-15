@@ -1,8 +1,22 @@
 package statechum.analysis.learning.PrecisionRecall;
 
+import java.util.Objects;
+
 public class ConfusionMatrix {
 	
 	int tp,tn,fp,fn;
+
+	@Override
+	public boolean equals(Object o) {
+		if (!(o instanceof ConfusionMatrix)) return false;
+		ConfusionMatrix that = (ConfusionMatrix) o;
+		return tp == that.tp && tn == that.tn && fp == that.fp && fn == that.fn;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(tp, tn, fp, fn);
+	}
 
 	public ConfusionMatrix(int tpArg, int tnArg, int fpArg, int fnArg) {
 		super();

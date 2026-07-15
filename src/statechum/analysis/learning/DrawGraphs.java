@@ -131,6 +131,7 @@ import statechum.GlobalConfiguration;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
 import statechum.StatechumXML.StringSequenceWriter;
+import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
@@ -875,17 +876,16 @@ public class DrawGraphs {
 	public static String getValueFromMapGivenRegexp(Map<String,String> map, String regexp)
 	{
 		for(Entry<String,String> entry:map.entrySet())
-			if (entry.getKey() == regexp || entry.getKey().matches(regexp) || entry.getKey().matches(regexp+".*"))
+			if (entry.getKey().equals(regexp) || entry.getKey().matches(regexp) || entry.getKey().matches(regexp+".*"))
 				return entry.getValue();
 		return null;
 	}
 
-	public static String getAllValuesFromMapGivenRegexp(Map<String,String> map, String regexp,ExperimentBlockForColumn lambda)
+	public static void getAllValuesFromMapGivenRegexp(Map<String,String> map, String regexp, ExperimentBlockForColumn lambda)
 	{
 		for(Entry<String,String> entry:map.entrySet())
-			if (entry.getKey() == regexp || entry.getKey().matches(regexp) || entry.getKey().matches(regexp+".*"))
+			if (entry.getKey().equals(regexp) || entry.getKey().matches(regexp) || entry.getKey().matches(regexp+".*"))
 				lambda.processBlock(entry.getKey(),entry.getValue());
-		return null;
 	}
 
 	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
@@ -2090,6 +2090,23 @@ public class DrawGraphs {
 		}
 	}
 
+	public static int valueAsInteger(REXP val)
+	{
+		switch(val.getType())
+		{
+			case REXP.XT_INT:
+			case REXP.XT_ARRAY_INT:
+				return val.asInt();
+			case REXP.XT_DOUBLE:
+			case REXP.XT_ARRAY_DOUBLE:
+				return (int)Math.round(val.asDouble());
+			case REXP.XT_NULL:
+				return 0;
+			default:
+				throw new IllegalArgumentException("value "+val+" is not an integer or a double, got type "+val.getType());
+		}
+	}
+
 	public static double valueAsDouble(REXP val)
 	{
 		switch(val.getType())
@@ -2154,11 +2171,10 @@ public class DrawGraphs {
 		}
 	}
 
-	public static List<String> constructPredictiveCoefficientsString(List<PairQualityLearner.PairScoreValue> values, String fitVarName,String frameVarName) {
+	protected static String constructDataFrameForValues(List<PairQualityLearner.PairScoreValue> values,String frameVarName) {
 		if (values.isEmpty())
-			throw new IllegalArgumentException("no data to learn from");
+				throw new IllegalArgumentException("no data to learn from");
 
-		StringBuilder commands = new StringBuilder(frameVarName+"=data.frame(");
 		StringBuilder validityBuilder = new StringBuilder("validity=c("),
 				scoreBuilder = new StringBuilder("score=c("),inconsistencyBuilder = new StringBuilder("inconsistency=c(");
 		boolean first=true;
@@ -2177,13 +2193,17 @@ public class DrawGraphs {
 		validityBuilder.append(')');
 		scoreBuilder.append(')');
 		inconsistencyBuilder.append(')');
+
+		StringBuilder commands = new StringBuilder(frameVarName+"=data.frame(");
+
 		commands.append(validityBuilder);commands.append(',');
 		commands.append(scoreBuilder);commands.append(',');
 		commands.append(inconsistencyBuilder);commands.append(")");
+		return commands.toString();
+	}
 
-		StringBuilder fitCommand = new StringBuilder(fitVarName);
-		fitCommand.append("=speedglm::speedglm(formula = validity ~ score + inconsistency,family = binomial(),data=");fitCommand.append(frameVarName);fitCommand.append(')');
-		return Arrays.asList(commands.toString(),fitCommand.toString());
+	public static List<String> constructPredictiveCoefficientsString(List<PairQualityLearner.PairScoreValue> values, String fitVarName,String frameVarName) {
+        return Arrays.asList(constructDataFrameForValues(values,frameVarName), fitVarName + "=speedglm::speedglm(formula = validity ~ score + inconsistency,family = binomial(),data=" + frameVarName + ')');
 	}
 
 	public static class LogisticRegression {
@@ -2197,6 +2217,62 @@ public class DrawGraphs {
 			intercept = valueAsDouble(engine.eval(fitVarName+"$coefficients[\"(Intercept)\"]"));
 			score = valueAsDouble(engine.eval(fitVarName+"$coefficients[\"score\"]"));
 			inconsistency = valueAsDouble(engine.eval(fitVarName+"$coefficients[\"inconsistency\"]"));
+		}
+
+		public static ConfusionMatrix computeConfusionMatrixGivenWeightOfInconsistencies(List<PairQualityLearner.PairScoreValue> values, double weightOfInconsistencies, double offset) {
+			int tp=0,tn=0,fp=0,fn=0;
+
+			for(PairQualityLearner.PairScoreValue value:values) {
+				boolean predicted = value.score - weightOfInconsistencies*value.inconsistency >= offset;
+
+				if (predicted == value.validMerge) {
+					if (value.validMerge)
+						tp++;
+					else
+						tn++;
+				}
+				else {// incorrect prediction
+					if (value.validMerge)
+						fn++;
+					else
+						fp++;
+				}
+			}
+
+			return new ConfusionMatrix(tp,tn,fp,fn);
+		}
+
+		public ConfusionMatrix computeConfusionMatrix(List<PairQualityLearner.PairScoreValue> values) {
+			int tp=0,tn=0,fp=0,fn=0;
+
+			for(PairQualityLearner.PairScoreValue value:values) {
+				boolean predicted = evaluate(value.score,value.inconsistency);
+
+				if (predicted == value.validMerge) {
+					if (value.validMerge)
+						tp++;
+					else
+						tn++;
+				}
+				else {// incorrect prediction
+					if (value.validMerge)
+						fn++;
+					else
+						fp++;
+				}
+			}
+
+			return new ConfusionMatrix(tp,tn,fp,fn);
+		}
+
+		public ConfusionMatrix confusionMatrixViaR(List<PairQualityLearner.PairScoreValue> values, String varForFit, String varForDataset, String varForConfusionMatrix) {
+			eval(constructDataFrameForValues(values,varForDataset),"Failed to construct dataset "+varForDataset);
+			eval(varForConfusionMatrix+"=table(Predicted=ifelse(predict("+varForFit+",newdata="+varForDataset+",type=\"response\") > 0.5,1,0),Actual = "+varForDataset+"$validity)","Failed to obtain confusion matrix from R");
+			return new ConfusionMatrix(
+					valueAsInteger(engine.eval(varForConfusionMatrix+"[2,2]")),
+					valueAsInteger(engine.eval(varForConfusionMatrix+"[1,1]")),
+					valueAsInteger(engine.eval(varForConfusionMatrix+"[2,1]")),
+					valueAsInteger(engine.eval(varForConfusionMatrix+"[1,2]")));
 		}
 
 		/** Given a score and inconsistency, evaluates a given pair.
@@ -2217,6 +2293,19 @@ public class DrawGraphs {
 		public String reportCoefficients() {
 			DecimalFormat df = new DecimalFormat("#.###");
 			return String.format("%s,%s,%s",df.format(intercept),df.format(score),df.format(inconsistency));
+		}
+
+		public static final double epsilon = 1e-15;
+
+		/** We can only normalise coefficients if threshold is 0.5 because it means that we are comparing intercept+scoreValue*score+inconsistencyValue*inconsistency with a zero, permitting intercept,score,inconsistency coefficients to be dividied by intercept. */
+		public String reportNormalisedCoefficients() {
+			if (Math.abs(threshold-0.5) > epsilon)
+				throw new IllegalArgumentException("Threshold must be 0.5");
+
+			if (Math.abs(intercept) < epsilon)
+				throw new IllegalArgumentException("Intercept must be non-zero");
+
+			return String.format("%g,%g,%g , inconsistency/score is %s",1.,score/intercept,inconsistency/intercept,-inconsistency/score);
 		}
 	}
 

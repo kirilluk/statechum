@@ -28,6 +28,7 @@ import statechum.analysis.learning.DrawGraphs.RBagPlot;
 import statechum.analysis.learning.DrawGraphs.RBoxPlot;
 import statechum.analysis.learning.DrawGraphs.SquareBagPlot;
 import statechum.analysis.learning.DrawGraphs.StatisticalTestResult;
+import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -413,6 +414,36 @@ public class TestDrawGraphs {
 		Assert.assertTrue(regression.evaluate(100,3));
 		Assert.assertFalse(regression.evaluate(2,300));
 		Assert.assertFalse(regression.evaluate(8,300));
+
+
+		{
+			List<PairQualityLearner.PairScoreValue> evaluationSet = Arrays.asList(
+					new PairQualityLearner.PairScoreValue(true, 7, 1),
+					new PairQualityLearner.PairScoreValue(true, 200, 5),
+					new PairQualityLearner.PairScoreValue(false, 1, 1),
+					new PairQualityLearner.PairScoreValue(false, 0, 10),
+					new PairQualityLearner.PairScoreValue(false, 1, 15)
+			);
+			ConfusionMatrix confusionComputedByRegression = regression.computeConfusionMatrix(evaluationSet);
+			ConfusionMatrix confusionComputedByR = regression.confusionMatrixViaR(evaluationSet, "fit", "evaluationdata", "confusion");
+			Assert.assertEquals(confusionComputedByRegression, confusionComputedByR);
+		}
+
+		{
+			List<PairQualityLearner.PairScoreValue> evaluationSet = Arrays.asList(
+					new PairQualityLearner.PairScoreValue(true, 2, 0),
+					new PairQualityLearner.PairScoreValue(true, 3, 0),
+					new PairQualityLearner.PairScoreValue(true, 3, 1),
+					new PairQualityLearner.PairScoreValue(true, 60, 5),
+					new PairQualityLearner.PairScoreValue(false, 1, 1),
+					new PairQualityLearner.PairScoreValue(false, 0, 1),
+					new PairQualityLearner.PairScoreValue(false, 10, 15)
+			);
+			ConfusionMatrix confusionComputedByRegression = regression.computeConfusionMatrix(evaluationSet);
+			ConfusionMatrix confusionComputedByR = regression.confusionMatrixViaR(evaluationSet, "fit", "evaluationdata", "confusion");
+			Assert.assertEquals(confusionComputedByRegression, confusionComputedByR);
+		}
+
 	}
 
 	public static class TestParameters implements ThreadResultID

@@ -5,6 +5,7 @@ import statechum.Pair;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
+import statechum.analysis.learning.PrecisionRecall.PrecisionRecall;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -43,7 +44,7 @@ public class E_MarkovScoreVsInconsistency {
         boolean [] penaliseMissingPathsValues = {true,false};
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
-        int [] densities = new int[]{ 0 };
+        int [] densities = new int[]{ 20 };
         int [] chunkSizeValues = new int[]{3, 4};
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : densities) {
@@ -177,7 +178,7 @@ public class E_MarkovScoreVsInconsistency {
                                     if (fileContents != null) {
                                         ScatterPlot gr_ScoreVsInconsistency = new ScatterPlot("Inconsistency", "Score",
                                            new File(pathName + File.separator+"statistics_" + states + "_" + perStateSquaredDensity100 + "_" + chunkSizeToEvaluate + "_"+penaliseMissingPaths+"_score_vs_inconsistency.pdf"));
-
+                                        List<PairQualityLearner.PairScoreValue> values = new ArrayList<>();
                                         OtpErlangObject listOfPairsAsObject = ErlangLabel.parseText(fileContents);
                                         if (!(listOfPairsAsObject instanceof OtpErlangList))
                                             throw new IllegalArgumentException(statisticsFileName + " is not a list of type OtpErlangLists, got " + listOfPairsAsObject.getClass().getName());
@@ -187,13 +188,23 @@ public class E_MarkovScoreVsInconsistency {
                                             boolean validMerge = ((OtpErlangBoolean) pair.elementAt(0)).booleanValue();
                                             long score = ((OtpErlangLong) pair.elementAt(1)).longValue();
                                             long inconsistency = ((OtpErlangLong) pair.elementAt(2)).longValue();
-
+                                            values.add(new PairQualityLearner.PairScoreValue(validMerge, score, inconsistency));
                                             if (score < 100 && inconsistency < 1000)
                                                 gr_ScoreVsInconsistency.add((double) inconsistency, (double) score, validMerge ? "green" : "red", null);
 //                                                gr_ScoreVsInconsistency.get(chunkSizeToEvaluate).add((double) inconsistency, (double) score, validMerge ? "green" : "red", null);
                                         }
 
                                         gr_ScoreVsInconsistency.reportResults(learningGroup.gr);
+                                        DrawGraphs.LogisticRegression regression = new DrawGraphs.LogisticRegression(values,"fit","pairvalues");
+                                        System.out.println(pathName+" , "+ states + "_" + perStateSquaredDensity100 + "_" + chunkSizeToEvaluate + "_"+penaliseMissingPaths+" : "+regression.reportNormalisedCoefficients());
+                                        ConfusionMatrix confUsingLogisticRegression = regression.computeConfusionMatrix(values);
+                                        System.out.println("Logistic regression: "+confUsingLogisticRegression+" F1="+confUsingLogisticRegression.fMeasure()+", BCR="+confUsingLogisticRegression.BCR());
+                                        for(double consideredWeightOfInconsistencies:new double[]{0.5,1.,2.,3.})
+                                        for(double offset:new double[]{0,0.25,0.5,1})
+                                        {
+                                            ConfusionMatrix confGivenWeight = LogisticRegression.computeConfusionMatrixGivenWeightOfInconsistencies(values,consideredWeightOfInconsistencies,offset);
+                                            System.out.println("Score-"+consideredWeightOfInconsistencies+"*inconsistency >= "+offset+": "+confGivenWeight+" F1="+confGivenWeight.fMeasure()+", BCR="+confGivenWeight.BCR());
+                                        }
                                     }
                                 }
                         }

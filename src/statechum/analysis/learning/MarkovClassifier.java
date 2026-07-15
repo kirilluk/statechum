@@ -17,24 +17,12 @@
  */
 package statechum.analysis.learning;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicLong;
 
 import statechum.Configuration;
+import statechum.Helper;
 import statechum.Label;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
@@ -44,16 +32,8 @@ import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine.PredictionForS
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.AbstractPathRoutines;
-import statechum.analysis.learning.rpnicore.CachedData;
-import statechum.analysis.learning.rpnicore.EquivalenceClass;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphCachedData;
-import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.MergeStates;
-import statechum.analysis.learning.rpnicore.PairScoreComputation;
+import statechum.analysis.learning.experiments.mutation.DiffExperiments;
+import statechum.analysis.learning.rpnicore.*;
 import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.ArrayMapWithSearchPos;
 import statechum.collections.MapWithSearch;
@@ -1493,4 +1473,44 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		if (numberOfEdgesConsidered > 0) outcomeRecall = (double)numberOfExistingPredicted/numberOfEdgesConsidered;
 		return new statechum.Pair<>(outcomePrecision, outcomeRecall);
 	}
+
+
+	/** When we get a particular inconsistency from a graph, it is not always clear whether this is good or bad. Zero inconsistency is good,
+	 * but for most graphs inconsistency will be above zero and such a value could be either good or bad.
+	 * Importantly the value depends on the prefix length: larger values change inconsistency by around an order of magnitude for each prefix length increase by 1.
+	 * This function aims to determine whether obtained inconsistency is good or bad: it generates similar random automata and uses
+	 * the existing model to determine inconsistencies. If we get much larger values compared to that from the provided graph,
+	 * it means that the inconsistency value is 'good'. If the two are comparable, it means that any old random graph is
+	 * indistinguishable (inconsistency-wise) from what we are comparing it with. This is bad.
+	 */
+	public static double evaluateSignificanceOfObtainedInconsistency(LearnerGraph automatonToBaseRandomGraphOn, Transform.ConvertALabel converter,
+                                                                     MarkovModel markovModel, ConsistencyChecker checker, int numberOfAutomataToGenerate) {
+		if (numberOfAutomataToGenerate == 0)
+			throw new IllegalArgumentException("Number of automata to generate must be above 0");
+
+		int states = automatonToBaseRandomGraphOn.getStateNumber(), perStateMultiplier = automatonToBaseRandomGraphOn.pathroutines.countEdges()/states;
+
+		double inconsistencyForTheSuppliedGraph = MarkovClassifier.computeInconsistency(automatonToBaseRandomGraphOn, null, markovModel, checker,false);
+
+		DiffExperiments.MachineGenerator mg = new DiffExperiments.MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
+
+		double totalInconsistency = 0;
+		for(int extraSeed=-numberOfAutomataToGenerate; extraSeed<0; extraSeed++)
+		{
+			LearnerGraph automaton = null;
+			try {
+				// generated graph has no reject-states, because we assume that undefined transitions lead to reject states.
+				automaton = mg.nextMachine(automatonToBaseRandomGraphOn.pathroutines.computeAlphabet().size(), perStateMultiplier,
+						Objects.hash(perStateMultiplier, states, extraSeed), automatonToBaseRandomGraphOn.config, converter).pathroutines.buildDeterministicGraph();
+			} catch (AMEquivalenceClass.IncompatibleStatesException e) {
+				Helper.throwUnchecked("failed to generate a random FSM with additional seed " + extraSeed, e);
+			}
+
+			totalInconsistency += MarkovClassifier.computeInconsistency(automaton, null, markovModel, checker,false);
+		}
+
+		double epsilon = 1e-8;
+		return Math.abs(epsilon + inconsistencyForTheSuppliedGraph - totalInconsistency / numberOfAutomataToGenerate)/(inconsistencyForTheSuppliedGraph+epsilon);
+	}
+
 }

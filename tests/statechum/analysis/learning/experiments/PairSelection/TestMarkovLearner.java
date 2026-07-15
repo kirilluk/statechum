@@ -17,12 +17,7 @@ import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.MarkovModel.UpdatablePairInteger;
 import statechum.analysis.learning.experiments.MarkovEDSM.WaveBlueFringe;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
-import statechum.analysis.learning.rpnicore.FsmParserStatechum;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.LearnerGraphND;
-import statechum.analysis.learning.rpnicore.TestFSMAlgo;
-import statechum.analysis.learning.rpnicore.WMethod;
+import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 
@@ -444,6 +439,34 @@ public class TestMarkovLearner
 				m.buildMarkovMatrixFromAutomaton(graph), IllegalArgumentException.class, "All states should be accept-states");
 
 	}
+
+	@Test
+	public void testEvaluateInconsistencyAgainstRandomAutomata1()
+	{
+		final Transform.ConvertALabel conv = new Transform.InternStringLabel();
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->B / A-c->A","testCreateMarkovMatrixFromAutomatonPositive3",config, conv);
+		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m.buildMarkovMatrixFromAutomaton(graph);
+		MarkovClassifier.ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+		TestHelper.checkForCorrectException(() ->
+				MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(graph,conv,m,checker,0), IllegalArgumentException.class, "Number of automata to generate must be above 0");
+	}
+
+	@Test
+	public void testEvaluateInconsistencyAgainstRandomAutomata2()
+	{
+		// We have to use a different converter here compared to the one used elsewhere in this test,
+		// because labels are generated internally by the forest fire algorithm and have a form of L...  (more than a single character)
+		// that is not supported by the converter in this test.
+		final Transform.ConvertALabel conv = new Transform.InternStringLabel();
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->B / A-c->A","testCreateMarkovMatrixFromAutomatonPositive3",config, conv);
+		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m.buildMarkovMatrixFromAutomaton(graph);
+		MarkovClassifier.ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+		double value = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(graph,conv,m,checker,10);
+		Assert.assertEquals(1.399999992,value, 1e-8);
+	}
+
 
 	/** Nothing to add because there not enough evidence. */
 	@Test

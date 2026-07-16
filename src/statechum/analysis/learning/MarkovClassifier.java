@@ -1485,6 +1485,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * The lower the reported value, the better the 'quality' of the evaluated graph. Zero means that it is perfectly consistent which is helpful
 	 * (although there would be many perfectly-consistent graphs). Above zero is where it is genuinely useful: it shows whether randomly-generated
 	 * graphs have a significantly different inconsistency (they could potentially have lower values but it is considered unlikely).
+	 * Special case: returns a negative value if passed an automaton with less than 2 states and fewer than 2 characters of an alphabet.
 	 */
 	public static double evaluateSignificanceOfObtainedInconsistency(LearnerGraph automatonToBaseRandomGraphOn, Transform.ConvertALabel converter,
                                                                      MarkovModel markovModel, ConsistencyChecker checker, int numberOfAutomataToGenerate) {
@@ -1498,12 +1499,16 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		DiffExperiments.MachineGenerator mg = new DiffExperiments.MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
 
 		double totalInconsistency = 0;
+		int alphabetSize = automatonToBaseRandomGraphOn.pathroutines.computeAlphabet().size();
+		if (alphabetSize < 2 || automatonToBaseRandomGraphOn.getStateNumber() < 2)
+			return -1;
+
 		for(int extraSeed=-numberOfAutomataToGenerate; extraSeed<0; extraSeed++)
 		{
 			LearnerGraph automaton = null;
 			try {
 				// generated graph has no reject-states, because we assume that undefined transitions lead to reject states.
-				automaton = mg.nextMachine(automatonToBaseRandomGraphOn.pathroutines.computeAlphabet().size(), perStateMultiplier,
+				automaton = mg.nextMachine(alphabetSize, perStateMultiplier,
 						Objects.hash(perStateMultiplier, states, extraSeed), automatonToBaseRandomGraphOn.config, converter).pathroutines.buildDeterministicGraph();
 			} catch (AMEquivalenceClass.IncompatibleStatesException e) {
 				Helper.throwUnchecked("failed to generate a random FSM with additional seed " + extraSeed, e);

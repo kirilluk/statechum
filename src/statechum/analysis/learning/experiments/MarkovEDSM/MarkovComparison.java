@@ -58,8 +58,8 @@ public class MarkovComparison {
                     new File(pathToResult+"comparison.pdf"),0, 1, true);
             final DrawGraphs.SquareBagPlot gr_BestVsWithAllPaths = new DrawGraphs.SquareBagPlot(experimentsToCompare[1], "Best between the two",
                     new File(pathToResult+"best_vs_all_paths.pdf"),0, 1, true);
-            final DrawGraphs.SquareBagPlot gr_BestAgainstSicco = new DrawGraphs.SquareBagPlot("Sicco", "Best between the two",
-                    new File(pathToResult+"best_vs_sicco.pdf"),0, 1, true);
+            final DrawGraphs.SquareBagPlot gr_BestAgainstVH = new DrawGraphs.SquareBagPlot("VH", "Best between the two",
+                    new File(pathToResult+"best_vs_VH.pdf"),0, 1, true);
             final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_best = new DrawGraphs.WilcoxonPairedTest(new File(pathToResult + "Wilcoxon_t_best.csv"));
             final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_all_paths = new DrawGraphs.WilcoxonPairedTest(new File(pathToResult + "Wilcoxon_t_all_paths.csv"));
             for (Map.Entry<String, Map<String, String>> rowEntryA : twoExperiments.get(0).rowColumnText.entrySet()) {
@@ -69,7 +69,7 @@ public class MarkovComparison {
                 String cellsB = getValueFromMapGivenRegexp(entryB, LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString());
                 double valueB = Double.parseDouble(obtainValueFromCell(cellsB, 2));
 
-                String Y_Sicco = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
+                String Y_VH = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
 
                 gr_Comparison.add(valueA, valueB);
                 Wilcoxon_test_all_paths.add(valueA, valueB);
@@ -88,12 +88,12 @@ public class MarkovComparison {
                 gr_BestVsWithAllPaths.add(valueB, bestLearningResult.structural);
                 Wilcoxon_test_best.add(valueB, bestLearningResult.structural);
 
-                gr_BestAgainstSicco.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)),bestLearningResult.structural);
+                gr_BestAgainstVH.add(Double.parseDouble(obtainValueFromCell(Y_VH, 2)),bestLearningResult.structural);
             }
 
             gr_Comparison.reportResults(gr);gr_BestVsWithAllPaths.reportResults(gr);
             Wilcoxon_test_best.reportResults(gr);Wilcoxon_test_all_paths.reportResults(gr);
-            gr_BestAgainstSicco.reportResults(gr);
+            gr_BestAgainstVH.reportResults(gr);
         }
 
         DrawGraphs.end();

@@ -145,8 +145,8 @@ public class E_MarkovLearnWithCentre {
                             new File(learningGroup.outPathPrefix + statesMax + "_centre-learner_tracenum="+traceQuantityToUse+"_structural.pdf"));
                     gr_PresetPerformance.setOtherOptions("las=2");
                     gr_PresetPerformance.setOrderingOfLabels(Arrays.asList( new String[]{"Best","Markov","M_Both","M_Forward","R_Forward","R_Both"}));
-                    final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, Sicco", "Structural Score",
-                            new File(learningGroup.outPathPrefix + statesMax + "_centre-learner_tracenum=" + traceQuantityToUse + "_sicco_structuraldiffBest.pdf"), 0, 1, true);
+                    final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, VH", "Structural Score",
+                            new File(learningGroup.outPathPrefix + statesMax + "_centre-learner_tracenum=" + traceQuantityToUse + "_VH_structuraldiffBest.pdf"), 0, 1, true);
 
                     String [] presetDescription = new String[]{"Markov","M_Both","R_Forward","R_Both","M_Forward"};
 
@@ -182,19 +182,19 @@ public class E_MarkovLearnWithCentre {
                                 });
                             }
 
-                            String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
-                            double sicco_score = Double.parseDouble(obtainValueFromCell(Y_Sicco, 2));
-                            if (Y_Sicco != null)
-                                gr_StructuralDiffBest.add(sicco_score, bestLearningResultForThisRow.structural, null, null);
+                            String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
+                            double vh_score = Double.parseDouble(obtainValueFromCell(Y_VH, 2));
+                            if (Y_VH != null)
+                                gr_StructuralDiffBest.add(vh_score, bestLearningResultForThisRow.structural, null, null);
                             else
-                                System.out.println("WARNING: missing Sicco-value for " + rowEntry.getKey());
+                                System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
 
 
                             StringBuilder sb = new StringBuilder();
                             Formatter formatter = new Formatter(sb, Locale.US);formatter.format("%1d",traceQuantityToUse);
                             gr_BestStructuralForDifferentPreset.add(sb+"_M",bestLearningResultForThisRowAndAllPresets.get(0).structural);
                             gr_BestStructuralForDifferentPreset.add(sb+"_MC",bestLearningResultForThisRow.structural);
-                            gr_BestStructuralForDifferentPreset.add(sb+"_S",sicco_score);
+                            gr_BestStructuralForDifferentPreset.add(sb+"_S",vh_score);
                             for(Map.Entry<Integer, MarkovExperiment.LearningReport> entry:bestLearningResultForThisRowAndAllPresets.entrySet())
                                 gr_PresetPerformance.add(presetDescription[entry.getKey()],entry.getValue().structural);
                             gr_PresetPerformance.add("Best",bestLearningResultForThisRow.structural);

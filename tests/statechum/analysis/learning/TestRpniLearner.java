@@ -1408,9 +1408,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 	
 	@Test
-	public final void testSiccoScoring3a()
+	public final void testVHScoring3a()
 	{
-		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / G-b->I", "testSiccoScoring3",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / G-b->I", "testVHScoring3",testConfig,getLabelConverter());
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreVH(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreVH(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
@@ -1427,9 +1427,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	
 	// Same as above but states not red
 	@Test
-	public final void testSiccoScoring3b()
+	public final void testVHScoring3b()
 	{
-		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / G-b->I", "testSiccoScoring3",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / G-b->I", "testVHScoring3",testConfig,getLabelConverter());
 		Assert.assertEquals(4,fsm.pairscores.computeScoreVH(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreVH(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 
@@ -1443,9 +1443,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 
 	@Test
-	public final void testSiccoScoring4a()
+	public final void testVHScoring4a()
 	{
-		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / C-c->I", "testSiccoScoring3",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / C-c->I", "testVHScoring3",testConfig,getLabelConverter());
 		for(CmpVertex v:fsm.transitionMatrix.keySet()) v.setColour(JUConstants.RED);
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreVH(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(-1,fsm.pairscores.computeScoreVH(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
@@ -1462,9 +1462,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 
 	// Same as above but states not red
 	@Test
-	public final void testSiccoScoring4b()
+	public final void testVHScoring4b()
 	{
-		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / C-c->I", "testSiccoScoring3",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-c->B / A-b->C-a->D-a->E-c->F / E-a->G / C-b->H / C-c->I", "testVHScoring3",testConfig,getLabelConverter());
 		Assert.assertEquals(4,fsm.pairscores.computeScoreVH(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), true));
 		Assert.assertEquals(4,fsm.pairscores.computeScoreVH(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), false));
 
@@ -1477,11 +1477,11 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(0,fsm.pairscores.computeVHRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("C"),fsm.findVertex("A")), collectionOfVerticesToMerge, VHGeneralScoring.S_RED));
 	}
 
-	// This test aims to check the logic of the Sicco checking, hence red-blue marking is not the one that may happen in reality
+	// This test aims to check the logic of the VH checking, hence red-blue marking is not the one that may happen in reality
 	@Test
-	public final void testSiccoScoring5()
+	public final void testVHScoring5()
 	{
-		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F", "testSiccoScoring5",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F", "testVHScoring5",testConfig,getLabelConverter());
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
 		
@@ -1495,9 +1495,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 
 	@Test
-	public final void testSiccoScoring6()
+	public final void testVHScoring6()
 	{
-		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F-b->G-b->H-d->E", "testSiccoScoring6",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F-b->G-b->H-d->E", "testVHScoring6",testConfig,getLabelConverter());
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
 		
@@ -1512,9 +1512,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 
 	@Test
-	public final void testSiccoScoring7()
+	public final void testVHScoring7()
 	{
-		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F", "testSiccoScoring7",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C-d->E / B-b->B / P-c->D / C-b->F", "testVHScoring7",testConfig,getLabelConverter());
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("C").setColour(JUConstants.BLUE);fsm.findVertex("D").setColour(JUConstants.BLUE);fsm.findVertex("P").setColour(JUConstants.BLUE);
 		
@@ -1532,9 +1532,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	// the rest of it (starting from a and starting from b are not coloured and hence should be ignored.
 	// I will be merged into A and therefore f will be a new one that should be flagged as inconsistent by the S_RED policy but not by S_RED_BLUE or S_ONEPAIR because I is not labelled.
 	@Test
-	public final void testSiccoScoring8()
+	public final void testVHScoring8()
 	{
-		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / P-c->D / B-a->H-a->H-d->E / H-b->F-b->I / I-f->N / I-d->M-a->S-a->T / I-b->J-e->K-a->L-a->Q-a->R", "testSiccoScoring8",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / P-c->D / B-a->H-a->H-d->E / H-b->F-b->I / I-f->N / I-d->M-a->S-a->T / I-b->J-e->K-a->L-a->Q-a->R", "testVHScoring8",testConfig,getLabelConverter());
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("P").setColour(JUConstants.BLUE);fsm.findVertex("H").setColour(JUConstants.BLUE);
 
@@ -1547,11 +1547,11 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(-1,fsm.pairscores.computeVHRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, VHGeneralScoring.S_RED));
 	}
 
-	// same as testSiccoScoring8 but H is now now labelled, therefore ignored by S_RED_BLUE.
+	// same as testVHScoring8 but H is now now labelled, therefore ignored by S_RED_BLUE.
 	@Test
-	public final void testSiccoScoring9()
+	public final void testVHScoring9()
 	{
-		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / P-c->D / B-a->H-a->H-d->E / H-b->F-b->I / I-f->N / I-d->M-a->S-a->T / I-b->J-e->K-a->L-a->Q-a->R", "testSiccoScoring8",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / P-c->D / B-a->H-a->H-d->E / H-b->F-b->I / I-f->N / I-d->M-a->S-a->T / I-b->J-e->K-a->L-a->Q-a->R", "testVHScoring8",testConfig,getLabelConverter());
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);
 		fsm.findVertex("P").setColour(JUConstants.BLUE);
 
@@ -1564,11 +1564,11 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		Assert.assertEquals(-1,fsm.pairscores.computeVHRejectScoreGeneral_fastreturn(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")), collectionOfVerticesToMerge, VHGeneralScoring.S_RED));
 	}
 
-	// same as testSiccoScoring8 but H is now now labelled, therefore ignored by S_RED_BLUE.
+	// same as testVHScoring8 but H is now now labelled, therefore ignored by S_RED_BLUE.
 	@Test
-	public final void testSiccoScoring10()
+	public final void testVHScoring10()
 	{
-		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
+		LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testVHScoring10",testConfig,getLabelConverter());
 		fsm.findVertex("A").setColour(JUConstants.RED);fsm.findVertex("B").setColour(JUConstants.RED);fsm.findVertex("P").setColour(JUConstants.RED);
 		fsm.findVertex("H").setColour(JUConstants.BLUE);fsm.findVertex("E").setColour(JUConstants.BLUE);
 
@@ -1582,9 +1582,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	}
 
 	@Test
-	public final void testSiccoScoring11()
+	public final void testVHScoring11()
 	{
-		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testVHScoring10",testConfig,getLabelConverter());
 		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 
@@ -1593,9 +1593,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 		checkForCorrectException(() -> fsm.pairscores.computeVHRejectScoreGeneral_fastreturn(null, collectionOfVerticesToMerge, VHGeneralScoring.S_ONEPAIR),IllegalArgumentException.class,"when looking for a score from a single pair");
 	}
 	@Test
-	public final void testSiccoScoring12()
+	public final void testVHScoring12()
 	{
-		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testSiccoScoring10",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-e->P-a->C / B-b->B / B-a->H-a->H-b->F-e->K-c->L / K-d->M/ H-e->E-a->G-a->I / P-b->E-c->J", "testVHScoring10",testConfig,getLabelConverter());
 		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		fsm.pairscores.computePairCompatibilityScore_general(new StatePair(fsm.findVertex("H"),fsm.findVertex("A")),null,collectionOfVerticesToMerge, true);
 
@@ -1606,9 +1606,9 @@ public class TestRpniLearner extends Test_Orig_RPNIBlueFringeLearnerTestComponen
 	
 	// testing reject-vertex handling
 	@Test
-	public final void testSiccoScoring13()
+	public final void testVHScoring13()
 	{
-		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C / D-a->E-b-#F", "testSiccoScoring13",testConfig,getLabelConverter());
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->C / D-a->E-b-#F", "testVHScoring13",testConfig,getLabelConverter());
 		final Collection<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> collectionOfVerticesToMerge = new ArrayList<>();
 		Assert.assertEquals(0,fsm.pairscores.computeVHRejectScoreGeneral(new StatePair(fsm.findVertex("D"),fsm.findVertex("A")), collectionOfVerticesToMerge, VHGeneralScoring.S_ONEPAIR));
 		Assert.assertEquals(0,fsm.pairscores.computeVHRejectScoreGeneral(new StatePair(fsm.findVertex("D"),fsm.findVertex("A")), collectionOfVerticesToMerge, VHGeneralScoring.S_RED));

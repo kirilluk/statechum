@@ -163,7 +163,7 @@ public class E_MarkovPrefixLen {
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Map<String, AtomicInteger> learnerToHowOftenBest = new HashMap<>();
-            final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov", new File(learningGroup.outPathPrefix + "_bestprefixlen_and_mult_" + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true);
+            final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov", new File(learningGroup.outPathPrefix + "_bestprefixlen_and_mult_" + statesMax + "_VH_structuraldiffBest.pdf"), 0, 1, true);
 
             // Now select the best result from all those available
             for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
@@ -185,11 +185,11 @@ public class E_MarkovPrefixLen {
                 });
                 learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
                 learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
-                String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
-                if (Y_Sicco != null)
-                    gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)), bestLearningResult.structural, null, null);
+                String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
+                if (Y_VH != null)
+                    gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_VH, 2)), bestLearningResult.structural, null, null);
                 else
-                    System.out.println("WARNING: missing Sicco-value for " + rowEntry.getKey());
+                    System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
             }
             gr_StructuralDiffBest.reportResults(learningGroup.gr);
             List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());

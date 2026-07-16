@@ -58,7 +58,7 @@ public class E_MarkovAlphabet {
                                                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV
                                                             //														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2
                                                     })
-                                        // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
+                                        // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_VH("SV");
                                         for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{3, 4} : new int[]{2})
                                             for (double weightOfInconsistencies : learnerKind.isMarkov() ? new double[]{0.5, 1.0, 2.0} : new double[]{1.0})
                                                 for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} : new Pair[]{new Pair(1, 1), new Pair(1, 2), new Pair(2, 4)}) {
@@ -155,8 +155,8 @@ public class E_MarkovAlphabet {
                         final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
                         Map<String, AtomicInteger> learnerToHowOftenBest = learnerToHowOftenBestForAllMultipliers.computeIfAbsent(alphabetMultiplier,aDouble -> new HashMap<>());
                         gr_StructuralDiffBestMap.computeIfAbsent(alphabetMultiplier,aDouble ->
-                            new SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner",
-                                new File(learningGroup.outPathPrefix + "alphabet_alphabetmult=" + alphabetMultiplier + " " + statesMax + "_sicco_structuraldiffBest.pdf"), 0, 1, true));
+                            new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
+                                new File(learningGroup.outPathPrefix + "alphabet_alphabetmult=" + alphabetMultiplier + " " + statesMax + "_VH_structuraldiffBest.pdf"), 0, 1, true));
 
 
                         getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
@@ -175,15 +175,15 @@ public class E_MarkovAlphabet {
                         });
                         learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
                         learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
-                        String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
-                        if (Y_Sicco != null) {
-                            double sicco_score = Double.parseDouble(obtainValueFromCell(Y_Sicco, 2));
-                            gr_StructuralDiffBestMap.get(alphabetMultiplier).add(sicco_score, bestLearningResult.structural, null, null);
+                        String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
+                        if (Y_VH != null) {
+                            double vh_score = Double.parseDouble(obtainValueFromCell(Y_VH, 2));
+                            gr_StructuralDiffBestMap.get(alphabetMultiplier).add(vh_score, bestLearningResult.structural, null, null);
                             gr_BestStructuralForAlphabet.add(alphabetMultiplier+"_M",bestLearningResult.structural);
-                            gr_BestStructuralForAlphabet.add(alphabetMultiplier+"_S",sicco_score);
+                            gr_BestStructuralForAlphabet.add(alphabetMultiplier+"_S",vh_score);
                         }
                         else
-                            System.out.println("WARNING: missing Sicco-value for " + rowEntry.getKey());
+                            System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
                     }
 
                 }

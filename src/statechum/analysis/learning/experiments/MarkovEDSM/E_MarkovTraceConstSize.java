@@ -168,8 +168,8 @@ public class E_MarkovTraceConstSize {
                         final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
                         Map<String, AtomicInteger> learnerToHowOftenBest = learnerToHowOftenBestForAllMultipliers.computeIfAbsent(traceLenMult,aDouble -> new HashMap<>());
                         gr_StructuralDiffBestMap.computeIfAbsent(traceLenMult,aDouble ->
-                            new SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner",
-                                new File(learningGroup.outPathPrefix + "mult_tracelen=" + traceLenMult + " " + statesMax + "_constsize_sicco_structuraldiffBest.pdf"), 0, 1, true));
+                            new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
+                                new File(learningGroup.outPathPrefix + "mult_tracelen=" + traceLenMult + " " + statesMax + "_constsize_VH_structuraldiffBest.pdf"), 0, 1, true));
 
 
                         getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
@@ -188,17 +188,17 @@ public class E_MarkovTraceConstSize {
                         });
                         learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
                         learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
-                        String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
-                        if (Y_Sicco != null) {
-                            double sicco_score = Double.parseDouble(obtainValueFromCell(Y_Sicco, 2));
-                            gr_StructuralDiffBestMap.get(traceLenMult).add(sicco_score, bestLearningResult.structural, null, null);
+                        String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
+                        if (Y_VH != null) {
+                            double vh_score = Double.parseDouble(obtainValueFromCell(Y_VH, 2));
+                            gr_StructuralDiffBestMap.get(traceLenMult).add(vh_score, bestLearningResult.structural, null, null);
                             StringBuilder sb = new StringBuilder();
                             Formatter formatter = new Formatter(sb, Locale.US);formatter.format("%3d",traceLenMult);
                             gr_BestStructuralForLengthMultiplier.add(sb+"_M",bestLearningResult.structural);
-                            gr_BestStructuralForLengthMultiplier.add(sb+"_S",sicco_score);
+                            gr_BestStructuralForLengthMultiplier.add(sb+"_S",vh_score);
                         }
                         else
-                            System.out.println("WARNING: missing Sicco-value for " + rowEntry.getKey());
+                            System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
                     }
 
                 }

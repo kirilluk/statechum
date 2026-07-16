@@ -208,10 +208,10 @@ public class E_MarkovCaseStudies {
                                     (useCentre ? "centre" : "no_cnt");
 
                             Map<String, AtomicInteger> learnerToHowOftenBest = new HashMap<>();
-                            final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, Sicco", "Structural Score, EDSM-Markov learner",
-                                    new File(plot_filename_prefix + "_sicco_structuraldiffBest.pdf"), 0, 1, true);
-                            final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, Sicco", "BCR, EDSM-Markov learner",
-                                    new File(plot_filename_prefix + "_sicco_BCRBest.pdf"), 0.5, 1, true);
+                            final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
+                                    new File(plot_filename_prefix + "_VH_structuraldiffBest.pdf"), 0, 1, true);
+                            final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, VH", "BCR, EDSM-Markov learner",
+                                    new File(plot_filename_prefix + "_VH_BCRBest.pdf"), 0.5, 1, true);
                             final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_Structural = new DrawGraphs.WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_str.csv"));
                             final DrawGraphs.WilcoxonPairedTest Wilcoxon_Test_BCR = new DrawGraphs.WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_bcr.csv"));
                             final DrawGraphs.A_VarghaDelaney A12_test_Structural = new DrawGraphs.A_VarghaDelaney(new File(plot_filename_prefix + "_A12_str.csv"), 100);
@@ -238,16 +238,16 @@ public class E_MarkovCaseStudies {
                                     });
                                     learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
                                     learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
-                                    String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
-                                    if (Y_Sicco != null) {
-                                        gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)), bestLearningResult.structural, null, null);
-                                        gr_BcrDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 1)), bestLearningResult.bcr, null, null);
-                                        A12_test_Structural.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)), bestLearningResult.structural);
-                                        A12_test_BCR.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 1)), bestLearningResult.bcr);
-                                        Wilcoxon_test_Structural.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)), bestLearningResult.structural);
-                                        Wilcoxon_Test_BCR.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 1)), bestLearningResult.bcr);
+                                    String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
+                                    if (Y_VH != null) {
+                                        gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_VH, 2)), bestLearningResult.structural, null, null);
+                                        gr_BcrDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_VH, 1)), bestLearningResult.bcr, null, null);
+                                        A12_test_Structural.add(Double.parseDouble(obtainValueFromCell(Y_VH, 2)), bestLearningResult.structural);
+                                        A12_test_BCR.add(Double.parseDouble(obtainValueFromCell(Y_VH, 1)), bestLearningResult.bcr);
+                                        Wilcoxon_test_Structural.add(Double.parseDouble(obtainValueFromCell(Y_VH, 2)), bestLearningResult.structural);
+                                        Wilcoxon_Test_BCR.add(Double.parseDouble(obtainValueFromCell(Y_VH, 1)), bestLearningResult.bcr);
                                     } else
-                                        System.out.println("WARNING: missing Sicco-value for " + rowEntry.getKey());
+                                        System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
                                 }
                             }
                             StatisticalTestResult a12_bcr = A12_test_BCR.obtainResultFromR();

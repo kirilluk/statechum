@@ -4,11 +4,9 @@ import statechum.Configuration;
 import statechum.GlobalConfiguration;
 import statechum.Pair;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.observers.ProgressDecorator;
@@ -71,7 +69,7 @@ public class MarkovComparison {
                 String cellsB = getValueFromMapGivenRegexp(entryB, LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString());
                 double valueB = Double.parseDouble(obtainValueFromCell(cellsB, 2));
 
-                String Y_Sicco = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_SICCO + "-0");
+                String Y_Sicco = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
 
                 gr_Comparison.add(valueA, valueB);
                 Wilcoxon_test_all_paths.add(valueA, valueB);
@@ -120,7 +118,7 @@ public class MarkovComparison {
                                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
                                             LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
                                             LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
-                                            LearningAlgorithms.ScoringToApply.SCORING_SICCO
+                                            LearningAlgorithms.ScoringToApply.SCORING_VH
                                     })
                             {
                                 int chunkSizeToEvaluate = 3;

@@ -127,7 +127,7 @@ public class EvaluationOfLearnersForProgressProperty extends UASExperiment<Evalu
 			}
 		};
 		LearningAlgorithms.StateMergingStatistics redReducer = new LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,
-				par.scoringMethod == LearningAlgorithms.ScoringToApply.SCORING_SICCO);// use reducedReds for SICCO scoring that will deliberately significantly under-merge.
+				par.scoringMethod == LearningAlgorithms.ScoringToApply.SCORING_VH);// use reducedReds for VH scoring that will deliberately significantly under-merge.
 		PairQualityLearner.SampleData sample = new PairQualityLearner.SampleData();
 		// if par.secondScoringMethod is null, runExperimentUsingConventionalInTwoSteps will be running a single-step experiment.
 		sample.actualLearner = runExperimentUsingConventionalInTwoSteps(ptaConstructor,redReducer,par,par.scoringMethod,par.secondScoringMethod,par.scoringForEDSM);
@@ -207,16 +207,16 @@ public class EvaluationOfLearnersForProgressProperty extends UASExperiment<Evalu
 												for(ScoringToApply firstScore:new ScoringToApply[]{
 //														ScoringToApply.SCORING_EDSM,
 //														ScoringToApply.SCORING_EDSM_3,
-														ScoringToApply.SCORING_SICCO,
-														ScoringToApply.SCORING_SICCO_3,
-//														ScoringToApply.SCORING_LIMITEDSELFLOOPS_SICCO_0,
-//														ScoringToApply.SCORING_LIMITEDSELFLOOPS_SICCO_3,
+														ScoringToApply.SCORING_VH,
+														ScoringToApply.SCORING_VH_3,
+//														ScoringToApply.SCORING_LIMITEDSELFLOOPS_VH_0,
+//														ScoringToApply.SCORING_LIMITEDSELFLOOPS_VH_3,
 //														ScoringToApply.SCORING_LIMITEDSELFLOOPS_0,
 //														ScoringToApply.SCORING_LIMITEDSELFLOOPS_3,
 														ScoringToApply.SCORING_LIMITEDLOOPS_0,
 														ScoringToApply.SCORING_LIMITEDLOOPS_3,
-														ScoringToApply.SCORING_LIMITEDLOOPS_SICCO_0,
-														ScoringToApply.SCORING_LIMITEDLOOPS_SICCO_3,
+														ScoringToApply.SCORING_LIMITEDLOOPS_VH_0,
+														ScoringToApply.SCORING_LIMITEDLOOPS_VH_3,
 
 												})
 												{

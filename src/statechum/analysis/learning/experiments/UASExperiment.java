@@ -135,11 +135,11 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
                 ScoringToApply.SCORING_EDSM_4,//ScoringToApply.SCORING_EDSM_5,
                 //ScoringToApply.SCORING_EDSM_6,
                 //ScoringToApply.SCORING_EDSM_7,ScoringToApply.SCORING_EDSM_8
-                ScoringToApply.SCORING_SICCO
+                ScoringToApply.SCORING_VH
 
-                // SICCO_PTA performs the same as SICCO, RECURSIVE and RED perform very badly.
-                // EDSM does not perform as well as SICCO and in particular, its performance is dependent on the threshold whereas for SICCO it does not.
-                //,ScoringToApply.SCORING_SICCO_PTA,ScoringToApply.SCORING_SICCO_PTARECURSIVE, ScoringToApply.SCORING_SICCO_RED
+                // VH_PTA performs the same as VH, RECURSIVE and RED perform very badly.
+                // EDSM does not perform as well as VH and in particular, its performance is dependent on the threshold whereas for VH it does not.
+                //,ScoringToApply.SCORING_VH_PTA,ScoringToApply.SCORING_VH_PTARECURSIVE, ScoringToApply.SCORING_VH_RED
         );
 	}
 
@@ -337,7 +337,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	 * @throws IOException
 	 */
 	public ScoresForGraph runExperimentUsingPremerge(UASExperiment.BuildPTAInterface ptaSource, StateMergingStatistics redReducer, ThreadResultID experimentID, boolean useLearnerUnique, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
-	{// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
+	{// pre-merge and then learn. Generalised VH does not need a PTA and delivers the same results.
 		String experimentName = experimentID.getRowID()+","+experimentID.getColumnID();
 		LearnerGraph actualAutomaton = loadOutcomeOfLearning(nameOUTCOME);
 		double fanoutPos=0, fanoutNeg = 0;
@@ -413,7 +413,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	 */
 	public ScoresForGraph runExperimentUsingPTAPremerge(UASExperiment.BuildPTAInterface ptaSource, StateMergingStatistics redReducer, ThreadResultID experimentID, ScoringToApply scoringMethod, Configuration.ScoreMode scoringForEDSM, Label uniqueLabel) throws AugmentFromIfThenAutomatonException, IOException
 	{
-		// pre-merge and then learn. Generalised SICCO does not need a PTA and delivers the same results.
+		// pre-merge and then learn. Generalised VH does not need a PTA and delivers the same results.
 	 	// The problem with PTA premerge is that we need EDSM_0 otherwise a lot of edges need to be added to the new
 	 	// state in order to persuade the learner to merge the right states
 		// (unless EDSM is made to be _0 for pairs of states containing the label of interest).

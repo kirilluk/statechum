@@ -158,7 +158,7 @@ public class LearnUsingClassifier {
 													@Override
 													public LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector,LearnerGraph argInitialPTA,ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer)
 													{
-														return new LearningAlgorithms.ReferenceLearner(evalCnf,argInitialPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO,redReducer);
+														return new LearningAlgorithms.ReferenceLearner(evalCnf,argInitialPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_VH,redReducer);
 													}
 
 												};

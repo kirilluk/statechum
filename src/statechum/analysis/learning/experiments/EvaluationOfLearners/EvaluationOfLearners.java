@@ -48,7 +48,6 @@ import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner.processSubExperimentResult;
-import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator;
@@ -180,7 +179,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 		{// Perform semi-pre-merge by building a PTA rather than a graph with loops and learn from there without using constraints
 			LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
 			//Visualiser.updateFrame(reducedPTA.transform.trimGraph(4, reducedPTA.getInit()), pta);
-			// in these experiments I cannot use SICCO merging because it will stop any mergers with an initial state.
+			// in these experiments I cannot use VH merging because it will stop any mergers with an initial state.
 			learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,scoringToUse);
 			
 			System.out.println("PTApremerge size: "+reducedPTA.getStateNumber()+" states, "+reducedPTA.getAcceptStateNumber()+" accept-states and "+reducedPTA.pathroutines.countEdges()+" transitions");
@@ -194,7 +193,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 		{// Perform semi-pre-merge by building a PTA rather than a graph with loops and then use constraints
 			LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
 			//Visualiser.updateFrame(reducedPTA.transform.trimGraph(4, reducedPTA.getInit()), pta);
-			// in these experiments I cannot use SICCO merging because it will stop any mergers with an initial state.
+			// in these experiments I cannot use VH merging because it will stop any mergers with an initial state.
 			learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,scoringToUse);
 			
 			System.out.println("PTApremerge size: "+reducedPTA.getStateNumber()+" states, "+reducedPTA.getAcceptStateNumber()+" accept-states and "+reducedPTA.pathroutines.countEdges()+" transitions");
@@ -279,7 +278,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
 													new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_8),*/
-													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_SICCO),
+													new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_VH),
 											})
 											{
 												LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);

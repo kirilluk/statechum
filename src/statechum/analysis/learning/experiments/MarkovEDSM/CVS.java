@@ -151,7 +151,7 @@ public class CVS
 									for(LearningAlgorithms.ScoringToApply learnerKind:new LearningAlgorithms.ScoringToApply[]{
 											LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
 											LearningAlgorithms.ScoringToApply.SCORING_EDSM, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2,
-											LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_SICCO})
+											LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_VH})
 										for(double weightOfInconsistencies:learnerKind.isMarkov()?new double[]{0.5,1.0,2.0}:new double[]{1.0})
 										{
 											LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
@@ -208,8 +208,8 @@ public class CVS
 					
 					if (phase == PhaseEnum.COLLECT_AVAILABLE || phase == PhaseEnum.COLLECT_RESULTS)
 					{// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
-						final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_structuraldiff.pdf"),0,1,true);
-						final SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_bcr.pdf"),0.5,1,true);		
+						final SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, VH","Structural Score, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_structuraldiff.pdf"),0,1,true);
+						final SquareBagPlot gr_BCR = new SquareBagPlot("BCR, VH","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_bcr.pdf"),0.5,1,true);
 						final SquareBagPlot BCRAgainstKtails = new SquareBagPlot("BCR, K-tails,1","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_kt_bcr.pdf"),0.5,1,true);		
 						final SquareBagPlot BCRAgainstMarkov = new SquareBagPlot("BCR, Markov","BCR, EDSM-Markov learner",new File(outPathPrefix+preset+"_"+statesMax+"_trace_markov_bcr.pdf"),0.5,1,true);		
 	
@@ -220,17 +220,17 @@ public class CVS
 						final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 
 						final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_str.csv"));		 	 
 	
-						DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV, ScoringToApply.SCORING_SICCO.name(),1,ScoringToApply.SCORING_MARKOV.name(),1,null,null);
-						DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,ScoringToApply.SCORING_SICCO.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
+						DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV, ScoringToApply.SCORING_VH.name(),1,ScoringToApply.SCORING_MARKOV.name(),1,null,null);
+						DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,ScoringToApply.SCORING_VH.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
 						DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,ScoringToApply.SCORING_PTAK_1.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
 						DrawGraphs.spreadsheetToBagPlot(BCRAgainstMarkov,resultCSV,ScoringToApply.SCORING_PTAK_1.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
 						
-						DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_SICCO.name(),0);
-						DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
-						DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_SICCO.name(),0);
-						DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
-						DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_SICCO.name(),0);
-						DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_SICCO.name(),1);
+						DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_VH.name(),0);
+						DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_VH.name(),1);
+						DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_VH.name(),0);
+						DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_VH.name(),1);
+						DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR,resultCSV,ScoringToApply.SCORING_MARKOV.name(),0,ScoringToApply.SCORING_VH.name(),0);
+						DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural,resultCSV,ScoringToApply.SCORING_MARKOV.name(),1,ScoringToApply.SCORING_VH.name(),1);
 						
 						DrawGraphs.spreadsheetAsString(
 								(A, B) ->

@@ -21,7 +21,6 @@ package statechum.analysis.learning.experiments.MarkovEDSM;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -365,7 +364,7 @@ public class WaveBlueFringe extends PairQualityLearner
 	
 		public LearnerMarkovPassive(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, final LearnerGraph argInitialPTA,StateMergingStatistics redReducer) 
 		{
-			super(evalCnf,argReferenceGraph,argInitialPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO,redReducer);
+			super(evalCnf,argReferenceGraph,argInitialPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_VH,redReducer);
 		}
 	
 		public static String refToString(Object obj)
@@ -773,7 +772,7 @@ public class WaveBlueFringe extends PairQualityLearner
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				dataSample.actualLearner = estimateDifference(actualAutomaton,m,checker,referenceGraph,testSet);
 				StateMergingStatistics redReducerReferenceLearner = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph, true);
-				LearnerGraph outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(learnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_SICCO,Configuration.ScoreMode.COMPATIBILITY,redReducerReferenceLearner).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+				LearnerGraph outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(learnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_VH,Configuration.ScoreMode.COMPATIBILITY,redReducerReferenceLearner).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
 				dataSample.referenceLearner = estimateDifference(outcomeOfReferenceLearner,null,null,referenceGraph,testSet);
 				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.actualLearner+ " difference ref is "+dataSample.referenceLearner);
 				outcome.samples.add(dataSample);

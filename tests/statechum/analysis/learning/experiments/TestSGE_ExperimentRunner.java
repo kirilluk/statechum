@@ -148,10 +148,10 @@ public class TestSGE_ExperimentRunner
 		}
 	}
 	
-	final MockPlot<String> gr_StructuralDiff = new MockPlot<String>("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File("tmp/runA_struct.pdf"));
-	final MockPlot<String> gr_BCR = new MockPlot<String>("BCR, Sicco","BCR, EDSM-Markov learner",new File("tmp/runA_BCR.pdf"));		
-	final MockPlot<String> gr_a = new MockPlot<String>("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File("tmp/runA_a.pdf"));
-	final MockPlot<String> gr_b = new MockPlot<String>("BCR, Sicco","BCR, EDSM-Markov learner",new File("tmp/runA_b.pdf"));		
+	final MockPlot<String> gr_StructuralDiff = new MockPlot<String>("Structural score, VH","Structural Score, EDSM-Markov learner",new File("tmp/runA_struct.pdf"));
+	final MockPlot<String> gr_BCR = new MockPlot<String>("BCR, VH","BCR, EDSM-Markov learner",new File("tmp/runA_BCR.pdf"));
+	final MockPlot<String> gr_a = new MockPlot<String>("Structural score, VH","Structural Score, EDSM-Markov learner",new File("tmp/runA_a.pdf"));
+	final MockPlot<String> gr_b = new MockPlot<String>("BCR, VH","BCR, EDSM-Markov learner",new File("tmp/runA_b.pdf"));
 	final MockCSV csvA = new MockCSV(new File(ExperimentRunner.testDir,"runCSV_A.csv"));
 	final MockCSV csvB = new MockCSV(new File(ExperimentRunner.testDir,"runCSV_B.csv"));
 			
@@ -699,7 +699,7 @@ public class TestSGE_ExperimentRunner
 	
 	public int runInvalidFileName(String []args)
 	{
-		final MockPlot<String> gr = new MockPlot<String>("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File("tmp/|runA_struct.pdf"));
+		final MockPlot<String> gr = new MockPlot<String>("Structural score, VH","Structural Score, EDSM-Markov learner",new File("tmp/|runA_struct.pdf"));
 		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
 		for(int sample=0;sample<3;++sample)
 		{

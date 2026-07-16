@@ -663,8 +663,8 @@ public class MarkovExperiment
 						";m="+mergeIdentifiedPathsAfterInference+
 						";o="+useClassifyToOrderPairs+
 						";traceQuantity="+traceQuantity+";traceLengthMultiplier="+traceLengthMultiplier+";"+";alphabetMultiplier="+alphabetMultiplier+";";
-				SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(branch+"_"+selection+"_trace_structuraldiff.pdf"),0,1,true);
-				SquareBagPlot gr_BCR = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_trace_bcr.pdf"),0.5,1,true);		
+				SquareBagPlot gr_StructuralDiff = new SquareBagPlot("Structural score, VH","Structural Score, EDSM-Markov learner",new File(branch+"_"+selection+"_trace_structuraldiff.pdf"),0,1,true);
+				SquareBagPlot gr_BCR = new SquareBagPlot("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_trace_bcr.pdf"),0.5,1,true);
 						try
 						{
 							int numberOfTasks = 0;
@@ -712,8 +712,8 @@ public class MarkovExperiment
 /*		final int traceQuantityToUse = traceQuantity;
 		final int presetForBestResults = 0;
 		{
-			final SquareBagPlot gr_StructuralDiffWithoutInconsistencies = new SquareBagPlot("Structural score, Sicco","Structural Score, EDSM-Markov learner",new File(branch+"_noinconsistencies_trace_structuraldiff.pdf"),0,1,true);
-			final SquareBagPlot gr_BCRWithoutInconsistencies = new SquareBagPlot("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_noinconsistencies_trace_bcr.pdf"),0.5,1,true);		
+			final SquareBagPlot gr_StructuralDiffWithoutInconsistencies = new SquareBagPlot("Structural score, VH","Structural Score, EDSM-Markov learner",new File(branch+"_noinconsistencies_trace_structuraldiff.pdf"),0,1,true);
+			final SquareBagPlot gr_BCRWithoutInconsistencies = new SquareBagPlot("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_noinconsistencies_trace_bcr.pdf"),0.5,1,true);
 			String selection = "noinconsistencies;quantity="+traceQuantity+";tracelen="+traceLengthMultiplierMax+";alphabetMult="+alphabetMultiplierMax+";";
 			final AtomicLong comparisonsPerformed = new AtomicLong(0);
 
@@ -774,12 +774,12 @@ public class MarkovExperiment
 			final String selection = "number_of_traces="+traceNum;
 			for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
 			{
-				final Wilcoxon <String> Wilcoxon_test_BCR=new Wilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_traceNum= "+traceNum+"_"+states+"Wilcoxon_trace_bcr.pdf"));		 
-				final Wilcoxon <String> Wilcoxon_test_Structural=new Wilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_traceNum= "+traceNum+"_"+states+"Wilcoxon_trace_str.pdf"));		 
-				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_traceNum= "+traceNum+"_"+states+"Mann_Whitney_U_Test_BCR.pdf"));		 
-				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_traceNum= "+traceNum+"_"+states+"Mann_Whitney_U_Test_str.pdf"));		 
-				final Kruskal_Wallis <String> Kruskal_Wallis_Test_BCR=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_traceNum= "+traceNum+"_"+states+"Kruskal_Wallis_Test_BCR.pdf"));		 
-				final Kruskal_Wallis <String> Kruskal_Wallis_Test_Structural=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_traceNum= "+traceNum+"_"+states+"Kruskal_Wallis_Test_str.pdf"));		 
+				final Wilcoxon <String> Wilcoxon_test_BCR=new Wilcoxon <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_traceNum= "+traceNum+"_"+states+"Wilcoxon_trace_bcr.pdf"));
+				final Wilcoxon <String> Wilcoxon_test_Structural=new Wilcoxon <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_traceNum= "+traceNum+"_"+states+"Wilcoxon_trace_str.pdf"));
+				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_traceNum= "+traceNum+"_"+states+"Mann_Whitney_U_Test_BCR.pdf"));
+				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_traceNum= "+traceNum+"_"+states+"Mann_Whitney_U_Test_str.pdf"));
+				final Kruskal_Wallis <String> Kruskal_Wallis_Test_BCR=new Kruskal_Wallis <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_traceNum= "+traceNum+"_"+states+"Kruskal_Wallis_Test_BCR.pdf"));
+				final Kruskal_Wallis <String> Kruskal_Wallis_Test_Structural=new Kruskal_Wallis <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_traceNum= "+traceNum+"_"+states+"Kruskal_Wallis_Test_str.pdf"));
 				for(int sample=0;sample<samplesPerFSM;++sample)
 				{
 					MarkovLearnerRunner learnerRunner = new MarkovLearnerRunner(states,sample,experimentRunner.getTaskID(),traceNum, config, converter);
@@ -863,12 +863,12 @@ public class MarkovExperiment
 
 			for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
 			{
-				final RWilcoxon <String> Wilcoxon_test_Structural=new RWilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_states_"+ states +"_Wilcoxon_t_str.csv"));		 
-				final RWilcoxon <String> Wilcoxon_Test_BCR=new RWilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Wilcoxon_t_bcr.csv"));		 
-				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Mann_Whitney_U_Test_BCR.csv"));		 
-				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_= "+selection+ "_states_"+ states +"_Whitney_U_Test_str.csv"));		 
-				final Kruskal_Wallis <String> Kruskal_Wallis_Test_BCR=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));		 
-				final Kruskal_Wallis <String> Kruskal_Wallis_Test_Structural=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));		 	 
+				final RWilcoxon <String> Wilcoxon_test_Structural=new RWilcoxon <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_states_"+ states +"_Wilcoxon_t_str.csv"));
+				final RWilcoxon <String> Wilcoxon_Test_BCR=new RWilcoxon <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Wilcoxon_t_bcr.csv"));
+				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Mann_Whitney_U_Test_BCR.csv"));
+				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_= "+selection+ "_states_"+ states +"_Whitney_U_Test_str.csv"));
+				final Kruskal_Wallis <String> Kruskal_Wallis_Test_BCR=new Kruskal_Wallis <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));
+				final Kruskal_Wallis <String> Kruskal_Wallis_Test_Structural=new Kruskal_Wallis <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));
 
 				for(int sample=0;sample<samplesPerFSM;++sample)
 				{
@@ -961,12 +961,12 @@ public class MarkovExperiment
 				final double traceLengthMultToUse = traceLengthMultiplierToUse;
 				for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
 				{
-					final RWilcoxon <String> Wilcoxon_test_Structural=new RWilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_states="+ states +"_Wilcoxon_t_str.csv"));		 
-					final RWilcoxon <String> Wilcoxon_Test_BCR=new RWilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Wilcoxon_t_bcr.csv"));		 
-					final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Mann_Whitney_U_Test_BCR.csv"));		 
-					final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_= "+selection+ "_states="+ states +"_Whitney_U_Test_str.csv"));		 
-					final Kruskal_Wallis <String> Kruskal_Wallis_Test_BCR=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));		 
-					final Kruskal_Wallis <String> Kruskal_Wallis_Test_Structural=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));		 	 
+					final RWilcoxon <String> Wilcoxon_test_Structural=new RWilcoxon <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_states="+ states +"_Wilcoxon_t_str.csv"));
+					final RWilcoxon <String> Wilcoxon_Test_BCR=new RWilcoxon <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Wilcoxon_t_bcr.csv"));
+					final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Mann_Whitney_U_Test_BCR.csv"));
+					final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_= "+selection+ "_states="+ states +"_Whitney_U_Test_str.csv"));
+					final Kruskal_Wallis <String> Kruskal_Wallis_Test_BCR=new Kruskal_Wallis <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));
+					final Kruskal_Wallis <String> Kruskal_Wallis_Test_Structural=new Kruskal_Wallis <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));
 
 					for(int sample=0;sample<samplesPerFSM;++sample)
 					{
@@ -1053,12 +1053,12 @@ public class MarkovExperiment
 			final int prefixLen = prefixLength;
 			for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
 			{
-				final RWilcoxon <String> Wilcoxon_test_Structural=new RWilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_states="+ states +"_Wilcoxon_t_str.csv"));		 
-				final RWilcoxon <String> Wilcoxon_Test_BCR=new RWilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Wilcoxon_t_bcr.csv"));		 
-				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Mann_Whitney_U_Test_BCR.csv"));		 
-				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_= "+selection+ "_states="+ states +"_Whitney_U_Test_str.csv"));		 
-				final Kruskal_Wallis <String> Kruskal_Wallis_Test_BCR=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));		 
-				final Kruskal_Wallis <String> Kruskal_Wallis_Test_Structural=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));		 	 
+				final RWilcoxon <String> Wilcoxon_test_Structural=new RWilcoxon <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_states="+ states +"_Wilcoxon_t_str.csv"));
+				final RWilcoxon <String> Wilcoxon_Test_BCR=new RWilcoxon <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Wilcoxon_t_bcr.csv"));
+				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Mann_Whitney_U_Test_BCR.csv"));
+				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_= "+selection+ "_states="+ states +"_Whitney_U_Test_str.csv"));
+				final Kruskal_Wallis <String> Kruskal_Wallis_Test_BCR=new Kruskal_Wallis <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));
+				final Kruskal_Wallis <String> Kruskal_Wallis_Test_Structural=new Kruskal_Wallis <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));
 			
 				for(int sample=0;sample<samplesPerFSM;++sample)
 				{
@@ -1149,12 +1149,12 @@ public class MarkovExperiment
 			for(int states=minStateNumber;states < minStateNumber+rangeOfStateNumbers;states+=stateNumberIncrement)
 			{
 				
-				final RWilcoxon <String> Wilcoxon_test_Structural=new RWilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_states="+ states +"_Wilcoxon_t_str.csv"));		 
-				final RWilcoxon <String> Wilcoxon_Test_BCR=new RWilcoxon <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Wilcoxon_t_bcr.csv"));		 
-				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Mann_Whitney_U_Test_BCR.csv"));		 
-				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_= "+selection+ "_states="+ states +"_Whitney_U_Test_str.csv"));		 
-				final Kruskal_Wallis <String> Kruskal_Wallis_Test_BCR=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));		 
-				final Kruskal_Wallis <String> Kruskal_Wallis_Test_Structural=new Kruskal_Wallis <String>("BCR, Sicco","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));		 	 
+				final RWilcoxon <String> Wilcoxon_test_Structural=new RWilcoxon <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+"_states="+ states +"_Wilcoxon_t_str.csv"));
+				final RWilcoxon <String> Wilcoxon_Test_BCR=new RWilcoxon <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Wilcoxon_t_bcr.csv"));
+				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_BCR=new Mann_Whitney_U_Test <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states="+ states +"_Mann_Whitney_U_Test_BCR.csv"));
+				final Mann_Whitney_U_Test <String> Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_= "+selection+ "_states="+ states +"_Whitney_U_Test_str.csv"));
+				final Kruskal_Wallis <String> Kruskal_Wallis_Test_BCR=new Kruskal_Wallis <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_BCR.csv"));
+				final Kruskal_Wallis <String> Kruskal_Wallis_Test_Structural=new Kruskal_Wallis <String>("BCR, VH","BCR, EDSM-Markov learner",new File(branch+"_"+selection+ "_states_"+ states +"_Kruskal_Wallis_Test_str.csv"));
 			
 				for(int sample=0;sample<samplesPerFSM;++sample)
 				{

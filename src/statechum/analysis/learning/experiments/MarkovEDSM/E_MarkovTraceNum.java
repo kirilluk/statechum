@@ -53,7 +53,7 @@ public class E_MarkovTraceNum {
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
                                                         //														ScoringToApply.SCORING_EDSM_1, ScoringToApply.SCORING_EDSM_2, ScoringToApply.SCORING_EDSM_4,
                                                         //														ScoringToApply.SCORING_PTAK_1, ScoringToApply.SCORING_PTAK_2,
-                                                        LearningAlgorithms.ScoringToApply.SCORING_SICCO
+                                                        LearningAlgorithms.ScoringToApply.SCORING_VH
                                                 } :
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
@@ -190,7 +190,7 @@ public class E_MarkovTraceNum {
                         });
                         learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
                         learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
-                        String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_SICCO + "-0");
+                        String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
                         if (Y_Sicco != null) {
                             double sicco_score = Double.parseDouble(obtainValueFromCell(Y_Sicco, 2));
                             gr_StructuralDiffBestMap.get(traceQuantityToUse).add(sicco_score, bestLearningResult.structural, null, null);

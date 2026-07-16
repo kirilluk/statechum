@@ -248,12 +248,12 @@ public class UASPairQuality extends ExperimentPaperUAS2
  			LearnerGraph ptaSmall = LearningSupportRoutines.mergeStatesForUnique(initPTA,uniqueLabel);
    			//Visualiser.updateFrame(initPTA.transform.trimGraph(4, initPTA.getInit()), ptaSmall.transform.trimGraph(4, ptaSmall.getInit()));
    			//Visualiser.waitForKey();
- 			StateMergingStatistics redReducer = LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingSiccoScoring(referenceGraph,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
+ 			StateMergingStatistics redReducer = LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingVHScoring(referenceGraph,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_VH);
   			{
    	  			final RBoxPlot<Long> gr_PairQuality = new RBoxPlot<Long>("Correct v.s. wrong","%%",new File("percentage_score_huge_ref.pdf"));
    				final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 
-   				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, initPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO,redReducer);
+   				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, initPTA,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_VH,redReducer);
    				referenceLearner.setPairQualityCounter(pairQualityCounter,referenceGraph,null);
  		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
@@ -272,7 +272,7 @@ public class UASPairQuality extends ExperimentPaperUAS2
    				final Map<Long,TrueFalseCounter> pairQualityCounter = new TreeMap<Long,TrueFalseCounter>();
 
    				LearnerGraph ptaAfterMergingBasedOnUniques = LearningSupportRoutines.mergeStatesForUnique(initPTA,uniqueLabel);
-   				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, ptaAfterMergingBasedOnUniques,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO,redReducer);
+   				LearningAlgorithms.LearnerThatCanClassifyPairs referenceLearner = new LearningAlgorithms.LearnerThatCanClassifyPairs(initConfiguration, referenceGraph, ptaAfterMergingBasedOnUniques,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_VH,redReducer);
    				referenceLearner.setPairQualityCounter(pairQualityCounter,referenceGraph,null);
  		        LearnerGraph referenceOutcome = referenceLearner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
  		        //referenceOutcome.storage.writeGraphML("resources/"+name+"-ref_"+frame+".xml");
@@ -377,10 +377,10 @@ public class UASPairQuality extends ExperimentPaperUAS2
  		UseWekaResultsParameters parameters = new UseWekaResultsParameters(new DataCollectorParameters(ifDepth, null,false,DataCollectorParameters.enabledAll())); 	
  		MarkovParameters markovParameters = new MarkovParameters(0, 3,true, new MarkovParameters.WeightAndOffsetOfInconsistencies(1,0), true, true,1,0,1);
      	WekaDataCollector dataCollector = PairQualityLearner.createDataCollector(new DataCollectorParameters(ifDepth,null,false,DataCollectorParameters.enabledAll()), new MarkovHelper(markovParameters), null);
-		StateMergingStatistics redReducer = LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingSiccoScoring(
-				referenceGraph,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO);
+		StateMergingStatistics redReducer = LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingVHScoring(
+				referenceGraph,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_VH);
 		ReferenceLearner learner =  c != null? new PairQualityLearner.LearnerThatUsesWekaResults(parameters,learnerInitConfiguration,referenceGraph,c,initPTA, dataCollector, false):
- 					new ReferenceLearner(learnerInitConfiguration,initPTA,ReferenceLearner.OverrideScoringToApply.SCORING_SICCO,redReducer);
+ 					new ReferenceLearner(learnerInitConfiguration,initPTA,ReferenceLearner.OverrideScoringToApply.SCORING_VH,redReducer);
  			learner.setLabelsLeadingToStatesToBeMerged(labelsToMergeTo);learner.setLabelsLeadingFromStatesToBeMerged(labelsToMergeFrom);learner.setAlphabetUsedForIfThen(referenceGraph.pathroutines.computeAlphabet());
          LearnerGraph actualAutomaton = learner.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
          

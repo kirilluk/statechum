@@ -53,7 +53,7 @@ public class E_MarkovBaselineLearn {
                                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
 //                                            LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
 //                                            LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
-                                            LearningAlgorithms.ScoringToApply.SCORING_SICCO
+                                            LearningAlgorithms.ScoringToApply.SCORING_VH
                                     })
                             // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_SICCO("SV");
 
@@ -177,7 +177,7 @@ public class E_MarkovBaselineLearn {
                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
                     DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_BCRVsInconsistency, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + referencePresetStr, 10,
                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
-                    DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff, source, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 2,
+                    DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff, source, LearningAlgorithms.ScoringToApply.SCORING_VH + referencePresetStr, 2,
                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
                     DrawGraphs.spreadsheetToBagPlot(gr_MarkovTransitionPrecisionStructuralDiff, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + referencePresetStr, 15,
                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
@@ -199,7 +199,7 @@ public class E_MarkovBaselineLearn {
 //                                gr_StructuralVsInconsistency.add(Double.parseDouble(obtainValueFromCell(X, cellWithinX)), value, colour, label);
 
 
-                                String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_SICCO + "-0");
+                                String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
                                 gr_StructuralDiffLowDensity.add(
                                         Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)),
                                         Double.parseDouble(obtainValueFromCell(Y, 2)), null, null);
@@ -219,17 +219,17 @@ public class E_MarkovBaselineLearn {
                         });
                     }
 
-                    DrawGraphs.spreadsheetToBagPlot(gr_BCR, source, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
+                    DrawGraphs.spreadsheetToBagPlot(gr_BCR, source, LearningAlgorithms.ScoringToApply.SCORING_VH + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
                     DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails, source, LearningAlgorithms.ScoringToApply.SCORING_PTAK_1 + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
                     DrawGraphs.spreadsheetToBagPlot(BCRAgainstEDSM_1, source, LearningAlgorithms.ScoringToApply.SCORING_EDSM_1 + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
                     DrawGraphs.spreadsheetToBagPlot(BCRAgainstEDSM_2, source, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2 + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
 
-                    DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 1);
-                    DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 2);
-                    DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 1);
-                    DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 2);
-                    DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 1);
-                    DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_SICCO + referencePresetStr, 2);
+                    DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_VH + referencePresetStr, 1);
+                    DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_VH + referencePresetStr, 2);
+                    DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_BCR, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_VH + referencePresetStr, 1);
+                    DrawGraphs.spreadsheetAsDouble(Mann_Whitney_U_Test_Structural, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_VH + referencePresetStr, 2);
+                    DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_BCR, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_VH + referencePresetStr, 1);
+                    DrawGraphs.spreadsheetAsDouble(Kruskal_Wallis_Test_Structural, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_VH + referencePresetStr, 2);
 
                     for (@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result : new DrawGraphs.RExperimentResult[]{gr_StructuralVsInconsistency, gr_BCRVsInconsistency,
                             gr_MarkovTransitionPrecisionStructuralDiff, gr_MarkovHolePrecisionStructuralDiff, gr_StructuralDiff, gr_StructuralDiffLowDensity, gr_BCR_vs_structural,
@@ -271,7 +271,7 @@ public class E_MarkovBaselineLearn {
                             });
                             learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
                             learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
-                            String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_SICCO + "-0");
+                            String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
                             if (Y_Sicco != null)
                                 gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)), bestLearningResult.structural, null, null);
                             else

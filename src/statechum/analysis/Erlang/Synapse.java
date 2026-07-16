@@ -168,6 +168,7 @@ public class Synapse implements Runnable {
 		msgExtractTypeInformation = new OtpErlangAtom("extractTypeInformation"),
 		msgPurgeModuleInformation = new OtpErlangAtom("purgeModuleInformation"),
 		msgLearnSicco = new OtpErlangAtom("learnSicco"),
+		msgLearnVH = new OtpErlangAtom("learnVH"),
 		msgCompareWithOthers = new OtpErlangAtom("compareWithOthers"),// Args: referenceGraph, LearntGraph
 		msgLearnEDSM = new OtpErlangAtom("learnEDSM"),
 		msgLearnEDSMMARKOV = new OtpErlangAtom("learn"),
@@ -1143,7 +1144,7 @@ public class Synapse implements Runnable {
 												// in the course of learning, the learner is receptive to messages directed at its normal PID, a {Ref,terminate} command will kill it and the response will be {Ref,terminate}.
 												// Response: Ref,ok,fsm
 												// on error: Ref,failure,text_of_the_error (as string)
-												if (command.equals(msgLearnSicco) && message.arity() >= 2)
+												if ((command.equals(msgLearnVH) || command.equals(msgLearnSicco)) && message.arity() >= 2)
 												{
 													OtpErlangObject outcome;
 													try
@@ -1156,7 +1157,7 @@ public class Synapse implements Runnable {
 														for(List<Label> seq:sMinus)
 															pta.paths.augmentPTA(seq,false,false,null);
 														pta.clearColours();
-														ReferenceLearner learner = new LearningAlgorithms.ReferenceLearner(learnerInitConfiguration,pta,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_SICCO,null) {
+														ReferenceLearner learner = new LearningAlgorithms.ReferenceLearner(learnerInitConfiguration,pta,LearningAlgorithms.ReferenceLearner.OverrideScoringToApply.SCORING_VH,null) {
 
 															@Override
 															public Stack<PairScore> ChooseStatePairs(LearnerGraph graph) 

@@ -114,7 +114,7 @@ public class E_MarkovCaseStudies {
                                                 LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
                                                 LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
                                                 LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
-                                                LearningAlgorithms.ScoringToApply.SCORING_SICCO
+                                                LearningAlgorithms.ScoringToApply.SCORING_VH
                                         } :
                                         new LearningAlgorithms.ScoringToApply[]{
                                                 LearningAlgorithms.ScoringToApply.SCORING_MARKOV
@@ -238,7 +238,7 @@ public class E_MarkovCaseStudies {
                                     });
                                     learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
                                     learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
-                                    String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_SICCO + "-0");
+                                    String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
                                     if (Y_Sicco != null) {
                                         gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 2)), bestLearningResult.structural, null, null);
                                         gr_BcrDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_Sicco, 1)), bestLearningResult.bcr, null, null);

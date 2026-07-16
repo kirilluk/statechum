@@ -53,7 +53,7 @@ public class E_MarkovTraceConstSize {
                                         preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-                                                        LearningAlgorithms.ScoringToApply.SCORING_SICCO
+                                                        LearningAlgorithms.ScoringToApply.SCORING_VH
                                                 } :
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
@@ -188,7 +188,7 @@ public class E_MarkovTraceConstSize {
                         });
                         learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
                         learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
-                        String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_SICCO + "-0");
+                        String Y_Sicco = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
                         if (Y_Sicco != null) {
                             double sicco_score = Double.parseDouble(obtainValueFromCell(Y_Sicco, 2));
                             gr_StructuralDiffBestMap.get(traceLenMult).add(sicco_score, bestLearningResult.structural, null, null);

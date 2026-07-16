@@ -27,9 +27,7 @@ import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.PairScore;
 import statechum.analysis.learning.StatePair;
-import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.MarkovClassifierLG;
-import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.experiments.MarkovEDSM.WaveBlueFringe.PairScoreWithDistance;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
@@ -514,7 +512,7 @@ public class MarkovScoreComputation
 		return score;	
 	}
 	
-	public static long computeScoreSiccoInspired(LearnerGraph original,StatePair pair)
+	public static long computeScoreVHInspired(LearnerGraph original, StatePair pair)
 	{
 		assert pair.getQ() != pair.getR();
 		assert original.transitionMatrix.containsKey(pair.firstElem);
@@ -587,7 +585,7 @@ public class MarkovScoreComputation
 		if(graph.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
 			return -1;		
 		
-		if (graph.pairscores.computeScoreSicco(pair,false) < 0 && pair.getQ().getDepth()<chunkLen && pair.getR().getDepth() < chunkLen)
+		if (graph.pairscores.computeScoreVH(pair,false) < 0 && pair.getQ().getDepth()<chunkLen && pair.getR().getDepth() < chunkLen)
 			return  -1;
 		long matchscore= 0;
 		assert pair.getQ() != pair.getR();

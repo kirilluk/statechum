@@ -39,7 +39,7 @@ public class E_MarkovBaselineLearn {
 
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
-        int [] densities = new int[]{ 20 };
+        int [] densities = new int[]{ 0, 20 };
 
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : densities) {
@@ -71,7 +71,8 @@ public class E_MarkovBaselineLearn {
                                 MarkovLearningBaselineParameters parameters = new MarkovLearningBaselineParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample);
                                 parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
                                 parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
-                                parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, 0, 0, 0);
+                                parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets,
+                                        new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, 0, 0, 0);
                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                 MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);
                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
@@ -91,39 +92,41 @@ public class E_MarkovBaselineLearn {
 
                 StringBuffer csvLine = new StringBuffer();
                 csvLine.append(data.whetherLearningSuccessfulOrAborted);
-                DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceBCR.getValue());// 1
-                DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());// 2
-                DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersNearRoot);// 3
-                DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersNearRoot); // 4
-                DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersFarFromRoot);// 5
-                DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersFarFromRoot); // 6
-                DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.validMergers); // 7
-                DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());// 8
-                DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);// 9
-                DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);// 10
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceBCR.getValue());// 1
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());// 2
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersNearRoot);// 3
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersNearRoot); // 4
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersFarFromRoot);// 5
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersFarFromRoot); // 6
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.validMergers); // 7
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());// 8
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);// 9
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);// 10
 
                 if (result.parameters.learnerToUse.isMarkov()) {
-                    DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencyAverage);// 11
-                    DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencySD);// 12
-                    DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencyAlwaysPositive);// 13
-                    DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);// 14
-                    DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionPrecision);// 15
-                    DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionRecall);// 16
-                    DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovHolePrecision);// 17
-                    DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovHoleRecall);// 18
-                    DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);// 19
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencyAverage);// 11
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencySD);// 12
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencyAlwaysPositive);// 13
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);// 14
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionPrecision);// 15
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionRecall);// 16
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovHolePrecision);// 17
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovHoleRecall);// 18
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.relativeInconsistencyForReferenceGraph);// 19
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.relativeInconsistency);// 20
+                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);// 21
                 }
 
                 if (result.parameters.markovParameters.useCentreVertex) {
-                    DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+                    CSVExperimentResult.addSeparator(csvLine);
                     csvLine.append(sm.centreCorrect);
-                    DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+                    CSVExperimentResult.addSeparator(csvLine);
                     csvLine.append(sm.centrePathNumber);
                 }
                 CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.referenceGraph.pathroutines.computeAlphabet().size());
                 CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(100. * ConfusionMatrix.divide(sm.referenceGraph.pathroutines.countEdges(),sm.referenceGraph.getStateNumber()*sm.referenceGraph.getStateNumber())));
-                DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.transitionsSampled);
-                DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime / 1000000000.));// execution time is in nanoseconds, we only need seconds.
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.transitionsSampled);
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime / 1000000000.));// execution time is in nanoseconds, we only need seconds.
                 experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
             }
 
@@ -263,8 +266,8 @@ public class E_MarkovBaselineLearn {
                                 double structural = Double.parseDouble(obtainValueFromCell(Y, 2));
                                 long inconsistency = Long.parseLong(obtainValueFromCell(Y, 10));
 
-                                if (learntOK && alwaysPositive)
-                                    bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, columnText));
+                                if (learntOK)
+                                    bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText));
                             });
                             learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
                             learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);

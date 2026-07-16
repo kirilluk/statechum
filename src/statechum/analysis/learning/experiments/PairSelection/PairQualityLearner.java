@@ -1693,9 +1693,15 @@ public class PairQualityLearner
 		public long ptaTotalNodes = 0;
 		/** How many tail nodes there was in the original PTA. */
 		public long ptaTailNodes = 0;
+		/** Compares inconsistency of the obtained solution to inconsistencies of random graphs using similar characteristics
+		 * (density, number of states and alphabet size) with the intention to check whether the obtained value of inconsistency (with
+		 * Markov model obtained from PTA) is indicative of a good-quality model or not: if random automata have broadly similar
+		 * inconsistencies, the outcome is decidedly poor.
+		 */
+		public double relativeInconsistency;
 
 		public long executionTime;
-		
+
 		@Override
 		public double getValue()
 		{
@@ -1759,6 +1765,14 @@ public class PairQualityLearner
 
 		/** How many comparisons have been performed as part of learning. */
 		public long comparisonsPerformed;
+		/** Evaluation whether self-inconsistency within a graph is comparable to inconsistencies in random graphs.
+		 * In a sparse graph with a large alphabet, many states are easily identifiable hence self-inconsistency is low. If a graph is
+		 * somewhat dense (such as 20% for 20- or 40-states), there are many short paths that do not uniquely identify states. In this case,
+		 * markov matrix computed from a graph might give similar inconsistencies to an automaton it is computed from (high self-inconsistency)
+		 * and to randomly-generated automata, indicating that the inconsistency heuristic is not a helpful tool to guide EDSM
+		 * when learning those automata.
+ 		 */
+		public double relativeInconsistencyForReferenceGraph;
 
 		public SampleData()
 		{

@@ -161,7 +161,8 @@ public class CVS
 											MarkovLearningParameters parameters = new MarkovCVSParameters(learnerKind,states, alphabetMultiplier, density, sample, trainingSample);
 											parameters.setTraceLengthMultiplier(traceLengthMultiplierMax);
 											parameters.setExperimentID(traceQuantityToUse,traceLengthMultiplierMax, alphabetMultiplier);
-											parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,weightOfInconsistencies,penaliseMissingPaths,aveOrMax,divisorForPathCount,0,1);
+											parameters.markovParameters.setMarkovParameters(preset, chunkSize,true,
+													new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0),penaliseMissingPaths,aveOrMax,divisorForPathCount,0,1);
 											parameters.setUsePrintf(experimentRunner.isInteractive());
 											MarkovLearnerFromPTAUsingReference learnerRunner = new MarkovLearnerFromPTAUsingReference(parameters, ev,pta, getCVSReference(eval));
 											learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).

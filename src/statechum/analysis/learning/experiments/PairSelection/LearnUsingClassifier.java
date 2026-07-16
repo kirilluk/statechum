@@ -123,7 +123,8 @@ public class LearnUsingClassifier {
 											final PairQualityParameters pars = new PairQualityParameters(states, sample, trainingSample);
 											pars.setExperimentParameters(true,collectorPars, onlyPositives, useUnique, alphabetMultiplier, traceQuantityToUse, traceLengthMultiplier, trainingDataMultiplier);
 											pars.setInnerParameters(parametersInnerLearner);
-											pars.dataCollectorParameters.markovParameters.setMarkovParameters(0,3,true,1.0,true,false,2,0,1);
+											pars.dataCollectorParameters.markovParameters.setMarkovParameters(0,3,true,
+													new MarkovParameters.WeightAndOffsetOfInconsistencies(1, 0),true,false,2,0,1);
 											{// first, use the learner with a classifier
 												PairQualityParameters parameters = new PairQualityParameters(pars);
 												parameters.setColumn("WithClassifier");

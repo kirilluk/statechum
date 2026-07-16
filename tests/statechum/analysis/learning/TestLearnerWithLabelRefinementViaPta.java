@@ -164,7 +164,8 @@ public class TestLearnerWithLabelRefinementViaPta
 	{
 		LearnerEvaluationConfiguration evalConfig = new LearnerEvaluationConfiguration(Configuration.getDefaultConfiguration().copy());
 		LearnerGraph initialPta = new LearnerGraph(evalConfig.config);initialPta.initPTA();
-		MarkovParameters markovParameters = new MarkovParameters();markovParameters.setMarkovParameters(0, 3,true, 1, true,true,1,0,1);
+		MarkovParameters markovParameters = new MarkovParameters();markovParameters.setMarkovParameters(0, 3,true,
+			new MarkovParameters.WeightAndOffsetOfInconsistencies(1, 0), true,true,1,0,1);
 		LearnerWithLabelRefinementViaPta learner = new LearnerWithLabelRefinementViaPta(evalConfig,initialPta,0,markovParameters,null);
 		LearnerGraph abstractGraph = LearnerWithLabelRefinementViaPta.AbstractLabel.convertAbstractGraphToTextGraph(learner.abstractInitialGraph('('));
 		LearnerGraph expected = new LearnerGraph(evalConfig.config);expected.initPTA();

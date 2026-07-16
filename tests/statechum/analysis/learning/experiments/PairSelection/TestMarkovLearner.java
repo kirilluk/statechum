@@ -464,7 +464,7 @@ public class TestMarkovLearner
 		m.buildMarkovMatrixFromAutomaton(graph);
 		MarkovClassifier.ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		double value = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(graph,conv,m,checker,10);
-		Assert.assertEquals(1.399999992,value, 1e-8);
+		Assert.assertEquals(1./1.399999992,value, 1e-8);
 	}
 
 

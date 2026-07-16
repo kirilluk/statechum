@@ -1482,6 +1482,9 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 	 * the existing model to determine inconsistencies. If we get much larger values compared to that from the provided graph,
 	 * it means that the inconsistency value is 'good'. If the two are comparable, it means that any old random graph is
 	 * indistinguishable (inconsistency-wise) from what we are comparing it with. This is bad.
+	 * The lower the reported value, the better the 'quality' of the evaluated graph. Zero means that it is perfectly consistent which is helpful
+	 * (although there would be many perfectly-consistent graphs). Above zero is where it is genuinely useful: it shows whether randomly-generated
+	 * graphs have a significantly different inconsistency (they could potentially have lower values but it is considered unlikely).
 	 */
 	public static double evaluateSignificanceOfObtainedInconsistency(LearnerGraph automatonToBaseRandomGraphOn, Transform.ConvertALabel converter,
                                                                      MarkovModel markovModel, ConsistencyChecker checker, int numberOfAutomataToGenerate) {
@@ -1510,7 +1513,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 		}
 
 		double epsilon = 1e-8;
-		return Math.abs(epsilon + inconsistencyForTheSuppliedGraph - totalInconsistency / numberOfAutomataToGenerate)/(inconsistencyForTheSuppliedGraph+epsilon);
+		return (inconsistencyForTheSuppliedGraph+epsilon)/Math.abs(epsilon + inconsistencyForTheSuppliedGraph - totalInconsistency / numberOfAutomataToGenerate);
 	}
 
 }

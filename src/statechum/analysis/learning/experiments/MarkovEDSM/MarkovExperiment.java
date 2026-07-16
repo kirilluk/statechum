@@ -79,13 +79,13 @@ public class MarkovExperiment
 			MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
 			
 			try {
-				// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
+			// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
 				referenceGraph = mg.nextMachine(alphabet, density,Objects.hash(par.sample,par.perStateSquaredDensityMultipliedBy100,par.states), learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
 			} catch (IncompatibleStatesException e) {
 				Helper.throwUnchecked("failed to generate graph", e);
 			}
 		}
-		
+
 		/** Constructs a PTA to learn an FSM from. This could be based on a reference graph or obtained externally. */
 		public LearnerGraph constructPTA()
 		{
@@ -286,6 +286,10 @@ public class MarkovExperiment
 						square_diff += (value - average) * (value - average);
 					dataSample.actualLearner.inconsistencySD = Math.sqrt(square_diff/redReducer.getInconsistencyValues().size());
 				}
+				final MarkovModel markovModelFromReference = new MarkovModel(par.markovParameters.chunkLen,true,true,true,false);
+				markovModelFromReference.buildMarkovMatrixFromAutomaton(referenceGraph);
+				dataSample.relativeInconsistencyForReferenceGraph = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(referenceGraph,learnerInitConfiguration.getLabelConverter(),markovModelFromReference,checker,20);
+				dataSample.actualLearner.relativeInconsistency = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(actualAutomaton,learnerInitConfiguration.getLabelConverter(),markovModel,checker,20);
 			}
 			if (par.usePrintf) {
 				if (dataSample.actualLearner.differenceBCR.getValue() < 1.0 && dataSample.actualLearner.differenceStructural.getValue() == 1.0)
@@ -522,19 +526,21 @@ public class MarkovExperiment
 		double bcr = 0, structural = 0;
 		String descr = "NONE";
 		long inconsistency = -1;
+		boolean alwaysPositive = true;
 
 		public LearningReport() {
 		}
 
-		public LearningReport(double bcr, double structural, long inconsistency, String descr) {
+		public LearningReport(double bcr, double structural, long inconsistency, boolean alwaysPositive, String descr) {
 			this.bcr = bcr;
 			this.structural = structural;
 			this.inconsistency = inconsistency;
 			this.descr = descr;
+			this.alwaysPositive = alwaysPositive;
 		}
 
 		public void updateIfValueBetter(LearningReport report) {
-			if ((inconsistency < 0 && report.inconsistency >= 0) || inconsistency > report.inconsistency) {
+			if ((inconsistency < 0 && report.inconsistency >= 0) || inconsistency > report.inconsistency || (!alwaysPositive && report.alwaysPositive)) {
 				bcr = report.bcr;
 				structural = report.structural;
 				inconsistency = report.inconsistency;
@@ -547,11 +553,11 @@ public class MarkovExperiment
 		DrawGraphs gr = new DrawGraphs();
 
 		final int fsmSamplesPerStateNumber = 40;
-		final int trainingSamplesPerFSM = 4;
+		final int trainingSamplesPerFSM = 2;
 		final double traceLengthMultiplierMax = 16;
 
 		final boolean pathsOrSets = true;
-		final int[] statesToUse = new int[]{40};
+		final int[] statesToUse = new int[]{20};
 		// Scales the number of traces to account for larger automata
 		final int stateScale = statesToUse[0]/10;
 
@@ -589,8 +595,8 @@ public class MarkovExperiment
 		try
 		{
 //			E_MarkovCaseStudies.runExperiment(learningGroup);
-//			E_MarkovBaselineLearn.runExperiment(learningGroup);
-			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
+			E_MarkovBaselineLearn.runExperiment(learningGroup);
+//			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			E_MarkovCentre.runExperiment(learningGroup);
 //			E_MarkovAlphabet.runExperiment(learningGroup);
 //			E_MarkovTraceMult.runExperiment(learningGroup);

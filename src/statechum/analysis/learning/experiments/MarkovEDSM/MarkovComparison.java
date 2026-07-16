@@ -85,7 +85,7 @@ public class MarkovComparison {
                     long inconsistency = Long.parseLong(obtainValueFromCell(cellY, 10));
 
                     if (learntOK)
-                        bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, null));
+                        bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, true, null));
                 }
                 gr_BestVsWithAllPaths.add(valueB, bestLearningResult.structural);
                 Wilcoxon_test_best.add(valueB, bestLearningResult.structural);
@@ -132,7 +132,8 @@ public class MarkovComparison {
                                 E_MarkovBaselineLearn.MarkovLearningBaselineParameters parameters = new E_MarkovBaselineLearn.MarkovLearningBaselineParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample);
                                 parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
                                 parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
-                                parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, 0, 0, 0);
+                                parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets,
+                                        new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, 0, 0, 0);
                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                 MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev) {
                                     @Override

@@ -131,7 +131,8 @@ public class E_MarkovCaseStudies {
                                         MarkovLearningBaselineParameters parameters = new MarkovLearningBaselineParameters(learnerKind, states, 0, 0, casestudy, trainingSample);
                                         parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
                                         parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, 0);
-                                        parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets, weightOfInconsistencies, penaliseMissingPaths, aveOrMax, wlen_divisor.secondElem, 0, wlen_divisor.firstElem);
+                                        parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets,
+                                                new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, wlen_divisor.secondElem, 0, wlen_divisor.firstElem);
                                         parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                         MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(parameters, ev);
                                         learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
@@ -169,7 +170,9 @@ public class E_MarkovCaseStudies {
                         CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionRecall);// 16
                         CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovHolePrecision);// 17
                         CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovHoleRecall);// 18
-                        CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);// 19
+                        CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.relativeInconsistencyForReferenceGraph);// 19
+                        CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.relativeInconsistency);// 20
+                        CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);// 21
                     }
 
                     if (result.parameters.markovParameters.useCentreVertex) {
@@ -230,8 +233,8 @@ public class E_MarkovCaseStudies {
                                         int presetCurrent = Integer.parseInt(columnValues[0].substring(LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString().length() + 1));
                                         boolean centreCurrent = presetCurrent > 0;
 
-                                        if (learntOK && alwaysPositive && centreCurrent == useCentre)
-                                            bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, columnText));
+                                        if (learntOK && centreCurrent == useCentre)
+                                            bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText));
                                     });
                                     learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
                                     learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);

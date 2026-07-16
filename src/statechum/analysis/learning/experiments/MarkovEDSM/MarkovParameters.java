@@ -140,11 +140,6 @@ public class MarkovParameters {
 		}
 	}
 
-	public void setMarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, double weight, boolean addPenaltyForMissingPaths, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
-	{
-		setMarkovParameters(pr, chunkLength, argPathsOrSets, new WeightAndOffsetOfInconsistencies(weight, 0), addPenaltyForMissingPaths, aveOrMax, divisor, mostConnectedVertex, wlen);
-	}
-
 	public void setMarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, WeightAndOffsetOfInconsistencies weight, boolean addPenaltyForMissingPaths, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
 	{
 		chunkLen=chunkLength;pathsOrSets = argPathsOrSets;preset = pr;weightOfInconsistencies = weight;penaliseMissingPaths = addPenaltyForMissingPaths;
@@ -243,7 +238,7 @@ public class MarkovParameters {
 			outcome+="_dv="+(useAverageOrMax?"A":"M")+"_d="+divisorForPathCount+"_wl="+expectedWLen+"_b="+(blue_states_forward_and_backwards?"T":"F");
 		}
 		if (useMarkovLearner)
-			outcome+="_cl="+chunkLen+"_w="+weightOfInconsistencies+"_m="+penaliseMissingPaths;
+			outcome+="_cl="+chunkLen+"_wW="+weightOfInconsistencies.weight+"_wO="+weightOfInconsistencies.offset+"_m="+penaliseMissingPaths;
 		
 		return outcome;
 	}

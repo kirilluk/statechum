@@ -18,12 +18,10 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.util.*;
-import java.util.Map.Entry;
 
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
-import statechum.Label;
 import statechum.analysis.learning.MarkovClassifier;
 import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
@@ -107,9 +105,9 @@ public class MarkovHelperClassifier
 		return outcome;
 	}
 	
-	public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
+	public Collection<CmpVertex> getSurroundingStates(CmpVertex currentRed)
 	{
-		return	WaveBlueFringe.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
+		return	WaveBlueFringe.obtainSurroundingStates(coregraph,inverseGraph,currentRed);
 	}
 	
 	public MarkovModel [] getModels()

@@ -259,6 +259,7 @@ public class E_MarkovBaselineLearn {
                     final RBoxPlot<String> gr_RuntimeOfLearners = new RBoxPlot<>("", "Runtime, seconds",
                             new File(learningGroup.outPathPrefix + "baseline_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_runtime.pdf"));
                     gr_PerformanceOfLearners.setOtherOptions("las=2");
+                    gr_RuntimeOfLearners.setOtherOptions("las=2");
                     // Now select the best result from all those available
                     for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                         final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();

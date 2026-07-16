@@ -2727,34 +2727,37 @@ public class TestMarkovLearner
 	}
 	
 	
-	public String collectionOfTransitionsToString(Collection<Map.Entry<Label,CmpVertex>> c)
+	public String collectionOfStatesToString(Collection<CmpVertex> c)
 	{
-		StringBuilder outcome = new StringBuilder();
-		for(Map.Entry<Label,CmpVertex> entry:c)
+		StringBuilder outcome = new StringBuilder();outcome.append('{');
+		for(CmpVertex state:new TreeSet<>(c))
 		{
-			outcome.append('{');outcome.append(entry.getKey().toString());outcome.append(',');outcome.append(entry.getValue().toString());outcome.append('}');
+			if (outcome.length() > 1)
+				outcome.append(',');
+			outcome.append(state);
 		}
+		outcome.append('}');
 		return outcome.toString();
 	}
 	
 	@Test
-	public void testConstructSurroundingTransitions0()
+	public void testConstructSurroundingStates0()
 	{
-		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-t->B", "testConstructSurroundingTransitions0",config,converter);
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-t->B", "testConstructSurroundingStates0",config,converter);
 		fsm.transitionMatrix.get(VertexID.parseID("A")).clear();fsm.transitionMatrix.remove(VertexID.parseID("B"));
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("A"));
-		Assert.assertEquals("",collectionOfTransitionsToString(surroundingTransitions));
+		Collection<CmpVertex> surroundingStates = WaveBlueFringe.obtainSurroundingStates(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("A"));
+		Assert.assertEquals("{}", collectionOfStatesToString(surroundingStates));
 		Assert.assertEquals(0,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
 		Assert.assertEquals(fsm.findVertex("A"),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),0));
 		Assert.assertEquals(fsm.findVertex("A"),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),1));
 	}
 
 	@Test
-	public void testConstructSurroundingTransitions1a()
+	public void testConstructSurroundingStates1a()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("A"));
-		Assert.assertEquals("{t,B}",collectionOfTransitionsToString(surroundingTransitions));
+		Collection<CmpVertex> surroundingStates = WaveBlueFringe.obtainSurroundingStates(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("A"));
+		Assert.assertEquals("{B}", collectionOfStatesToString(surroundingStates));
 		Assert.assertEquals(1,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
 		Assert.assertEquals(2,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("B")));
 		Assert.assertEquals(1,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("C")));
@@ -2763,7 +2766,7 @@ public class TestMarkovLearner
 
 	/** Tests that the second best can be returned. */
 	@Test
-	public void testConstructSurroundingTransitions1b()
+	public void testConstructSurroundingStates1b()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
 		Assert.assertEquals(fsm.getInit(),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),1));
@@ -2771,7 +2774,7 @@ public class TestMarkovLearner
 
 	/** Tests that the third best can be returned. */
 	@Test
-	public void testConstructSurroundingTransitions1c()
+	public void testConstructSurroundingStates1c()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->A-t->B-b->C-b->C", "testTracePath1",config,converter);
 		Assert.assertEquals(fsm.findVertex(VertexID.parseID("C")),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),2));
@@ -2779,45 +2782,45 @@ public class TestMarkovLearner
 
 	/** Tests that fourth best is the same as third best. */
 	@Test
-	public void testConstructSurroundingTransitions1d()
+	public void testConstructSurroundingStates1d()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-b->A-t->B-b->C", "testTracePath1",config,converter);
 		Assert.assertEquals(fsm.findVertex(VertexID.parseID("C")),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),3));
 	}
 
 	@Test
-	public void testConstructSurroundingTransitions2()
+	public void testConstructSurroundingStates2()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
-		Assert.assertEquals("{b,C}{t,A}",collectionOfTransitionsToString(surroundingTransitions));
+		Collection<CmpVertex> surroundingStates = WaveBlueFringe.obtainSurroundingStates(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Assert.assertEquals("{A,C}", collectionOfStatesToString(surroundingStates));
 	}
 	
 	@Test
-	public void testConstructSurroundingTransitions3()
+	public void testConstructSurroundingStates3()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("C"));
-		Assert.assertEquals("{b,B}",collectionOfTransitionsToString(surroundingTransitions));
+		Collection<CmpVertex> surroundingStates = WaveBlueFringe.obtainSurroundingStates(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("C"));
+		Assert.assertEquals("{B}", collectionOfStatesToString(surroundingStates));
 	}
 	
 	/** Now with RED labels. */
 	@Test
-	public void testConstructSurroundingTransitions4()
+	public void testConstructSurroundingStates4()
 	{
 		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
 		fsm.findVertex("B").setColour(JUConstants.RED);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("C"));
-		Assert.assertEquals("",collectionOfTransitionsToString(surroundingTransitions));
+		Collection<CmpVertex> surroundingStates = WaveBlueFringe.obtainSurroundingStates(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("C"));
+		Assert.assertEquals("{}", collectionOfStatesToString(surroundingStates));
 	}
 
 	/** This one contains self-loops that should only be reported once. */ 
 	@Test
-	public void testConstructSurroundingTransitions5()
+	public void testConstructSurroundingStates5()
 	{
-		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B-q->B/B-u->A", "testConstructSurroundingTransitions5",config,converter);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
-		Assert.assertEquals("{a,A}{b,C}{c,Z}{g,T}{p,B}{q,B}{u,A}{a,T}{b,A}{c,A}{u,A}",collectionOfTransitionsToString(surroundingTransitions));
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B-q->B/B-u->A", "testConstructSurroundingStates5",config,converter);
+		Collection<CmpVertex> surroundingStates = WaveBlueFringe.obtainSurroundingStates(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Assert.assertEquals("{A,B,C,T,Z}", collectionOfStatesToString(surroundingStates));
 
 		Assert.assertEquals(6,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
 		Assert.assertEquals(11,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("B")));
@@ -2828,12 +2831,12 @@ public class TestMarkovLearner
 	
 	/** Similar to above, but with RED states. */
 	@Test
-	public void testConstructSurroundingTransitions6()
+	public void testConstructSurroundingStates6()
 	{
-		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B/B-u->A", "testConstructSurroundingTransitions5",config,converter);
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B/B-u->A", "testConstructSurroundingStates5",config,converter);
 		fsm.findVertex("B").setColour(JUConstants.RED);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
-		Assert.assertEquals("{a,A}{b,C}{c,Z}{g,T}{u,A}{a,T}{b,A}{c,A}{u,A}",collectionOfTransitionsToString(surroundingTransitions));
+		Collection<CmpVertex> surroundingStates = WaveBlueFringe.obtainSurroundingStates(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Assert.assertEquals("{A,C,T,Z}", collectionOfStatesToString(surroundingStates));
 
 		Assert.assertEquals(6,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("A")));
 		Assert.assertEquals(10,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.findVertex("B")));
@@ -2842,43 +2845,33 @@ public class TestMarkovLearner
 	
 	/** Similar to above, but with RED states. */
 	@Test
-	public void testConstructSurroundingTransitions7()
+	public void testConstructSurroundingStates7()
 	{
-		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B/B-u->A", "testConstructSurroundingTransitions5",config,converter);
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B/B-u->A", "testConstructSurroundingStates5",config,converter);
 		fsm.findVertex("B").setColour(JUConstants.RED);fsm.findVertex("A").setColour(JUConstants.RED);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
-		Assert.assertEquals("{b,C}{c,Z}{g,T}{a,T}",collectionOfTransitionsToString(surroundingTransitions));
+		Collection<CmpVertex> surroundingStates = WaveBlueFringe.obtainSurroundingStates(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Assert.assertEquals("{C,T,Z}", collectionOfStatesToString(surroundingStates));
 	}
 	
 	/** Similar to above, but with RED states. */
 	@Test
-	public void testConstructSurroundingTransitions8()
+	public void testConstructSurroundingStates8()
 	{
-		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B/B-u->A", "testConstructSurroundingTransitions5",config,converter);
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-u->B-b->C / A-a->A / A-b->B / A-c->B /T-a->B/B-a->A/B-g->T/B-c->Z/B-p->B/B-u->A", "testConstructSurroundingStates5",config,converter);
 		fsm.findVertex("A").setColour(JUConstants.RED);
-		Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
-		Assert.assertEquals("{b,C}{c,Z}{g,T}{p,B}{a,T}",collectionOfTransitionsToString(surroundingTransitions));
+		Collection<CmpVertex> surroundingStates = WaveBlueFringe.obtainSurroundingStates(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("B"));
+		Assert.assertEquals("{B,C,T,Z}", collectionOfStatesToString(surroundingStates));
 	}
 	
 	@Test
-	public void testConstructSurroundingTransitions9()
-	{
-		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-t->B-b->C", "testTracePath1",config,converter);
-		final Collection<Map.Entry<Label,CmpVertex>> surroundingTransitions = WaveBlueFringe.obtainSurroundingTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm), fsm.findVertex("A"));
-		TestHelper.checkForCorrectException(
-				() -> surroundingTransitions.iterator().next().setValue(fsm.findVertex("A")),
-				UnsupportedOperationException.class, "changing values of this map entry is not permitted");
-	}
-	
-	@Test
-	public void testConstructSurroundingTransitions10()
+	public void testConstructSurroundingStates10()
 	{
 		final LearnerGraph fsm = new LearnerGraph(config);
 		Assert.assertEquals(0,WaveBlueFringe.countTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),fsm.getInit()));
 		Assert.assertEquals(fsm.getInit(),WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),0));
 	}	
 	@Test
-	public void testConstructSurroundingTransitions11()
+	public void testConstructSurroundingStates11()
 	{
 		final LearnerGraph fsm = new LearnerGraph(config);fsm.initEmpty();
 		Assert.assertNull(WaveBlueFringe.findVertexWithMostTransitions(fsm, MarkovClassifier.computeInverseGraph(fsm),0));

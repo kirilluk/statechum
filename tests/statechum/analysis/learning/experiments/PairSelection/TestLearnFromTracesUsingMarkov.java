@@ -128,9 +128,9 @@ public class TestLearnFromTracesUsingMarkov
 
 		/** This one returns a set of transitions in all directions. */
 		@Override
-		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
+		public Collection<CmpVertex> getSurroundingStates(CmpVertex currentRed)
 		{
-			return	WaveBlueFringe.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
+			return	WaveBlueFringe.obtainSurroundingStates(coregraph,inverseGraph,currentRed);
 		}
 
 		@Override

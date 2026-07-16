@@ -468,7 +468,7 @@ public class TestMiscLearningRoutines
 				}
 
 				@Override
-				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+				public Collection<CmpVertex> getSurroundingStates(@SuppressWarnings("unused") CmpVertex currentRed)
 				{
 					return null;// dummy, ignored if null.
 				}
@@ -545,7 +545,7 @@ public class TestMiscLearningRoutines
 				}
 
 				@Override
-				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+				public Collection<CmpVertex> getSurroundingStates(@SuppressWarnings("unused") CmpVertex currentRed)
 				{
 					return null;// dummy, ignored if null.
 				}

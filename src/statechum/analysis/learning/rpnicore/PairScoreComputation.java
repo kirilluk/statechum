@@ -66,7 +66,7 @@ public class PairScoreComputation {
 		 * @param currentRed supplied state
 		 * @return a Map of labels to the following states.
 		 */
-		Collection<Entry<Label,CmpVertex>> getSurroundingTransitions(CmpVertex currentRed);
+		Collection<CmpVertex> getSurroundingStates(CmpVertex currentRed);
 
 		/** Usual blue fringe will promote the first found blue state that is not compatible with any red states to red.
 		 * An alternative is to collect a set of all such blue states and use a decision procedure to choose the
@@ -126,14 +126,13 @@ public class PairScoreComputation {
 			{
 				CmpVertex currentRed = currentRedIter.next();
 
-				Collection<Entry<Label,CmpVertex>> surrounding = decisionProcedure == null?null:decisionProcedure.getSurroundingTransitions(currentRed);
-				if (surrounding == null) surrounding = coregraph.transitionMatrix.get(currentRed).entrySet();
-				for(Entry<Label,CmpVertex> BlueEntry:surrounding)
-					if (BlueEntry.getValue().getColour() == null || 
-							BlueEntry.getValue().getColour() == JUConstants.BLUE)
+				Collection<CmpVertex> surrounding = decisionProcedure == null?null:decisionProcedure.getSurroundingStates(currentRed);
+				if (surrounding == null) surrounding = coregraph.transitionMatrix.get(currentRed).values();
+				for(CmpVertex currentBlueState:surrounding)
+					if (currentBlueState.getColour() == null ||
+							currentBlueState.getColour() == JUConstants.BLUE)
 					{// the next vertex is not marked red, hence it has to become blue
-						CmpVertex currentBlueState = BlueEntry.getValue();
-						
+
 						int numberOfCompatiblePairs = 0;
 						for(CmpVertex oldRed:reds)
 						{

@@ -27,7 +27,8 @@ public class MarkovComparison {
     public static void main(String []args) {
         SGE_ExperimentRunner.PhaseEnum curPhase = null;
         List<DrawGraphs.CSVExperimentResult> twoExperiments = new ArrayList<>();
-        String [] experimentsToCompare = new String[]{"without_all_paths-markov","with_all_paths-markov"};
+        String [] experimentsToCompare = new String[]{"jul_array-markov","jul_hashmap-markov"};
+        String description = "matrix_types";
         for(String namePrefix: experimentsToCompare) {
             String outDir = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_EXPERIMENTRESULTS) + File.separator + namePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
             UASExperiment.mkDir(outDir);
@@ -54,14 +55,16 @@ public class MarkovComparison {
         if (curPhase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || curPhase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
             DrawGraphs gr = new DrawGraphs();
             String pathToResult = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_EXPERIMENTRESULTS) + File.separator;
-            final DrawGraphs.SquareBagPlot gr_Comparison = new DrawGraphs.SquareBagPlot(experimentsToCompare[0], experimentsToCompare[1],
-                    new File(pathToResult+"comparison.pdf"),0, 1, true);
+            final DrawGraphs.SquareBagPlot gr_StructuralDiffComparison = new DrawGraphs.SquareBagPlot(experimentsToCompare[0], experimentsToCompare[1],
+                    new File(pathToResult+description+"-"+"comparison.pdf"),0, 1, true);
+            final DrawGraphs.RBagPlot gr_TimeComparison = new DrawGraphs.RBagPlot(experimentsToCompare[0], experimentsToCompare[1],
+                    new File(pathToResult+description+"-"+"timecomparison.pdf"));
             final DrawGraphs.SquareBagPlot gr_BestVsWithAllPaths = new DrawGraphs.SquareBagPlot(experimentsToCompare[1], "Best between the two",
-                    new File(pathToResult+"best_vs_all_paths.pdf"),0, 1, true);
+                    new File(pathToResult+description+"-"+"best_vs_all_paths.pdf"),0, 1, true);
             final DrawGraphs.SquareBagPlot gr_BestAgainstVH = new DrawGraphs.SquareBagPlot("VH", "Best between the two",
-                    new File(pathToResult+"best_vs_VH.pdf"),0, 1, true);
-            final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_best = new DrawGraphs.WilcoxonPairedTest(new File(pathToResult + "Wilcoxon_t_best.csv"));
-            final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_all_paths = new DrawGraphs.WilcoxonPairedTest(new File(pathToResult + "Wilcoxon_t_all_paths.csv"));
+                    new File(pathToResult+description+"-"+"best_vs_VH.pdf"),0, 1, true);
+            final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_best = new DrawGraphs.WilcoxonPairedTest(new File(pathToResult + description+"-"+"Wilcoxon_t_best.csv"));
+            final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_all_paths = new DrawGraphs.WilcoxonPairedTest(new File(pathToResult + description+"-"+"Wilcoxon_t_all_paths.csv"));
             for (Map.Entry<String, Map<String, String>> rowEntryA : twoExperiments.get(0).rowColumnText.entrySet()) {
                 Map<String, String> entryB = twoExperiments.get(1).rowColumnText.get(rowEntryA.getKey());
                 String cellsA = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString());
@@ -71,7 +74,11 @@ public class MarkovComparison {
 
                 String Y_VH = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
 
-                gr_Comparison.add(valueA, valueB);
+                String [] cellsA_split=cellsA.split(",");
+                String [] cellsB_split=cellsB.split(",");
+
+                gr_StructuralDiffComparison.add(valueA, valueB);
+                gr_TimeComparison.add(Double.parseDouble(cellsA_split[cellsA_split.length-1]), Double.parseDouble(cellsB_split[cellsB_split.length-1]));
                 Wilcoxon_test_all_paths.add(valueA, valueB);
 
 
@@ -91,7 +98,7 @@ public class MarkovComparison {
                 gr_BestAgainstVH.add(Double.parseDouble(obtainValueFromCell(Y_VH, 2)),bestLearningResult.structural);
             }
 
-            gr_Comparison.reportResults(gr);gr_BestVsWithAllPaths.reportResults(gr);
+            gr_StructuralDiffComparison.reportResults(gr);gr_TimeComparison.reportResults(gr);gr_BestVsWithAllPaths.reportResults(gr);
             Wilcoxon_test_best.reportResults(gr);Wilcoxon_test_all_paths.reportResults(gr);
             gr_BestAgainstVH.reportResults(gr);
         }
@@ -116,8 +123,8 @@ public class MarkovComparison {
                             for (LearningAlgorithms.ScoringToApply learnerKind :
                                     new LearningAlgorithms.ScoringToApply[]{
                                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-                                            LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
-                                            LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
+//                                            LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
+//                                            LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
                                             LearningAlgorithms.ScoringToApply.SCORING_VH
                                     })
                             {

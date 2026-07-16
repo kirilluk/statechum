@@ -1094,7 +1094,7 @@ public class LearningAlgorithms
 				}
 
 				@Override
-				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(@SuppressWarnings("unused") CmpVertex currentRed) 
+				public Collection<CmpVertex> getSurroundingStates(@SuppressWarnings("unused") CmpVertex currentRed)
 				{
 					return null;// dummy, ignored if null.
 				}
@@ -1557,7 +1557,7 @@ public class LearningAlgorithms
 		/** This one returns a set of transitions in all directions. */
 		@SuppressWarnings("unused")
 		@Override
-		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
+		public Collection<CmpVertex> getSurroundingStates(CmpVertex currentRed)
 		{
 			return null;
 		}

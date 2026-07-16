@@ -18,17 +18,8 @@
 
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Stack;
-import java.util.TreeMap;
 import java.util.concurrent.Callable;
 
 import statechum.Configuration;
@@ -74,30 +65,13 @@ public class WaveBlueFringe extends PairQualityLearner
 	 * @param whereToAddTransitions collection of transitions to populate, not defined as a map to permit non-deterministic choice.
 	 */
 	private static <TARGET_A_TYPE,CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>> 
-		void addTransitionsFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex currentRed,
-								boolean includeSelf, Collection<Entry<Label,CmpVertex>> whereToAddTransitions)
+		void addStatesFrom(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph, CmpVertex currentRed,
+						   boolean includeSelf, Collection<CmpVertex> whereToAddTransitions)
 	{
 		for(final Entry<Label,TARGET_A_TYPE> incoming:coregraph.transitionMatrix.get(currentRed).entrySet())
 			for(final CmpVertex v:coregraph.getTargets(incoming.getValue()))
 				if (v.getColour() != JUConstants.RED && (includeSelf || v != currentRed))
-					whereToAddTransitions.add(new Map.Entry<Label,CmpVertex>(){
-						final Label key = incoming.getKey();
-						final CmpVertex target = v;
-						@Override
-						public Label getKey() {
-							return key;
-						}
-
-						@Override
-						public CmpVertex getValue() {
-							return target;
-						}
-
-						@Override
-						public CmpVertex setValue(@SuppressWarnings("unused") CmpVertex value) 
-						{
-							throw new UnsupportedOperationException("changing values of this map entry is not permitted");
-						}});
+					whereToAddTransitions.add(v);
 	}
 	
 	/** Given a graph, counts transitions exiting a supplied state.
@@ -129,13 +103,14 @@ public class WaveBlueFringe extends PairQualityLearner
 	public static <TARGET_A_TYPE,TARGET_B_TYPE,
 		CACHE_A_TYPE extends CachedData<TARGET_A_TYPE, CACHE_A_TYPE>,
 		CACHE_B_TYPE extends CachedData<TARGET_B_TYPE, CACHE_B_TYPE>>
-		Collection<Map.Entry<Label,CmpVertex>>
-		obtainSurroundingTransitions(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph,
-									 AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph, CmpVertex currentRed)
+		Collection<CmpVertex>
+	obtainSurroundingStates(AbstractLearnerGraph<TARGET_A_TYPE, CACHE_A_TYPE> coregraph,
+							AbstractLearnerGraph<TARGET_B_TYPE, CACHE_B_TYPE> inverseGraph, CmpVertex currentRed)
 	{
-		Collection<Entry<Label,CmpVertex>> surroundingTransitions = new ArrayList<Entry<Label,CmpVertex>>();
-		addTransitionsFrom(coregraph, currentRed,true, surroundingTransitions);addTransitionsFrom(inverseGraph, currentRed,false, surroundingTransitions);
-		return surroundingTransitions;
+		Collection<CmpVertex> surroundingStates = new LinkedHashSet<>();
+		addStatesFrom(coregraph, currentRed,true, surroundingStates);
+		addStatesFrom(inverseGraph, currentRed,false, surroundingStates);
+		return surroundingStates;
 	}
 
 	/** Given a graph and its inverse, counts transitions entering/exiting a supplied state.
@@ -171,12 +146,12 @@ public class WaveBlueFringe extends PairQualityLearner
 				return null;// with no transitions, nothing to report.
 			// By abuse of PairScore, we record vertex-connectivity association.
 			// The last element is where the new elements appear before they are sorted in.
-			PairScore mostConnected[] = new PairScore[whichMostConnectedVertex+2];
+			PairScore[] mostConnected = new PairScore[whichMostConnectedVertex+2];
 			PairScore dummyPair = new PairScore(null,null,-1,0);
 			Arrays.fill(mostConnected, dummyPair);
 			for(CmpVertex v:coregraph.transitionMatrix.keySet())
 			{
-				long size = obtainSurroundingTransitions(coregraph,inverseGraph,v).size();
+				long size = obtainSurroundingStates(coregraph,inverseGraph,v).size();
 				if (size > mostConnected[whichMostConnectedVertex].getScore())
 				{// if this is more connected than whichMostConnectedVertex'th more connected vertex, insert in array.
 					mostConnected[whichMostConnectedVertex+1]=new PairScore(v,v,size,0);
@@ -208,7 +183,7 @@ public class WaveBlueFringe extends PairQualityLearner
 	/** An extension of {@Link PairScore} with Markov distance. */
 	public static class PairScoreWithDistance extends PairScore
 	{
-		private double distance;
+		private final double distance;
 
 		public PairScoreWithDistance(PairScore p, double d) {
 			super(p.getQ(), p.getR(), p.getScore(), p.getAnotherScore());distance = d;
@@ -238,11 +213,9 @@ public class WaveBlueFringe extends PairQualityLearner
 			if (getClass() != obj.getClass())
 				return false;
 			PairScoreWithDistance other = (PairScoreWithDistance) obj;
-			if (Double.doubleToLongBits(distance) != Double
-					.doubleToLongBits(other.distance))
-				return false;
-			return true;
-		}
+            return Double.doubleToLongBits(distance) == Double
+                    .doubleToLongBits(other.distance);
+        }
 
 		@Override
 		public String toString()
@@ -402,7 +375,7 @@ public class WaveBlueFringe extends PairQualityLearner
 		public List<PairScore> pickPairToRed(Collection<PairScore> pairs)
 		{
 			assert pairs != null;
-			List<PairScore> bad =new ArrayList<PairScore>();
+			List<PairScore> bad = new ArrayList<>();
 			PairScore badPair=null;
 			for(PairScore P:pairs)
 			{
@@ -612,7 +585,7 @@ public class WaveBlueFringe extends PairQualityLearner
 				final Collection<Set<CmpVertex>> verticesToMergeBasedOnInitialPTA=ptaClassifier.buildVerticesToMergeForPaths(pathsToMerge);
 
 				List<StatePair> pairsListInitialMerge = ptaClassifier.buildVerticesToMergeForPath(pathsToMerge);
-				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+				LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMergeInitialMerge = new LinkedList<>();
 				int scoreInitialMerge = pta.pairscores.computePairCompatibilityScore_general(null, pairsListInitialMerge, verticesToMergeInitialMerge, false);
 				assert scoreInitialMerge >= 0;
 				final LearnerGraph ptaAfterInitialMerge = MergeStates.mergeCollectionOfVertices(pta, null, verticesToMergeInitialMerge, null, false);
@@ -645,7 +618,7 @@ public class WaveBlueFringe extends PairQualityLearner
 					public CmpVertex resolvePotentialDeadEnd(LearnerGraph gr, Collection<CmpVertex> reds, List<PairScore> pairs) 
 					{
 						PairScore p = LearningSupportRoutines.pickPairQSMLike(pairs);
-						LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+						LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();
 						// constructPairsToMergeBasedOnSetsToMerge(coregraph.transitionMatrix.keySet(),verticesToMergeBasedOnInitialPTA)
 						int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 						assert genScore >= 0;
@@ -663,7 +636,7 @@ public class WaveBlueFringe extends PairQualityLearner
 					 * this map is constructed that maps vertices to be merged together to the partition
 					 * number that corresponds to them.
 					 */
-					Map<CmpVertex,Integer> vertexToPartition = new TreeMap<CmpVertex,Integer>();
+					Map<CmpVertex,Integer> vertexToPartition = new TreeMap<>();
 					
 					@Override
 					// Called by chooseStatePairs
@@ -686,8 +659,8 @@ public class WaveBlueFringe extends PairQualityLearner
 					@Override
 					public long overrideScoreComputation(PairScore p) 
 					{
-						ArrayList<PairScore> pairOfInterest = new ArrayList<PairScore>(1);pairOfInterest.add(p);
-						List<PairScore> correctPairs = new ArrayList<PairScore>(1), wrongPairs = new ArrayList<PairScore>(1);
+						ArrayList<PairScore> pairOfInterest = new ArrayList<>(1);pairOfInterest.add(p);
+						List<PairScore> correctPairs = new ArrayList<>(1), wrongPairs = new ArrayList<>(1);
 						LearningSupportRoutines.SplitSetOfPairsIntoRightAndWrong(coregraph, finalReferenceGraph, pairOfInterest, correctPairs, wrongPairs);
 						lastComputedRelativeInconsistency = 0;
 						long score = p.getScore();//computeScoreUsingMarkovFanouts(coregraph,origInverse,m,callbackAlphabet,p);
@@ -696,7 +669,7 @@ public class WaveBlueFringe extends PairQualityLearner
 						long currentInconsistency = 0;
 						double relativeInconsistency = 0.;
 						Integer a=vertexToPartition.get(p.getR()), b = vertexToPartition.get(p.getQ());
-						LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+						LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();
 						int genScore = coregraph.pairscores.computePairCompatibilityScore_general(p, null, verticesToMerge, false);
 						if (genScore >= 0)
 						{
@@ -733,9 +706,9 @@ public class WaveBlueFringe extends PairQualityLearner
 
 					/** This one returns a set of transitions in all directions. */
 					@Override
-					public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
+					public Collection<CmpVertex> getSurroundingStates(CmpVertex currentRed)
 					{
-						return obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
+						return obtainSurroundingStates(coregraph,inverseGraph,currentRed);
 					}
 
 					@Override
@@ -745,10 +718,10 @@ public class WaveBlueFringe extends PairQualityLearner
 
 				});
 
-				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<>(), new LinkedList<>());
 
 				{
-					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>>();
+					LinkedList<EquivalenceClass<CmpVertex,LearnerGraphCachedData>> verticesToMerge = new LinkedList<>();
 					int genScore = actualAutomaton.pairscores.computePairCompatibilityScore_general(null,
 							LearningSupportRoutines.constructPairsToMergeBasedOnSetsToMerge(actualAutomaton.transitionMatrix.keySet(),
 									verticesToMergeBasedOnInitialPTA), verticesToMerge, false);
@@ -772,7 +745,7 @@ public class WaveBlueFringe extends PairQualityLearner
 				actualAutomaton.pathroutines.completeGraphPossiblyUsingExistingVertex(rejectVertexID);// we need to complete the graph, otherwise we are not matching it with the original one that has been completed.
 				dataSample.actualLearner = estimateDifference(actualAutomaton,m,checker,referenceGraph,testSet);
 				StateMergingStatistics redReducerReferenceLearner = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph, true);
-				LearnerGraph outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(learnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_VH,Configuration.ScoreMode.COMPATIBILITY,redReducerReferenceLearner).learnMachine(new LinkedList<List<Label>>(),new LinkedList<List<Label>>());
+				LearnerGraph outcomeOfReferenceLearner = LearningAlgorithms.constructLearner(learnerEval,ptaCopy,LearningAlgorithms.ScoringToApply.SCORING_VH,Configuration.ScoreMode.COMPATIBILITY,redReducerReferenceLearner).learnMachine(new LinkedList<>(), new LinkedList<>());
 				dataSample.referenceLearner = estimateDifference(outcomeOfReferenceLearner,null,null,referenceGraph,testSet);
 				System.out.println("actual: "+actualAutomaton.getStateNumber()+" from reference learner: "+outcomeOfReferenceLearner.getStateNumber()+ " difference actual is "+dataSample.actualLearner+ " difference ref is "+dataSample.referenceLearner);
 				outcome.samples.add(dataSample);

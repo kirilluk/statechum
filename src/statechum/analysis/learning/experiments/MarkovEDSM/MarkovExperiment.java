@@ -20,7 +20,6 @@ package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.io.File;
 import java.util.*;
-import java.util.Map.Entry;
 
 import statechum.*;
 import statechum.Configuration.STATETREE;
@@ -413,9 +412,9 @@ public class MarkovExperiment
 
 		/** This one returns a set of transitions in all directions. */
 		@Override
-		public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
+		public Collection<CmpVertex> getSurroundingStates(CmpVertex currentRed)
 		{
-			return	markovHelper.getSurroundingTransitions(currentRed);
+			return	markovHelper.getSurroundingStates(currentRed);
 		}
 
 		@Override
@@ -579,7 +578,7 @@ public class MarkovExperiment
 
 		learningGroup.outPathPrefix = outDir + File.separator;
 		learningGroup.eval = UASExperiment.constructLearnerInitConfiguration();
-		learningGroup.eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_ARRAY);// small automata hence no need for array STATETREE.STATETREE_ARRAY);
+		learningGroup.eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);// small automata hence no need for array STATETREE.STATETREE_ARRAY);
 		//STATETREE_ARRAY);
 		learningGroup.eval.config.setLearnerScoreMode(ScoreMode.GENERAL_NOFULLMERGE);
 		learningGroup.eval.config.setTimeOut(3600000L*16L);// timeout for tasks, in milliseconds, equivalent to 16hrs runtime for an old Xeon 5670 @ 2.93Ghz, modern E5/i7 are 3x faster.

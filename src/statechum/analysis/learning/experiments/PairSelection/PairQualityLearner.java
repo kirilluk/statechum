@@ -765,14 +765,14 @@ public class PairQualityLearner
 				}
 
 				@Override
-				public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
+				public Collection<CmpVertex> getSurroundingStates(CmpVertex currentRed)
 				{
-					Collection<Entry<Label, CmpVertex>> surroundingTransitions;
+					Collection<CmpVertex> surroundingStates;
 					if (markovMultiHelpers != null)
-						surroundingTransitions = markovMultiHelpers.getSurroundingTransitions(currentRed);
+						surroundingStates = markovMultiHelpers.getSurroundingStates(currentRed);
 					else
-						surroundingTransitions = markovHelper.getSurroundingTransitions(currentRed);
-					return surroundingTransitions;
+						surroundingStates = markovHelper.getSurroundingStates(currentRed);
+					return surroundingStates;
 				}
 
 				@Override
@@ -1430,13 +1430,13 @@ public class PairQualityLearner
 			}
 
 			@Override
-			public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
+			public Collection<CmpVertex> getSurroundingStates(CmpVertex currentRed)
 			{
-				Collection<Entry<Label, CmpVertex>> outcome;
+				Collection<CmpVertex> outcome;
 				if (markovMultiHelpers != null)
-					outcome = markovMultiHelpers.getSurroundingTransitions(currentRed);
+					outcome = markovMultiHelpers.getSurroundingStates(currentRed);
 				else
-					outcome = markovHelper.getSurroundingTransitions(currentRed);
+					outcome = markovHelper.getSurroundingStates(currentRed);
 				return outcome;
 			}
 

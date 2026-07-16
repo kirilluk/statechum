@@ -18,10 +18,8 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.util.*;
-import java.util.Map.Entry;
 
 import statechum.DeterministicDirectedSparseGraph;
-import statechum.Label;
 import statechum.Configuration.STATETREE;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.analysis.learning.MarkovClassifier;
@@ -203,12 +201,12 @@ public class MarkovHelper
 		return lastComputedInconsistency;
 	}
 
-	public Collection<Entry<Label, CmpVertex>> getSurroundingTransitions(CmpVertex currentRed) 
+	public Collection<CmpVertex> getSurroundingStates(CmpVertex currentRed)
 	{
 		if (!markovParameters.useCentreVertex || !markovParameters.blue_states_forward_and_backwards)
 			return null;// do not go backwards when evaluating transitions - we only start merging states between a PTA and a non-PTA when using a centre vertex.
 		
-		return	WaveBlueFringe.obtainSurroundingTransitions(coregraph,inverseGraph,currentRed);
+		return	WaveBlueFringe.obtainSurroundingStates(coregraph,inverseGraph,currentRed);
 	}
 
 	public MarkovModel getModel() 

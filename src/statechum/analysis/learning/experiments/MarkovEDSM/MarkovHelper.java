@@ -203,20 +203,28 @@ public class MarkovHelper
 
 	protected Random shuffleRandom = null;
 
+	public Collection<CmpVertex> shuffleSurroundingStatesIfNecessary(Collection<CmpVertex> whatToShuffle) {
+		if (markovParameters.seedToShuffleSurroundingStates == 0)
+			return whatToShuffle;
+
+		if (null == shuffleRandom)
+			shuffleRandom = new Random(markovParameters.seedToShuffleSurroundingStates);
+
+		ArrayList<CmpVertex> surroundingStatesAsArrayList = new ArrayList<>(whatToShuffle);
+		Collections.shuffle(surroundingStatesAsArrayList,shuffleRandom);
+		return surroundingStatesAsArrayList;
+	}
+
 	public Collection<CmpVertex> getSurroundingStates(CmpVertex currentRed)
 	{
-		if (!markovParameters.useCentreVertex || !markovParameters.blue_states_forward_and_backwards)
-			return null;// do not go backwards when evaluating transitions - we only start merging states between a PTA and a non-PTA when using a centre vertex.
-		
-		Collection<CmpVertex> surroundingStates = WaveBlueFringe.obtainSurroundingStates(coregraph,inverseGraph,currentRed);
-		if (markovParameters.seedToShuffleSurroundingStates > 0) {
-			if (null == shuffleRandom)
-				shuffleRandom = new Random(markovParameters.seedToShuffleSurroundingStates);
-			ArrayList<CmpVertex> surroundingStatesAsArrayList = new ArrayList<>(surroundingStates);
-			Collections.shuffle(surroundingStatesAsArrayList,new Random());
-			surroundingStates = surroundingStatesAsArrayList;
+		if (!markovParameters.useCentreVertex || !markovParameters.blue_states_forward_and_backwards) {
+			if (markovParameters.seedToShuffleSurroundingStates == 0)
+				return null;// when not shuffling states and not using a centre vertex with expansion in all directions, do not go backwards when evaluating transitions - we only start merging states between a PTA and a non-PTA when using a centre vertex.
+
+			// if we are not using a centre vertex but need to shuffle states. Do it now.
+			return shuffleSurroundingStatesIfNecessary(coregraph.transitionMatrix.get(currentRed).values());
 		}
-		return surroundingStates;
+		return shuffleSurroundingStatesIfNecessary(WaveBlueFringe.obtainSurroundingStates(coregraph,inverseGraph,currentRed));
 	}
 
 	public MarkovModel getModel() 

@@ -56,6 +56,10 @@ public class MarkovParameters {
  	 */
 	public int seedToShuffleSurroundingStates = 0;
 
+	public void setShuffleSeed(int seedToShuffleSurroundingStates) {
+		this.seedToShuffleSurroundingStates = seedToShuffleSurroundingStates;
+	}
+
 	public MarkovParameters() {
 	}
 
@@ -189,7 +193,7 @@ public class MarkovParameters {
 	
 	public List<String> getColumnListOnlyForMarkov()
 	{
-        return new ArrayList<>(Arrays.asList(Integer.toString(chunkLen), Double.toString(weightOfInconsistencies.offset), Double.toString(weightOfInconsistencies.weight),Boolean.toString(penaliseMissingPaths)));
+        return new ArrayList<>(Arrays.asList(Integer.toString(chunkLen), Double.toString(weightOfInconsistencies.offset), Double.toString(weightOfInconsistencies.weight),Boolean.toString(penaliseMissingPaths), Integer.toString(seedToShuffleSurroundingStates)));
 	}
 	
 	public List<String> getColumnListForMarkovLearner()
@@ -217,7 +221,7 @@ public class MarkovParameters {
 			outcome+="_dv="+(useAverageOrMax?"A":"M")+"_d="+divisorForPathCount+"_wl="+expectedWLen+"_b="+(blue_states_forward_and_backwards?"T":"F");
 		}
 		if (useMarkovLearner)
-			outcome+="_cl="+chunkLen+"_wW="+weightOfInconsistencies.weight+"_wO="+weightOfInconsistencies.offset+"_m="+penaliseMissingPaths;//+"_o="+seedToShuffleSurroundingStates;
+			outcome+="_cl="+chunkLen+"_wW="+weightOfInconsistencies.weight+"_wO="+weightOfInconsistencies.offset+"_m="+penaliseMissingPaths+"_sh="+seedToShuffleSurroundingStates;
 		
 		return outcome;
 	}

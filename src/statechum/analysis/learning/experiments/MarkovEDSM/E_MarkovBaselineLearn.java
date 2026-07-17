@@ -51,8 +51,8 @@ public class E_MarkovBaselineLearn {
                             for (LearningAlgorithms.ScoringToApply learnerKind :
                                     new LearningAlgorithms.ScoringToApply[]{
                                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-//                                            LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
-//                                            LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
+                                            LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
+                                            LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
                                             LearningAlgorithms.ScoringToApply.SCORING_VH
                                     })
                             // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_VH("VH");
@@ -251,64 +251,56 @@ public class E_MarkovBaselineLearn {
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             for (int states : learningGroup.statesToUse)
                 for (int perStateSquaredDensity100 : densities) {
-                    Map<String, AtomicInteger> learnerToHowOftenBest = new HashMap<>();
+                    FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states,perStateSquaredDensity100,resultCSV);
                     final DrawGraphs.SquareBagPlot gr_StructuralDiffBest = new DrawGraphs.SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov",
                             new File(learningGroup.outPathPrefix + "baseline_" + states + "_" + perStateSquaredDensity100 + "_VH_structuraldiffBest.pdf"), 0, 1, true);
                     final RBoxPlot<String> gr_PerformanceOfLearners = new RBoxPlot<>("", "Structural Score",
                             new File(learningGroup.outPathPrefix + "baseline_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_structural.pdf"));
                     final RBoxPlot<String> gr_RuntimeOfLearners = new RBoxPlot<>("", "Runtime, seconds",
                             new File(learningGroup.outPathPrefix + "baseline_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_runtime.pdf"));
+                    final RBoxPlot<String> gr_RelativeInconsistencyReference = new RBoxPlot<>("", "Relative inconsistency, reference",
+                            new File(learningGroup.outPathPrefix + "baseline_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_relativeinconsistency_reference.pdf"));
+                    final RBoxPlot<String> gr_RelativeInconsistencyLearnt = new RBoxPlot<>("", "Relative inconsistency, learnt",
+                            new File(learningGroup.outPathPrefix + "baseline_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_relativeinconsistency_learnt.pdf"));
                     gr_PerformanceOfLearners.setOtherOptions("las=2");
                     gr_RuntimeOfLearners.setOtherOptions("las=2");
-                    // Now select the best result from all those available
-                    for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-                        final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
-                        String[] rowValues = rowEntry.getKey().split("[_=]");
-                        assert rowValues[10].equals("d");
-                        assert rowValues[6].equals("S");
-
-                        if (Double.parseDouble(rowValues[11]) == perStateSquaredDensity100 && Integer.parseInt(rowValues[7]) == states) {
-                            getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
-                                boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
-                                boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
-                                double bcr = Double.parseDouble(obtainValueFromCell(Y, 1));
-                                double structural = Double.parseDouble(obtainValueFromCell(Y, 2));
-                                long inconsistency = Long.parseLong(obtainValueFromCell(Y, 10));
-
-                                if (learntOK)
-                                    bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText));
-                            });
-                            learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
-                            learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
-                            String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
-                            if (Y_VH != null)
-                                gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_VH, 2)), bestLearningResult.structural, null, null);
-                            else
-                                System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
-
+                    final DrawGraphs.RBagPlot gr_StructuralVsRelativeInconsistency = new DrawGraphs.RBagPlot("Relative inconsistency", "Structural Score",
+                            new File(learningGroup.outPathPrefix + "baseline_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_difference_vs_relativeinconsistency.pdf"));
+                    report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest);
 //                gr_PerformanceOfLearners.add("MARKOV",bestLearningResult.structural, null, null);
-
-                            for (Map.Entry<String, String> entry : rowEntry.getValue().entrySet()) {
-                                String[] learnerKind = entry.getKey().split("[-]");
-                                boolean learntOK = obtainValueFromCell(entry.getValue(), 0).equals("L_OK");
-                                int cellForRuntime = entry.getValue().split(",").length-1;
-//                                if (!entry.getKey().startsWith(LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString()))
-                                gr_PerformanceOfLearners.add(learnerKind[0], Double.parseDouble(obtainValueFromCell(entry.getValue(), 2)), null, null);
-                                gr_RuntimeOfLearners.add(learnerKind[0]+(learntOK?"-OK":"Err"), Double.parseDouble(obtainValueFromCell(entry.getValue(), cellForRuntime)), learntOK?null:"red", null);
+                            for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+                                String[] rowValues = rowEntry.getKey().split("[_=]");
+                                assert rowValues[10].equals("d");
+                                assert rowValues[6].equals("S");
+                                if (Double.parseDouble(rowValues[11]) == perStateSquaredDensity100 && Integer.parseInt(rowValues[7]) == states) {
+                                    for (Map.Entry<String, String> entry : rowEntry.getValue().entrySet()) {
+                                        String[] learnerKind = entry.getKey().split("[-]");
+                                        boolean learntOK = obtainValueFromCell(entry.getValue(), 0).equals("L_OK");
+                                        int cellForRuntime = entry.getValue().split(",").length - 1;
+                                        gr_PerformanceOfLearners.add(learnerKind[0], Double.parseDouble(obtainValueFromCell(entry.getValue(), 2)), null, null);
+                                        gr_RuntimeOfLearners.add(learnerKind[0] + (learntOK ? "-OK" : "Err"), Double.parseDouble(obtainValueFromCell(entry.getValue(), cellForRuntime)), learntOK ? null : "red", null);
+                                        if (entry.getKey().startsWith(LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString())) {
+                                            gr_RelativeInconsistencyReference.add(learnerKind[0] + (learntOK ? "-OK" : "Err"), Double.parseDouble(obtainValueFromCell(entry.getValue(), 19)), learntOK ? null : "red", null);
+                                            if (learntOK) {
+                                                gr_RelativeInconsistencyLearnt.add(learnerKind[0], Double.parseDouble(obtainValueFromCell(entry.getValue(), 20)), null, null);
+                                                gr_StructuralVsRelativeInconsistency.add(Double.parseDouble(obtainValueFromCell(entry.getValue(), 20)),
+                                                        Double.parseDouble(obtainValueFromCell(entry.getValue(), 2)), null, null);
+                                            }
+                                        }
+                                    }
+                                }
                             }
-                        }
-                    }
                     gr_StructuralDiffBest.reportResults(learningGroup.gr);
                     gr_PerformanceOfLearners.reportResults(learningGroup.gr);
                     gr_RuntimeOfLearners.reportResults(learningGroup.gr);
-                    List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
-                    learners.sort((o1, o2) ->
-                            learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());
-                    System.out.println("States: "+states+" density: "+perStateSquaredDensity100);
-                    for (String l : learners)
-                        System.out.println(l + " -> " + learnerToHowOftenBest.get(l).get());
+                    gr_RelativeInconsistencyReference.reportResults(learningGroup.gr);
+                    gr_RelativeInconsistencyLearnt.reportResults(learningGroup.gr);
+                    gr_StructuralVsRelativeInconsistency.reportResults(learningGroup.gr);
+                    report.reportResults();
                 }
         }
         return resultCSV;
     }
+
 }
+

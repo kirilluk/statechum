@@ -59,10 +59,10 @@ public class MarkovComparison {
                     new File(pathToResult+description+"-"+"comparison.pdf"),0, 1, true);
             final DrawGraphs.RBagPlot gr_TimeComparison = new DrawGraphs.RBagPlot(experimentsToCompare[0], experimentsToCompare[1],
                     new File(pathToResult+description+"-"+"timecomparison.pdf"));
-            final DrawGraphs.SquareBagPlot gr_BestVsWithAllPaths = new DrawGraphs.SquareBagPlot(experimentsToCompare[1], "Best between the two",
-                    new File(pathToResult+description+"-"+"best_vs_all_paths.pdf"),0, 1, true);
-            final DrawGraphs.SquareBagPlot gr_BestAgainstVH = new DrawGraphs.SquareBagPlot("VH", "Best between the two",
-                    new File(pathToResult+description+"-"+"best_vs_VH.pdf"),0, 1, true);
+            final DrawGraphs.SquareBagPlot gr_BestVsB = new DrawGraphs.SquareBagPlot(experimentsToCompare[1], "Best between the two",
+                    new File(pathToResult+description+"-"+"best_vs_B.pdf"),0, 1, true);
+            final DrawGraphs.SquareBagPlot gr_BestVsA = new DrawGraphs.SquareBagPlot(experimentsToCompare[0], "Best between the two",
+                    new File(pathToResult+description+"-"+"best_vs_A.pdf"),0, 1, true);
             final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_best = new DrawGraphs.WilcoxonPairedTest(new File(pathToResult + description+"-"+"Wilcoxon_t_best.csv"));
             final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_all_paths = new DrawGraphs.WilcoxonPairedTest(new File(pathToResult + description+"-"+"Wilcoxon_t_all_paths.csv"));
             for (Map.Entry<String, Map<String, String>> rowEntryA : twoExperiments.get(0).rowColumnText.entrySet()) {
@@ -72,7 +72,7 @@ public class MarkovComparison {
                 String cellsB = getValueFromMapGivenRegexp(entryB, LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString());
                 double valueB = Double.parseDouble(obtainValueFromCell(cellsB, 2));
 
-                String Y_VH = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
+//                String Y_VH = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
 
                 String [] cellsA_split=cellsA.split(",");
                 String [] cellsB_split=cellsB.split(",");
@@ -88,19 +88,22 @@ public class MarkovComparison {
                     double bcr = Double.parseDouble(obtainValueFromCell(cellY, 1));
                     double structural = Double.parseDouble(obtainValueFromCell(cellY, 2));
                     long inconsistency = Long.parseLong(obtainValueFromCell(cellY, 10));
+                    boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(cellY, 13));
 
                     if (learntOK)
-                        bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, true, null));
+                        bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, null));
                 }
-                gr_BestVsWithAllPaths.add(valueB, bestLearningResult.structural);
+                gr_BestVsB.add(valueB, bestLearningResult.structural);
                 Wilcoxon_test_best.add(valueB, bestLearningResult.structural);
 
-                gr_BestAgainstVH.add(Double.parseDouble(obtainValueFromCell(Y_VH, 2)),bestLearningResult.structural);
+//                gr_BestVsA.add(Double.parseDouble(obtainValueFromCell(Y_VH, 2)),bestLearningResult.structural);
+                gr_BestVsA.add(valueA,bestLearningResult.structural);
             }
 
-            gr_StructuralDiffComparison.reportResults(gr);gr_TimeComparison.reportResults(gr);gr_BestVsWithAllPaths.reportResults(gr);
+            gr_StructuralDiffComparison.reportResults(gr);gr_TimeComparison.reportResults(gr);
             Wilcoxon_test_best.reportResults(gr);Wilcoxon_test_all_paths.reportResults(gr);
-            gr_BestAgainstVH.reportResults(gr);
+            gr_BestVsA.reportResults(gr);
+            gr_BestVsB.reportResults(gr);
         }
 
         DrawGraphs.end();

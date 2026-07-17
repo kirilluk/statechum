@@ -48,6 +48,14 @@ public class MarkovParameters {
 	 */
 	public boolean pathsOrSets = true;
 
+	/** The outcome of experiments depends on the order in which blue states are considered, because the first blue to be incompatible with all
+	 * the red states becomes red. This means that for some ordering, we get better results compared to other ordering. In contrast, the ordering
+	 * of red states does not matter because if a blue state is compatible with any red states, the list if pairs will be ordered in order to pick
+	 * the best pair. The purpose of this value is to act as a seed in randomisation of the order of blue states.
+	 * A value of zero means 'no shuffling'.
+ 	 */
+	public int seedToShuffleSurroundingStates = 0;
+
 	public MarkovParameters() {
 	}
 
@@ -60,58 +68,29 @@ public class MarkovParameters {
 		expectedWLen = a.expectedWLen;
 		whichMostConnectedVertex = a.whichMostConnectedVertex;
 		pathsOrSets = a.pathsOrSets;
-
+		seedToShuffleSurroundingStates = a.seedToShuffleSurroundingStates;
 		setPresetLearningParameters(preset);
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + chunkLen;
-		result = prime * result + (penaliseMissingPaths ? 1231 : 1237);
-		result = prime * result + divisorForPathCount;
-		result = prime * result + expectedWLen;
-		result = prime * result + preset;
-		result = prime * result + (useAverageOrMax ? 1231 : 1237);
-		result = prime * result + (pathsOrSets ? 1231 : 1237);
-		result = prime * result + weightOfInconsistencies.hashCode();
-		result = prime * result + whichMostConnectedVertex;
-		return result;
+		return Objects.hash(chunkLen, preset, useAverageOrMax, divisorForPathCount, expectedWLen, whichMostConnectedVertex,
+				penaliseMissingPaths, pathsOrSets, seedToShuffleSurroundingStates, useCentreVertex, mergeIdentifiedPathsAfterInference,
+				useMostConnectedVertexToStartLearning, useNewScoreNearRoot, weightOfInconsistencies, blue_states_forward_and_backwards);
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (!(obj instanceof MarkovParameters))
-			return false;
-		MarkovParameters other = (MarkovParameters) obj;
-		if (chunkLen != other.chunkLen)
-			return false;
-		if (pathsOrSets != other.pathsOrSets)
-			return false;
-		if (penaliseMissingPaths != other.penaliseMissingPaths)
-			return false;
-		if (divisorForPathCount != other.divisorForPathCount)
-			return false;
-		if (expectedWLen != other.expectedWLen)
-			return false;
-		if (preset != other.preset)
-			return false;
-		if (useAverageOrMax != other.useAverageOrMax)
-			return false;
-		if (!weightOfInconsistencies.equals(other.weightOfInconsistencies))
-			return false;
-		return whichMostConnectedVertex == other.whichMostConnectedVertex;
+	public boolean equals(Object o) {
+		if (!(o instanceof MarkovParameters)) return false;
+		MarkovParameters that = (MarkovParameters) o;
+		return chunkLen == that.chunkLen && preset == that.preset && useAverageOrMax == that.useAverageOrMax &&
+				divisorForPathCount == that.divisorForPathCount && expectedWLen == that.expectedWLen &&
+				whichMostConnectedVertex == that.whichMostConnectedVertex && penaliseMissingPaths == that.penaliseMissingPaths &&
+				pathsOrSets == that.pathsOrSets && seedToShuffleSurroundingStates == that.seedToShuffleSurroundingStates &&
+				useCentreVertex == that.useCentreVertex && mergeIdentifiedPathsAfterInference == that.mergeIdentifiedPathsAfterInference &&
+				useMostConnectedVertexToStartLearning == that.useMostConnectedVertexToStartLearning &&
+				useNewScoreNearRoot == that.useNewScoreNearRoot && blue_states_forward_and_backwards == that.blue_states_forward_and_backwards &&
+				Objects.equals(weightOfInconsistencies, that.weightOfInconsistencies);
 	}
 
 	public MarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, WeightAndOffsetOfInconsistencies weight, boolean addPenaltyForMissingPaths, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen) {
@@ -238,7 +217,7 @@ public class MarkovParameters {
 			outcome+="_dv="+(useAverageOrMax?"A":"M")+"_d="+divisorForPathCount+"_wl="+expectedWLen+"_b="+(blue_states_forward_and_backwards?"T":"F");
 		}
 		if (useMarkovLearner)
-			outcome+="_cl="+chunkLen+"_wW="+weightOfInconsistencies.weight+"_wO="+weightOfInconsistencies.offset+"_m="+penaliseMissingPaths;
+			outcome+="_cl="+chunkLen+"_wW="+weightOfInconsistencies.weight+"_wO="+weightOfInconsistencies.offset+"_m="+penaliseMissingPaths;//+"_o="+seedToShuffleSurroundingStates;
 		
 		return outcome;
 	}

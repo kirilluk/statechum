@@ -1,6 +1,7 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.Pair;
+import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -17,6 +18,8 @@ import static statechum.analysis.learning.DrawGraphs.*;
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovTraceConstSize {
 
+    public static final String description = "constant_size";
+
     public static class MarkovAlphabetLearningParameters extends MarkovLearningParameters {
 
         public MarkovAlphabetLearningParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample) {
@@ -25,29 +28,30 @@ public class E_MarkovTraceConstSize {
 
         @Override
         public String getSubExperimentName() {
-            return "constant_size";
+            return description;
         }
     }
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0};//0,1,2,3
         final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "results.csv"));
-        final int statesMax = learningGroup.statesToUse[learningGroup.statesToUse.length-1];// reflects the size of the largest FSM that will be generated.
         boolean aveOrMax = true;// average divide by the divisor
         boolean penaliseMissingPaths = true;
 
         boolean pathsOrSets = true;
-        int [] traceLenMultValues = new int[] { 4,16,32, 64, 128, 256 };
+        List<Integer> traceLenMultValues = new LinkedList<>();
+        for(int i=4;i <= MarkovExperiment.LearningExperimentGroupParameters.datasetSize;i <<= 1)
+            traceLenMultValues.add(i);
         double alphabetMultiplier = 2;
         for (int states : learningGroup.statesToUse)
-            for (int perStateSquaredDensity100 : new int[]{0, 30}) {
+            for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample)
                     for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
                         for (int traceLenMultV:traceLenMultValues) {
-                            int scalingFactor = states*learningGroup.stateScale/learningGroup.statesToUse[0];
+                            int scalingFactor = learningGroup.getScalingFactor(states);
 
                             int traceLenMult = traceLenMultV * scalingFactor;
-                            int traceQuantityToUse = 256 * scalingFactor/ traceLenMult;
+                            int traceQuantityToUse = MarkovExperiment.LearningExperimentGroupParameters.datasetSize * scalingFactor/ traceLenMult;
                             for (final int preset : learnerExperiment)
                                 for (LearningAlgorithms.ScoringToApply learnerKind :
                                         preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
@@ -138,6 +142,8 @@ public class E_MarkovTraceConstSize {
                     CSVExperimentResult.addSeparator(csvLine);
                     csvLine.append(sm.centrePathNumber);
                 }
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.referenceGraph.pathroutines.computeAlphabet().size());
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(100. * ConfusionMatrix.divide(sm.referenceGraph.pathroutines.countEdges(),sm.referenceGraph.getStateNumber()*sm.referenceGraph.getStateNumber())));
                 CSVExperimentResult.addSeparator(csvLine);
                 csvLine.append(sm.transitionsSampled);
                 CSVExperimentResult.addSeparator(csvLine);
@@ -155,67 +161,51 @@ public class E_MarkovTraceConstSize {
 
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            final RBoxPlot<String> gr_BestStructuralForLengthMultiplier = new RBoxPlot<>("Trace length multiplier", "Structural Score, EDSM-Markov learner", new File(learningGroup.outPathPrefix + statesMax + "_constsize_mult_structural.pdf"));
-            final Map<Integer,SquareBagPlot> gr_StructuralDiffBestMap = new TreeMap<>();
-            Map<Integer,Map<String, AtomicInteger>> learnerToHowOftenBestForAllMultipliers = new TreeMap<>();
+            for (int states : learningGroup.statesToUse) {
+                final RBoxPlot<String> gr_BestStructuralForLengthMultiplier = new RBoxPlot<>("Trace length multiplier", "Structural Score, EDSM-Markov learner",
+                        new File(learningGroup.outPathPrefix + description + "_" + states + "_constsize_mult_structural.pdf"));
+                final Map<Integer, SquareBagPlot> gr_StructuralDiffBestMap = new TreeMap<>();
+                Map<Integer, FilterCollectionOfResultsForBestPerformingLearner> learnerToHowOftenBestForAllMultipliers = new TreeMap<>();
 
-            for(final int traceLenMult:traceLenMultValues) {
-                // Now select the best result from all those available
-                for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-                    String[] elems = rowEntry.getKey().split("[_=]");
-                    assert elems[20].equals("tM");
-                    if (Double.parseDouble(elems[21]) == traceLenMult) {
-                        final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
-                        Map<String, AtomicInteger> learnerToHowOftenBest = learnerToHowOftenBestForAllMultipliers.computeIfAbsent(traceLenMult,aDouble -> new HashMap<>());
-                        gr_StructuralDiffBestMap.computeIfAbsent(traceLenMult,aDouble ->
-                            new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
-                                new File(learningGroup.outPathPrefix + "mult_tracelen=" + traceLenMult + " " + statesMax + "_constsize_VH_structuraldiffBest.pdf"), 0, 1, true));
+                for (final int traceLenMult : traceLenMultValues) {
+                    // Now select the best result from all those available
+                    for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+                        String[] elems = rowEntry.getKey().split("[_=]");
+                        assert elems[20].equals("tM");
+                        if (Double.parseDouble(elems[21]) == traceLenMult) {
+                            final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
+                            gr_StructuralDiffBestMap.computeIfAbsent(traceLenMult, aDouble ->
+                                    new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
+                                            new File(learningGroup.outPathPrefix + description + "_" + states + "_constant_size_tracelen=" + traceLenMult + "_constsize_VH_structuraldiffBest.pdf"), 0, 1, true));
 
+                            FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, -1, resultCSV);
+                            report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(traceLenMult));
+                            learnerToHowOftenBestForAllMultipliers.computeIfAbsent(traceLenMult,aInteger -> report);
 
-                        getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
-                            boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
-                            boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
-                            double bcr = Double.parseDouble(obtainValueFromCell(Y, 1));
-                            double structural = Double.parseDouble(obtainValueFromCell(Y, 2));
-                            long inconsistency = Long.parseLong(obtainValueFromCell(Y, 10));
-
-                            if (learntOK && alwaysPositive && (bestLearningResult.inconsistency < 0 || inconsistency < bestLearningResult.inconsistency)) {
-                                bestLearningResult.bcr = bcr;
-                                bestLearningResult.structural = structural;
-                                bestLearningResult.inconsistency = inconsistency;
-                                bestLearningResult.descr = columnText;
-                            }
-                        });
-                        learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
-                        learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
-                        String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
-                        if (Y_VH != null) {
-                            double vh_score = Double.parseDouble(obtainValueFromCell(Y_VH, 2));
-                            gr_StructuralDiffBestMap.get(traceLenMult).add(vh_score, bestLearningResult.structural, null, null);
-                            StringBuilder sb = new StringBuilder();
-                            Formatter formatter = new Formatter(sb, Locale.US);formatter.format("%3d",traceLenMult);
-                            gr_BestStructuralForLengthMultiplier.add(sb+"_M",bestLearningResult.structural);
-                            gr_BestStructuralForLengthMultiplier.add(sb+"_S",vh_score);
+                            String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
+                            if (Y_VH != null) {
+                                double vh_score = Double.parseDouble(obtainValueFromCell(Y_VH, 2));
+                                gr_StructuralDiffBestMap.get(traceLenMult).add(vh_score, bestLearningResult.structural, null, null);
+                                StringBuilder sb = new StringBuilder();
+                                Formatter formatter = new Formatter(sb, Locale.US);
+                                formatter.format("%3d", traceLenMult);
+                                gr_BestStructuralForLengthMultiplier.add(sb + "_M", bestLearningResult.structural);
+                                gr_BestStructuralForLengthMultiplier.add(sb + "_S", vh_score);
+                            } else
+                                System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
                         }
-                        else
-                            System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
+
                     }
-
                 }
-            }
 
-            for(final int traceLenMult:traceLenMultValues) {
-                System.out.println("traceLenMult Multiplier: " + traceLenMult);
+                for (final int traceLenMult : traceLenMultValues) {
+                    System.out.println("traceLenMult Multiplier: " + traceLenMult);
 
-                gr_StructuralDiffBestMap.get(traceLenMult).reportResults(learningGroup.gr);
-                Map<String, AtomicInteger> learnerToHowOftenBest = learnerToHowOftenBestForAllMultipliers.get(traceLenMult);
-                List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
-                learners.sort((o1, o2) ->
-                        learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());
-                for (String l : learners)
-                    System.out.println(l + " -> " + learnerToHowOftenBest.get(l).get());
+                    gr_StructuralDiffBestMap.get(traceLenMult).reportResults(learningGroup.gr);
+                    learnerToHowOftenBestForAllMultipliers.get(traceLenMult).reportResults();
+                }
+                gr_BestStructuralForLengthMultiplier.reportResults(learningGroup.gr);
             }
-            gr_BestStructuralForLengthMultiplier.reportResults(learningGroup.gr);
         }
     }
 }

@@ -22,6 +22,7 @@ import static statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSu
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovScoreVsInconsistency {
+    public static final String description = "score_vs_inconsistency";
 
     public static class MarkovLearningStatisticsParameters extends MarkovLearningParameters {
 
@@ -31,7 +32,7 @@ public class E_MarkovScoreVsInconsistency {
 
         @Override
         public String getSubExperimentName() {
-            return "score_vs_inconsistency";
+            return description;
         }
     }
 
@@ -44,12 +45,11 @@ public class E_MarkovScoreVsInconsistency {
         boolean [] penaliseMissingPathsValues = {true,false};
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
-        int [] densities = new int[]{ 20 };
         int [] chunkSizeValues = new int[]{3, 4};
         for (int states : learningGroup.statesToUse)
-            for (int perStateSquaredDensity100 : densities) {
+            for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample) {
-                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(states, 2*states )})
+                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{learningGroup.getTracesLengthmultBaseline(states)})
                     {
                         int traceQuantityToUse = traces_lengthmult.firstElem;
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
@@ -143,7 +143,7 @@ public class E_MarkovScoreVsInconsistency {
         int referencePreset = 0;
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
             for (int states : learningGroup.statesToUse)
-                for (int perStateSquaredDensity100 : densities) {
+                for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
 //                    String experimentName = learningGroup.outPathPrefix + "statistics_"+states+"_"+perStateSquaredDensity100+"_";
 //                    final Map<Integer,ScatterPlot> gr_ScoreVsInconsistency = new TreeMap<>();
 //                    for (final int chunkSizeToEvaluate : chunkSizeValues) {
@@ -216,13 +216,6 @@ public class E_MarkovScoreVsInconsistency {
 //                    for (final int chunkSizeToEvaluate : chunkSizeValues) {
 //                        gr_ScoreVsInconsistency.get(chunkSizeToEvaluate).reportResults(learningGroup.gr);
 //                    }
-                }
-        }
-
-        if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            for (int states : learningGroup.statesToUse)
-                for (int perStateSquaredDensity100 : densities) {
-
                 }
         }
         return resultCSV;

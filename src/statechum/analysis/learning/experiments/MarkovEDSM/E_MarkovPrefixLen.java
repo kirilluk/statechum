@@ -20,6 +20,7 @@ import static statechum.analysis.learning.DrawGraphs.*;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovPrefixLen {
+    public static final String description = "prefixlen";
 
     public static class MarkovLearningPrefixLenParameters extends MarkovLearningParameters {
 
@@ -29,7 +30,7 @@ public class E_MarkovPrefixLen {
 
         @Override
         public String getSubExperimentName() {
-            return "prefixlen";
+            return description;
         }
     }
 
@@ -41,13 +42,12 @@ public class E_MarkovPrefixLen {
         boolean penaliseMissingPaths = true;
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
-        int [] densities = new int[]{ 20 };
 
         for (int states : learningGroup.statesToUse)
-            for (int perStateSquaredDensity100 : densities) {
+            for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample)
                 {
-                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(states, 2*states )})
+                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{learningGroup.getTracesLengthmultBaseline(states)})
                     {
                         int traceQuantityToUse = traces_lengthmult.firstElem;
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
@@ -63,11 +63,13 @@ public class E_MarkovPrefixLen {
                                                 })
                                     for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{3} : new int[]{2})
                                         for (double weightOfInconsistencies : learnerKind.isMarkov() ?
-                                                new double[]{0.25, 0.5, 1.0, 2.0, 4.0}
+//                                                new double[]{0.25, 0.5, 1.0, 2.0, 4.0}
+                                                new double[]{1.0}
                                                 : new double[]{1.0})
                                             for (double inconsistencyOffset : learnerKind.isMarkov() ?
-                                                    new double[]{0, 0.5, 1.0}
-                                                    : new double[]{1.0})
+//                                                    new double[]{0, 0.5, 1.0}
+                                                    new double[]{0}
+                                                    : new double[]{0.0})
                                             for (int shuffleSeed : learnerKind.isMarkov() ?
                                                     new int[]{0,1,2,3}
                                                     : new int[]{0})
@@ -154,7 +156,7 @@ public class E_MarkovPrefixLen {
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
             for (final int preset : learnerExperiment) {
                 String presetStr = "-" + preset;
-                String experimentName = learningGroup.outPathPrefix + "prefixlen_";
+                String experimentName = learningGroup.outPathPrefix + description+"_";
                 for (int states : learningGroup.statesToUse) {
                     final RBoxPlot<String> gr_StructuralVsChunkLenWeight = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
                             new File(experimentName + states + "_prefixLenInconsistencyWeight_structural.pdf"));
@@ -179,9 +181,9 @@ public class E_MarkovPrefixLen {
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             for (int states : learningGroup.statesToUse)
-                for (int perStateSquaredDensity100 : densities) {
+                for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                     final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov",
-                            new File(learningGroup.outPathPrefix + "prefixlen_"+states+"_bestprefixlen_and_mult_" + states + "_"+perStateSquaredDensity100+"_VH_structuraldiffBest.pdf"), 0, 1, true);
+                            new File(learningGroup.outPathPrefix + description+"_"+states+"_bestprefixlen_and_mult_" + states + "_"+perStateSquaredDensity100+"_VH_structuraldiffBest.pdf"), 0, 1, true);
                     // Now select the best result from all those available
                     FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, perStateSquaredDensity100, resultCSV);
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest);

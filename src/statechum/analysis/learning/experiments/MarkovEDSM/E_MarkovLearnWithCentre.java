@@ -1,6 +1,7 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.Pair;
+import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -15,6 +16,7 @@ import static statechum.analysis.learning.DrawGraphs.*;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovLearnWithCentre {
+    public static final String description = "usingcentre";
 
     public static class MarkovLearningWithCentreParameters extends MarkovLearningParameters {
 
@@ -24,25 +26,25 @@ public class E_MarkovLearnWithCentre {
 
         @Override
         public String getSubExperimentName() {
-            return "usingcentre";
+            return description;
         }
     }
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0,1,2,3,4};
         final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "results.csv"));
-        final int statesMax = learningGroup.statesToUse[learningGroup.statesToUse.length-1];// reflects the size of the largest FSM that will be generated.
         boolean aveOrMax = true;// average divide by the divisor
         boolean penaliseMissingPaths = true;
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
 
         for (int states : learningGroup.statesToUse)
-            for (int perStateSquaredDensity100 : new int[]{0, 30}) {
+            for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample)
                 {
-                    int scalingFactor = states*learningGroup.stateScale/learningGroup.statesToUse[0];
-                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(8*scalingFactor, 32 ),new Pair(1*scalingFactor,256*scalingFactor)})
+                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{
+                            learningGroup.getTracesLengthmultBaseline(states),
+                                new Pair(1, MarkovExperiment.LearningExperimentGroupParameters.datasetSize*learningGroup.getScalingFactor(states))})
                     {
                         int traceQuantityToUse = traces_lengthmult.firstElem;
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
@@ -121,6 +123,8 @@ public class E_MarkovLearnWithCentre {
                     CSVExperimentResult.addSeparator(csvLine);
                     csvLine.append(sm.centrePathNumber);
                 }
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.referenceGraph.pathroutines.computeAlphabet().size());
+                CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(100. * ConfusionMatrix.divide(sm.referenceGraph.pathroutines.countEdges(),sm.referenceGraph.getStateNumber()*sm.referenceGraph.getStateNumber())));
                 CSVExperimentResult.addSeparator(csvLine);
                 csvLine.append(sm.transitionsSampled);
                 CSVExperimentResult.addSeparator(csvLine);
@@ -137,18 +141,23 @@ public class E_MarkovLearnWithCentre {
         });
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            final RBoxPlot<String> gr_BestStructuralForDifferentPreset = new RBoxPlot<>("Trace length number and learner", "Structural Score",
-                    new File(learningGroup.outPathPrefix + statesMax + "_centre-learner_structural.pdf"));
-            gr_BestStructuralForDifferentPreset.setOtherOptions("las=2");
-            for (int traceQuantityToUse : new int[]{1, 8}) {
-                    final RBoxPlot<String> gr_PresetPerformance = new RBoxPlot<>("", "Structural Score",
-                            new File(learningGroup.outPathPrefix + statesMax + "_centre-learner_tracenum="+traceQuantityToUse+"_structural.pdf"));
-                    gr_PresetPerformance.setOtherOptions("las=2");
-                    gr_PresetPerformance.setOrderingOfLabels(Arrays.asList( new String[]{"Best","Markov","M_Both","M_Forward","R_Forward","R_Both"}));
-                    final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, VH", "Structural Score",
-                            new File(learningGroup.outPathPrefix + statesMax + "_centre-learner_tracenum=" + traceQuantityToUse + "_VH_structuraldiffBest.pdf"), 0, 1, true);
+            for (int states : learningGroup.statesToUse) {
+                final RBoxPlot<String> gr_BestStructuralForDifferentPreset = new RBoxPlot<>("Trace length number and learner", "Structural Score",
+                        new File(learningGroup.outPathPrefix + description+"_"+states + "_centre-learner_structural.pdf"));
+                gr_BestStructuralForDifferentPreset.setOtherOptions("las=2");
+                for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{
+                        learningGroup.getTracesLengthmultBaseline(states),
+                        new Pair(1, MarkovExperiment.LearningExperimentGroupParameters.datasetSize*learningGroup.getScalingFactor(states))}) {
 
-                    String [] presetDescription = new String[]{"Markov","M_Both","R_Forward","R_Both","M_Forward"};
+                    int traceQuantityToUse = traces_lengthmult.firstElem;
+                    final RBoxPlot<String> gr_PresetPerformance = new RBoxPlot<>("", "Structural Score",
+                            new File(learningGroup.outPathPrefix + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_structural.pdf"));
+                    gr_PresetPerformance.setOtherOptions("las=2");
+                    gr_PresetPerformance.setOrderingOfLabels(Arrays.asList(new String[]{"Best", "Markov", "M_Both", "M_Forward", "R_Forward", "R_Both"}));
+                    final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, VH", "Structural Score",
+                            new File(learningGroup.outPathPrefix + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_VH_structuraldiffBest.pdf"), 0, 1, true);
+
+                    String[] presetDescription = new String[]{"Markov", "M_Both", "R_Forward", "R_Both", "M_Forward"};
 
                     // Now select the best result from all those available
                     for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
@@ -157,7 +166,7 @@ public class E_MarkovLearnWithCentre {
                         assert rowValues[0].equals("tQ");
                         if (Double.parseDouble(rowValues[1]) == traceQuantityToUse) {
                             // we are looking at specific rows
-                            final Map<Integer,MarkovExperiment.LearningReport> bestLearningResultForThisRowAndAllPresets = new TreeMap<>();
+                            final Map<Integer, MarkovExperiment.LearningReport> bestLearningResultForThisRowAndAllPresets = new TreeMap<>();
 
                             MarkovExperiment.LearningReport bestLearningResultForThisRow = new MarkovExperiment.LearningReport();
                             for (final int preset : learnerExperiment) {
@@ -173,7 +182,7 @@ public class E_MarkovLearnWithCentre {
                                     long inconsistency = Long.parseLong(obtainValueFromCell(Y, 10));
 
                                     String[] columnValues = columnText.split("[_=]");
-                                    if (learntOK && columnValues[0].equals(LearningAlgorithms.ScoringToApply.SCORING_MARKOV +"-"+ preset)) {
+                                    if (learntOK && columnValues[0].equals(LearningAlgorithms.ScoringToApply.SCORING_MARKOV + "-" + preset)) {
                                         // Now at the columns of interest (specific preset but different parameter of Markov)
                                         MarkovExperiment.LearningReport report = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText);
                                         bestLearningResultForThisRowAndPreset.updateIfValueBetter(report);
@@ -191,29 +200,32 @@ public class E_MarkovLearnWithCentre {
 
 
                             StringBuilder sb = new StringBuilder();
-                            Formatter formatter = new Formatter(sb, Locale.US);formatter.format("%1d",traceQuantityToUse);
-                            gr_BestStructuralForDifferentPreset.add(sb+"_M",bestLearningResultForThisRowAndAllPresets.get(0).structural);
-                            gr_BestStructuralForDifferentPreset.add(sb+"_MC",bestLearningResultForThisRow.structural);
-                            gr_BestStructuralForDifferentPreset.add(sb+"_S",vh_score);
-                            for(Map.Entry<Integer, MarkovExperiment.LearningReport> entry:bestLearningResultForThisRowAndAllPresets.entrySet())
-                                gr_PresetPerformance.add(presetDescription[entry.getKey()],entry.getValue().structural);
-                            gr_PresetPerformance.add("Best",bestLearningResultForThisRow.structural);
+                            Formatter formatter = new Formatter(sb, Locale.US);
+                            formatter.format("%1d", traceQuantityToUse);
+                            gr_BestStructuralForDifferentPreset.add(sb + "_M", bestLearningResultForThisRowAndAllPresets.get(0).structural);
+                            gr_BestStructuralForDifferentPreset.add(sb + "_MC", bestLearningResultForThisRow.structural);
+                            gr_BestStructuralForDifferentPreset.add(sb + "_S", vh_score);
+                            for (Map.Entry<Integer, MarkovExperiment.LearningReport> entry : bestLearningResultForThisRowAndAllPresets.entrySet())
+                                gr_PresetPerformance.add(presetDescription[entry.getKey()], entry.getValue().structural);
+                            gr_PresetPerformance.add("Best", bestLearningResultForThisRow.structural);
 
                         }
                     }
                     gr_StructuralDiffBest.reportResults(learningGroup.gr);
                     gr_PresetPerformance.reportResults(learningGroup.gr);
+                }
+                List<String> labelValuesForComparativeAnalysis = new LinkedList<>();
+                for (int traceQuantityToUse : new int[]{8, 1}) {
+                    StringBuilder sb = new StringBuilder();
+                    Formatter formatter = new Formatter(sb, Locale.US);
+                    formatter.format("%1d", traceQuantityToUse);
+                    labelValuesForComparativeAnalysis.add(sb + "_M");
+                    labelValuesForComparativeAnalysis.add(sb + "_MC");
+                    labelValuesForComparativeAnalysis.add(sb + "_S");
+                }
+                gr_BestStructuralForDifferentPreset.setOrderingOfLabels(labelValuesForComparativeAnalysis);
+                gr_BestStructuralForDifferentPreset.reportResults(learningGroup.gr);
             }
-            List<String> labelValuesForComparativeAnalysis = new LinkedList<>();
-            for (int traceQuantityToUse : new int[]{8, 1}) {
-                StringBuilder sb = new StringBuilder();
-                Formatter formatter = new Formatter(sb, Locale.US);formatter.format("%1d",traceQuantityToUse);
-                labelValuesForComparativeAnalysis.add(sb+"_M");
-                labelValuesForComparativeAnalysis.add(sb+"_MC");
-                labelValuesForComparativeAnalysis.add(sb+"_S");
-            }
-            gr_BestStructuralForDifferentPreset.setOrderingOfLabels(labelValuesForComparativeAnalysis);
-            gr_BestStructuralForDifferentPreset.reportResults(learningGroup.gr);
         }
     }
 }

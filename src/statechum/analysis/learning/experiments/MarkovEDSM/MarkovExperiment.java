@@ -560,6 +560,20 @@ public class MarkovExperiment
 		// Scales the number of traces to account for larger automata
 		final int stateScale = statesToUse[0]/10;
 
+		public static final int datasetSize = 256;
+
+		public static final int baseNumberOfTracesMult = 8;
+
+		Pair<Integer,Integer> getTracesLengthmultBaseline(int states) {
+			return new Pair(baseNumberOfTracesMult * getScalingFactor(states), 2*baseNumberOfTracesMult * getScalingFactor(states));//datasetSize/baseNumberOfTracesMult );
+		}
+//		Pair<Integer,Integer> getTracesLengthmultSingleTrace(int states) {
+//			return new Pair(1, datasetSize * getScalingFactor(states) );
+//		}
+		public int getScalingFactor(int states) {
+			return  states * stateScale / statesToUse[0];
+		}
+
 		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner;
 
 		LearnerEvaluationConfiguration eval;
@@ -567,6 +581,13 @@ public class MarkovExperiment
 		String outPathPrefix;
 
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase;
+	}
+
+	public static int [] densityFromStateNumber(int stateNumber) {
+		if (stateNumber < 40)
+			return new int[]{0,20};
+
+		return new int[]{0};
 	}
 
 	public static void main(String []args)
@@ -594,15 +615,15 @@ public class MarkovExperiment
 		try
 		{
 //			E_MarkovCaseStudies.runExperiment(learningGroup);
-//			E_MarkovBaselineLearn.runExperiment(learningGroup);
-//			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
-//			E_MarkovCentre.runExperiment(learningGroup);
-//			E_MarkovAlphabet.runExperiment(learningGroup);
-//			E_MarkovTraceMult.runExperiment(learningGroup);
-//			E_MarkovTraceConstSize.runExperiment(learningGroup);
+			E_MarkovBaselineLearn.runExperiment(learningGroup);
+			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
+			E_MarkovCentre.runExperiment(learningGroup);
+			E_MarkovAlphabet.runExperiment(learningGroup);
+			E_MarkovTraceLenMult.runExperiment(learningGroup);
+			E_MarkovTraceConstSize.runExperiment(learningGroup);
 			E_MarkovPrefixLen.runExperiment(learningGroup);
-//			E_MarkovTraceNum.runExperiment(learningGroup);
-//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+			E_MarkovTraceNum.runExperiment(learningGroup);
+			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		}
 		catch(Exception ex)
 		{

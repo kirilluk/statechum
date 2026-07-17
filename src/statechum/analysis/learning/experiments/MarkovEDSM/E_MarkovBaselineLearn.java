@@ -19,6 +19,7 @@ import static statechum.analysis.learning.DrawGraphs.obtainValueFromCell;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovBaselineLearn {
+    public static final String description = "baseline";
 
     public static class MarkovLearningBaselineParameters extends MarkovLearningParameters {
 
@@ -28,7 +29,7 @@ public class E_MarkovBaselineLearn {
 
         @Override
         public String getSubExperimentName() {
-            return "baseline";
+            return description;
         }
     }
 
@@ -39,12 +40,11 @@ public class E_MarkovBaselineLearn {
 
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
-        int [] densities = new int[]{ 0, 20, 30 };
 
         for (int states : learningGroup.statesToUse)
-            for (int perStateSquaredDensity100 : densities) {
+            for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample) {
-                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{new Pair(states, 2*states )})
+                    for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{learningGroup.getTracesLengthmultBaseline(states)})
                     {
                         int traceQuantityToUse = traces_lengthmult.firstElem;
                         for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
@@ -55,12 +55,6 @@ public class E_MarkovBaselineLearn {
                                             LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
                                             LearningAlgorithms.ScoringToApply.SCORING_VH
                                     })
-                            // LEARNER_EDSMMARKOV("edsm_markov"),LEARNER_EDSM2("edsm_2"),LEARNER_EDSM4("edsm_4"),LEARNER_KTAILS_PTA1("kpta=1"),LEARNER_KTAILS_PTA2("kpta=2"),LEARNER_KTAILS_1("k=1"), LEARNER_KTAILS_2("k=2"),LEARNER_VH("VH");
-
-//                                for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{3, 4} : new int[]{2})
-//                                    for (double weightOfInconsistencies : learnerKind.isMarkov() ?
-//                                            new double[]{0.25, 0.5, 1.0, 2.0, 4.0, 8.0}
-//                                            : new double[]{1.0})
                             {
                                 int chunkSizeToEvaluate = 3;
                                 double weightOfInconsistencies = 1.0;
@@ -140,10 +134,10 @@ public class E_MarkovBaselineLearn {
         int referencePreset = 0;
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
             for (int states : learningGroup.statesToUse)
-                for (int perStateSquaredDensity100 : densities) {
+                for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                     String presetStr = "";
                     String referencePresetStr = "-" + referencePreset;
-                    String experimentName = learningGroup.outPathPrefix + "baseline_"+states+"_"+perStateSquaredDensity100+"_";
+                    String experimentName = learningGroup.outPathPrefix + description+"_"+states+"_"+perStateSquaredDensity100+"_";
                     DataSelection source = new DataSelection(resultCSV,states,perStateSquaredDensity100);
 
                     final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score", new File(experimentName + "inconsistency_structural.pdf"));
@@ -201,7 +195,6 @@ public class E_MarkovBaselineLearn {
                                 double value = Double.parseDouble(obtainValueFromCell(Y, 2));
 //                                gr_StructuralVsInconsistency.add(Double.parseDouble(obtainValueFromCell(X, cellWithinX)), value, colour, label);
 
-
                                 String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
                                 if (gr_StructuralDiffLowDensity != null)
                                     gr_StructuralDiffLowDensity.add(
@@ -250,22 +243,22 @@ public class E_MarkovBaselineLearn {
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             for (int states : learningGroup.statesToUse)
-                for (int perStateSquaredDensity100 : densities) {
+                for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                     FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states,perStateSquaredDensity100,resultCSV);
                     final DrawGraphs.SquareBagPlot gr_StructuralDiffBest = new DrawGraphs.SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov",
-                            new File(learningGroup.outPathPrefix + "baseline_" + states + "_" + perStateSquaredDensity100 + "_VH_structuraldiffBest.pdf"), 0, 1, true);
+                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_VH_structuraldiffBest.pdf"), 0, 1, true);
                     final RBoxPlot<String> gr_PerformanceOfLearners = new RBoxPlot<>("", "Structural Score",
-                            new File(learningGroup.outPathPrefix + "baseline_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_structural.pdf"));
+                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_structural.pdf"));
                     final RBoxPlot<String> gr_RuntimeOfLearners = new RBoxPlot<>("", "Runtime, seconds",
-                            new File(learningGroup.outPathPrefix + "baseline_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_runtime.pdf"));
+                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_runtime.pdf"));
                     final RBoxPlot<String> gr_RelativeInconsistencyReference = new RBoxPlot<>("", "Relative inconsistency, reference",
-                            new File(learningGroup.outPathPrefix + "baseline_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_relativeinconsistency_reference.pdf"));
+                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_relativeinconsistency_reference.pdf"));
                     final RBoxPlot<String> gr_RelativeInconsistencyLearnt = new RBoxPlot<>("", "Relative inconsistency, learnt",
-                            new File(learningGroup.outPathPrefix + "baseline_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_relativeinconsistency_learnt.pdf"));
+                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_relativeinconsistency_learnt.pdf"));
                     gr_PerformanceOfLearners.setOtherOptions("las=2");
                     gr_RuntimeOfLearners.setOtherOptions("las=2");
                     final DrawGraphs.RBagPlot gr_StructuralVsRelativeInconsistency = new DrawGraphs.RBagPlot("Relative inconsistency", "Structural Score",
-                            new File(learningGroup.outPathPrefix + "baseline_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_difference_vs_relativeinconsistency.pdf"));
+                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_difference_vs_relativeinconsistency.pdf"));
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest);
 //                gr_PerformanceOfLearners.add("MARKOV",bestLearningResult.structural, null, null);
                             for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {

@@ -10,11 +10,8 @@ import statechum.analysis.learning.observers.ProgressDecorator;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.TreeMap;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 
@@ -61,7 +58,7 @@ public class E_MarkovPrefixLen {
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
                                                 })
-                                    for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{3} : new int[]{2})
+                                    for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{2,3,4} : new int[]{2})
                                         for (double weightOfInconsistencies : learnerKind.isMarkov() ?
                                                 new double[]{0.25, 0.5, 1.0, 2.0, 4.0}
 //                                                new double[]{1.0}
@@ -160,20 +157,50 @@ public class E_MarkovPrefixLen {
                 for (int states : learningGroup.statesToUse) {
                     final RBoxPlot<String> gr_StructuralVsChunkLenWeight = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
                             new File(experimentName + states + "_prefixLenInconsistencyWeight_structural.pdf"));
+                    final Map<Integer,RBoxPlot<String>> gr_StructuralVsChunkLenWeightForDensity = new TreeMap();
+                    final Map<Integer,RBoxPlot<String>> gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity = new TreeMap();
+                    for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
+                        {// structural score for different values of prefix length and inconsistency multiplier, considering offset
+                            RBoxPlot<String> graph = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
+                                    new File(experimentName + states + "_" + perStateSquaredDensity100 + "_prefixLenInconsistencyWeight_structural.pdf"));
+                            gr_StructuralVsChunkLenWeightForDensity.put(perStateSquaredDensity100, graph);
+                            graph.setOtherOptions("las=2");
+                        }
+                        {// Results above for runs where learning did not fail on L_REDS
+                            RBoxPlot<String> graph = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
+                                    new File(experimentName + states + "_" + perStateSquaredDensity100 + "_prefixLenInconsistencyWeight_NonFailStructural.pdf"));
+                            gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.put(perStateSquaredDensity100, graph);
+                            graph.setOtherOptions("las=2");
+                        }
+                    }
                     gr_StructuralVsChunkLenWeight.setOtherOptions("las=2");
                     for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+                        String[] rowValues = rowEntry.getKey().split("[_=]");
+                        assert rowValues[10].equals("d");
+                        assert rowValues[6].equals("S");
+
                         getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, (columnText, Y) -> {
                             double value = Double.parseDouble(obtainValueFromCell(Y, 2));
                             String[] elems = columnText.split("[_=]");
                             assert elems[1].equals("cl");
                             assert elems[3].equals("wW");
                             assert elems[5].equals("wO");
+
+                            boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
+
                             gr_StructuralVsChunkLenWeight.add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4]+"_"+elems[6], value);
+                            gr_StructuralVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4]+"_"+elems[6], value);
+                            if (learntOK)
+                                gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4]+"_"+elems[6], value);
 //                            System.out.println(Integer.parseInt(elems[2]) - 1 + "_" + elems[4]+"_"+elems[6]);
                         });
                     }
 
                     gr_StructuralVsChunkLenWeight.reportResults(learningGroup.gr);
+                    for(RBoxPlot<String> graph:gr_StructuralVsChunkLenWeightForDensity.values())
+                        graph.reportResults(learningGroup.gr);
+                    for(RBoxPlot<String> graph:gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.values())
+                        graph.reportResults(learningGroup.gr);
                 }
             }
         }
@@ -182,12 +209,15 @@ public class E_MarkovPrefixLen {
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             for (int states : learningGroup.statesToUse)
                 for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
-                    final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov",
+                    final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural Score, VH", "Structural Score, EDSM-Markov",
                             new File(learningGroup.outPathPrefix + description+"_"+states+"_bestprefixlen_and_mult_" + states + "_"+perStateSquaredDensity100+"_VH_structuraldiffBest.pdf"), 0, 1, true);
+                    final SquareBagPlot gr_StructuralDiffDefaultOrdering = new SquareBagPlot("Structural score, default order", "Structural Score, best order",
+                            new File(learningGroup.outPathPrefix + description+"_"+states+"_bestprefixlen_and_mult_" + states + "_"+perStateSquaredDensity100+"_defaultorder_bestorder.pdf"), 0, 1, true);
                     // Now select the best result from all those available
                     FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, perStateSquaredDensity100, resultCSV);
-                    report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest);
+                    report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest, gr_StructuralDiffDefaultOrdering);
                     gr_StructuralDiffBest.reportResults(learningGroup.gr);
+                    gr_StructuralDiffDefaultOrdering.reportResults(learningGroup.gr);
                     report.reportResults();
                 }
         }

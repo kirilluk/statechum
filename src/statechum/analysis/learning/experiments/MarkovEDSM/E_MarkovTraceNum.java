@@ -11,7 +11,6 @@ import statechum.analysis.learning.observers.ProgressDecorator;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 
@@ -173,7 +172,7 @@ public class E_MarkovTraceNum {
                                             new File(learningGroup.outPathPrefix + description+"_"+states+"_tracenum_num=" + traceQuantityToUse + "_VH_structuraldiffBest.pdf"), 0, 1, true));
 
                             FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, -1, resultCSV);
-                            report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(traceQuantityToUse));
+                            report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(traceQuantityToUse), null);
                             learnerToHowOftenBestForAllTraceLength.computeIfAbsent(traceQuantityToUse,aInteger -> report);
 
                             String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");

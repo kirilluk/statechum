@@ -12,7 +12,6 @@ import statechum.analysis.learning.observers.ProgressDecorator;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.DrawGraphs.obtainValueFromCell;
@@ -57,7 +56,8 @@ public class E_MarkovBaselineLearn {
                                     })
                             {
                                 int chunkSizeToEvaluate = 3;
-                                double weightOfInconsistencies = 1.0;
+//                                double weightOfInconsistencies = 1.0;// good for 10 states
+                                double weightOfInconsistencies = 0.5;// good for 20 states
                                 ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
                                 ev.config = learningGroup.eval.config.copy();
                                 ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
@@ -259,7 +259,7 @@ public class E_MarkovBaselineLearn {
                     gr_RuntimeOfLearners.setOtherOptions("las=2");
                     final DrawGraphs.RBagPlot gr_StructuralVsRelativeInconsistency = new DrawGraphs.RBagPlot("Relative inconsistency", "Structural Score",
                             new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_difference_vs_relativeinconsistency.pdf"));
-                    report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest);
+                    report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest, null);
 //                gr_PerformanceOfLearners.add("MARKOV",bestLearningResult.structural, null, null);
                             for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                                 String[] rowValues = rowEntry.getKey().split("[_=]");

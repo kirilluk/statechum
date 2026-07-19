@@ -60,7 +60,8 @@ public class E_MarkovLearnWithCentre {
                                                 })
                                 {
                                     int chunkSizeToEvaluate = 3;
-                                    double weightOfInconsistencies = 2.0;
+//                                    double weightOfInconsistencies = 2.0;// good value for learning with 10 states
+                                    double weightOfInconsistencies = 0.5;// good value for learning with 20 states
                                     for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} : new Pair[]{new Pair(1, 1), new Pair(1, 2), new Pair(2, 4)}) {
                                         int wlen = wlen_divisor.firstElem, divisor = wlen_divisor.secondElem;
                                         ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);

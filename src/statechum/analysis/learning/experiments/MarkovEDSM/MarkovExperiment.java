@@ -585,9 +585,9 @@ public class MarkovExperiment
 
 	public static int [] densityFromStateNumber(int stateNumber) {
 		if (stateNumber < 40)
-			return new int[]{0,20};
+			return new int[]{0,20, 30};
 
-		return new int[]{0};
+		return new int[]{0, 20};
 	}
 
 	public static void main(String []args)

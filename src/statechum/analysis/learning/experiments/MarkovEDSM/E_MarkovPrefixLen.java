@@ -63,12 +63,12 @@ public class E_MarkovPrefixLen {
                                                 })
                                     for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{3} : new int[]{2})
                                         for (double weightOfInconsistencies : learnerKind.isMarkov() ?
-//                                                new double[]{0.25, 0.5, 1.0, 2.0, 4.0}
-                                                new double[]{1.0}
+                                                new double[]{0.25, 0.5, 1.0, 2.0, 4.0}
+//                                                new double[]{1.0}
                                                 : new double[]{1.0})
                                             for (double inconsistencyOffset : learnerKind.isMarkov() ?
-//                                                    new double[]{0, 0.5, 1.0}
-                                                    new double[]{0}
+                                                    new double[]{0, 0.5, 1.0}
+//                                                    new double[]{0}
                                                     : new double[]{0.0})
                                             for (int shuffleSeed : learnerKind.isMarkov() ?
                                                     new int[]{0,1,2,3}

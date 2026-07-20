@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static statechum.analysis.learning.DrawGraphs.*;
@@ -15,6 +16,7 @@ class FilterCollectionOfResultsForBestPerformingLearner {
     protected int states;
     protected int perStateSquaredDensity100 = -1;
     DrawGraphs.CSVExperimentResult resultCSV = null;
+    AtomicBoolean multipleOrderingsOfStates = new AtomicBoolean(false);
 
     protected Map<String, AtomicInteger> learnerToHowOftenBest = new HashMap<>(), learnerToHowOftenDefaultOrdering = new HashMap<>();
 
@@ -62,6 +64,8 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                     if (learntOK) {
                         if (Integer.parseInt(columnValues[10]) == 0)
                             bestLearningResultForDefaultOrdering.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText));
+                        else
+                            multipleOrderingsOfStates.set(true);
                         bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText));
                     }
                 });
@@ -91,11 +95,11 @@ class FilterCollectionOfResultsForBestPerformingLearner {
         learnersDefaultOrdering.sort((o1, o2) ->
                 learnerToHowOftenDefaultOrdering.get(o2).get() - learnerToHowOftenDefaultOrdering.get(o1).get());
         System.out.println("States: " + states + (perStateSquaredDensity100 >= 0 ? " density: " + perStateSquaredDensity100 : ""));
-        if (!learnerToHowOftenDefaultOrdering.isEmpty())
+        if (!learnerToHowOftenDefaultOrdering.isEmpty() && multipleOrderingsOfStates.get())
             System.out.println("Best results across all orders:");
         for (String l : learnersBest)
             System.out.println(l + " -> " + learnerToHowOftenBest.get(l).get());
-        if (!learnerToHowOftenDefaultOrdering.isEmpty()) {
+        if (!learnerToHowOftenDefaultOrdering.isEmpty() && multipleOrderingsOfStates.get()) {
             System.out.println("Default ordering best results :");
             for (String l : learnersDefaultOrdering)
                 System.out.println(l + " -> " + learnerToHowOftenDefaultOrdering.get(l).get());

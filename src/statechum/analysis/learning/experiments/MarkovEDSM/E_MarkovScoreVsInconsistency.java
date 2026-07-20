@@ -39,7 +39,7 @@ public class E_MarkovScoreVsInconsistency {
     public static String learnStatistics = "statistics";
 
     public static CSVExperimentResult runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) throws FileNotFoundException {
-        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "results.csv"));
+        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + description+"-results.csv"));
         boolean aveOrMax = true;// average divide by the divisor
 
         boolean [] penaliseMissingPathsValues = {true,false};

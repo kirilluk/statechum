@@ -33,7 +33,7 @@ public class E_MarkovBaselineLearn {
     }
 
     public static DrawGraphs.CSVExperimentResult runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
-        final DrawGraphs.CSVExperimentResult resultCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + "results.csv"));
+        final DrawGraphs.CSVExperimentResult resultCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + description+"-results.csv"));
         boolean aveOrMax = true;// average divide by the divisor
         boolean penaliseMissingPaths = true;
 
@@ -157,9 +157,14 @@ public class E_MarkovBaselineLearn {
                     final DrawGraphs.RBagPlot gr_Inconsistencies_and_SD = new DrawGraphs.RBagPlot("Inconsistency, average", "Inconsistency, SD", new File(experimentName + "_inconsistencies_sd.pdf"));
                     final DrawGraphs.RBoxPlot<String> gr_PosnegNegativeInconsistencies_Structural = new DrawGraphs.RBoxPlot<>("Inconsistency always positive", "Structural difference", new File(experimentName + "posneginconsistencies_structuraldiff.pdf"));
                     final DrawGraphs.SquareBagPlot gr_BCR = new DrawGraphs.SquareBagPlot("BCR, VH", "BCR, EDSM-Markov", new File(experimentName + "_trace_bcr.pdf"), 0.5, 1, true);
-                    final DrawGraphs.SquareBagPlot BCRAgainstKtails = new DrawGraphs.SquareBagPlot("BCR, K-tails,1", "BCR, EDSM-Markov", new File(experimentName + "kt_markov_bcr.pdf"), 0.5, 1, true);
-                    final DrawGraphs.SquareBagPlot BCRAgainstEDSM_1 = new DrawGraphs.SquareBagPlot("BCR, EDSM-1", "BCR, EDSM-Markov", new File(experimentName + "edsm-1_markov_bcr.pdf"), 0.5, 1, true);
-                    final DrawGraphs.SquareBagPlot BCRAgainstEDSM_2 = new DrawGraphs.SquareBagPlot("BCR, EDSM-2", "BCR, EDSM-Markov", new File(experimentName + "edsm-2_markov_bcr.pdf"), 0.5, 1, true);
+                    final DrawGraphs.SquareBagPlot gr_DiffAgainstKtails1 = new DrawGraphs.SquareBagPlot("Structural Score, K-tails,1", "Structural Score, EDSM-Markov", new File(experimentName + "kt_1_markov.pdf"), 0, 1, true);
+                    final DrawGraphs.SquareBagPlot gr_DiffAgainstKtails2 = new DrawGraphs.SquareBagPlot("Structural Score, K-tails,1", "Structural Score, EDSM-Markov", new File(experimentName + "kt_2_markov.pdf"), 0, 1, true);
+                    final DrawGraphs.SquareBagPlot gr_DiffAgainstEDSM_1 = new DrawGraphs.SquareBagPlot("Structural Score, EDSM-1", "Structural Score, EDSM-Markov", new File(experimentName + "edsm-1_markov.pdf"), 0, 1, true);
+                    final DrawGraphs.SquareBagPlot gr_DiffAgainstEDSM_2 = new DrawGraphs.SquareBagPlot("Structural Score, EDSM-2", "Structural Score, EDSM-Markov", new File(experimentName + "edsm-2_markov.pdf"), 0, 1, true);
+//                    final DrawGraphs.SquareBagPlot BCRAgainstKtails1 = new DrawGraphs.SquareBagPlot("BCR, K-tails,1", "BCR, EDSM-Markov", new File(experimentName + "kt_1_markov_bcr.pdf"), 0.5, 1, true);
+//                    final DrawGraphs.SquareBagPlot BCRAgainstKtails2 = new DrawGraphs.SquareBagPlot("BCR, K-tails,1", "BCR, EDSM-Markov", new File(experimentName + "kt_2_markov_bcr.pdf"), 0.5, 1, true);
+//                    final DrawGraphs.SquareBagPlot BCRAgainstEDSM_1 = new DrawGraphs.SquareBagPlot("BCR, EDSM-1", "BCR, EDSM-Markov", new File(experimentName + "edsm-1_markov_bcr.pdf"), 0.5, 1, true);
+//                    final DrawGraphs.SquareBagPlot BCRAgainstEDSM_2 = new DrawGraphs.SquareBagPlot("BCR, EDSM-2", "BCR, EDSM-Markov", new File(experimentName + "edsm-2_markov_bcr.pdf"), 0.5, 1, true);
 
                     final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_Structural = new DrawGraphs.WilcoxonPairedTest(new File(experimentName + "Wilcoxon_t_str.csv"));
                     final DrawGraphs.WilcoxonPairedTest Wilcoxon_Test_BCR = new DrawGraphs.WilcoxonPairedTest(new File(experimentName + "Wilcoxon_t_bcr.csv"));
@@ -217,9 +222,10 @@ public class E_MarkovBaselineLearn {
                     }
 
                     DrawGraphs.spreadsheetToBagPlot(gr_BCR, source, LearningAlgorithms.ScoringToApply.SCORING_VH + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
-                    DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails, source, LearningAlgorithms.ScoringToApply.SCORING_PTAK_1 + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
-                    DrawGraphs.spreadsheetToBagPlot(BCRAgainstEDSM_1, source, LearningAlgorithms.ScoringToApply.SCORING_EDSM_1 + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
-                    DrawGraphs.spreadsheetToBagPlot(BCRAgainstEDSM_2, source, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2 + referencePresetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, null, null);
+                    DrawGraphs.spreadsheetToBagPlot(gr_DiffAgainstKtails1, source, LearningAlgorithms.ScoringToApply.SCORING_PTAK_1 + referencePresetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
+                    DrawGraphs.spreadsheetToBagPlot(gr_DiffAgainstKtails2, source, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2 + referencePresetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
+                    DrawGraphs.spreadsheetToBagPlot(gr_DiffAgainstEDSM_1, source, LearningAlgorithms.ScoringToApply.SCORING_EDSM_1 + referencePresetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
+                    DrawGraphs.spreadsheetToBagPlot(gr_DiffAgainstEDSM_2, source, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2 + referencePresetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
 
                     DrawGraphs.spreadsheetAsDouble(Wilcoxon_Test_BCR, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 1, LearningAlgorithms.ScoringToApply.SCORING_VH + referencePresetStr, 1);
                     DrawGraphs.spreadsheetAsDouble(Wilcoxon_test_Structural, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, LearningAlgorithms.ScoringToApply.SCORING_VH + referencePresetStr, 2);
@@ -232,7 +238,7 @@ public class E_MarkovBaselineLearn {
                             gr_MarkovTransitionPrecisionStructuralDiff, gr_MarkovHoleRecallStructuralDiff, gr_StructuralDiff, gr_BCR_vs_structural,
                             gr_Inconsistencies_and_SD, gr_PosnegNegativeInconsistencies_Structural, gr_TotalMergersVsStructuralScore,
                             gr_MistakesNearRootVsStructuralScore, gr_MissedMergersNearRootVsStructuralScore, gr_InvalidMergersNearRootVsStructuralScore,
-                            gr_BCR, BCRAgainstKtails, BCRAgainstEDSM_1, BCRAgainstEDSM_2,
+                            gr_BCR, gr_DiffAgainstKtails1, gr_DiffAgainstKtails2, gr_DiffAgainstEDSM_1, gr_DiffAgainstEDSM_2,
                             Wilcoxon_Test_BCR, Wilcoxon_test_Structural, Mann_Whitney_U_Test_BCR, Mann_Whitney_U_Test_Structural, Kruskal_Wallis_Test_Structural, Kruskal_Wallis_Test_BCR}) {
                         result.reportResults(learningGroup.gr);
                     }

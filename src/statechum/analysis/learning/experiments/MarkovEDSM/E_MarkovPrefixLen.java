@@ -34,7 +34,7 @@ public class E_MarkovPrefixLen {
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0};//0,1,2,3
-        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "results.csv"));
+        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + description+"-results.csv"));
         boolean aveOrMax = true;// average divide by the divisor
         boolean penaliseMissingPaths = true;
         int alphabetMultiplier = 2;
@@ -60,12 +60,12 @@ public class E_MarkovPrefixLen {
                                                 })
                                     for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{2,3,4} : new int[]{2})
                                         for (double weightOfInconsistencies : learnerKind.isMarkov() ?
-                                                new double[]{0.25, 0.5, 1.0, 2.0, 4.0}
+                                                ((chunkSizeToEvaluate <= 3)? new double[]{0.25, 0.5, 1.0, 2.0, 4.0}:new double[]{0.125, 0.25, 0.5})
 //                                                new double[]{1.0}
                                                 : new double[]{1.0})
                                             for (double inconsistencyOffset : learnerKind.isMarkov() ?
-                                                    new double[]{0, 0.5, 1.0}
-//                                                    new double[]{0}
+//                                                    new double[]{0, 0.5, 1.0}
+                                                    new double[]{0}
                                                     : new double[]{0.0})
                                             for (int shuffleSeed : learnerKind.isMarkov() ?
                                                     new int[]{0,1,2,3}
@@ -172,35 +172,38 @@ public class E_MarkovPrefixLen {
                             gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.put(perStateSquaredDensity100, graph);
                             graph.setOtherOptions("las=2");
                         }
-                    }
-                    gr_StructuralVsChunkLenWeight.setOtherOptions("las=2");
-                    for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-                        String[] rowValues = rowEntry.getKey().split("[_=]");
-                        assert rowValues[10].equals("d");
-                        assert rowValues[6].equals("S");
 
-                        getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, (columnText, Y) -> {
-                            double value = Double.parseDouble(obtainValueFromCell(Y, 2));
-                            String[] elems = columnText.split("[_=]");
-                            assert elems[1].equals("cl");
-                            assert elems[3].equals("wW");
-                            assert elems[5].equals("wO");
+                        gr_StructuralVsChunkLenWeight.setOtherOptions("las=2");
+                        for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+                            String[] rowValues = rowEntry.getKey().split("[_=]");
+                            assert rowValues[10].equals("d");
+                            assert rowValues[6].equals("S");
+                            if (Double.parseDouble(rowValues[11]) == perStateSquaredDensity100 && Integer.parseInt(rowValues[7]) == states)
+                                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, (columnText, Y) -> {
+                                    double value = Double.parseDouble(obtainValueFromCell(Y, 2));
+                                    String[] elems = columnText.split("[_=]");
+                                    assert elems[1].equals("cl");
+                                    assert elems[3].equals("wW");
+                                    assert elems[5].equals("wO");
 
-                            boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
+                                    boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
 
-                            gr_StructuralVsChunkLenWeight.add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4]+"_"+elems[6], value);
-                            gr_StructuralVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4]+"_"+elems[6], value);
-                            if (learntOK)
-                                gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4]+"_"+elems[6], value);
+                                    gr_StructuralVsChunkLenWeight.add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4] + "_" + elems[6], value);
+                                    if (null == gr_StructuralVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])))
+                                        System.out.println(rowValues[11]);
+                                    gr_StructuralVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4] + "_" + elems[6], value);
+                                    if (learntOK)
+                                        gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4] + "_" + elems[6], value);
 //                            System.out.println(Integer.parseInt(elems[2]) - 1 + "_" + elems[4]+"_"+elems[6]);
-                        });
-                    }
+                                });
+                        }
 
-                    gr_StructuralVsChunkLenWeight.reportResults(learningGroup.gr);
-                    for(RBoxPlot<String> graph:gr_StructuralVsChunkLenWeightForDensity.values())
-                        graph.reportResults(learningGroup.gr);
-                    for(RBoxPlot<String> graph:gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.values())
-                        graph.reportResults(learningGroup.gr);
+                        gr_StructuralVsChunkLenWeight.reportResults(learningGroup.gr);
+                        for (RBoxPlot<String> graph : gr_StructuralVsChunkLenWeightForDensity.values())
+                            graph.reportResults(learningGroup.gr);
+                        for (RBoxPlot<String> graph : gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.values())
+                            graph.reportResults(learningGroup.gr);
+                    }
                 }
             }
         }

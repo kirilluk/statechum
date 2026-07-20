@@ -188,13 +188,13 @@ public class E_MarkovPrefixLen {
 
                                     boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
 
-                                    gr_StructuralVsChunkLenWeight.add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4] + "_" + elems[6], value);
+                                    String prefixLenAndWeight = Integer.parseInt(elems[2]) - 1 + "_" + elems[4];// + "_" + elems[6];
+                                    gr_StructuralVsChunkLenWeight.add(prefixLenAndWeight, value);
                                     if (null == gr_StructuralVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])))
                                         System.out.println(rowValues[11]);
-                                    gr_StructuralVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4] + "_" + elems[6], value);
+                                    gr_StructuralVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(prefixLenAndWeight, value);
                                     if (learntOK)
-                                        gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(Integer.parseInt(elems[2]) - 1 + "_" + elems[4] + "_" + elems[6], value);
-//                            System.out.println(Integer.parseInt(elems[2]) - 1 + "_" + elems[4]+"_"+elems[6]);
+                                        gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(prefixLenAndWeight, value);
                                 });
                         }
 

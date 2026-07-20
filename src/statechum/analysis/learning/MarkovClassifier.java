@@ -1496,7 +1496,7 @@ public class MarkovClassifier<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET_T
 
 		double inconsistencyForTheSuppliedGraph = MarkovClassifier.computeInconsistency(automatonToBaseRandomGraphOn, null, markovModel, checker,false);
 
-		DiffExperiments.MachineGenerator mg = new DiffExperiments.MachineGenerator(states, 400 , (int)Math.round((double)states/5));mg.setGenerateConnected(true);
+		DiffExperiments.MachineGenerator mg = new DiffExperiments.MachineGenerator(states, 400 , Math.max(1,(int)Math.round((double)states/5)));mg.setGenerateConnected(true);
 
 		double totalInconsistency = 0;
 		int alphabetSize = automatonToBaseRandomGraphOn.pathroutines.computeAlphabet().size();

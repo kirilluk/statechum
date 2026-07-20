@@ -464,7 +464,7 @@ public class TestMarkovLearner
 		m.buildMarkovMatrixFromAutomaton(graph);
 		MarkovClassifier.ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		double value = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(graph,conv,m,checker,10);
-		Assert.assertEquals(1./1.399999992,value, 1e-8);
+		Assert.assertEquals(0.30612245031236984,value, 1e-8);
 	}
 
 	@Test
@@ -481,6 +481,22 @@ public class TestMarkovLearner
 		double value = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(graph,conv,m,checker,10);
 		Assert.assertEquals(-1,value, 1e-8);
 	}
+
+	@Test
+	public void testEvaluateInconsistencyAgainstRandomAutomata4()
+	{
+		// We have to use a different converter here compared to the one used elsewhere in this test,
+		// because labels are generated internally by the forest fire algorithm and have a form of L...  (more than a single character)
+		// that is not supported by the converter in this test.
+		final Transform.ConvertALabel conv = new Transform.InternStringLabel();
+		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->A-b->A-c->B-a->B-b->B","testEvaluateInconsistencyAgainstRandomAutomata4",config, conv);
+		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
+		m.buildMarkovMatrixFromAutomaton(graph);
+		MarkovClassifier.ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
+		double value = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(graph,conv,m,checker,10);
+		Assert.assertEquals(5.208333336046007E-10,value, 1e-8);
+	}
+
 	/** Nothing to add because there not enough evidence. */
 	@Test
 	public void testConstructExtendedGraph1()

@@ -497,7 +497,7 @@ public class DrawGraphs {
 		void reportResults(DrawGraphs gr);
 				
 		/** Reports the name of the file with the graph, used for identification of different graphs. */
-		String getFileName();
+		String getResultIdentifier();
 	}
 
 	public static class CSVExperimentResult implements SGEExperimentResult
@@ -507,6 +507,7 @@ public class DrawGraphs {
 		int headerRows = -1;
 		final Map<String,String []> columnIDToCellHeader = new TreeMap<>();
 		protected final File file;
+		protected final String fileIdentifier;
 
 		protected String missingValue = "";
 
@@ -519,9 +520,16 @@ public class DrawGraphs {
 			missingValue = val;
 		}
 		
-		public CSVExperimentResult(File arg)
+		public CSVExperimentResult(File arg) {
+			this(arg,null);
+		}
+		public CSVExperimentResult(File arg, String resultIdentifier)
 		{
 			file = arg;
+			if (resultIdentifier == null)
+				fileIdentifier = arg.getName();
+			else
+				fileIdentifier = resultIdentifier;
 		}
 
 	 	public static void addSeparator(StringBuffer buf)
@@ -548,23 +556,23 @@ public class DrawGraphs {
 		public void add(ThreadResultID id, String text)
 		{
 			if (id.getRowID() == null || LearningSupportRoutines.removeSpaces(id.getRowID()).isEmpty())
-				throw new IllegalArgumentException("cannot add a cell without row id to spreadsheet "+getFileName());
+				throw new IllegalArgumentException("cannot add a cell without row id to spreadsheet "+ getResultIdentifier());
 			if (id.getColumnID() == null || LearningSupportRoutines.removeSpaces(id.getColumnID()).isEmpty())
-				throw new IllegalArgumentException("cannot add a cell without column id to spreadsheet "+getFileName());
+				throw new IllegalArgumentException("cannot add a cell without column id to spreadsheet "+ getResultIdentifier());
 			if (id.getColumnText() == null || id.getColumnText().length == 0)
-				throw new IllegalArgumentException("spreadsheet "+getFileName()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid column header");
+				throw new IllegalArgumentException("spreadsheet "+ getResultIdentifier()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid column header");
 			if (id.headerValuesForEachCell() == null || id.headerValuesForEachCell().length == 0)
-				throw new IllegalArgumentException("spreadsheet "+getFileName()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid header values for cell");
+				throw new IllegalArgumentException("spreadsheet "+ getResultIdentifier()+" contains cell "+id.getRowID()+","+id.getColumnID()+" with an invalid header values for cell");
 
 			Map<String, String> columnText = rowColumnText.computeIfAbsent(id.getRowID(), k -> new TreeMap<>());
 			if (columnText.containsKey(id.getColumnID()))
-				throw new IllegalArgumentException("spreadsheet "+getFileName()+" already contains cell ["+id.getRowID()+"] , ["+id.getColumnID()+"]");
+				throw new IllegalArgumentException("spreadsheet "+ getResultIdentifier()+" already contains cell ["+id.getRowID()+"] , ["+id.getColumnID()+"]");
 			String [] elements = text.split(",");
 			if (elements.length != id.headerValuesForEachCell().length)
 				throw new IllegalArgumentException("the number of values ("+elements.length+") passed via \""+Arrays.asList(elements)+"\" does not match those ("+id.headerValuesForEachCell().length+") in id.headerValuesForEachCell()=\""+Arrays.asList(id.headerValuesForEachCell())+"\"");
 			String reducedLine = concatenateWithSeparator(elements);
 			if (reducedLine.isEmpty())
-				throw new IllegalArgumentException("empty line added at "+id.getRowID()+","+id.getColumnID()+" to spreadsheet "+getFileName());
+				throw new IllegalArgumentException("empty line added at "+id.getRowID()+","+id.getColumnID()+" to spreadsheet "+ getResultIdentifier());
 			columnText.put(id.getColumnID(), reducedLine); 
 
 			if (!columnIDToHeader.containsKey(id.getColumnID()))
@@ -661,7 +669,7 @@ public class DrawGraphs {
 		 */
 		public void writeTaskOutput(Writer outputWriter, ThreadResultID id, String text) throws IOException
 		{
-			outputWriter.write(getFileName());outputWriter.write(SGE_ExperimentRunner.separator);
+			outputWriter.write(getResultIdentifier());outputWriter.write(SGE_ExperimentRunner.separator);
 			StringSequenceWriter writer = new StringSequenceWriter(null);
 			StringBuffer w = new StringBuffer();
 			w.append(id.getSubExperimentName());w.append(SGE_ExperimentRunner.separator);w.append(id.getRowID());w.append(SGE_ExperimentRunner.separator);w.append(id.getColumnID());w.append(SGE_ExperimentRunner.separator);
@@ -704,9 +712,9 @@ public class DrawGraphs {
 
 		/** Reports the name of the file with the graph, used for identification of different graphs. */
 		@Override
-		public String getFileName()
+		public String getResultIdentifier()
 		{
-			return file.getName();
+			return fileIdentifier;
 		}
 
 		public String getAbsoluteFileName()
@@ -1239,14 +1247,14 @@ public class DrawGraphs {
 
 		/** Reports the name of the file with the graph, used for identification of different graphs. */
 		@Override
-		public String getFileName()
+		public String getResultIdentifier()
 		{
 			return file.getName();
 		}
 
 		public <T> void writeTaskOutput(Writer outputWriter,Comparable<T> x, Double y, String colour, String label) throws IOException
 		{
-			outputWriter.write(getFileName());outputWriter.write(SGE_ExperimentRunner.separator);
+			outputWriter.write(getResultIdentifier());outputWriter.write(SGE_ExperimentRunner.separator);
 			outputWriter.write(x.getClass().getCanonicalName());outputWriter.write(SGE_ExperimentRunner.separator);outputWriter.write(x.toString());outputWriter.write(SGE_ExperimentRunner.separator);
 			outputWriter.write(y.toString());outputWriter.write(SGE_ExperimentRunner.separator);
 			if (colour != null)

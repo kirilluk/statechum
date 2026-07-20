@@ -5,7 +5,6 @@ import statechum.Pair;
 import statechum.analysis.Erlang.ErlangLabel;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
-import statechum.analysis.learning.PrecisionRecall.PrecisionRecall;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
@@ -14,7 +13,6 @@ import statechum.analysis.learning.observers.ProgressDecorator;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.directoryExperimentStatistics;
@@ -39,7 +37,7 @@ public class E_MarkovScoreVsInconsistency {
     public static String learnStatistics = "statistics";
 
     public static CSVExperimentResult runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) throws FileNotFoundException {
-        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + description+"-results.csv"));
+        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + description+"-results.csv"), "results.csv");
         boolean aveOrMax = true;// average divide by the divisor
 
         boolean [] penaliseMissingPathsValues = {true,false};

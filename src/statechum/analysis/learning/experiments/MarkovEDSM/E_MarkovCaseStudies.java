@@ -72,7 +72,7 @@ public class E_MarkovCaseStudies {
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0,1,2,3,4};
-        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "results_casestudies.csv"));
+        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "results_casestudies.csv"), "results.csv");
         boolean aveOrMax = true;// average divide by the divisor
         int trainingSamplesPerFSM = 40;// these are fixed automata hence we can try many different values to see how inference performs.
         boolean pathsOrSets = true, penaliseMissingPaths = true;

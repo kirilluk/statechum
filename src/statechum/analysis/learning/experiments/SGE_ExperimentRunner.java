@@ -685,7 +685,7 @@ public class SGE_ExperimentRunner
 		{
 			nameToGraph = new TreeMap<>();
 			for(SGEExperimentResult g:handlerForExperimentResults.getGraphs())
-				nameToGraph.put(g.getFileName(),g);
+				nameToGraph.put(g.getResultIdentifier(),g);
 			if (nameToGraph.size() != handlerForExperimentResults.getGraphs().length)
 				throw new IllegalArgumentException("duplicate file names in some graphs");
 			if (plotName != null && !nameToGraph.containsKey(plotName))
@@ -806,10 +806,10 @@ public class SGE_ExperimentRunner
 		@SuppressWarnings({ "rawtypes", "unchecked" })
 		public void RecordR(RExperimentResult graph, Comparable x, Double y, String colour, String label) throws IOException
 		{
-			if (graph.getFileName().split(separatorRegEx).length > 1)
-				throw new IllegalArgumentException("invalid file name "+graph.getFileName()+" in graph");
-			if (!nameToGraph.containsKey(graph.getFileName()))
-				throw new IllegalArgumentException("unknown graph "+graph.getFileName());
+			if (graph.getResultIdentifier().split(separatorRegEx).length > 1)
+				throw new IllegalArgumentException("invalid file name "+graph.getResultIdentifier()+" in graph");
+			if (!nameToGraph.containsKey(graph.getResultIdentifier()))
+				throw new IllegalArgumentException("unknown graph "+graph.getResultIdentifier());
 			
 			switch(phase)
 			{
@@ -833,10 +833,10 @@ public class SGE_ExperimentRunner
 		
 		public void RecordCSV(CSVExperimentResult experimentResult, ThreadResultID id, String text) throws IOException
 		{
-			if (experimentResult.getFileName().split(separatorRegEx).length > 1)
-				throw new IllegalArgumentException("invalid file name "+experimentResult.getFileName()+" in spreadsheet");
-			if (!nameToGraph.containsKey(experimentResult.getFileName()))
-				throw new IllegalArgumentException("unknown graph "+experimentResult.getFileName());
+			if (experimentResult.getResultIdentifier().split(separatorRegEx).length > 1)
+				throw new IllegalArgumentException("invalid file name "+experimentResult.getResultIdentifier()+" in spreadsheet");
+			if (!nameToGraph.containsKey(experimentResult.getResultIdentifier()))
+				throw new IllegalArgumentException("unknown graph "+experimentResult.getResultIdentifier());
 			if (text.contains("\n"))
 				throw new IllegalArgumentException("lines of text should not contain newlines, append multiple lines instead");
 			switch(phase)

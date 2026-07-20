@@ -34,7 +34,7 @@ public class E_MarkovPrefixLen {
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0};//0,1,2,3
-        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + description+"-results.csv"));
+        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + description+"-results.csv"),"results.csv");
         boolean aveOrMax = true;// average divide by the divisor
         boolean penaliseMissingPaths = true;
         int alphabetMultiplier = 2;
@@ -65,7 +65,7 @@ public class E_MarkovPrefixLen {
                                                 : new double[]{1.0})
                                             for (double inconsistencyOffset : learnerKind.isMarkov() ?
 //                                                    new double[]{0, 0.5, 1.0}
-                                                    new double[]{0}
+                                                    new double[]{0.0}
                                                     : new double[]{0.0})
                                             for (int shuffleSeed : learnerKind.isMarkov() ?
                                                     new int[]{0,1,2,3}

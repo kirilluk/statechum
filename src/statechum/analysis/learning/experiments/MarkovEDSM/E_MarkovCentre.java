@@ -177,7 +177,7 @@ public class E_MarkovCentre {
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         // IDENTIFICATION OF CENTRE VERTEX
-        final DrawGraphs.CSVExperimentResult centreCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + "centre.csv"));
+        final DrawGraphs.CSVExperimentResult centreCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + "centre.csv"), "results.csv");
         boolean aveOrMax = true;// average divide by the divisor
         final int chunkSizeForCentreExperiments = 3;
         int alphabetMultiplier = 2;

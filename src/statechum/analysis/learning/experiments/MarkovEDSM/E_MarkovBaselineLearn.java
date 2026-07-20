@@ -33,7 +33,7 @@ public class E_MarkovBaselineLearn {
     }
 
     public static DrawGraphs.CSVExperimentResult runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
-        final DrawGraphs.CSVExperimentResult resultCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + description+"-results.csv"));
+        final DrawGraphs.CSVExperimentResult resultCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + description+"-results.csv"), "results.csv");
         boolean aveOrMax = true;// average divide by the divisor
         boolean penaliseMissingPaths = true;
 

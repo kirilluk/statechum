@@ -58,7 +58,7 @@ public class E_MarkovPrefixLen {
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
                                                 })
-                                    for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{2,3,4} : new int[]{2})
+                                    for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{2,3} : new int[]{2})
                                         for (double weightOfInconsistencies : learnerKind.isMarkov() ?
                                                 ((chunkSizeToEvaluate <= 3)? new double[]{0.25, 0.5, 1.0, 2.0, 4.0}:new double[]{0.125, 0.25, 0.5})
 //                                                new double[]{1.0}
@@ -190,8 +190,6 @@ public class E_MarkovPrefixLen {
 
                                     String prefixLenAndWeight = Integer.parseInt(elems[2]) - 1 + "_" + elems[4];// + "_" + elems[6];
                                     gr_StructuralVsChunkLenWeight.add(prefixLenAndWeight, value);
-                                    if (null == gr_StructuralVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])))
-                                        System.out.println(rowValues[11]);
                                     gr_StructuralVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(prefixLenAndWeight, value);
                                     if (learntOK)
                                         gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(prefixLenAndWeight, value);

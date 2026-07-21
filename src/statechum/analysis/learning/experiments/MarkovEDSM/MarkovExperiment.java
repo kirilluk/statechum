@@ -568,8 +568,6 @@ public class MarkovExperiment
 
 		final boolean pathsOrSets = true;
 		final int[] statesToUse = new int[]{20,40};
-		// Scales the number of traces to account for larger automata
-		final int stateScale = statesToUse[0]/10;
 
 		public static final int datasetSize = 256;
 
@@ -581,8 +579,14 @@ public class MarkovExperiment
 //		Pair<Integer,Integer> getTracesLengthmultSingleTrace(int states) {
 //			return new Pair(1, datasetSize * getScalingFactor(states) );
 //		}
+
+		/** Scales the number of traces to account for larger automata
+		 *
+		 * @param states number of states
+		 * @return scaling factor to increase the number of traces or length of traces
+		 */
 		public int getScalingFactor(int states) {
-			return  states * stateScale / statesToUse[0];
+			return  states / 10;
 		}
 
 		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner;
@@ -626,15 +630,15 @@ public class MarkovExperiment
 		try
 		{
 //			E_MarkovCaseStudies.runExperiment(learningGroup);
-			E_MarkovBaselineLearn.runExperiment(learningGroup);
-			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
-			E_MarkovCentre.runExperiment(learningGroup);
-			E_MarkovAlphabet.runExperiment(learningGroup);
+//			E_MarkovBaselineLearn.runExperiment(learningGroup);
+//			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
+//			E_MarkovCentre.runExperiment(learningGroup);
+//			E_MarkovAlphabet.runExperiment(learningGroup);
 //			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			E_MarkovTraceConstSize.runExperiment(learningGroup);
 			E_MarkovPrefixLen.runExperiment(learningGroup);
 //			E_MarkovTraceNum.runExperiment(learningGroup);
-			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		}
 		catch(Exception ex)
 		{

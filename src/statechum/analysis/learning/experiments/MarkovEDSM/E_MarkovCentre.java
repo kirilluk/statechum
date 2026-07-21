@@ -191,7 +191,6 @@ public class E_MarkovCentre {
             for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states))
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample)
                     for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample) {
-                        int scalingFactor = states * learningGroup.stateScale / learningGroup.statesToUse[0];
                         for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{learningGroup.getTracesLengthmultBaseline(states),
                                 new Pair(1, MarkovExperiment.LearningExperimentGroupParameters.datasetSize * learningGroup.getScalingFactor(states))})
 //                            for (double weightOfInconsistencies : new double[]{2.0})// this is a good value for 10 states

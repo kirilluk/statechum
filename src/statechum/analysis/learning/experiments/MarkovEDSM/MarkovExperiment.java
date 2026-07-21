@@ -19,6 +19,7 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 import statechum.*;
@@ -28,6 +29,7 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
+import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
@@ -559,6 +561,90 @@ public class MarkovExperiment
         }
     }
 
+	public static SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>
+		constructResultsCollector(DrawGraphs.CSVExperimentResult resultCSV) {
+		return new SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>() {
+
+			@Override
+			public void processSubResult(ExperimentResult<MarkovLearningParameters> result, SGE_ExperimentRunner.RunSubExperiment<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>> experimentrunner) throws
+					IOException {// in these experiments, samples are singleton sequences because we run each of them in a separate process, in order to increase the efficiency with which all tasks are split between CPUs in an iceberg grid.
+				PairQualityLearner.SampleData sm = result.samples.get(0);
+				PairQualityLearner.ScoresForGraph data = sm.actualLearner;
+
+				StringBuffer csvLine = new StringBuffer();
+				csvLine.append(data.whetherLearningSuccessfulOrAborted);
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(data.differenceBCR.getValue());// 1
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(data.differenceStructural.getValue());// 2
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(data.invalidMergersNearRoot);// 3
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(data.missedMergersNearRoot); // 4
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(data.invalidMergersFarFromRoot);// 5
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(data.missedMergersFarFromRoot); // 6
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(data.validMergers); // 7
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(data.nrOfstates.getValue());// 8
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(sm.inconsistencyReference);// 9
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(data.inconsistency);// 10
+
+				if (result.parameters.learnerToUse.isMarkov()) {
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(data.inconsistencyAverage);// 11
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(data.inconsistencySD);// 12
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(data.inconsistencyAlwaysPositive);// 13
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);// 14
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(sm.markovTransitionPrecision);// 15
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(sm.markovTransitionRecall);// 16
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(sm.markovHolePrecision);// 17
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(sm.markovHoleRecall);// 18
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(sm.relativeInconsistencyForReferenceGraph);// 19
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(data.relativeInconsistency);// 20
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(sm.comparisonsPerformed);// 21
+				}
+
+				if (result.parameters.markovParameters.useCentreVertex) {
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(sm.centreCorrect);
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(sm.centrePathNumber);
+				}
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(sm.referenceGraph.pathroutines.computeAlphabet().size());
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(Math.round(100. * ConfusionMatrix.divide(sm.referenceGraph.pathroutines.countEdges(), sm.referenceGraph.getStateNumber() * sm.referenceGraph.getStateNumber())));
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(sm.transitionsSampled);
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append(Math.round(data.executionTime / 1000000000.));// execution time is in nanoseconds, we only need seconds.
+				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
+			}
+
+			@Override
+			public DrawGraphs.SGEExperimentResult[] getGraphs() {
+
+				return new DrawGraphs.SGEExperimentResult[]{resultCSV};
+			}
+
+		};
+	}
+
 	public static class LearningExperimentGroupParameters {
 		DrawGraphs gr = new DrawGraphs();
 
@@ -631,9 +717,9 @@ public class MarkovExperiment
 		{
 //			E_MarkovCaseStudies.runExperiment(learningGroup);
 //			E_MarkovBaselineLearn.runExperiment(learningGroup);
-			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
-			E_MarkovCentre.runExperiment(learningGroup);
-			E_MarkovAlphabet.runExperiment(learningGroup);
+//			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
+//			E_MarkovCentre.runExperiment(learningGroup);
+//			E_MarkovAlphabet.runExperiment(learningGroup);
 //			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			E_MarkovTraceConstSize.runExperiment(learningGroup);
 			E_MarkovPrefixLen.runExperiment(learningGroup);

@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static statechum.analysis.learning.DrawGraphs.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.constructResultsCollector;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovPrefixLen {
@@ -58,7 +59,7 @@ public class E_MarkovPrefixLen {
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
                                                 })
-                                    for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{2,3,4} : new int[]{2})
+                                    for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{2,3} : new int[]{2})
                                         for (double weightOfInconsistencies : learnerKind.isMarkov() ?
                                                 ((chunkSizeToEvaluate <= 3)? new double[]{0.25, 0.5, 1.0, 2.0, 4.0}:new double[]{0.125, 0.25, 0.5})
 //                                                new double[]{1.0}
@@ -92,63 +93,7 @@ public class E_MarkovPrefixLen {
                 }
             }
 
-        learningGroup.experimentRunner.collectOutcomeOfExperiments(new SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>() {
-
-            @Override
-            public void processSubResult(ExperimentResult<MarkovLearningParameters> result, SGE_ExperimentRunner.RunSubExperiment<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>> experimentrunner) throws
-                    IOException {// in these experiments, samples are singleton sequences because we run each of them in a separate process, in order to increase the efficiency with which all tasks are split between CPUs in an iceberg grid.
-                PairQualityLearner.SampleData sm = result.samples.get(0);
-                PairQualityLearner.ScoresForGraph data = sm.actualLearner;
-
-                StringBuffer csvLine = new StringBuffer();
-                csvLine.append(data.whetherLearningSuccessfulOrAborted);
-                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceBCR.getValue());// 1
-                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());// 2
-                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersNearRoot);// 3
-                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersNearRoot); // 4
-                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersFarFromRoot);// 5
-                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersFarFromRoot); // 6
-                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.validMergers); // 7
-                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());// 8
-                CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);// 9
-                CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);// 10
-
-                if (result.parameters.learnerToUse.isMarkov()) {
-                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencyAverage);// 11
-                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencySD);// 12
-                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencyAlwaysPositive);// 13
-                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);// 14
-                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionPrecision);// 15
-                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionRecall);// 16
-                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovHolePrecision);// 17
-                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovHoleRecall);// 18
-                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.relativeInconsistencyForReferenceGraph);// 19
-                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.relativeInconsistency);// 20
-                    CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);// 21
-                }
-
-                if (result.parameters.markovParameters.useCentreVertex) {
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(sm.centreCorrect);
-                    CSVExperimentResult.addSeparator(csvLine);
-                    csvLine.append(sm.centrePathNumber);
-                }
-                CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.referenceGraph.pathroutines.computeAlphabet().size());
-                CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(100. * ConfusionMatrix.divide(sm.referenceGraph.pathroutines.countEdges(),sm.referenceGraph.getStateNumber()*sm.referenceGraph.getStateNumber())));
-                CSVExperimentResult.addSeparator(csvLine);
-                csvLine.append(sm.transitionsSampled);
-                CSVExperimentResult.addSeparator(csvLine);
-                csvLine.append(Math.round(data.executionTime / 1000000000.));// execution time is in nanoseconds, we only need seconds.
-                experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
-            }
-
-            @Override
-            public SGEExperimentResult[] getGraphs() {
-
-                return new SGEExperimentResult[]{resultCSV};
-            }
-
-        });
+        learningGroup.experimentRunner.collectOutcomeOfExperiments(constructResultsCollector(resultCSV));
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
             for (final int preset : learnerExperiment) {

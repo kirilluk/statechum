@@ -102,6 +102,8 @@ public class E_MarkovPrefixLen {
                 for (int states : learningGroup.statesToUse) {
                     final RBoxPlot<String> gr_StructuralVsChunkLenWeight = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
                             new File(experimentName + states + "_prefixLenInconsistencyWeight_structural.pdf"));
+                    gr_StructuralVsChunkLenWeight.setXLine(4);
+                    gr_StructuralVsChunkLenWeight.setMargins(5,4,0,0);
                     final Map<Integer,RBoxPlot<String>> gr_StructuralVsChunkLenWeightForDensity = new TreeMap();
                     final Map<Integer,RBoxPlot<String>> gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity = new TreeMap();
                     for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
@@ -110,12 +112,16 @@ public class E_MarkovPrefixLen {
                                     new File(experimentName + states + "_" + perStateSquaredDensity100 + "_prefixLenInconsistencyWeight_structural.pdf"));
                             gr_StructuralVsChunkLenWeightForDensity.put(perStateSquaredDensity100, graph);
                             graph.setOtherOptions("las=2");
+                            graph.setXLine(4);
+                            graph.setMargins(5,4,0,0);
                         }
                         {// Results above for runs where learning did not fail on L_REDS
                             RBoxPlot<String> graph = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
                                     new File(experimentName + states + "_" + perStateSquaredDensity100 + "_prefixLenInconsistencyWeight_NonFailStructural.pdf"));
                             gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.put(perStateSquaredDensity100, graph);
                             graph.setOtherOptions("las=2");
+                            graph.setXLine(4);
+                            graph.setMargins(5,4,0,0);
                         }
 
                         gr_StructuralVsChunkLenWeight.setOtherOptions("las=2");

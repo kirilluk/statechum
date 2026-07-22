@@ -118,6 +118,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 import static java.lang.Math.round;
 
 import javax.swing.SwingUtilities;
@@ -272,8 +276,17 @@ public class DrawGraphs {
 	{
 		callbacks.clearBuffer();
 		REXP result = engine.eval(whatToEval);
-		if (result == null)
-			throw new IllegalArgumentException(errMsg+" : "+callbacks.getBuffer());
+		if (result == null) {
+			StringBuffer sb = new StringBuffer();
+			sb.append(errMsg);sb.append(" : ");sb.append(callbacks.getBuffer());sb.append("\n");
+			callbacks.clearBuffer();
+			REXP warnings = engine.eval("warnings()");
+			if (warnings != null && warnings.getType() != 0) {
+				sb.append("Warnings: ");sb.append(callbacks.getBuffer());sb.append(warnings.toString());sb.append("\n");
+			}
+			sb.append("Drawing command: \n"+whatToEval);
+			throw new IllegalArgumentException(sb.toString());
+		}
 		return result;
 	}
 
@@ -305,7 +318,7 @@ public class DrawGraphs {
 	 * @param otherAttrs additional attributes to set, null if not used.
 	 * @return The string to be sent to R for evaluation.
 	 */
-	protected static String boxPlotToString(List<List<Double>> data,List<String> names,List<String> colour, String otherAttrs)
+	protected static String boxPlotToString(List<List<Double>> data,List<String> names,List<String> colour, List<String> otherAttrs)
 	{
 		if (data.isEmpty()) throw new IllegalArgumentException("cannot plot an empty graph");
 		if (data.size() == 1 && names != null) throw new IllegalArgumentException("in a graph with one component, names are not used");
@@ -344,7 +357,12 @@ public class DrawGraphs {
 				result.append(")");
 			}
 		}
-		if (otherAttrs != null && !otherAttrs.isEmpty()) { result.append(',');result.append(otherAttrs); }
+		if (otherAttrs != null && !otherAttrs.isEmpty()) {
+			for(String other:otherAttrs)
+				if (other != null && !other.isEmpty()) {
+					result.append(",");result.append(other);
+				}
+		}
 		result.append(")");
 		return result.toString();
 	}
@@ -357,7 +375,7 @@ public class DrawGraphs {
 	 * @param otherAttrs additional attributes to set, null if not used.
 	 * @return The string to be sent to R for evaluation.
 	 */
-	protected static String datasetToString(String plotType,List<List<Double>> yData,List<Double> xData, String otherAttrs)
+	protected static String datasetToString(String plotType,List<List<Double>> yData,List<Double> xData, List<String> otherAttrs)
 	{
 		if (yData.isEmpty()) throw new IllegalArgumentException("cannot plot an empty graph");
 		if (yData.size() != xData.size()) throw new IllegalArgumentException("mismatch between x and y length"); 
@@ -379,7 +397,12 @@ public class DrawGraphs {
 		result.append(')');yAxisData.append(')');
 		result.append(yAxisData);
 
-		if (otherAttrs != null && !otherAttrs.isEmpty()) { result.append(',');result.append(otherAttrs); }
+		if (otherAttrs != null && !otherAttrs.isEmpty()) {
+			for(String other:otherAttrs)
+				if (!other.isEmpty()) {
+					result.append(",");result.append(other);
+				}
+		}
 		result.append(")");
 		return result.toString();
 	}
@@ -1434,10 +1457,28 @@ public class DrawGraphs {
 	public static abstract class RGraph<ELEM extends Comparable<? super ELEM>> extends RExperimentResult<ELEM>
 	{
 		protected final String xAxis,yAxis;
-
+		// Displacement of axis
+		protected double xLine=-1,yLine=-1;
+		// Default values of the margins for the graph, thanks to https://stackoverflow.com/questions/5506046/how-do-i-put-more-space-between-the-axis-labels-and-axis-title-in-an-r-boxplot
+		protected int mBot=5,mLeft=4,mTop=4,mRight=2;
 		public RGraph(String x, String y, File name)
 		{
 			super(name);xAxis = x;yAxis = y;
+		}
+
+		public void setXLine(double value) {
+			xLine = value;
+		}
+
+		public void setYLine(double value) {
+			yLine = value;
+		}
+
+		public void setMargins(int bot, int left, int top, int right) {
+			mBot = bot;
+			mLeft = left;
+			mTop = top;
+			mRight = right;
 		}
 
 		Map<ELEM,DataColumn> collectionOfResults = new TreeMap<>();
@@ -1519,6 +1560,22 @@ public class DrawGraphs {
 
 		/** Returns a command to draw a graph in R. */
 		protected abstract List<String> getDrawingCommand();
+
+		protected List<String> constructSequenceOfDrawingCommands(Supplier<List<String>> lambda) {
+			List<String> outcome = new LinkedList<>();
+			outcome.add("curMar=par()$mar");
+			outcome.add("par(mar=c("+mBot+","+mLeft+","+mTop+","+mRight+"))");
+			for(String elem: lambda.get())
+				outcome.add(elem);
+			if (!xAxis.isEmpty()) {
+				outcome.add("title(xlab=\""+xAxis+"\""+(xLine >= 0?(",line="+xLine):"")+")");
+			}
+			if (!yAxis.isEmpty()) {
+				outcome.add("title(ylab=\""+yAxis+"\""+(yLine >= 0?(",line="+yLine):"")+")");
+			}
+			outcome.add("par(curMar)");
+			return outcome;
+		}
 
 		@Override
 		public void drawInteractive(DrawGraphs gr)
@@ -1731,9 +1788,8 @@ public class DrawGraphs {
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-			return Collections.singletonList( boxPlotToString(data, names.size()==1?null:names,colours,
-					(!otherOptions.isEmpty() ?otherOptions+",":"")+((!xAxis.isEmpty() || !yAxis.isEmpty())?	"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\"":"")
-					));
+
+			return constructSequenceOfDrawingCommands( () -> Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,Collections.singletonList(otherOptions))));
 		}
 
 		@Override
@@ -1779,12 +1835,13 @@ public class DrawGraphs {
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-			return Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\",las=2"+(!otherOptions.isEmpty() ?","+otherOptions:"")));
+			return constructSequenceOfDrawingCommands(() ->Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,Arrays.asList("las=2", otherOptions))));
 		}
 
 		@Override
 		protected double computeHorizSize() {
-			double horizSize=ySize*collectionOfResults.keySet().size()/5;if (horizSize < ySize) horizSize = ySize;
+			double horizSize=ySize* collectionOfResults.size()/5;
+			if (horizSize < ySize) horizSize = ySize;
 			return horizSize;
 		}
 	}
@@ -1996,8 +2053,7 @@ public class DrawGraphs {
 		public List<String> getDrawingCommand()
 		{
 			computeDataSet();
-			return Collections.singletonList(datasetToString(plotType,data, names,"xlab=\""+xAxis+"\",ylab=\""+yAxis+"\""+
-					otherOptions()));
+			return constructSequenceOfDrawingCommands( ()->Collections.singletonList(datasetToString(plotType,data, names,Arrays.asList("xlab=\"\",ylab=\"\"",otherOptions()))));
 		}
 
 		public boolean graphOk()
@@ -2090,11 +2146,13 @@ public class DrawGraphs {
 		public List<String> getDrawingCommand()
 		{
 			computeDataSet();
-			List<String> result = new LinkedList<>();
-			result.add("bplot<-compute."+datasetToString(plotType,data, names,formatApproxLimit()));
-			result.add("plot(bplot,xlim=c("+minValue+","+maxValue+"), ylim=c("+minValue+","+maxValue+"),xlab=\""+xAxis+"\",ylab=\""+yAxis+"\")");
-			if (diag) result.add("abline(0,1)");
-			return result;
+			return constructSequenceOfDrawingCommands( () -> {
+				List<String> result = new LinkedList<>();
+				result.add("bplot<-compute."+datasetToString(plotType,data, names,Collections.singletonList(formatApproxLimit())));
+				result.add("plot(bplot,xlim=c("+minValue+","+maxValue+"), ylim=c("+minValue+","+maxValue+"), xlab=\"\",ylab=\"\")");
+				if (diag) result.add("abline(0,1)");
+				return result;
+			});
 		}
 	}
 

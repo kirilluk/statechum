@@ -1700,6 +1700,9 @@ public class PairQualityLearner
 		 */
 		public double relativeInconsistency;
 
+        /** How effective our heuristic is for predicting transitions. */
+        public double predictionAccuracy;
+
 		public long executionTime;
 
 		@Override
@@ -1766,6 +1769,7 @@ public class PairQualityLearner
 		/** How many comparisons have been performed as part of learning. */
 		public long comparisonsPerformed;
 
+        /** How effective our heuristic is for predicting transitions. */
 		public double predictionAccuracyForReferenceGraph;
 
 		public SampleData()

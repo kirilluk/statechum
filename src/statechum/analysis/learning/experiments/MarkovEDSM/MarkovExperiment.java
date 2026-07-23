@@ -286,11 +286,19 @@ public class MarkovExperiment
 					for (long value : redReducer.getInconsistencyValues())
 						square_diff += (value - average) * (value - average);
 					dataSample.actualLearner.inconsistencySD = Math.sqrt(square_diff/redReducer.getInconsistencyValues().size());
-				}
-				final MarkovModel markovModelFromReference = new MarkovModel(par.markovParameters.chunkLen,true,true,true,false);
 
-				dataSample.predictionAccuracyForReferenceGraph = markovModelFromReference.computeSelfInconsistencyFromAutomaton(referenceGraph);
-				dataSample.actualLearner.relativeInconsistency = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(actualAutomaton,learnerInitConfiguration.getLabelConverter(),markovModel,checker,20);
+                }
+                {
+                    final MarkovModel markovModelFromReference = new MarkovModel(par.markovParameters.chunkLen, true, true, true, false);
+                    dataSample.predictionAccuracyForReferenceGraph = markovModelFromReference.computeSelfInconsistencyFromAutomaton(referenceGraph);
+                }
+                dataSample.actualLearner.relativeInconsistency = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(actualAutomaton,learnerInitConfiguration.getLabelConverter(),markovModel,checker,20);
+                dataSample.actualLearner.predictionAccuracy = -1;
+                if (dataSample.actualLearner.whetherLearningSuccessfulOrAborted == AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK)
+                {
+                    final MarkovModel markovModelFromLearnt = new MarkovModel(par.markovParameters.chunkLen,true,true,true,false);
+                    dataSample.actualLearner.predictionAccuracy = markovModelFromLearnt.computeSelfInconsistencyFromAutomaton(actualAutomaton);
+                }
 			}
 			if (par.usePrintf) {
 				if (dataSample.actualLearner.differenceBCR.getValue() < 1.0 && dataSample.actualLearner.differenceStructural.getValue() == 1.0)
@@ -615,6 +623,8 @@ public class MarkovExperiment
 					csvLine.append(sm.predictionAccuracyForReferenceGraph);// 19
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
 					csvLine.append(data.relativeInconsistency);// 20
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+					csvLine.append(data.predictionAccuracy);// 20
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
 					csvLine.append(sm.comparisonsPerformed);// 21
 				}

@@ -111,7 +111,7 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 	{
 		List<String> headers = new LinkedList<>(Arrays.asList("Success","BCR","Diff","Invalid R","Missed R","Invalid Far","Missed Far","Valid mergers","States","I_Ref", "I_Lnt"));
 		if (learnerToUse.isMarkov())
-			headers.addAll(Arrays.asList("dI_Ave","dI_SD","alwaysPos","fracS","marTPre","marTRec","marHPre","marHRec","relIncRef","relIncLrnt","Comparisons"));
+			headers.addAll(Arrays.asList("dI_Ave","dI_SD","alwaysPos","fracS","marTPre","marTRec","marHPre","marHRec","accRef","relIncLrnt","accLrnt","Comparisons"));
 		if (markovParameters.useCentreVertex)
 			headers.addAll(Arrays.asList("centreCorrect","centerpaths"));
 		headers.addAll(Arrays.asList("alphabet","density","%transitions","Time"));

@@ -361,9 +361,8 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = new LearnerGraph(config);graph.initEmpty();
 		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
-		m.buildMarkovMatrixFromAutomaton(graph);
-		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
-		Assert.assertEquals(0,matrix.size());
+		Assert.assertEquals(0,m.computeSelfInconsistencyFromAutomaton(graph));
+		Assert.assertEquals(0,m.computePredictionMatrix().size());
 	}
 
 	@Test
@@ -371,9 +370,8 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B","testCreateMarkovMatrixFromAutomatonPositive1",config, converter);
 		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
-		m.buildMarkovMatrixFromAutomaton(graph);
-		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
-		Assert.assertEquals(0,matrix.size());
+		Assert.assertEquals(0,m.computeSelfInconsistencyFromAutomaton(graph));
+		Assert.assertEquals(0,m.computePredictionMatrix().size());
 	}
 
 	@Test
@@ -381,10 +379,9 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->A","testCreateMarkovMatrixFromAutomatonPositive1",config, converter);
 		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
-		m.buildMarkovMatrixFromAutomaton(graph);
+		Assert.assertEquals(0,m.computeSelfInconsistencyFromAutomaton(graph));
 		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
 		Assert.assertEquals(1,matrix.size());
-
 		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblA,lblA,lblA)));
 	}
 
@@ -393,11 +390,11 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->B","testCreateMarkovMatrixFromAutomatonPositive2",config, converter);
 		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
-		m.buildMarkovMatrixFromAutomaton(graph);
+		Assert.assertEquals(0,m.computeSelfInconsistencyFromAutomaton(graph));
 		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
-		Assert.assertEquals(2,matrix.size());
+		Assert.assertEquals(4,matrix.size());
 
-		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblB,lblA)));// paths are reversed
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblA,lblB)));// paths (up to last element) are reversed
 		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblB,lblB)));
 	}
 
@@ -406,15 +403,15 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->B / A-c->A","testCreateMarkovMatrixFromAutomatonPositive3",config, converter);
 		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
-		m.buildMarkovMatrixFromAutomaton(graph);
+		Assert.assertEquals(0,m.computeSelfInconsistencyFromAutomaton(graph));
 		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
-		Assert.assertEquals(5,matrix.size());
+		Assert.assertEquals(12,matrix.size());
 
-		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblB,lblA)));// paths are reversed
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblA,lblB)));// paths (up to last element) are reversed
 		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblB,lblB)));
-		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblA,lblC)));
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblA,lblC,lblB)));
 		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblC,lblC,lblC)));
-		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblA,lblC,lblC)));
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblC,lblC,lblA)));
 	}
 
 	@Test
@@ -422,12 +419,12 @@ public class TestMarkovLearner
 	{
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->C-c->D / C-d->D","testCreateMarkovMatrixFromAutomatonPositive3",config, converter);
 		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
-		m.buildMarkovMatrixFromAutomaton(graph);
+		Assert.assertEquals(0,m.computeSelfInconsistencyFromAutomaton(graph));
 		Map<List<Label>, MarkovOutcome> matrix = m.computePredictionMatrix();
-		Assert.assertEquals(2,matrix.size());
+		Assert.assertEquals(12,matrix.size());
 
-		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblC,lblB,lblA)));// paths are reversed
-		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblD,lblB,lblA)));
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblA,lblC)));// paths (up to last element) are reversed
+		Assert.assertSame(MarkovOutcome.positive, matrix.get(Arrays.asList(lblB,lblA,lblD)));
 	}
 
 	@Test
@@ -436,8 +433,44 @@ public class TestMarkovLearner
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b-#C","testCreateMarkovMatrixFromAutomatonPositive5",config, converter);
 		final MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
 		TestHelper.checkForCorrectException(() ->
-				m.buildMarkovMatrixFromAutomaton(graph), IllegalArgumentException.class, "All states should be accept-states");
+				m.computeSelfInconsistencyFromAutomaton(graph), IllegalArgumentException.class, "All states should be accept-states");
 
+	}
+
+
+	/** Constructs a PTA to learn an FSM from. This could be based on a reference graph or obtained externally. */
+	public static LearnerGraph constructPTA(final LearnerGraph graph)
+	{
+		// Use a random generator selector passed as a parameter.
+		LearnerGraph pta = new LearnerGraph(graph.config);
+		RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(10),5,null);
+		// Using 2*par.traceQuantity reflects the original goal to generate an equal number of positive and
+		// negative traces hence an input to generateRandomPosNeg was expected to be even.
+		// We are not doing this now, instead only generating positive traces in quantity par.traceQuantity.
+		generator.generateRandomPosNeg(2*10, 1, false, new RandomPathGenerator.RandomLengthGenerator() {
+
+			@Override
+			public int getLength() {
+				return 3;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true, false, null,null);
+
+		pta.paths.augmentPTA(generator.getAllSequences(0));
+		return pta;
+	}
+
+	public MarkovModel buildMarkovModelFromPTA(LearnerGraph graph, int chunkLen, boolean markovPTAUseMatrix) {
+		LearnerGraph pta = constructPTA(graph);
+
+		final MarkovModel markovModel = new MarkovModel(chunkLen,true,true,true,markovPTAUseMatrix);
+		markovModel.createMarkovFromPositiveDataAndGenerateInversePredictions(new ArrayList<>(),true);// use the new 'positive' version of fanout inconsistency computation.
+		new MarkovClassifierLG(markovModel, pta,null).updateMarkov(false);
+		return markovModel;
 	}
 
 	@Test
@@ -445,8 +478,7 @@ public class TestMarkovLearner
 	{
 		final Transform.ConvertALabel conv = new Transform.InternStringLabel();
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->B / A-c->A","testCreateMarkovMatrixFromAutomatonPositive3",config, conv);
-		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
-		m.buildMarkovMatrixFromAutomaton(graph);
+		MarkovModel m = buildMarkovModelFromPTA(graph, 3, markovPTAUseMatrix);
 		MarkovClassifier.ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		TestHelper.checkForCorrectException(() ->
 				MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(graph,conv,m,checker,0), IllegalArgumentException.class, "Number of automata to generate must be above 0");
@@ -460,11 +492,10 @@ public class TestMarkovLearner
 		// that is not supported by the converter in this test.
 		final Transform.ConvertALabel conv = new Transform.InternStringLabel();
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->B-b->B / A-c->A","testCreateMarkovMatrixFromAutomatonPositive3",config, conv);
-		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
-		m.buildMarkovMatrixFromAutomaton(graph);
+		MarkovModel m = buildMarkovModelFromPTA(graph, 3, markovPTAUseMatrix);
 		MarkovClassifier.ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		double value = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(graph,conv,m,checker,10);
-		Assert.assertEquals(0.30612245031236984,value, 1e-8);
+		Assert.assertEquals(0.08474576363114047,value, 1e-8);
 	}
 
 	@Test
@@ -475,8 +506,7 @@ public class TestMarkovLearner
 		// that is not supported by the converter in this test.
 		final Transform.ConvertALabel conv = new Transform.InternStringLabel();
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->A","testEvaluateInconsistencyAgainstRandomAutomata3",config, conv);
-		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
-		m.buildMarkovMatrixFromAutomaton(graph);
+		MarkovModel m = buildMarkovModelFromPTA(graph, 3, markovPTAUseMatrix);
 		MarkovClassifier.ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		double value = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(graph,conv,m,checker,10);
 		Assert.assertEquals(-1,value, 1e-8);
@@ -490,11 +520,10 @@ public class TestMarkovLearner
 		// that is not supported by the converter in this test.
 		final Transform.ConvertALabel conv = new Transform.InternStringLabel();
 		final LearnerGraph graph = FsmParserStatechum.buildLearnerGraph("A-a->A-b->A-c->B-a->B-b->B","testEvaluateInconsistencyAgainstRandomAutomata4",config, conv);
-		MarkovModel m = new MarkovModel(3,true, true,true,markovPTAUseMatrix);
-		m.buildMarkovMatrixFromAutomaton(graph);
+		MarkovModel m = buildMarkovModelFromPTA(graph, 3, markovPTAUseMatrix);
 		MarkovClassifier.ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		double value = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(graph,conv,m,checker,10);
-		Assert.assertEquals(5.208333336046007E-10,value, 1e-8);
+		Assert.assertEquals(3.571428582312927,value, 1e-8);
 	}
 
 	/** Nothing to add because there not enough evidence. */

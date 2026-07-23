@@ -17,17 +17,15 @@
  */
 package statechum.analysis.learning;
 
-import java.lang.reflect.Array;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import statechum.DeterministicDirectedSparseGraph;
 import statechum.Label;
 import statechum.Trace;
 import statechum.analysis.learning.MarkovModel.MarkovMatrixEngine.PredictionForSequence;
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph;
 import statechum.analysis.learning.rpnicore.CachedData;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.collections.ArrayMapWithSearchPos;
 import statechum.model.testset.PTAExploration;
 import statechum.model.testset.PTASequenceEngine;
 import statechum.model.testset.PTASequenceSetAutomaton;
@@ -709,7 +707,7 @@ public class MarkovModel
 	 *
 	 * @param gr automaton from which to compute Markov Matrix, assuming the case that all chunkLen-long transitions were present in a PTA.
 	 */
-	public void buildMarkovMatrixFromAutomaton(LearnerGraph gr) {
+	public int computeSelfInconsistencyFromAutomaton(LearnerGraph gr) {
 		if (!predictForwardOrSideways || !directionForwardOrInverse || !pathsOrSets)
 			throw new IllegalArgumentException("This Markov matrix can only be used to predict events forward by looking at past sequences");
 
@@ -721,12 +719,51 @@ public class MarkovModel
 			buildMarkovMatrixFromAutomaton(gr, vert);
 		}
 
-		convertOccurrenceMatrixToPTA();
+		AtomicInteger inconsistencyCounter = new AtomicInteger(0);
+
+		PTAExploration<Boolean> exploration = new PTAExploration<Boolean>(markovMatrix) {
+			@Override
+			public Boolean newUserObject() {
+				return null;
+			}
+
+			@Override
+			public void nodeEntered(PTAExplorationNode currentNode, @SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit)
+			{
+				PredictionForSequence prediction = (PredictionForSequence)currentNode.getState();
+				if (prediction.occurrence.firstElem > 0 && prediction.occurrence.secondElem > 0) {
+					inconsistencyCounter.addAndGet(1);
+					prediction.prediction = MarkovOutcome.failure;
+				}
+				else
+					if (prediction.occurrence.firstElem > 0)
+						prediction.prediction = MarkovOutcome.positive;
+					else
+					if (prediction.occurrence.secondElem > 0)
+						prediction.prediction = MarkovOutcome.negative;
+			}
+
+			@Override
+			public void leafEntered(PTAExplorationNode currentNode,	LinkedList<PTAExplorationNode> pathToInit)
+			{
+				nodeEntered(currentNode, pathToInit);
+			}
+
+			@Override
+			public void nodeLeft(@SuppressWarnings("unused") PTAExplorationNode currentNode,	@SuppressWarnings("unused")	LinkedList<PTAExplorationNode> pathToInit)
+			{
+				// nothing to do here.
+			}
+
+		};
+		exploration.walkThroughAllPaths();
+
+		return inconsistencyCounter.get();
 	}
 
 	protected void buildMarkovMatrixFromAutomaton(LearnerGraph gr, CmpVertex startingState) {
 		int currentExplorationDepth = 1;// when we look at transitions from the initial pair of states, this is depth 1.
-
+		Collection<Label> alphabet = gr.pathroutines.computeAlphabet();
 		Queue<CmpVertex> currentExplorationBoundary = new LinkedList<>();// FIFO queue
 		Queue<List<Label>> currentPathBoundary = new LinkedList<>();
 
@@ -738,7 +775,6 @@ public class MarkovModel
 		}
 		currentExplorationBoundary.offer(null);
 		currentPathBoundary.offer(null);
-
 
 		while (true) // we'll do a break at the end of the last wave
 		{
@@ -755,18 +791,25 @@ public class MarkovModel
 				currentExplorationDepth++;
 			} else {
 				Map<Label, CmpVertex> transitionsFromState = gr.transitionMatrix.get(currentState);
-
-				// if our current depth is less than the one to explore, make subsequent steps.
-				for (Map.Entry<Label, CmpVertex> transition : transitionsFromState.entrySet()) {
-					List<Label> newPath = new LinkedList<>(currentPath);newPath.add(transition.getKey());
-					if (currentExplorationDepth < chunkLength) {
+				if (currentExplorationDepth < chunkLength) {
+					// if our current depth is less than the one to explore, make subsequent steps.
+					for (Map.Entry<Label, CmpVertex> transition : transitionsFromState.entrySet()) {
+						List<Label> newPath = new LinkedList<>(currentPath);
+						newPath.add(transition.getKey());
 						currentExplorationBoundary.offer(transition.getValue());
 						currentPathBoundary.offer(newPath);
 					}
-					else {
-						Collections.reverse(newPath);
-						markovMatrix.getPredictionAndCreateNewOneIfNecessary(newPath).occurrence.add(1, 0);
-					}
+				}
+				else
+				for(Label lbl:alphabet)
+				{
+					List<Label> newPath = new LinkedList<>(currentPath);
+					Collections.reverse(newPath);
+					newPath.add(lbl);
+					boolean hasTransition = transitionsFromState.get(lbl) != null;
+					// here we add reject-transitions for every negative occurrence. For this reason, it is possible to tell if
+					// the same path predicts a label in some cases and does not in others.
+					markovMatrix.getPredictionAndCreateNewOneIfNecessary(newPath).occurrence.add(hasTransition?1:0, hasTransition?0:1);
 				}
 			}
 		}

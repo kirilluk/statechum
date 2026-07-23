@@ -1765,14 +1765,8 @@ public class PairQualityLearner
 
 		/** How many comparisons have been performed as part of learning. */
 		public long comparisonsPerformed;
-		/** Evaluation whether self-inconsistency within a graph is comparable to inconsistencies in random graphs.
-		 * In a sparse graph with a large alphabet, many states are easily identifiable hence self-inconsistency is low. If a graph is
-		 * somewhat dense (such as 20% for 20- or 40-states), there are many short paths that do not uniquely identify states. In this case,
-		 * markov matrix computed from a graph might give similar inconsistencies to an automaton it is computed from (high self-inconsistency)
-		 * and to randomly-generated automata, indicating that the inconsistency heuristic is not a helpful tool to guide EDSM
-		 * when learning those automata.
- 		 */
-		public double relativeInconsistencyForReferenceGraph;
+
+		public double predictionAccuracyForReferenceGraph;
 
 		public SampleData()
 		{

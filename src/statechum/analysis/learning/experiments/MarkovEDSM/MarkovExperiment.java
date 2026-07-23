@@ -288,8 +288,8 @@ public class MarkovExperiment
 					dataSample.actualLearner.inconsistencySD = Math.sqrt(square_diff/redReducer.getInconsistencyValues().size());
 				}
 				final MarkovModel markovModelFromReference = new MarkovModel(par.markovParameters.chunkLen,true,true,true,false);
-				markovModelFromReference.buildMarkovMatrixFromAutomaton(referenceGraph);
-				dataSample.relativeInconsistencyForReferenceGraph = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(referenceGraph,learnerInitConfiguration.getLabelConverter(),markovModelFromReference,checker,20);
+
+				dataSample.predictionAccuracyForReferenceGraph = markovModelFromReference.computeSelfInconsistencyFromAutomaton(referenceGraph);
 				dataSample.actualLearner.relativeInconsistency = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(actualAutomaton,learnerInitConfiguration.getLabelConverter(),markovModel,checker,20);
 			}
 			if (par.usePrintf) {
@@ -612,7 +612,7 @@ public class MarkovExperiment
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
 					csvLine.append(sm.markovHoleRecall);// 18
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(sm.relativeInconsistencyForReferenceGraph);// 19
+					csvLine.append(sm.predictionAccuracyForReferenceGraph);// 19
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
 					csvLine.append(data.relativeInconsistency);// 20
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
@@ -653,7 +653,7 @@ public class MarkovExperiment
 		final double traceLengthMultiplierMax = 16;
 
 		final boolean pathsOrSets = true;
-		final int[] statesToUse = new int[]{20,40};
+		final int[] statesToUse = new int[]{20};//,40};
 
 		public static final int datasetSize = 256;
 

@@ -270,24 +270,24 @@ public class SGE_ExperimentRunner
 					if (!checkExperimentComplete(taskCounter)) // only run a task if we do not have a result, without it it will overwrite a result and execution time and other transient data not stored in the outcome such as true/false counters will be lost.
 					{
 							taskletWasRun.add(taskCounter);// mark the task as started.
-							BufferedWriter writer = null;
-							try
-							{
-								writer = new BufferedWriter(new FileWriter(constructTaskStartedFileName(taskIDToParameters.get(taskCounter))));// indicates tasks that have started
-							}
-							catch(IOException ex)
-							{// ignore an error if a 'taskstarted' file cannot be created.							
-							}
-							finally
-							{
-								if (writer != null)
-									try {
-										writer.close();
-									} catch (IOException e) {
-										// cannot do much about it here, ignore it.
-									}
-								writer = null;
-							}
+//							BufferedWriter writer = null;
+//							try
+//							{
+//								writer = new BufferedWriter(new FileWriter(constructTaskStartedFileName(taskIDToParameters.get(taskCounter))));// indicates tasks that have started
+//							}
+//							catch(IOException ex)
+//							{// ignore an error if a 'taskstarted' file cannot be created.
+//							}
+//							finally
+//							{
+//								if (writer != null)
+//									try {
+//										writer.close();
+//									} catch (IOException e) {
+//										// cannot do much about it here, ignore it.
+//									}
+//								writer = null;
+//							}
 							runner.submit(task);
 					}
 				}
@@ -347,14 +347,14 @@ public class SGE_ExperimentRunner
 			return constructFileName(tmpDir,taskIDToParameters.get(rCounter));
 		}
 		
-		protected String constructTaskStartedFileName(EXPERIMENT_PARAMETERS pars)
-		{
-			String pathName = 
-					 tmpDir+sanitiseFileName(pars.getSubExperimentName())+"-"+
-							sanitiseFileName(pars.getRowID());
-					statechum.analysis.learning.experiments.UASExperiment.mkDir(pathName);
-			return pathName+File.separator+sanitiseFileName(pars.getColumnID())+".sgetaskstarted-"+getHostName();
-		}
+//		protected String constructTaskStartedFileName(EXPERIMENT_PARAMETERS pars)
+//		{
+//			String pathName =
+//					 tmpDir+sanitiseFileName(pars.getSubExperimentName())+"-"+
+//							sanitiseFileName(pars.getRowID());
+//					statechum.analysis.learning.experiments.UASExperiment.mkDir(pathName);
+//			return pathName+File.separator+sanitiseFileName(pars.getColumnID())+".sgetaskstarted-"+getHostName();
+//		}
 		
 		/** Plots the supplied graphs. If the task number is divisible by 10, plots them on the screen, if negative - dumps a pdf.  
 		 * It is also responsible for a progress indicator in an interactive mode.
@@ -753,7 +753,7 @@ public class SGE_ExperimentRunner
 											writer.close();writer = null;
 										}
 									}
-									new File(constructTaskStartedFileName(result.parameters)).delete();// remove the file once the task finished. This means that timed out tasks are those with this file still left.
+//									new File(constructTaskStartedFileName(result.parameters)).delete();// remove the file once the task finished. This means that timed out tasks are those with this file still left.
 									// start/stop files are not realistic on parallel executions because those are not run on a grid.
 								}
 							}

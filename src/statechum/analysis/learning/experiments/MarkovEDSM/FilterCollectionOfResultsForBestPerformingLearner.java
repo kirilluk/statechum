@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static statechum.analysis.learning.DrawGraphs.*;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 class FilterCollectionOfResultsForBestPerformingLearner {
     protected int states;
@@ -52,7 +53,7 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                 final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport(),bestLearningResultForDefaultOrdering = new MarkovExperiment.LearningReport();
 
                 getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
-                    boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
+                    boolean learntOK = obtainValueFromCell(Y, 0).equals(LEARNING_OK.name);
                     boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
                     double bcr = Double.parseDouble(obtainValueFromCell(Y, 1));
                     double structural = Double.parseDouble(obtainValueFromCell(Y, 2));

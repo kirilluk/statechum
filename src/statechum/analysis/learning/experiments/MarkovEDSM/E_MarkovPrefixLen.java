@@ -1,6 +1,7 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.Pair;
+import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
@@ -15,6 +16,7 @@ import java.util.TreeMap;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.constructResultsCollector;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovPrefixLen {
@@ -107,6 +109,11 @@ public class E_MarkovPrefixLen {
                     final Map<Integer,RBoxPlot<String>> gr_StructuralVsChunkLenWeightForDensity = new TreeMap();
                     final Map<Integer,RBoxPlot<String>> gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity = new TreeMap();
                     for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
+                        DataSelection source = new DataSelection(resultCSV,states,perStateSquaredDensity100);
+                        final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score", new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_inconsistency_structural.pdf"));
+                        DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_StructuralVsInconsistency, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 10,
+                                LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
+
                         {// structural score for different values of prefix length and inconsistency multiplier, considering offset
                             RBoxPlot<String> graph = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
                                     new File(experimentName + states + "_" + perStateSquaredDensity100 + "_prefixLenInconsistencyWeight_structural.pdf"));
@@ -123,6 +130,10 @@ public class E_MarkovPrefixLen {
                             graph.setXLine(4);
                             graph.setMargins(5,4,0,0);
                         }
+                        final DrawGraphs.RBagPlot gr_StructuralVsLearntRelativeInconsistency = new DrawGraphs.RBagPlot("Relative inconsistency", "Structural Score",
+                                new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_difference_vs_learnt_relativeinconsistency.pdf"));
+                        final DrawGraphs.RBagPlot gr_StructuralVsReferenceRelativeInconsistency = new DrawGraphs.RBagPlot("Relative inconsistency", "Structural Score",
+                                new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_difference_vs_reference_relativeinconsistency.pdf"));
 
                         gr_StructuralVsChunkLenWeight.setOtherOptions("las=2");
                         for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
@@ -137,17 +148,33 @@ public class E_MarkovPrefixLen {
                                     assert elems[3].equals("wW");
                                     assert elems[5].equals("wO");
 
-                                    boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
+                                    boolean learntOK = obtainValueFromCell(Y, 0).equals(LEARNING_OK.name);
 
                                     String prefixLenAndWeight = Integer.parseInt(elems[2]) - 1 + "_" + elems[4];// + "_" + elems[6];
                                     gr_StructuralVsChunkLenWeight.add(prefixLenAndWeight, value);
                                     gr_StructuralVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(prefixLenAndWeight, value);
                                     if (learntOK)
                                         gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(prefixLenAndWeight, value);
+
+                                    double markovReferenceRelativeInconsistency = Double.parseDouble(obtainValueFromCell(Y, 19));
+                                    if (markovReferenceRelativeInconsistency >= 50)
+                                        markovReferenceRelativeInconsistency = 50;
+                                    double markovLearntRelativeInconsistency =  Double.parseDouble(obtainValueFromCell(Y, 20));
+                                    if (markovLearntRelativeInconsistency >= 5)
+                                        markovLearntRelativeInconsistency = 5;
+                                    if (learntOK) {
+                                        gr_StructuralVsReferenceRelativeInconsistency.add(markovReferenceRelativeInconsistency,
+                                                value, null, null);
+                                        gr_StructuralVsLearntRelativeInconsistency.add(markovLearntRelativeInconsistency,
+                                                value, null, null);
+                                    }
                                 });
                         }
 
                         gr_StructuralVsChunkLenWeight.reportResults(learningGroup.gr);
+                        gr_StructuralVsReferenceRelativeInconsistency.reportResults(learningGroup.gr);
+                        gr_StructuralVsLearntRelativeInconsistency.reportResults(learningGroup.gr);
+                        gr_StructuralVsInconsistency.reportResults(learningGroup.gr);
                         for (RBoxPlot<String> graph : gr_StructuralVsChunkLenWeightForDensity.values())
                             graph.reportResults(learningGroup.gr);
                         for (RBoxPlot<String> graph : gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.values())
@@ -156,7 +183,6 @@ public class E_MarkovPrefixLen {
                 }
             }
         }
-
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             for (int states : learningGroup.statesToUse)

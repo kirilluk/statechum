@@ -21,6 +21,7 @@ import static java.lang.Math.max;
 import static statechum.analysis.learning.DrawGraphs.getValueFromMapGivenRegexp;
 import static statechum.analysis.learning.DrawGraphs.obtainValueFromCell;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.directoryExperimentResult;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 public class MarkovComparison {
 
@@ -84,7 +85,7 @@ public class MarkovComparison {
 
                 final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
                 for(String cellY:new String[]{cellsA,cellsB}) {
-                    boolean learntOK = obtainValueFromCell(cellY, 0).equals("L_OK");
+                    boolean learntOK = obtainValueFromCell(cellY, 0).equals(LEARNING_OK.name);
                     double bcr = Double.parseDouble(obtainValueFromCell(cellY, 1));
                     double structural = Double.parseDouble(obtainValueFromCell(cellY, 2));
                     long inconsistency = Long.parseLong(obtainValueFromCell(cellY, 10));

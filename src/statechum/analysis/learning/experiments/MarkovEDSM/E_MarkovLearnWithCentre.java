@@ -14,6 +14,7 @@ import java.util.*;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.constructResultsCollector;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovLearnWithCentre {
@@ -121,7 +122,7 @@ public class E_MarkovLearnWithCentre {
 
                                 getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
                                     // Here columnText is the description of the learner used, Y is the values reported by processSubResult above.
-                                    boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
+                                    boolean learntOK = obtainValueFromCell(Y, 0).equals(LEARNING_OK.name);
                                     boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
                                     double bcr = Double.parseDouble(obtainValueFromCell(Y, 1));
                                     double structural = Double.parseDouble(obtainValueFromCell(Y, 2));

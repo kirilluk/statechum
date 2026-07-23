@@ -2,20 +2,17 @@ package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.Pair;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
-import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.DrawGraphs.obtainValueFromCell;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.constructResultsCollector;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovBaselineLearn {
@@ -211,8 +208,10 @@ public class E_MarkovBaselineLearn {
                             new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_relativeinconsistency_learnt.pdf"));
                     gr_PerformanceOfLearners.setOtherOptions("las=2");
                     gr_RuntimeOfLearners.setOtherOptions("las=2");
-                    final DrawGraphs.RBagPlot gr_StructuralVsRelativeInconsistency = new DrawGraphs.RBagPlot("Relative inconsistency", "Structural Score",
-                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_difference_vs_relativeinconsistency.pdf"));
+                    final DrawGraphs.RBagPlot gr_StructuralVsLearntRelativeInconsistency = new DrawGraphs.RBagPlot("Relative inconsistency", "Structural Score",
+                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_difference_vs_learnt_relativeinconsistency.pdf"));
+                    final DrawGraphs.RBagPlot gr_StructuralVsReferenceRelativeInconsistency = new DrawGraphs.RBagPlot("Relative inconsistency", "Structural Score",
+                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_difference_vs_reference_relativeinconsistency.pdf"));
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest, null);
 //                gr_PerformanceOfLearners.add("MARKOV",bestLearningResult.structural, null, null);
                             for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
@@ -222,15 +221,20 @@ public class E_MarkovBaselineLearn {
                                 if (Double.parseDouble(rowValues[11]) == perStateSquaredDensity100 && Integer.parseInt(rowValues[7]) == states) {
                                     for (Map.Entry<String, String> entry : rowEntry.getValue().entrySet()) {
                                         String[] learnerKind = entry.getKey().split("[-]");
-                                        boolean learntOK = obtainValueFromCell(entry.getValue(), 0).equals("L_OK");
+                                        boolean learntOK = obtainValueFromCell(entry.getValue(), 0).equals(LEARNING_OK.name);
                                         int cellForRuntime = entry.getValue().split(",").length - 1;
                                         gr_PerformanceOfLearners.add(learnerKind[0], Double.parseDouble(obtainValueFromCell(entry.getValue(), 2)), null, null);
                                         gr_RuntimeOfLearners.add(learnerKind[0] + (learntOK ? "-OK" : "Err"), Double.parseDouble(obtainValueFromCell(entry.getValue(), cellForRuntime)), learntOK ? null : "red", null);
                                         if (entry.getKey().startsWith(LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString())) {
-                                            gr_RelativeInconsistencyReference.add(learnerKind[0] + (learntOK ? "-OK" : "Err"), Double.parseDouble(obtainValueFromCell(entry.getValue(), 19)), learntOK ? null : "red", null);
+                                            double markovReferenceRelativeInconsistency = Double.parseDouble(obtainValueFromCell(entry.getValue(), 19));
+                                            if (markovReferenceRelativeInconsistency >= 50)
+                                                markovReferenceRelativeInconsistency = 50;
+                                            gr_RelativeInconsistencyReference.add(learnerKind[0] + (learntOK ? "-OK" : "Err"), markovReferenceRelativeInconsistency, learntOK ? null : "red", null);
                                             if (learntOK) {
+                                                gr_StructuralVsReferenceRelativeInconsistency.add(markovReferenceRelativeInconsistency,
+                                                    Double.parseDouble(obtainValueFromCell(entry.getValue(), 2)), null, null);
                                                 gr_RelativeInconsistencyLearnt.add(learnerKind[0], Double.parseDouble(obtainValueFromCell(entry.getValue(), 20)), null, null);
-                                                gr_StructuralVsRelativeInconsistency.add(Double.parseDouble(obtainValueFromCell(entry.getValue(), 20)),
+                                                gr_StructuralVsLearntRelativeInconsistency.add(Double.parseDouble(obtainValueFromCell(entry.getValue(), 20)),
                                                         Double.parseDouble(obtainValueFromCell(entry.getValue(), 2)), null, null);
                                             }
                                         }
@@ -242,7 +246,8 @@ public class E_MarkovBaselineLearn {
                     gr_RuntimeOfLearners.reportResults(learningGroup.gr);
                     gr_RelativeInconsistencyReference.reportResults(learningGroup.gr);
                     gr_RelativeInconsistencyLearnt.reportResults(learningGroup.gr);
-                    gr_StructuralVsRelativeInconsistency.reportResults(learningGroup.gr);
+                    gr_StructuralVsLearntRelativeInconsistency.reportResults(learningGroup.gr);
+                    gr_StructuralVsReferenceRelativeInconsistency.reportResults(learningGroup.gr);
                     report.reportResults();
                 }
         }

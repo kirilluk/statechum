@@ -123,6 +123,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static java.lang.Math.round;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 import javax.swing.SwingUtilities;
 
@@ -904,10 +905,14 @@ public class DrawGraphs {
 		void processBlock(String columnText,String block);
 	}
 
+	public static boolean matchRegExpToColumn(String columnText, String regexp) {
+		return columnText.equals(regexp) || columnText.matches(regexp) || columnText.matches(regexp+".*");
+	}
+
 	public static String getValueFromMapGivenRegexp(Map<String,String> map, String regexp)
 	{
 		for(Entry<String,String> entry:map.entrySet())
-			if (entry.getKey().equals(regexp) || entry.getKey().matches(regexp) || entry.getKey().matches(regexp+".*"))
+			if (matchRegExpToColumn(entry.getKey(),regexp))
 				return entry.getValue();
 		return null;
 	}
@@ -1102,16 +1107,36 @@ public class DrawGraphs {
 			void processPair(String X, String Y);
 		}
 
+		/** Goes through all pairs matching regexp for columns X and Y.
+		 * The idea is that a spreadsheet with results has a lot of rows (for specific experiments). We are provided with selectors of those
+		 * experiments as regexp and we go through experiments, matching selectors (such as Markov v.s. VH). For numerous Markov experiments
+		 * using different parameter values we are therefore expected to pick a number of values.
+		 *
+		 * Everything is different where columnX and columnY are the same: it means we contrast values associated with each of the experiments.
+		 *
+		 * Where columnX and columnY are different but intended to refer to the same experiment is not supported and will produce a cross-
+		 * product across all the matching experiments (aka a mess).
+		 */
 		public void iterateThroughData(String columnX,String columnY, ProcessExperimentEntry lambda) {
 			for (Map.Entry<String, Map<String, String>> rowEntry : whereFrom.rowColumnText.entrySet()) {
 				String[] rowValues = rowEntry.getKey().split("[_=]");
 				assert rowValues[10].equals("d");
 				assert rowValues[6].equals("S");
 				if (Double.parseDouble(rowValues[11]) == perStateSquaredDensity100 && Integer.parseInt(rowValues[7]) == states) {
-					String X = getValueFromMapGivenRegexp(rowEntry.getValue(), columnX);
-					String Y = getValueFromMapGivenRegexp(rowEntry.getValue(), columnY);
-					if (X != null && Y != null)
-						lambda.processPair(X,Y);
+					for(Entry<String,String> entryX:rowEntry.getValue().entrySet())
+						if (obtainValueFromCell(entryX.getValue(), 0).equals(LEARNING_OK.name) && matchRegExpToColumn(entryX.getKey(),columnX)) {
+							String X = entryX.getValue();
+							if (!columnX.equals(columnY)) {
+								for (Entry<String, String> entryY : rowEntry.getValue().entrySet())
+									if (obtainValueFromCell(entryY.getValue(), 0).equals(LEARNING_OK.name) && matchRegExpToColumn(entryY.getKey(), columnY)) {
+										String Y = entryY.getValue();
+										if (X != null && Y != null)
+											lambda.processPair(X, Y);
+									}
+							}
+							else
+								lambda.processPair(X,X);
+						}
 				}
 			}
 		}

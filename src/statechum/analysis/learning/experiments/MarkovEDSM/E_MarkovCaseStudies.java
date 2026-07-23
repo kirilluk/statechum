@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.constructResultsCollector;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 import static statechum.analysis.learning.rpnicore.FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
@@ -174,7 +175,7 @@ public class E_MarkovCaseStudies {
                                 assert rowValues[12].equals("sa");
                                 if (rowValues[1].equals(Integer.toString(traces_lengthmult.firstElem)) && rowValues[13].equals(Integer.toString(casestudy))) {
                                     getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
-                                        boolean learntOK = obtainValueFromCell(Y, 0).equals("L_OK");
+                                        boolean learntOK = obtainValueFromCell(Y, 0).equals(LEARNING_OK.name);
                                         boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
                                         double bcr = Double.parseDouble(obtainValueFromCell(Y, 1));
                                         double structural = Double.parseDouble(obtainValueFromCell(Y, 2));

@@ -131,7 +131,7 @@ public class E_MarkovLearnWithCentre {
                                     String[] columnValues = columnText.split("[_=]");
                                     if (learntOK && columnValues[0].equals(LearningAlgorithms.ScoringToApply.SCORING_MARKOV + "-" + preset)) {
                                         // Now at the columns of interest (specific preset but different parameter of Markov)
-                                        MarkovExperiment.LearningReport report = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText);
+                                        MarkovExperiment.LearningReport report = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText,Y);
                                         bestLearningResultForThisRowAndPreset.updateIfValueBetter(report);
                                         bestLearningResultForThisRow.updateIfValueBetter(report);
                                     }

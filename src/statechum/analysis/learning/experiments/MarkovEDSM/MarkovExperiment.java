@@ -299,6 +299,7 @@ public class MarkovExperiment
                     final MarkovModel markovModelFromLearnt = new MarkovModel(par.markovParameters.chunkLen,true,true,true,false);
                     dataSample.actualLearner.predictionAccuracy = markovModelFromLearnt.computeSelfInconsistencyFromAutomaton(actualAutomaton);
                 }
+				dataSample.actualLearner.density = (double)actualAutomaton.pathroutines.countEdges()/(actualAutomaton.getStateNumber() * actualAutomaton.getStateNumber());
 			}
 			if (par.usePrintf) {
 				if (dataSample.actualLearner.differenceBCR.getValue() < 1.0 && dataSample.actualLearner.differenceStructural.getValue() == 1.0)
@@ -533,19 +534,21 @@ public class MarkovExperiment
 
 	static class LearningReport {
 		double bcr = 0, structural = 0;
-		String descr = "NONE";
+		String columnText = "NONE";
 		long inconsistency = -1;
 		boolean alwaysPositive = true;
+		String Yvalues = null;
 
 		public LearningReport() {
 		}
 
-		public LearningReport(double bcr, double structural, long inconsistency, boolean alwaysPositive, String descr) {
+		public LearningReport(double bcr, double structural, long inconsistency, boolean alwaysPositive, String columnText, String Yvalues) {
 			this.bcr = bcr;
 			this.structural = structural;
 			this.inconsistency = inconsistency;
-			this.descr = descr;
+			this.columnText = columnText;
 			this.alwaysPositive = alwaysPositive;
+			this.Yvalues = Yvalues;
 		}
 
 		public void updateIfValueBetter(LearningReport report) {
@@ -553,7 +556,8 @@ public class MarkovExperiment
 				bcr = report.bcr;
 				structural = report.structural;
 				inconsistency = report.inconsistency;
-				descr = report.descr;
+				columnText = report.columnText;
+				Yvalues = report.Yvalues;
 			}
 		}
 
@@ -564,10 +568,32 @@ public class MarkovExperiment
                     ", structural=" + structural +
                     ", inconsistency=" + inconsistency +
                     ", alwaysPositive=" + alwaysPositive +
-                    ", descr='" + descr + '\'' +
+                    ", descr='" + columnText + '\'' +
+                    ", Y='" + Yvalues + '\'' +
                     '}';
         }
     }
+
+	public enum MARKOV_VALUES {
+		E_SUCCESS(0),
+		E_BCR(1),
+		E_DIFF(2),
+		E_ERR_INVALID_NEARROOT(3),
+		E_ERR_MISSED_NEARROOT(4),
+		E_ERR_INVALID_FARFROMROOT(5),
+		E_ERR_MISSED_FARFROMROOT(6),
+		E_VALIDMERGERS(7),
+		E_EXTRASTATES(8),
+		E_INCONSISTENCY_REFERENCE(9),
+		E_INCONSISTENCY_LEARNT(10);
+
+
+		public final int value;
+		MARKOV_VALUES(int v)
+		{
+			value = v;
+		}
+	}
 
 	public static SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>
 		constructResultsCollector(DrawGraphs.CSVExperimentResult resultCSV) {
@@ -638,7 +664,9 @@ public class MarkovExperiment
 				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
 				csvLine.append(sm.referenceGraph.pathroutines.computeAlphabet().size());
 				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(Math.round(100. * ConfusionMatrix.divide(sm.referenceGraph.pathroutines.countEdges(), sm.referenceGraph.getStateNumber() * sm.referenceGraph.getStateNumber())));
+				csvLine.append( (double)sm.referenceGraph.pathroutines.countEdges()/(sm.referenceGraph.getStateNumber() * sm.referenceGraph.getStateNumber()));
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
+				csvLine.append( data.density );
 				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
 				csvLine.append(sm.transitionsSampled);
 				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
@@ -729,7 +757,7 @@ public class MarkovExperiment
 //			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			E_MarkovCentre.runExperiment(learningGroup);
-//			E_MarkovAlphabet.runExperiment(learningGroup);
+			E_MarkovAlphabet.runExperiment(learningGroup);
 //			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			E_MarkovTraceConstSize.runExperiment(learningGroup);
 			E_MarkovPrefixLen.runExperiment(learningGroup);

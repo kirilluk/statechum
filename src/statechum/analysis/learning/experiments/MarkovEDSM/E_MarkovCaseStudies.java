@@ -5,10 +5,7 @@ import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.Pair;
 import statechum.analysis.learning.DrawGraphs;
-import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
-import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.FsmParserDot;
@@ -185,10 +182,10 @@ public class E_MarkovCaseStudies {
                                         boolean centreCurrent = presetCurrent > 0;
 
                                         if (learntOK && centreCurrent == useCentre)
-                                            bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText));
+                                            bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText,Y));
                                     });
-                                    learnerToHowOftenBest.computeIfAbsent(bestLearningResult.descr, s -> new AtomicInteger(0));
-                                    learnerToHowOftenBest.get(bestLearningResult.descr).addAndGet(1);
+                                    learnerToHowOftenBest.computeIfAbsent(bestLearningResult.columnText, s -> new AtomicInteger(0));
+                                    learnerToHowOftenBest.get(bestLearningResult.columnText).addAndGet(1);
                                     String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
                                     if (Y_VH != null) {
                                         gr_StructuralDiffBest.add(Double.parseDouble(obtainValueFromCell(Y_VH, 2)), bestLearningResult.structural, null, null);

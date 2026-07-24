@@ -1703,6 +1703,9 @@ public class PairQualityLearner
         /** How effective our heuristic is for predicting transitions. */
         public double predictionAccuracy;
 
+		/** Density of the learnt automata. */
+		public double density;
+
 		public long executionTime;
 
 		@Override

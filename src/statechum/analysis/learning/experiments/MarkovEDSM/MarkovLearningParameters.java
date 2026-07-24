@@ -114,7 +114,7 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 			headers.addAll(Arrays.asList("dI_Ave","dI_SD","alwaysPos","fracS","marTPre","marTRec","marHPre","marHRec","accRef","relIncLrnt","accLrnt","Comparisons"));
 		if (markovParameters.useCentreVertex)
 			headers.addAll(Arrays.asList("centreCorrect","centerpaths"));
-		headers.addAll(Arrays.asList("alphabet","density","%transitions","Time"));
+		headers.addAll(Arrays.asList("alphabet","densityRef","densityLrnt","%transitions","Time"));
 		return headers.toArray(new String[]{});
 	}
 

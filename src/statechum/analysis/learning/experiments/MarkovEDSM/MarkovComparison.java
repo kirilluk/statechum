@@ -92,7 +92,7 @@ public class MarkovComparison {
                     boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(cellY, 13));
 
                     if (learntOK)
-                        bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, null));
+                        bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, null,cellY));
                 }
                 gr_BestVsB.add(valueB, bestLearningResult.structural);
                 Wilcoxon_test_best.add(valueB, bestLearningResult.structural);

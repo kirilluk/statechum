@@ -14,6 +14,7 @@ import java.util.*;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.constructResultsCollector;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovAlphabet {
@@ -87,26 +88,41 @@ public class E_MarkovAlphabet {
                 Map<Double, FilterCollectionOfResultsForBestPerformingLearner> learnerToHowOftenBestForAllMultipliers = new TreeMap<>();
 
                 for (final double alphabetMultiplier : alphabetMultValues) {
+                    FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, -1,
+                            rowHeader -> Double.parseDouble(rowHeader[5]) == alphabetMultiplier,
+                            resultCSV);
+                    report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(alphabetMultiplier), null);
+                    learnerToHowOftenBestForAllMultipliers.computeIfAbsent(alphabetMultiplier, aDouble -> report);
+
                     // Now select the best result from all those available
                     for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                         String[] elems = rowEntry.getKey().split("[_=]");
-                        assert elems[6].equals("aMM");
-                        if (Double.parseDouble(elems[7]) == alphabetMultiplier) {
-                            final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
+                        assert elems[4].equals("aMM");
+                        if (Double.parseDouble(elems[5]) == alphabetMultiplier) {
+
                             gr_StructuralDiffBestMap.computeIfAbsent(alphabetMultiplier, aDouble ->
                                     new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
                                             new File(learningGroup.outPathPrefix + description+"_"+states+"alphabet_alphabetmult=" + alphabetMultiplier + "_VH_structuraldiffBest.pdf"), 0, 1, true));
 
-                            FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, -1, resultCSV);
-                            report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(alphabetMultiplier), null);
-                            learnerToHowOftenBestForAllMultipliers.computeIfAbsent(alphabetMultiplier, aDouble -> report);
+                            final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
+                            getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
+                                boolean learntOK = obtainValueFromCell(Y, 0).equals(LEARNING_OK.name);
+                                boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
+                                double bcr = Double.parseDouble(obtainValueFromCell(Y, 1));
+                                double structural = Double.parseDouble(obtainValueFromCell(Y, 2));
+                                long inconsistency = Long.parseLong(obtainValueFromCell(Y, 10));
 
+                                if (learntOK) {
+                                    MarkovExperiment.LearningReport currentOutcome = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText, Y);
+                                    bestLearningResult.updateIfValueBetter(currentOutcome);
+                                }
+                            });
                             String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
                             if (Y_VH != null) {
                                 double vh_score = Double.parseDouble(obtainValueFromCell(Y_VH, 2));
                                 gr_StructuralDiffBestMap.get(alphabetMultiplier).add(vh_score, bestLearningResult.structural, null, null);
                                 gr_BestStructuralForAlphabet.add(alphabetMultiplier + "_M", bestLearningResult.structural);
-                                gr_BestStructuralForAlphabet.add(alphabetMultiplier + "_S", vh_score);
+                                gr_BestStructuralForAlphabet.add(alphabetMultiplier + "_VH", vh_score);
                             } else
                                 System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
                         }

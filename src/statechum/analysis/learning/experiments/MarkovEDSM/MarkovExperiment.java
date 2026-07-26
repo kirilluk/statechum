@@ -650,9 +650,9 @@ public class MarkovExperiment
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
 					csvLine.append(data.relativeInconsistency);// 20
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(data.predictionAccuracy);// 20
+					csvLine.append(data.predictionAccuracy);// 21
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(sm.comparisonsPerformed);// 21
+					csvLine.append(sm.comparisonsPerformed);// 22
 				}
 
 				if (result.parameters.markovParameters.useCentreVertex) {
@@ -662,11 +662,11 @@ public class MarkovExperiment
 					csvLine.append(sm.centrePathNumber);
 				}
 				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(sm.referenceGraph.pathroutines.computeAlphabet().size());
+				csvLine.append(sm.referenceGraph.pathroutines.computeAlphabet().size());// 23
 				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append( (double)sm.referenceGraph.pathroutines.countEdges()/(sm.referenceGraph.getStateNumber() * sm.referenceGraph.getStateNumber()));
+				csvLine.append( (double)sm.referenceGraph.pathroutines.countEdges()/(sm.referenceGraph.getStateNumber() * sm.referenceGraph.getStateNumber()));// 24
 				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append( data.density );
+				csvLine.append( data.density );// 25
 				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
 				csvLine.append(sm.transitionsSampled);
 				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
@@ -691,7 +691,7 @@ public class MarkovExperiment
 		final double traceLengthMultiplierMax = 16;
 
 		final boolean pathsOrSets = true;
-		final int[] statesToUse = new int[]{20};//,40};
+		final int[] statesToUse = new int[]{20,40};
 
 		public static final int datasetSize = 256;
 
@@ -722,11 +722,18 @@ public class MarkovExperiment
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase;
 	}
 
+    public static int [] densityFromStateNumberPrefixLen(int stateNumber) {
+        if (stateNumber < 40)
+            return new int[]{0,20, 30};
+
+        return new int[]{0,20};
+    }
+
 	public static int [] densityFromStateNumber(int stateNumber) {
 		if (stateNumber < 40)
-			return new int[]{0,20, 30};
+			return new int[]{0,20};
 
-		return new int[]{0,20};
+		return new int[]{0};
 	}
 
 	public static void main(String []args)
@@ -756,7 +763,7 @@ public class MarkovExperiment
 //			E_MarkovCaseStudies.runExperiment(learningGroup);
 //			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
-//			E_MarkovCentre.runExperiment(learningGroup);
+			E_MarkovCentre.runExperiment(learningGroup);
 			E_MarkovAlphabet.runExperiment(learningGroup);
 //			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			E_MarkovTraceConstSize.runExperiment(learningGroup);

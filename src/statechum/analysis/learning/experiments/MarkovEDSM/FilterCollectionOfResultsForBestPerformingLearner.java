@@ -6,6 +6,7 @@ import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
@@ -15,7 +16,7 @@ class FilterCollectionOfResultsForBestPerformingLearner {
     protected int perStateSquaredDensity100 = -1;
     DrawGraphs.CSVExperimentResult resultCSV = null;
     AtomicBoolean multipleOrderingsOfStates = new AtomicBoolean(false);
-
+    Function<String[],Boolean> selector = elems -> true;
     protected Map<String, AtomicInteger> learnerToHowOftenBest = new HashMap<>(), learnerToHowOftenDefaultOrdering = new HashMap<>();
 
     /**
@@ -27,11 +28,13 @@ class FilterCollectionOfResultsForBestPerformingLearner {
      * @return
      */
     public FilterCollectionOfResultsForBestPerformingLearner(int states, int perStateSquaredDensity100, DrawGraphs.CSVExperimentResult resultCSV) {
+    }
+    public FilterCollectionOfResultsForBestPerformingLearner(int states, int perStateSquaredDensity100, Function<String[],Boolean> sel, DrawGraphs.CSVExperimentResult resultCSV) {
         this.states = states;
         this.perStateSquaredDensity100 = perStateSquaredDensity100;
         this.resultCSV = resultCSV;
+        this.selector = sel;
     }
-
     protected List<MarkovExperiment.LearningReport> experimentResults = new ArrayList<>();
     public List<MarkovExperiment.LearningReport> getExperimentResults() {
         return experimentResults;
@@ -55,7 +58,8 @@ class FilterCollectionOfResultsForBestPerformingLearner {
             assert rowValues[10].equals("d");
             assert rowValues[6].equals("S");
 
-            if ((perStateSquaredDensity100 < 0 || Double.parseDouble(rowValues[11]) == perStateSquaredDensity100) && Integer.parseInt(rowValues[7]) == states) {
+            if ((perStateSquaredDensity100 < 0 || Double.parseDouble(rowValues[11]) == perStateSquaredDensity100) && Integer.parseInt(rowValues[7]) == states &&
+                selector.apply(rowValues)) {
                 final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport(),bestLearningResultForDefaultOrdering = new MarkovExperiment.LearningReport();
                 final Map<Integer,MarkovExperiment.LearningReport> resultForChunkLen = new TreeMap<>();
                 getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {

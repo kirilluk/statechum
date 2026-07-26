@@ -41,7 +41,7 @@ public class E_MarkovPrefixLen {
         boolean pathsOrSets = true;
 
         for (int states : learningGroup.statesToUse)
-            for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
+            for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumberPrefixLen(states)) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample)
                 {
                     for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{learningGroup.getTracesLengthmultBaseline(states)})
@@ -101,6 +101,8 @@ public class E_MarkovPrefixLen {
                 for (int states : learningGroup.statesToUse) {
                     final RBoxPlot<String> gr_StructuralVsChunkLenWeight = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
                             new File(experimentName + states + "_prefixLenInconsistencyWeight_structural.pdf"));
+                    final DrawGraphs.RBagPlot gr_StructuralVsReferenceDensity = new DrawGraphs.RBagPlot("Density of Reference", "Structural Score", new File(learningGroup.outPathPrefix + description+"_" + states + "_density_reference_structural.pdf"));
+                    final DrawGraphs.RBagPlot gr_StructuralVsLearntDensity = new DrawGraphs.RBagPlot("Density of Learnt", "Structural Score", new File(learningGroup.outPathPrefix + description+"_" + states + "_density_learnt_structural.pdf"));
                     gr_StructuralVsChunkLenWeight.setXLine(4);
                     gr_StructuralVsChunkLenWeight.setMargins(5,4,0,0);
                     final Map<Integer,RBoxPlot<String>> gr_StructuralVsChunkLenWeightForDensity = new TreeMap();
@@ -110,7 +112,7 @@ public class E_MarkovPrefixLen {
                             map_StructuralVsLearntRelativeInconsistencyAllDensities = new TreeMap(),
                             map_StructuralVsLearntInconsistencyAccuracyAllDensities = new TreeMap();
 
-                    for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
+                    for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumberPrefixLen(states)) {
                         DataSelection source = new DataSelection(resultCSV,states,perStateSquaredDensity100);
                         final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score", new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_inconsistency_structural.pdf"));
                         DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_StructuralVsInconsistency, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 10,
@@ -165,7 +167,6 @@ public class E_MarkovPrefixLen {
 
                         FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states,perStateSquaredDensity100,resultCSV);
                         report.getResultForBestPerformingMarkovLearner(null, null);
-                        System.out.println("About to create graphs, values for "+states+" and "+perStateSquaredDensity100+" : "+report.getExperimentResults().size());
                         for(Map.Entry<Integer, List<MarkovExperiment.LearningReport>> resultEntry:report.getExperimentsResultsPerChunkLen().entrySet()) {
                             int chunkLen = resultEntry.getKey();
                             DrawGraphs.RBagPlot gr_StructuralVsReferenceAccuracyAllDensities = map_StructuralVsReferenceAccuracyAllDensities.
@@ -224,6 +225,12 @@ public class E_MarkovPrefixLen {
                                 gr_StructuralVsReferenceAccuracyAllDensities.add(markovReferenceInconsistencyAccuracy,
                                         value, null, null);
                                 gr_StructuralVsInconsistencyPerChunkLen.add(Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 10)),learningReport.structural);
+
+                                gr_StructuralVsReferenceDensity.add(Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 24)),value);
+                                double cappedObtainedDensity = Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 25));
+                                if (cappedObtainedDensity >= 1)
+                                    cappedObtainedDensity = 1;
+                                gr_StructuralVsLearntDensity.add(cappedObtainedDensity,value);
                             }
                         }
 
@@ -249,13 +256,15 @@ public class E_MarkovPrefixLen {
                         gr_StructuralVsLearntRelativeInconsistencyAllDensities.reportResults(learningGroup.gr);
                     for(DrawGraphs.RBagPlot gr_StructuralVsLearntInconsistencyAccuracyAllDensities:map_StructuralVsLearntInconsistencyAccuracyAllDensities.values())
                         gr_StructuralVsLearntInconsistencyAccuracyAllDensities.reportResults(learningGroup.gr);
+                    gr_StructuralVsReferenceDensity.reportResults(learningGroup.gr);
+                    gr_StructuralVsLearntDensity.reportResults(learningGroup.gr);
                 }
             }
         }
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             for (int states : learningGroup.statesToUse)
-                for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
+                for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumberPrefixLen(states)) {
                     final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural Score, VH", "Structural Score, EDSM-Markov",
                             new File(learningGroup.outPathPrefix + description+"_"+states+"_bestprefixlen_and_mult_" + states + "_"+perStateSquaredDensity100+"_VH_structuraldiffBest.pdf"), 0, 1, true);
                     final SquareBagPlot gr_StructuralDiffDefaultOrdering = new SquareBagPlot("Structural score, default order", "Structural Score, best order",

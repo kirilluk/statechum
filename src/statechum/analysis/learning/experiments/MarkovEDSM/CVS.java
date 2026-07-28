@@ -219,7 +219,7 @@ public class CVS
 						final Mann_Whitney_U_Test Mann_Whitney_U_Test_Structural=new Mann_Whitney_U_Test(new File(experimentName +"Whitney_U_Test_str.csv"));		 
 						final Kruskal_Wallis Kruskal_Wallis_Test_BCR=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_BCR.csv"));		 
 						final Kruskal_Wallis Kruskal_Wallis_Test_Structural=new Kruskal_Wallis(new File(experimentName +"Kruskal_Wallis_Test_str.csv"));		 	 
-	
+	/*
 						DrawGraphs.spreadsheetToBagPlot(gr_StructuralDiff,resultCSV, ScoringToApply.SCORING_VH.name(),1,ScoringToApply.SCORING_MARKOV.name(),1,null,null);
 						DrawGraphs.spreadsheetToBagPlot(gr_BCR,resultCSV,ScoringToApply.SCORING_VH.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
 						DrawGraphs.spreadsheetToBagPlot(BCRAgainstKtails,resultCSV,ScoringToApply.SCORING_PTAK_1.name(),0,ScoringToApply.SCORING_MARKOV.name(),0,null,null);
@@ -235,7 +235,7 @@ public class CVS
 						DrawGraphs.spreadsheetAsString(
 								(A, B) ->
 										comparisonsPerformed.addAndGet(Long.parseLong(A)),resultCSV,ScoringToApply.SCORING_MARKOV.name(),3,ScoringToApply.SCORING_MARKOV.name(),3);
-							
+							*/
 						for(@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result:new DrawGraphs.RExperimentResult[]{gr_StructuralDiff,gr_BCR,BCRAgainstKtails,BCRAgainstMarkov, Wilcoxon_Test_BCR,Wilcoxon_test_Structural,Mann_Whitney_U_Test_BCR,Mann_Whitney_U_Test_Structural,Kruskal_Wallis_Test_Structural,Kruskal_Wallis_Test_BCR})
 						{
 							result.reportResults(gr);

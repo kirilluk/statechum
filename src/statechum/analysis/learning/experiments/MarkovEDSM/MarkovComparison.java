@@ -17,10 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static java.lang.Math.max;
-import static statechum.analysis.learning.DrawGraphs.getValueFromMapGivenRegexp;
-import static statechum.analysis.learning.DrawGraphs.obtainValueFromCell;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.directoryExperimentResult;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.*;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 public class MarkovComparison {
@@ -68,36 +66,36 @@ public class MarkovComparison {
             final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_all_paths = new DrawGraphs.WilcoxonPairedTest(new File(pathToResult + description+"-"+"Wilcoxon_t_all_paths.csv"));
             for (Map.Entry<String, Map<String, String>> rowEntryA : twoExperiments.get(0).rowColumnText.entrySet()) {
                 Map<String, String> entryB = twoExperiments.get(1).rowColumnText.get(rowEntryA.getKey());
-                String cellsA = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString());
-                double valueA = Double.parseDouble(obtainValueFromCell(cellsA, 2));
-                String cellsB = getValueFromMapGivenRegexp(entryB, LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString());
-                double valueB = Double.parseDouble(obtainValueFromCell(cellsB, 2));
+                MarkovExperiment.ColumnAndValue cellsA = getValueFromMapGivenSelector(rowEntryA.getValue(), new MarkovExperiment.ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV));
+                double valueA = obtainDoubleValueFromCell(cellsA.value, E_DIFF, cellsA.column);
+                MarkovExperiment.ColumnAndValue cellsB = getValueFromMapGivenSelector(entryB, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV));
+                double valueB = obtainDoubleValueFromCell(cellsB.value, E_DIFF, cellsB.column);
 
 //                String Y_VH = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
 
-                String [] cellsA_split=cellsA.split(",");
-                String [] cellsB_split=cellsB.split(",");
+//                String [] cellsA_split=cellsA.split(",");
+//                String [] cellsB_split=cellsB.split(",");
 
                 gr_StructuralDiffComparison.add(valueA, valueB);
-                gr_TimeComparison.add(Double.parseDouble(cellsA_split[cellsA_split.length-1]), Double.parseDouble(cellsB_split[cellsB_split.length-1]));
+                gr_TimeComparison.add(obtainDoubleValueFromCell(cellsA.value, E_RUNTIME, cellsA.column), obtainDoubleValueFromCell(cellsB.value, E_RUNTIME, cellsA.column));
                 Wilcoxon_test_all_paths.add(valueA, valueB);
 
 
                 final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
-                for(String cellY:new String[]{cellsA,cellsB}) {
-                    boolean learntOK = obtainValueFromCell(cellY, 0).equals(LEARNING_OK.name);
-                    double bcr = Double.parseDouble(obtainValueFromCell(cellY, 1));
-                    double structural = Double.parseDouble(obtainValueFromCell(cellY, 2));
-                    long inconsistency = Long.parseLong(obtainValueFromCell(cellY, 10));
-                    boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(cellY, 13));
+                for(MarkovExperiment.ColumnAndValue cellY:new MarkovExperiment.ColumnAndValue[]{cellsA,cellsB}) {
+                    boolean learntOK = obtainStringValueFromCell(cellY.value, E_SUCCESS, cellY.column).equals(LEARNING_OK.name);
+                    double bcr = obtainDoubleValueFromCell(cellY.value, E_BCR, cellY.column);
+                    double structural = obtainDoubleValueFromCell(cellY.value, E_DIFF, cellY.column);
+                    long inconsistency = obtainLongValueFromCell(cellY.value, E_INCONSISTENCY_LEARNT, cellY.column);
+                    boolean alwaysPositive = obtainBooleanValueFromCell(cellY.value, E_INCONSISTENCY_ALWAYSPOSITIVE, cellY.column);
 
                     if (learntOK)
-                        bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, null,cellY));
+                        bestLearningResult.updateIfValueBetter(new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, null,cellY.value, cellY.column));
                 }
                 gr_BestVsB.add(valueB, bestLearningResult.structural);
                 Wilcoxon_test_best.add(valueB, bestLearningResult.structural);
 
-//                gr_BestVsA.add(Double.parseDouble(obtainValueFromCell(Y_VH, 2)),bestLearningResult.structural);
+//                gr_BestVsA.add(obtainDoubleValueFromCell(Y_VH.value, E_DIFF,Y_VH.column),bestLearningResult.structural);
                 gr_BestVsA.add(valueA,bestLearningResult.structural);
             }
 

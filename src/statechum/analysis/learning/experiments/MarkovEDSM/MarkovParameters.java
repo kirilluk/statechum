@@ -17,6 +17,8 @@
  */
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
+import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+
 import java.util.*;
 
 public class MarkovParameters {
@@ -102,8 +104,8 @@ public class MarkovParameters {
 	}
 
 	public static class WeightAndOffsetOfInconsistencies {
-		final double offset;
-		final double weight;
+		public final double offset;
+		public final double weight;
 
 		public WeightAndOffsetOfInconsistencies(double weight,double offset) {
 			this.offset = offset;
@@ -123,7 +125,8 @@ public class MarkovParameters {
 		}
 	}
 
-	public void setMarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, WeightAndOffsetOfInconsistencies weight, boolean addPenaltyForMissingPaths, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
+	public void setMarkovParameters(int pr, int chunkLength, boolean argPathsOrSets, WeightAndOffsetOfInconsistencies weight,
+									boolean addPenaltyForMissingPaths, boolean aveOrMax, int divisor, int mostConnectedVertex, int wlen)
 	{
 		chunkLen=chunkLength;pathsOrSets = argPathsOrSets;preset = pr;weightOfInconsistencies = weight;penaliseMissingPaths = addPenaltyForMissingPaths;
 		useAverageOrMax = aveOrMax;divisorForPathCount = divisor;
@@ -193,7 +196,9 @@ public class MarkovParameters {
 	
 	public List<String> getColumnListOnlyForMarkov()
 	{
-        return new ArrayList<>(Arrays.asList(Integer.toString(chunkLen), Double.toString(weightOfInconsistencies.offset), Double.toString(weightOfInconsistencies.weight),Boolean.toString(penaliseMissingPaths), Integer.toString(seedToShuffleSurroundingStates)));
+        return new ArrayList<>(Arrays.asList(Integer.toString(chunkLen), Double.toString(weightOfInconsistencies.offset),
+				Double.toString(weightOfInconsistencies.weight),Boolean.toString(penaliseMissingPaths),
+				Integer.toString(seedToShuffleSurroundingStates)));
 	}
 	
 	public List<String> getColumnListForMarkovLearner()
@@ -209,8 +214,11 @@ public class MarkovParameters {
 	}
 
 	/** Constructs a component of a columnID determined by these parameters.
-	 * 
-	 * @param useMarkovLearner whether the intention is to use Markov learner or any other. This affects which parameters are reported. Even if non-Markov learner is used, most parameters are still relevant, such as prefix length that is utilised in identification of the best centre vertex to use.
+	 * Here I should be using MarkovColumnEnum constants instead of "wl" and the like,
+	 * however these are long which would make the text of getExperimentID() nearly
+	 * unreadable and I need to keep looking at it in order to understand what file names refer to (getColumnID is part of a file name).
+	 * @param useMarkovLearner whether the intention is to use Markov learner or any other. This affects which parameters are reported.
+	 *                            Even if non-Markov learner is used, most parameters are still relevant, such as prefix length that is utilised in identification of the best centre vertex to use.
 	 */
 	public String getColumnID(boolean useMarkovLearner)
 	{

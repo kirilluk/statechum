@@ -12,7 +12,11 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static statechum.analysis.learning.DrawGraphs.*;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.constructResultsCollector;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.obtainDoubleValueFromCell;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersColumnFromCSV;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
@@ -115,8 +119,8 @@ public class E_MarkovPrefixLen {
                     for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumberPrefixLen(states)) {
                         DataSelection source = new DataSelection(resultCSV,states,perStateSquaredDensity100);
                         final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score", new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_inconsistency_structural.pdf"));
-                        DrawGraphs.spreadsheetToBagPlotNoZeroYValues(gr_StructuralVsInconsistency, source, LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 10,
-                                LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, 2, null, null);
+                        spreadsheetToBagPlotNoZeroYValues(gr_StructuralVsInconsistency, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_INCONSISTENCY_LEARNT,
+                                new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
 
                         {// structural score for different values of prefix length and inconsistency multiplier, considering offset
                             RBoxPlot<String> graph = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
@@ -143,24 +147,17 @@ public class E_MarkovPrefixLen {
 
                         gr_StructuralVsChunkLenWeight.setOtherOptions("las=2");
                         for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-                            String[] rowValues = rowEntry.getKey().split("[_=]");
-                            assert rowValues[10].equals("d");
-                            assert rowValues[6].equals("S");
-                            if (Double.parseDouble(rowValues[11]) == perStateSquaredDensity100 && Integer.parseInt(rowValues[7]) == states)
-                                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV + presetStr, (columnText, Y) -> {
-                                    double value = Double.parseDouble(obtainValueFromCell(Y, 2));
-                                    String[] elems = columnText.split("[_=]");
-                                    assert elems[1].equals("cl");
-                                    assert elems[3].equals("wW");
-                                    assert elems[5].equals("wO");
+                            MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
+                            if (rowValues.perStateSquaredDensityMultipliedBy100 == perStateSquaredDensity100 && rowValues.states == states)
+                                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), (column, columnText, Y) -> {
+                                    double value = obtainDoubleValueFromCell(Y, E_DIFF,column);
+                                    boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
 
-                                    boolean learntOK = obtainValueFromCell(Y, 0).equals(LEARNING_OK.name);
-
-                                    String prefixLenAndWeight = Integer.parseInt(elems[2]) - 1 + "_" + elems[4];// + "_" + elems[6];
+                                    String prefixLenAndWeight = column.parameters.chunkLen - 1 + "_" + column.parameters.weightOfInconsistencies.weight;// + "_" + column.parameters.weightOfInconsistencies.offset;
                                     gr_StructuralVsChunkLenWeight.add(prefixLenAndWeight, value);
-                                    gr_StructuralVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(prefixLenAndWeight, value);
+                                    gr_StructuralVsChunkLenWeightForDensity.get(rowValues.perStateSquaredDensityMultipliedBy100).add(prefixLenAndWeight, value);
                                     if (learntOK)
-                                        gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.get(Integer.parseInt(rowValues[11])).add(prefixLenAndWeight, value);
+                                        gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.get(rowValues.perStateSquaredDensityMultipliedBy100).add(prefixLenAndWeight, value);
 
                                 });
                         }
@@ -201,18 +198,18 @@ public class E_MarkovPrefixLen {
                                             new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_"+chunkLen+"_inconsistency_structural.pdf")));
 
                             for(MarkovExperiment.LearningReport learningReport:resultEntry.getValue()) {
-                                double markovReferenceInconsistencyAccuracy = Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 19));
-                                double markovReferenceInconsistencyLearnt = Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 21));
-                                double markovLearntRelativeInconsistency = Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 20));
+                                double markovReferenceInconsistencyAccuracy = obtainDoubleValueFromCell(learningReport.Yvalues, E_MARKOV_PREDICTIONACCURACY_REFERENCE,learningReport.column);
+                                double markovPredictionAccuracyLearnt = obtainDoubleValueFromCell(learningReport.Yvalues, E_MARKOV_PREDICTIONACCURACY_LEARNT,learningReport.column);
+                                double markovLearntRelativeInconsistency = obtainDoubleValueFromCell(learningReport.Yvalues, E_RELATIVEINCONSISTENCY_LEARNT,learningReport.column);
                                 if (markovLearntRelativeInconsistency >= 5)
                                     markovLearntRelativeInconsistency = 5;
-                                double value = Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 2));
+                                double value = obtainDoubleValueFromCell(learningReport.Yvalues, E_DIFF, learningReport.column);
 
-                                boolean learntOK = obtainValueFromCell(learningReport.Yvalues, 0).equals(LEARNING_OK.name);
+                                boolean learntOK = obtainStringValueFromCell(learningReport.Yvalues, E_SUCCESS,learningReport.column).equals(LEARNING_OK.name);
                                 if (learntOK) {
-                                    gr_StructuralVsLearntInconsistencyAccuracy.add(markovReferenceInconsistencyLearnt,
+                                    gr_StructuralVsLearntInconsistencyAccuracy.add(markovPredictionAccuracyLearnt,
                                             value, null, null);
-                                    gr_StructuralVsLearntInconsistencyAccuracyAllDensities.add(markovReferenceInconsistencyLearnt,
+                                    gr_StructuralVsLearntInconsistencyAccuracyAllDensities.add(markovPredictionAccuracyLearnt,
                                             value, null, null);
 
                                     gr_StructuralVsLearntRelativeInconsistency.add(markovLearntRelativeInconsistency,

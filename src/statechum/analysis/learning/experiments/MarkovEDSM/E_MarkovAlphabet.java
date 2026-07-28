@@ -1,19 +1,17 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.Pair;
-import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
-import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 import static statechum.analysis.learning.DrawGraphs.*;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.constructResultsCollector;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
@@ -89,37 +87,36 @@ public class E_MarkovAlphabet {
 
                 for (final double alphabetMultiplier : alphabetMultValues) {
                     FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, -1,
-                            rowHeader -> Double.parseDouble(rowHeader[5]) == alphabetMultiplier,
+                            rowHeader -> rowHeader.alphabetMultiplier == alphabetMultiplier,
                             resultCSV);
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(alphabetMultiplier), null);
                     learnerToHowOftenBestForAllMultipliers.computeIfAbsent(alphabetMultiplier, aDouble -> report);
 
                     // Now select the best result from all those available
                     for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-                        String[] elems = rowEntry.getKey().split("[_=]");
-                        assert elems[4].equals("aMM");
-                        if (Double.parseDouble(elems[5]) == alphabetMultiplier) {
+                        MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
+                        if (rowValues.alphabetMultiplier == alphabetMultiplier) {
 
                             gr_StructuralDiffBestMap.computeIfAbsent(alphabetMultiplier, aDouble ->
                                     new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
                                             new File(learningGroup.outPathPrefix + description+"_"+states+"alphabet_alphabetmult=" + alphabetMultiplier + "_VH_structuraldiffBest.pdf"), 0, 1, true));
 
                             final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
-                            getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
-                                boolean learntOK = obtainValueFromCell(Y, 0).equals(LEARNING_OK.name);
-                                boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
-                                double bcr = Double.parseDouble(obtainValueFromCell(Y, 1));
-                                double structural = Double.parseDouble(obtainValueFromCell(Y, 2));
-                                long inconsistency = Long.parseLong(obtainValueFromCell(Y, 10));
+                            getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), (column, columnText, Y) -> {
+                                boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
+                                boolean alwaysPositive = obtainBooleanValueFromCell(Y, E_INCONSISTENCY_ALWAYSPOSITIVE,column);
+                                double bcr = obtainDoubleValueFromCell(Y, E_BCR,column);
+                                double structural = obtainDoubleValueFromCell(Y, E_DIFF,column);
+                                long inconsistency = obtainLongValueFromCell(Y, E_INCONSISTENCY_LEARNT,column);
 
                                 if (learntOK) {
-                                    MarkovExperiment.LearningReport currentOutcome = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText, Y);
+                                    MarkovExperiment.LearningReport currentOutcome = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText, Y, column);
                                     bestLearningResult.updateIfValueBetter(currentOutcome);
                                 }
                             });
-                            String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
+                            ColumnAndValue Y_VH = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH));
                             if (Y_VH != null) {
-                                double vh_score = Double.parseDouble(obtainValueFromCell(Y_VH, 2));
+                                double vh_score = obtainDoubleValueFromCell(Y_VH.value, E_DIFF,Y_VH.column);
                                 gr_StructuralDiffBestMap.get(alphabetMultiplier).add(vh_score, bestLearningResult.structural, null, null);
                                 gr_BestStructuralForAlphabet.add(alphabetMultiplier + "_M", bestLearningResult.structural);
                                 gr_BestStructuralForAlphabet.add(alphabetMultiplier + "_VH", vh_score);

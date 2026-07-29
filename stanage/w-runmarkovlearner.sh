@@ -9,7 +9,7 @@ if [ -z ${SLURM_ARRAY_TASK_ID+x} ] || [ "${SLURM_ARRAY_TASK_ID}" == "undefined" 
 		# thanks to http://stackoverflow.com/questions/3601515/how-to-check-if-a-variable-is-set-in-bash
 		sh ./statechum.sh -Xmx13000m ${EXPERIMENT} COLLECT_RESULTS
 	else
-		sh ./statechum.sh -Xmx13000m ${EXPERIMENT} COUNT_TASKS 100
+		sh ./statechum.sh -Xmx13000m ${EXPERIMENT} COUNT_TASKS 50
 	fi
 else
 # if task id is not "undefined", it means we are running an array task

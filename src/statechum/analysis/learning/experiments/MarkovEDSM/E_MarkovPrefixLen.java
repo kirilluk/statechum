@@ -241,6 +241,12 @@ public class E_MarkovPrefixLen {
                         for(DrawGraphs.RBagPlot gr_StructuralVsInconsistencyPerChunkLen:map_StructuralVsInconsistencyForChunkLen.values())
                             gr_StructuralVsInconsistencyPerChunkLen.reportResults(learningGroup.gr);
                         gr_StructuralVsInconsistency.reportResults(learningGroup.gr);
+
+                        for(RBoxPlot<String> plot: gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.values())
+                            plot.reportResults(learningGroup.gr);
+                        for(RBoxPlot<String> plot: gr_StructuralVsChunkLenWeightForDensity.values())
+                            plot.reportResults(learningGroup.gr);
+
 //                        for (RBoxPlot<String> graph : gr_StructuralVsChunkLenWeightForDensity.values())
 //                            graph.reportResults(learningGroup.gr);
 //                        for (RBoxPlot<String> graph : gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.values())

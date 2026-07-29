@@ -3271,6 +3271,18 @@ public class TestMarkovLearner
 	}
 
 	@Test
+	public void testParseCSVColumn8() {
+		parseMarkovParametersColumnFromCSV("MARKOV-1_dv=A_d=1_wl=1_b=T_cl=3_wW=0.5_wO=0.0_m=true_sh=0");// Here we rely on self-check of the parser
+	}
+
+	@Test
+	public void testParseCSVColumn9() {
+		TestHelper.checkForCorrectException(() ->
+						parseMarkovParametersColumnFromCSV("MARKOV-1_dv=A_d=1_wl=1_b=GG_cl=3_wW=0.5_wO=0.0_m=true_sh=0"),
+				IllegalArgumentException.class, "Entry \"GG\" should be either T or F");
+	}
+
+	@Test
 	public void testExtractOffset1() {
 		ColumnParseOutcome column = parseMarkovParametersColumnFromCSV("MARKOV-0_cl=2_wW=1.5_wO=0.6_m=true_sh=8");
 		Assert.assertEquals(0,MarkovExperiment.RESULT_VALUES.getOffset(E_SUCCESS,column));

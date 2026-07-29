@@ -239,14 +239,23 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 						case "M":
 							useAverageOrMax = false;break;
 						default:
-							throw new IllegalArgumentException("Entry "+elem[i+1]+" should be either A or M in column "+column);
+							throw new IllegalArgumentException("Entry \""+elem[i+1]+"\" should be either A or M in column "+column);
 					}
+					break;
 				case M_COLUMN_DIVISORFORPATHCOUNT:
 					divisorForPathCount = Integer.parseInt(elem[i+1]);break;
 				case M_COLUMN_EXPECTEDWLEN:
 					expectedWLen = Integer.parseInt(elem[i+1]);break;
 				case M_COLUMN_BLUESTATESFORWARDANDBACKWARD:
-					blue_states_forward_and_backwards = Boolean.parseBoolean(elem[i+1]);break;
+					switch(elem[i+1]) {
+						case "T":
+							blue_states_forward_and_backwards = true;break;
+						case "F":
+							blue_states_forward_and_backwards = false;break;
+						default:
+							throw new IllegalArgumentException("Entry \""+elem[i+1]+"\" should be either T or F in column "+column);
+					}
+					break;
 				case M_COLUMN_CHUNKLEN:
 					chunkLen = Integer.parseInt(elem[i+1]);break;
 				case M_COLUMN_WEIGHT:

@@ -31,6 +31,7 @@ class FilterCollectionOfResultsForBestPerformingLearner {
      * @param resultCSV                 CSV with results to process
      */
     public FilterCollectionOfResultsForBestPerformingLearner(int states, int perStateSquaredDensity100, DrawGraphs.CSVExperimentResult resultCSV) {
+        this(states,perStateSquaredDensity100,(array) -> true,resultCSV);
     }
 
     /**

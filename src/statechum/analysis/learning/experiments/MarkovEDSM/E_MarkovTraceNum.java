@@ -13,7 +13,8 @@ import java.io.IOException;
 import java.util.*;
 
 import static statechum.analysis.learning.DrawGraphs.*;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.constructResultsCollector;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.E_DIFF;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovTraceNum {
@@ -102,9 +103,9 @@ public class E_MarkovTraceNum {
                             report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(traceQuantityToUse), null);
                             learnerToHowOftenBestForAllTraceLength.computeIfAbsent(traceQuantityToUse,aInteger -> report);
 
-                            String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
+                            MarkovExperiment.ColumnAndValue Y_VH = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH));
                             if (Y_VH != null) {
-                                double vh_score = Double.parseDouble(obtainValueFromCell(Y_VH, 2));
+                                double vh_score = obtainDoubleValueFromCell(Y_VH.value, E_DIFF,Y_VH.column);
                                 gr_StructuralDiffBestMap.get(traceQuantityToUse).add(vh_score, bestLearningResult.structural, null, null);
                                 StringBuilder sb = new StringBuilder();
                                 Formatter formatter = new Formatter(sb, Locale.US);

@@ -2,25 +2,20 @@ package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.Configuration;
 import statechum.GlobalConfiguration;
-import statechum.Pair;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.experiments.ExperimentRunner;
-import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
-import statechum.analysis.learning.observers.ProgressDecorator;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import static java.lang.Math.abs;
-import static statechum.analysis.learning.DrawGraphs.getValueFromMapGivenRegexp;
-import static statechum.analysis.learning.DrawGraphs.obtainValueFromCell;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.directoryExperimentResult;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.*;
 
 public class MarkovCheckEquivalence {
 
@@ -61,16 +56,16 @@ public class MarkovCheckEquivalence {
             int countAabove = 0,countBabove=0;
             for (Map.Entry<String, Map<String, String>> rowEntryA : twoExperiments.get(0).rowColumnText.entrySet()) {
                 Map<String, String> entryB = twoExperiments.get(1).rowColumnText.get(rowEntryA.getKey());
-                String cellsA = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString());
-                double valueBCRA = Double.parseDouble(obtainValueFromCell(cellsA, 1));
-                double valueStructuralA = Double.parseDouble(obtainValueFromCell(cellsA, 2));
-                int timeCell = cellsA.split(",").length-1;
+                ColumnAndValue cellsA = getValueFromMapGivenSelector(rowEntryA.getValue(), new MarkovExperiment.ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV));
+                double valueA = obtainDoubleValueFromCell(cellsA.value, E_DIFF, cellsA.column);
+                double valueBCRA = obtainDoubleValueFromCell(cellsA.value, E_BCR, cellsA.column);
+                double valueStructuralA = obtainDoubleValueFromCell(cellsA.value, E_DIFF, cellsA.column);
 
-                double timeA = Double.parseDouble(obtainValueFromCell(cellsA, timeCell));
-                String cellsB = getValueFromMapGivenRegexp(entryB, LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString());
-                double valueBCRB = Double.parseDouble(obtainValueFromCell(cellsB, 1));
-                double valueStructuralB = Double.parseDouble(obtainValueFromCell(cellsB, 2));
-                double timeB = Double.parseDouble(obtainValueFromCell(cellsB, timeCell));
+                double timeA = obtainDoubleValueFromCell(cellsA.value, E_RUNTIME, cellsA.column);
+                ColumnAndValue cellsB = getValueFromMapGivenSelector(entryB, new MarkovExperiment.ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV));
+                double valueBCRB = obtainDoubleValueFromCell(cellsB.value, E_BCR, cellsB.column);
+                double valueStructuralB = obtainDoubleValueFromCell(cellsB.value, E_DIFF, cellsB.column);
+                double timeB = obtainDoubleValueFromCell(cellsB.value, E_RUNTIME, cellsB.column);
 
                 if (timeA > 5 || timeB > 5) {
                     gr_Time.add(timeA, timeB);

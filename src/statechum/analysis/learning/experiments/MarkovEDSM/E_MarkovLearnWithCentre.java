@@ -1,19 +1,18 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.Pair;
-import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
-import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 import static statechum.analysis.learning.DrawGraphs.*;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.constructResultsCollector;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersColumnFromCSV;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
@@ -108,10 +107,8 @@ public class E_MarkovLearnWithCentre {
 
                     // Now select the best result from all those available
                     for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-
-                        String[] rowValues = rowEntry.getKey().split("[_=]");
-                        assert rowValues[0].equals("tQ");
-                        if (Double.parseDouble(rowValues[1]) == traceQuantityToUse) {
+                        MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
+                        if (rowValues.traceQuantity == traceQuantityToUse) {
                             // we are looking at specific rows
                             final Map<Integer, MarkovExperiment.LearningReport> bestLearningResultForThisRowAndAllPresets = new TreeMap<>();
 
@@ -120,26 +117,28 @@ public class E_MarkovLearnWithCentre {
                                 bestLearningResultForThisRowAndAllPresets.computeIfAbsent(preset, integer -> new MarkovExperiment.LearningReport());
                                 MarkovExperiment.LearningReport bestLearningResultForThisRowAndPreset = bestLearningResultForThisRowAndAllPresets.get(preset);
 
-                                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_MARKOV.toString(), (columnText, Y) -> {
-                                    // Here columnText is the description of the learner used, Y is the values reported by processSubResult above.
-                                    boolean learntOK = obtainValueFromCell(Y, 0).equals(LEARNING_OK.name);
-                                    boolean alwaysPositive = Boolean.parseBoolean(obtainValueFromCell(Y, 13));
-                                    double bcr = Double.parseDouble(obtainValueFromCell(Y, 1));
-                                    double structural = Double.parseDouble(obtainValueFromCell(Y, 2));
-                                    long inconsistency = Long.parseLong(obtainValueFromCell(Y, 10));
+                                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),
+                                        (column, columnText, Y) -> {
+                                            // Here columnText is the description of the learner used, Y is the values reported by processSubResult above.
+                                            boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
+                                            boolean alwaysPositive = obtainBooleanValueFromCell(Y, E_INCONSISTENCY_ALWAYSPOSITIVE,column);
+                                            double bcr = obtainDoubleValueFromCell(Y, E_BCR,column);
+                                            double structural = obtainDoubleValueFromCell(Y, E_DIFF,column);
+                                            long inconsistency = obtainLongValueFromCell(Y, E_INCONSISTENCY_LEARNT,column);
 
-                                    String[] columnValues = columnText.split("[_=]");
-                                    if (learntOK && columnValues[0].equals(LearningAlgorithms.ScoringToApply.SCORING_MARKOV + "-" + preset)) {
-                                        // Now at the columns of interest (specific preset but different parameter of Markov)
-                                        MarkovExperiment.LearningReport report = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText,Y);
-                                        bestLearningResultForThisRowAndPreset.updateIfValueBetter(report);
-                                        bestLearningResultForThisRow.updateIfValueBetter(report);
-                                    }
-                                });
+                                            MarkovLearningParameters.ColumnParseOutcome columnValues=parseMarkovParametersColumnFromCSV(columnText);
+        //                                    String[] columnValues = columnText.split("[_=]");
+                                            if (learntOK && columnValues.learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV && columnValues.parameters.preset == preset) {
+                                                // Now at the columns of interest (specific preset but different parameter of Markov)
+                                                MarkovExperiment.LearningReport report = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText,Y, column);
+                                                bestLearningResultForThisRowAndPreset.updateIfValueBetter(report);
+                                                bestLearningResultForThisRow.updateIfValueBetter(report);
+                                            }
+                                        });
                             }
 
-                            String Y_VH = getValueFromMapGivenRegexp(rowEntry.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
-                            double vh_score = Double.parseDouble(obtainValueFromCell(Y_VH, 2));
+                            ColumnAndValue Y_VH = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH));
+                            double vh_score = obtainDoubleValueFromCell(Y_VH.value, E_DIFF,Y_VH.column);
                             if (Y_VH != null)
                                 gr_StructuralDiffBest.add(vh_score, bestLearningResultForThisRow.structural, null, null);
                             else

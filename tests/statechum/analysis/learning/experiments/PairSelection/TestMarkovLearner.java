@@ -15,20 +15,28 @@ import statechum.analysis.learning.MarkovClassifierLG;
 import statechum.analysis.learning.MarkovModel;
 import statechum.analysis.learning.MarkovModel.MarkovOutcome;
 import statechum.analysis.learning.MarkovModel.UpdatablePairInteger;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters;
 import statechum.analysis.learning.experiments.MarkovEDSM.WaveBlueFringe;
 import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
+import statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.ColumnParseOutcome;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersColumnFromCSV;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
 @RunWith(ParameterizedWithName.class)
 public class TestMarkovLearner 
 {
+	public static final double epsilon = 1e-15;
+	
 	final Configuration config = Configuration.getDefaultConfiguration().copy();
 	final ConvertALabel converter = new ConvertALabel() {
 		final Map<Label,StringLabel> map = new TreeMap<>();
@@ -495,7 +503,7 @@ public class TestMarkovLearner
 		MarkovModel m = buildMarkovModelFromPTA(graph, 3, markovPTAUseMatrix);
 		MarkovClassifier.ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		double value = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(graph,conv,m,checker,10);
-		Assert.assertEquals(0.08474576363114047,value, 1e-8);
+		Assert.assertEquals(0.08474576363114047,value, epsilon);
 	}
 
 	@Test
@@ -509,7 +517,7 @@ public class TestMarkovLearner
 		MarkovModel m = buildMarkovModelFromPTA(graph, 3, markovPTAUseMatrix);
 		MarkovClassifier.ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		double value = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(graph,conv,m,checker,10);
-		Assert.assertEquals(-1,value, 1e-8);
+		Assert.assertEquals(-1,value, epsilon);
 	}
 
 	@Test
@@ -523,7 +531,7 @@ public class TestMarkovLearner
 		MarkovModel m = buildMarkovModelFromPTA(graph, 3, markovPTAUseMatrix);
 		MarkovClassifier.ConsistencyChecker checker = new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes();
 		double value = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(graph,conv,m,checker,10);
-		Assert.assertEquals(3.571428582312927,value, 1e-8);
+		Assert.assertEquals(3.571428582312927,value, epsilon);
 	}
 
 	/** Nothing to add because there not enough evidence. */
@@ -3214,6 +3222,156 @@ public class TestMarkovLearner
 		Assert.assertTrue(MarkovClassifier.checkIfThereIsPathOfSpecificLength(trainingGraphForClosures,trainingGraphForClosures.findVertex("D"),1));
 		Assert.assertFalse(MarkovClassifier.checkIfThereIsPathOfSpecificLength(trainingGraphForClosures,trainingGraphForClosures.findVertex("D"),2));// only paths of length 1 are possible from D
 	}
-	
-}
 
+	@Test
+	public void testParseCSVColumn1() {
+		ColumnParseOutcome outcome = parseMarkovParametersColumnFromCSV("MARKOV-0_cl=2_wW=1.0_wO=0.0_m=true_sh=0");
+		Assert.assertEquals(LearningAlgorithms.ScoringToApply.SCORING_MARKOV,outcome.learner);
+		Assert.assertEquals(0,outcome.parameters.preset);
+		Assert.assertEquals(2,outcome.parameters.chunkLen);
+		Assert.assertEquals(1.0,outcome.parameters.weightOfInconsistencies.weight,1e-08);
+		Assert.assertEquals(0.0,outcome.parameters.weightOfInconsistencies.offset,1e-08);
+		Assert.assertEquals(0,outcome.parameters.seedToShuffleSurroundingStates);
+	}
+
+	@Test
+	public void testParseCSVColumn2() {
+		parseMarkovParametersColumnFromCSV("MARKOV-0_cl=2_wW=1.5_wO=0.6_m=true_sh=8");// Here we rely on self-check of the parser
+	}
+
+	@Test
+	public void testParseCSVColumn3() {
+		TestHelper.checkForCorrectException(() ->
+				parseMarkovParametersColumnFromCSV("AA-0_cl=2_wW=1.5_wO=0.6_m=true_sh=8"),
+				IllegalArgumentException.class, "No enum constant");
+	}
+	@Test
+	public void testParseCSVColumn4() {
+		TestHelper.checkForCorrectException(() ->
+				parseMarkovParametersColumnFromCSV("MARKOV-0_cl=2_QQ=1.5_wO=0.6_m=true_sh=8"),
+				IllegalArgumentException.class, "Invalid text \"QQ\"");
+	}
+	@Test
+	public void testParseCSVColumn5() {
+		TestHelper.checkForCorrectException(() ->
+				parseMarkovParametersColumnFromCSV("MARKOV-0_cl=2_wO=0.6_m=true_sh=8"),
+				IllegalArgumentException.class, "produced a different outcome");
+	}
+	@Test
+	public void testParseCSVColumn6() {
+		TestHelper.checkForCorrectException(() ->
+				parseMarkovParametersColumnFromCSV("MARKOV-0_cl=2__wO=0.6_m=true_sh=8"),
+				IllegalArgumentException.class, "should have an odd number of entries");
+	}
+	@Test
+	public void testParseCSVColumn7() {
+		TestHelper.checkForCorrectException(() ->
+						parseMarkovParametersColumnFromCSV("MARKOV-0_cl=2_wW=A_wO=0.6_m=true_sh=8"),
+				NumberFormatException.class, "For input string: \"A\"");
+	}
+
+	@Test
+	public void testExtractOffset1() {
+		ColumnParseOutcome column = parseMarkovParametersColumnFromCSV("MARKOV-0_cl=2_wW=1.5_wO=0.6_m=true_sh=8");
+		Assert.assertEquals(0,MarkovExperiment.RESULT_VALUES.getOffset(E_SUCCESS,column));
+		Assert.assertEquals(1,MarkovExperiment.RESULT_VALUES.getOffset(E_BCR,column));
+		Assert.assertEquals(2,MarkovExperiment.RESULT_VALUES.getOffset(E_DIFF,column));
+		Assert.assertEquals(10,MarkovExperiment.RESULT_VALUES.getOffset(E_INCONSISTENCY_LEARNT,column));
+		Assert.assertEquals(11,MarkovExperiment.RESULT_VALUES.getOffset(E_INCONSISTENCY_AVERAGE,column));
+
+		Assert.assertEquals(19,MarkovExperiment.RESULT_VALUES.getOffset(E_MARKOV_PREDICTIONACCURACY_REFERENCE,column));
+		Assert.assertEquals(20,MarkovExperiment.RESULT_VALUES.getOffset(E_RELATIVEINCONSISTENCY_LEARNT,column));
+		Assert.assertEquals(21,MarkovExperiment.RESULT_VALUES.getOffset(E_MARKOV_PREDICTIONACCURACY_LEARNT,column));
+		Assert.assertEquals(23,MarkovExperiment.RESULT_VALUES.getOffset(E_ALPHABET_SIZE,column));
+		Assert.assertEquals(24,MarkovExperiment.RESULT_VALUES.getOffset(E_DENSITY_REFERENCE,column));
+		Assert.assertEquals(25,MarkovExperiment.RESULT_VALUES.getOffset(E_DENSITY_LEARNT,column));
+	}
+
+	@Test
+	public void testExtractOffset2() {
+		ColumnParseOutcome column = parseMarkovParametersColumnFromCSV("MARKOV-0_cl=2_wW=1.5_wO=0.6_m=true_sh=8");
+		TestHelper.checkForCorrectException(() ->
+						MarkovExperiment.RESULT_VALUES.getOffset(E_CENTRE_CORRECT,column),
+				IllegalArgumentException.class, "Requested centre value E_CENTRE_CORRECT but column does not correspond");
+	}
+
+	@Test
+	public void testExtractOffset3() {
+		ColumnParseOutcome column = parseMarkovParametersColumnFromCSV("VH-0");
+		Assert.assertEquals(0, MarkovExperiment.RESULT_VALUES.getOffset(E_SUCCESS, column));
+		Assert.assertEquals(1, MarkovExperiment.RESULT_VALUES.getOffset(E_BCR, column));
+		Assert.assertEquals(2, MarkovExperiment.RESULT_VALUES.getOffset(E_DIFF, column));
+		Assert.assertEquals(11, MarkovExperiment.RESULT_VALUES.getOffset(E_ALPHABET_SIZE, column));
+	}
+
+	@Test
+	public void testExtractOffset4() {
+		ColumnParseOutcome column = parseMarkovParametersColumnFromCSV("VH-0");
+		TestHelper.checkForCorrectException(() ->
+						MarkovExperiment.RESULT_VALUES.getOffset(E_INCONSISTENCY_AVERAGE,column),
+				IllegalArgumentException.class, "Requested markov value E_INCONSISTENCY_AVERAGE but column does not correspond");
+	}
+
+	public void testExtractOffset5() {
+		ColumnParseOutcome column = parseMarkovParametersColumnFromCSV("MARKOV-1_cl=2_wW=1.5_wO=0.6_m=true_sh=8");
+		Assert.assertEquals(0,MarkovExperiment.RESULT_VALUES.getOffset(E_SUCCESS,column));
+		Assert.assertEquals(1,MarkovExperiment.RESULT_VALUES.getOffset(E_BCR,column));
+		Assert.assertEquals(2,MarkovExperiment.RESULT_VALUES.getOffset(E_DIFF,column));
+		Assert.assertEquals(10,MarkovExperiment.RESULT_VALUES.getOffset(E_INCONSISTENCY_LEARNT,column));
+		Assert.assertEquals(19,MarkovExperiment.RESULT_VALUES.getOffset(E_MARKOV_PREDICTIONACCURACY_REFERENCE,column));
+		Assert.assertEquals(20,MarkovExperiment.RESULT_VALUES.getOffset(E_RELATIVEINCONSISTENCY_LEARNT,column));
+		Assert.assertEquals(21,MarkovExperiment.RESULT_VALUES.getOffset(E_MARKOV_PREDICTIONACCURACY_LEARNT,column));
+
+		Assert.assertEquals(23,MarkovExperiment.RESULT_VALUES.getOffset(E_CENTRE_CORRECT,column));
+
+		Assert.assertEquals(25,MarkovExperiment.RESULT_VALUES.getOffset(E_ALPHABET_SIZE,column));
+		Assert.assertEquals(26,MarkovExperiment.RESULT_VALUES.getOffset(E_DENSITY_REFERENCE,column));
+		Assert.assertEquals(27,MarkovExperiment.RESULT_VALUES.getOffset(E_DENSITY_LEARNT,column));
+	}
+
+	// results.csv|prefixlen|tQ=16_tMM=16.0_aMM=2.0_S=20_m=2.0_d=30_sa=24_tS=1_tM=32.0|MARKOV-0_cl=2_wW=1.0_wO=0.0_m=true_sh=0|["MARKOV","0","2","0.0","1.0","true","0"]|["Success","BCR","Diff","Invalid R","Missed R","Invalid Far","Missed Far","Valid mergers","States","I_Ref","I_Lnt","dI_Ave","dI_SD","alwaysPos","fracS","marTPre","marTRec","marHPre","marHRec","accRef","relIncLrnt","accLrnt","Comparisons","alphabet","densityRef","densityLrnt","%transitions","Time"]
+	// L_OK,0.5447368421052632,0.1343091697645601,113,1,109,56,793,42.0,1,2567,2.529064039408867,2.9402745441393274,true,20,19,100,100,19,551.0,0.39145717531912294,1285.0,549782,38,0.3,0.27991675338189387,100,143
+	@Test
+	public void testParseCSVRow1() {
+		MarkovLearningParameters parameters = parseMarkovParametersRowFromCSV("tQ=16_tMM=18.0_aMM=2.0_S=20_m=2.1_d=30_sa=24_tS=1_tM=32.0");
+		Assert.assertEquals(16,parameters.traceQuantity);
+		Assert.assertEquals(18,parameters.traceLengthMultiplierMax,epsilon);
+		Assert.assertEquals(2.0,parameters.alphabetMultiplierMax,epsilon);
+		Assert.assertEquals(20,parameters.states);
+		Assert.assertEquals(2.1,parameters.alphabetMultiplier,epsilon);
+		Assert.assertEquals(30,parameters.perStateSquaredDensityMultipliedBy100);
+		Assert.assertEquals(24,parameters.sample);
+		Assert.assertEquals(1,parameters.trainingSample);
+		Assert.assertEquals(32,parameters.traceLengthMultiplier,epsilon);
+		Assert.assertEquals(24,parameters.sample);
+	}
+
+	@Test
+	public void testParseCSVRow2() {
+		TestHelper.checkForCorrectException(() ->
+				parseMarkovParametersRowFromCSV("AA=16_tMM=18.0_aMM=2.0_S=20_m=2.1_d=30_sa=24_tS=1_tM=32.0"),
+				IllegalArgumentException.class, "Invalid text \"AA\"");
+	}
+
+	@Test
+	public void testParseCSVRow3() {
+		TestHelper.checkForCorrectException(() ->
+				parseMarkovParametersRowFromCSV("tQ=16_tMM=18.0_S=20_m=2.1_d=30_sa=24_tS=1_tM=32.0"),
+				IllegalArgumentException.class, "produced a different outcome");
+	}
+
+	@Test
+	public void testParseCSVRow4() {
+		TestHelper.checkForCorrectException(() ->
+				parseMarkovParametersRowFromCSV("tQ=16_tMM=18.0__aMM=2.0_S=20_m=2.1_d=30_sa=24_tS=1_tM=32.0"),
+				IllegalArgumentException.class, "should have an even number of entries");
+	}
+
+	@Test
+	public void testParseCSVRow5() {
+		TestHelper.checkForCorrectException(() ->
+				parseMarkovParametersRowFromCSV("tQ=16_tMM=18.0_aMM=A.0_S=20_m=2.1_d=30_sa=24_tS=1_tM=32.0"),
+				NumberFormatException.class, "For input string: \"A.0\"");
+	}
+
+}

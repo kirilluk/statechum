@@ -29,7 +29,6 @@ import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
-import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
@@ -51,7 +50,11 @@ import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_SECTION.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersColumnFromCSV;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.constructLearner;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 
 public class MarkovExperiment
@@ -538,17 +541,31 @@ public class MarkovExperiment
 		long inconsistency = -1;
 		boolean alwaysPositive = true;
 		String Yvalues = null;
+		MarkovLearningParameters.ColumnParseOutcome column;
 
 		public LearningReport() {
 		}
 
-		public LearningReport(double bcr, double structural, long inconsistency, boolean alwaysPositive, String columnText, String Yvalues) {
+		public LearningReport(double bcr, double structural, long inconsistency, boolean alwaysPositive, String columnText, String Yvalues, MarkovLearningParameters.ColumnParseOutcome column) {
 			this.bcr = bcr;
 			this.structural = structural;
 			this.inconsistency = inconsistency;
 			this.columnText = columnText;
 			this.alwaysPositive = alwaysPositive;
 			this.Yvalues = Yvalues;
+			this.column = column;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (!(o instanceof LearningReport)) return false;
+			LearningReport that = (LearningReport) o;
+			return Double.compare(bcr, that.bcr) == 0 && Double.compare(structural, that.structural) == 0 && inconsistency == that.inconsistency && alwaysPositive == that.alwaysPositive && Objects.equals(columnText, that.columnText) && Objects.equals(Yvalues, that.Yvalues) && Objects.equals(column, that.column);
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(bcr, structural, columnText, inconsistency, alwaysPositive, Yvalues, column);
 		}
 
 		public void updateIfValueBetter(LearningReport report) {
@@ -558,6 +575,7 @@ public class MarkovExperiment
 				inconsistency = report.inconsistency;
 				columnText = report.columnText;
 				Yvalues = report.Yvalues;
+				column = report.column;
 			}
 		}
 
@@ -574,26 +592,447 @@ public class MarkovExperiment
         }
     }
 
-	public enum MARKOV_VALUES {
-		E_SUCCESS(0),
-		E_BCR(1),
-		E_DIFF(2),
-		E_ERR_INVALID_NEARROOT(3),
-		E_ERR_MISSED_NEARROOT(4),
-		E_ERR_INVALID_FARFROMROOT(5),
-		E_ERR_MISSED_FARFROMROOT(6),
-		E_VALIDMERGERS(7),
-		E_EXTRASTATES(8),
-		E_INCONSISTENCY_REFERENCE(9),
-		E_INCONSISTENCY_LEARNT(10);
+	public enum RESULT_SECTION {
+		SECTION_MAIN, SECTION_MARKOV, SECTION_CENTRE, SECTION_END;
+	};
 
+	public enum RESULT_VALUES {
+		E_SUCCESS(SECTION_MAIN, 0),
+		E_BCR(SECTION_MAIN, 1),
+		E_DIFF(SECTION_MAIN, 2),
+		E_ERR_INVALID_NEARROOT(SECTION_MAIN, 3),
+		E_ERR_MISSED_NEARROOT(SECTION_MAIN, 4),
+		E_ERR_INVALID_FARFROMROOT(SECTION_MAIN, 5),
+		E_ERR_MISSED_FARFROMROOT(SECTION_MAIN, 6),
+		E_VALIDMERGERS(SECTION_MAIN, 7),
+		E_EXTRASTATES(SECTION_MAIN, 8),
+		E_INCONSISTENCY_REFERENCE(SECTION_MAIN, 9),
+		E_INCONSISTENCY_LEARNT(SECTION_MAIN, 10),
+		E_SECTION_MAIN_END(SECTION_MAIN, 11),
+
+		E_INCONSISTENCY_AVERAGE(SECTION_MARKOV, 0),
+		E_INCONSISTENCY_SD(SECTION_MARKOV, 1),
+		E_INCONSISTENCY_ALWAYSPOSITIVE(SECTION_MARKOV, 2),
+		E_FRACTION_SINGLETONS(SECTION_MARKOV, 3),
+		E_MARKOV_TRANSITION_PRECISION(SECTION_MARKOV, 4),
+		E_MARKOV_TRANSITION_RECALL(SECTION_MARKOV, 5),
+		E_MARKOV_HOLE_PRECISION(SECTION_MARKOV, 6),
+		E_MARKOV_HOLE_RECALL(SECTION_MARKOV, 7),
+		E_MARKOV_PREDICTIONACCURACY_REFERENCE(SECTION_MARKOV, 8),
+		E_RELATIVEINCONSISTENCY_LEARNT(SECTION_MARKOV, 9),
+		E_MARKOV_PREDICTIONACCURACY_LEARNT(SECTION_MARKOV, 10),
+		E_MARKOV_COMPARISONSPERFORMED(SECTION_MARKOV, 11),
+		E_SECTION_MARKOV_END(SECTION_MARKOV, 12),
+
+		E_CENTRE_CORRECT(SECTION_CENTRE, 0),
+		E_CENTRE_PATH_NUMBER(SECTION_CENTRE, 1),
+		E_SECTION_CENTRE_END(SECTION_MARKOV, 2),
+
+		E_ALPHABET_SIZE(SECTION_END, 0),
+		E_DENSITY_REFERENCE(SECTION_END, 1),
+		E_DENSITY_LEARNT(SECTION_END, 2),
+		E_TRANSITIONS_SAMPLED(SECTION_END, 3),
+		E_RUNTIME(SECTION_END, 4);
 
 		public final int value;
-		MARKOV_VALUES(int v)
+		public final RESULT_SECTION section;
+
+		RESULT_VALUES(RESULT_SECTION s, int v)
 		{
-			value = v;
+			value = v;section = s;
+		}
+
+		public static int getOffset(RESULT_VALUES v, MarkovLearningParameters.ColumnParseOutcome column) {
+			int offset = 0;
+
+			if (v.section == RESULT_SECTION.SECTION_MAIN)
+				return offset + v.value;
+
+			offset += E_SECTION_MAIN_END.value;
+
+			if (column.learner.isMarkov()) {
+				if (v.section == RESULT_SECTION.SECTION_MARKOV)
+					return offset + v.value;
+
+				offset+= E_SECTION_MARKOV_END.value;
+			}
+			else
+				if (v.section == RESULT_SECTION.SECTION_MARKOV)
+					throw new IllegalArgumentException("Requested markov value "+v+" but column does not correspond to Markov learner");
+
+			if (column.parameters.useCentreVertex) {
+				if (v.section == SECTION_CENTRE)
+					return offset + v.value;
+
+				offset+= E_SECTION_CENTRE_END.value;
+			}
+			else
+				if (v.section == SECTION_CENTRE)
+					throw new IllegalArgumentException("Requested centre value "+v+" but column does not correspond to a centre-based learner");
+
+			if (v.section == RESULT_SECTION.SECTION_END)
+				return offset + v.value;
+			else
+				throw new IllegalArgumentException("Unknown section "+v.section);
 		}
 	}
+
+	public interface ExperimentBlockForColumn {
+		void processBlock(MarkovLearningParameters.ColumnParseOutcome column,String columnText, String block);
+	}
+
+	public interface ColumnSelector {
+		boolean check(MarkovLearningParameters.ColumnParseOutcome column);
+	}
+
+	public static class ColLearner implements ColumnSelector {
+		public final LearningAlgorithms.ScoringToApply scorer;
+		public ColLearner(LearningAlgorithms.ScoringToApply s) {
+			scorer = s;
+		}
+
+		@Override
+		public boolean check(MarkovLearningParameters.ColumnParseOutcome column) {
+			return column.learner == scorer;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (!(o instanceof ColLearner)) return false;
+			ColLearner that = (ColLearner) o;
+			return scorer == that.scorer;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hashCode(scorer);
+		}
+	}
+
+	public class ColLearnerAndPreset implements ColumnSelector {
+		public final LearningAlgorithms.ScoringToApply scorer;
+		public final int preset;
+		public ColLearnerAndPreset(LearningAlgorithms.ScoringToApply s, int p) {
+			scorer = s;preset = p;
+		}
+
+		@Override
+		public boolean check(MarkovLearningParameters.ColumnParseOutcome column) {
+			return column.learner.equals(scorer) && column.parameters.preset == preset;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (!(o instanceof ColLearnerAndPreset)) return false;
+			ColLearnerAndPreset that = (ColLearnerAndPreset) o;
+			return preset == that.preset && scorer == that.scorer;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(scorer, preset);
+		}
+	}
+
+	public static class ColLearnerPresetAvemaxDivisorWlen implements ColumnSelector {
+		public final LearningAlgorithms.ScoringToApply scorer;
+		public final int preset, divisor, wlen;
+		public final boolean averageOrMax;
+
+		public ColLearnerPresetAvemaxDivisorWlen(LearningAlgorithms.ScoringToApply scorer, int preset, boolean averageOrMax, int divisor, int wlen) {
+			this.scorer = scorer;
+			this.preset = preset;
+			this.averageOrMax = averageOrMax;
+			this.divisor = divisor;
+			this.wlen = wlen;
+		}
+
+		@Override
+		public boolean check(MarkovLearningParameters.ColumnParseOutcome column) {
+			return column.learner.equals(scorer) && column.parameters.preset == preset &&
+					column.parameters.useAverageOrMax == averageOrMax &&
+					column.parameters.divisorForPathCount == divisor && column.parameters.expectedWLen == wlen;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (!(o instanceof ColLearnerPresetAvemaxDivisorWlen)) return false;
+			ColLearnerPresetAvemaxDivisorWlen that = (ColLearnerPresetAvemaxDivisorWlen) o;
+			return preset == that.preset && divisor == that.divisor && wlen == that.wlen &&
+					averageOrMax == that.averageOrMax && scorer == that.scorer;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(scorer, preset, divisor, wlen, averageOrMax);
+		}
+	}
+	public static void getAllValuesFromMapGivenRegexp(Map<String,String> map, ColumnSelector columnSelector, ExperimentBlockForColumn lambda)
+	{
+		for(Map.Entry<String,String> entry:map.entrySet()) {
+			String columnText = entry.getKey();
+			MarkovLearningParameters.ColumnParseOutcome column = parseMarkovParametersColumnFromCSV(columnText);
+			if (columnSelector.check(column))
+				lambda.processBlock(column, columnText, entry.getValue());
+		}
+	}
+
+	public static String obtainStringValueFromCell(String columnValue, RESULT_VALUES cellID, MarkovLearningParameters.ColumnParseOutcome column) {
+		int cellNumber = RESULT_VALUES.getOffset(cellID,column);
+		String [] elements = columnValue.split(",");
+		if (elements.length <= cellNumber || cellNumber < 0)
+			throw new IllegalArgumentException("invalid cell number "+cellNumber+", should be 0.."+elements.length);
+		return elements[cellNumber];
+	}
+
+	public static double obtainDoubleValueFromCell(String columnValue, RESULT_VALUES cellID, MarkovLearningParameters.ColumnParseOutcome column) {
+		return Double.parseDouble(obtainStringValueFromCell(columnValue, cellID, column));
+	}
+
+	public static int obtainIntValueFromCell(String columnValue, RESULT_VALUES cellID, MarkovLearningParameters.ColumnParseOutcome column) {
+		return Integer.parseInt(obtainStringValueFromCell(columnValue, cellID, column));
+	}
+
+	public static long obtainLongValueFromCell(String columnValue, RESULT_VALUES cellID, MarkovLearningParameters.ColumnParseOutcome column) {
+		return Long.parseLong(obtainStringValueFromCell(columnValue, cellID, column));
+	}
+
+	public static boolean obtainBooleanValueFromCell(String columnValue, RESULT_VALUES cellID, MarkovLearningParameters.ColumnParseOutcome column) {
+		return Boolean.parseBoolean(obtainStringValueFromCell(columnValue, cellID, column));
+	}
+//
+//	public static boolean matchRegExpToColumn(String columnText, String regexp) {
+//		return columnText.equals(regexp) || columnText.matches(regexp) || columnText.matches(regexp+".*");
+//	}
+
+	public static class ColumnAndValue {
+		public final String columnText;
+		public final MarkovLearningParameters.ColumnParseOutcome column;
+		public final String value;
+
+		public ColumnAndValue(String columnText, MarkovLearningParameters.ColumnParseOutcome column, String value) {
+			this.columnText = columnText;
+			this.column = column;
+			this.value = value;
+		}
+	}
+
+	public static ColumnAndValue getValueFromMapGivenSelector(Map<String,String> map, ColumnSelector regexp)
+	{
+		for(Map.Entry<String,String> entry:map.entrySet()) {
+			MarkovLearningParameters.ColumnParseOutcome column = parseMarkovParametersColumnFromCSV(entry.getKey());
+			if (regexp.check(column))
+				return new ColumnAndValue(entry.getKey(), column, entry.getValue());
+		}
+		return null;
+	}
+
+
+	public static void spreadsheetAsDouble(DrawGraphs.AggregateValues agg, DrawGraphs.CSVExperimentResult whereFrom,
+										   ColumnSelector columnX, RESULT_VALUES cellWithinX,
+										   ColumnSelector columnY, RESULT_VALUES cellWithinY)
+	{
+		for(Map.Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX);
+			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY);
+			if (X != null && Y != null)
+				agg.merge(obtainDoubleValueFromCell(X.value,cellWithinX,X.column), obtainDoubleValueFromCell(Y.value,cellWithinY,Y.column));
+		}
+	}
+
+
+	public static void spreadsheetAsDouble(DrawGraphs.RStatisticalAnalysis analysis, DrawGraphs.CSVExperimentResult whereFrom,
+										   ColumnSelector columnX, RESULT_VALUES cellWithinX,
+										   ColumnSelector columnY, RESULT_VALUES cellWithinY)
+	{
+		for(Map.Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX);
+			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY);
+			if (X != null && Y != null)
+				analysis.add(obtainDoubleValueFromCell(X.value,cellWithinX,X.column), obtainDoubleValueFromCell(Y.value,cellWithinY,Y.column));
+		}
+	}
+
+	public static void spreadsheetAsString(DrawGraphs.AggregateStringValues agg, DrawGraphs.CSVExperimentResult whereFrom,
+										   ColumnSelector columnX, RESULT_VALUES cellWithinX,
+										   ColumnSelector columnY, RESULT_VALUES cellWithinY)
+	{
+		for(Map.Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX);
+			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY);
+			agg.merge(X == null?null:obtainStringValueFromCell(X.value,cellWithinX,X.column),Y == null?null:obtainStringValueFromCell(Y.value,cellWithinY,Y.column));
+		}
+	}
+
+
+	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
+	 *
+	 * @param plot R graph to update
+	 * @param whereFrom spreadsheet to get data from
+	 * @param columnX column for the horizontal values.
+	 * @param columnY column for the vertical values.
+	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
+	 * @param label label to add with each value.
+	 */
+	public static void spreadsheetToBagPlot(DrawGraphs.RBagPlot plot, DrawGraphs.CSVExperimentResult whereFrom,
+											ColumnSelector columnX, RESULT_VALUES cellWithinX,
+											ColumnSelector columnY, RESULT_VALUES cellWithinY,
+											String colour, String label)
+	{
+		for(Map.Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX);
+			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY);
+			if (X != null && Y != null)
+				plot.add(obtainDoubleValueFromCell(X.value,cellWithinX,X.column), obtainDoubleValueFromCell(Y.value,cellWithinY,Y.column), colour, label);
+		}
+	}
+
+	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
+	 *
+	 * @param plot R graph to update
+	 * @param whereFrom spreadsheet to get data from
+	 * @param columnX column for the horizontal values.
+	 * @param columnY column for the vertical values.
+	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
+	 * @param label label to add with each value.
+	 */
+	public static void spreadsheetToBagPlotNoZeroYValues(DrawGraphs.RBagPlot plot,
+														 DrawGraphs.CSVExperimentResult whereFrom,
+														 ColumnSelector columnX, RESULT_VALUES cellWithinX,
+														 ColumnSelector columnY, RESULT_VALUES cellWithinY,
+														 String colour, String label)
+	{
+		for(Map.Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
+		{
+			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX);
+			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY);
+			if (X != null && Y != null) {
+				double value = obtainDoubleValueFromCell(Y.value,cellWithinY,Y.column);
+				if (value > 0.)
+					plot.add(obtainDoubleValueFromCell(X.value,cellWithinX,X.column), value, colour, label);
+			}
+		}
+	}
+
+
+	public static class DataSelection {
+		final DrawGraphs.CSVExperimentResult whereFrom;
+		final int states;
+		final int perStateSquaredDensity100;
+
+		/** Creates an instance of data source containing a spreadsheet and selection criteria for automata.
+		 * @param whereFrom spreadsheet to get data from
+		 * @param states automata with that number of states to select
+		 * @param perStateSquaredDensity100 density to select
+		 */
+		public DataSelection(DrawGraphs.CSVExperimentResult whereFrom, int states, int perStateSquaredDensity100) {
+			this.whereFrom = whereFrom;
+			this.states = states;
+			this.perStateSquaredDensity100 = perStateSquaredDensity100;
+		}
+
+		public interface ProcessExperimentEntry {
+			void processPair(MarkovLearningParameters.ColumnParseOutcome columnX, String X, MarkovLearningParameters.ColumnParseOutcome columnY, String Y);
+		}
+
+		/** Goes through all pairs matching regexp for columns X and Y.
+		 * The idea is that a spreadsheet with results has a lot of rows (for specific experiments). We are provided with selectors of those
+		 * experiments as regexp and we go through experiments, matching selectors (such as Markov v.s. VH). For numerous Markov experiments
+		 * using different parameter values we are therefore expected to pick a number of values.
+		 *
+		 * Everything is different where columnX and columnY are the same: it means we contrast values associated with each of the experiments.
+		 *
+		 * Where columnX and columnY are different but intended to refer to the same experiment is not supported and will produce a cross-
+		 * product across all the matching experiments (aka a mess).
+		 */
+		public void iterateThroughData(ColumnSelector columnXselector,ColumnSelector columnYselector, ProcessExperimentEntry lambda) {
+			for (Map.Entry<String, Map<String, String>> rowEntry : whereFrom.rowColumnText.entrySet()) {
+				MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
+				if (rowValues.perStateSquaredDensityMultipliedBy100 == perStateSquaredDensity100 && rowValues.states == states) {
+					for(Map.Entry<String,String> entryX:rowEntry.getValue().entrySet()) {
+						MarkovLearningParameters.ColumnParseOutcome columnX = parseMarkovParametersColumnFromCSV(entryX.getKey());
+						if (obtainStringValueFromCell(entryX.getValue(), RESULT_VALUES.E_SUCCESS,columnX).equals(LEARNING_OK.name) && columnXselector.check(columnX)) {
+							String X = entryX.getValue();
+							if (!columnXselector.equals(columnYselector)) {
+								for (Map.Entry<String, String> entryY : rowEntry.getValue().entrySet()) {
+									MarkovLearningParameters.ColumnParseOutcome columnY = parseMarkovParametersColumnFromCSV(entryX.getKey());
+									if (obtainStringValueFromCell(entryY.getValue(), RESULT_VALUES.E_SUCCESS,columnY).equals(LEARNING_OK.name) && columnYselector.check(columnY)) {
+										String Y = entryY.getValue();
+										if (X != null && Y != null)
+											lambda.processPair(columnX,X,columnY,Y);
+									}
+								}
+							} else
+								lambda.processPair(columnX,X, columnX,X);
+						}
+					}
+				}
+			}
+		}
+	}
+
+
+	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
+	 *
+	 * @param plot R graph to update
+	 * @param columnXselector column for the horizontal values.
+	 * @param columnYselector column for the vertical values.
+	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
+	 * @param label label to add with each value.
+	 */
+	public static void spreadsheetToBagPlot(DrawGraphs.RBagPlot plot, DataSelection source,
+											ColumnSelector columnXselector, RESULT_VALUES cellWithinX,
+											ColumnSelector columnYselector, RESULT_VALUES cellWithinY,
+											String colour, String label)
+	{
+		source.iterateThroughData(columnXselector,columnYselector,(columnX, X, columnY, Y) ->
+				plot.add(obtainDoubleValueFromCell(X, cellWithinX, columnX), obtainDoubleValueFromCell(Y, cellWithinY, columnY), colour, label)
+		);
+	}
+
+	/** Constructs a graph from a spreadsheet, using the supplied columns as data for the graph.
+	 *
+	 * @param plot R graph to update
+	 * @param source data to process
+	 * @param columnXselector column for the horizontal values.
+	 * @param columnYselector column for the vertical values.
+	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
+	 * @param label label to add with each value.
+	 */
+	public static void spreadsheetToBagPlotNoZeroYValues(DrawGraphs.RBagPlot plot, DataSelection source,
+														 ColumnSelector columnXselector, RESULT_VALUES cellWithinX,
+														 ColumnSelector columnYselector, RESULT_VALUES cellWithinY,
+														 String colour, String label)
+	{
+		source.iterateThroughData(columnXselector,columnYselector,(columnX, X, columnY, Y) -> {
+			double value = obtainDoubleValueFromCell(Y, cellWithinY, columnY);
+			if (value > 0.)
+				plot.add(obtainDoubleValueFromCell(X, cellWithinX, columnX), value, colour, label);
+		});
+	}
+
+	public static void spreadsheetAsDouble(DrawGraphs.RStatisticalAnalysis analysis, DataSelection source,
+										   ColumnSelector columnXselector, RESULT_VALUES cellWithinX,
+										   ColumnSelector columnYselector, RESULT_VALUES cellWithinY)
+	{
+		source.iterateThroughData(columnXselector,columnYselector,(columnX, X, columnY, Y) ->
+				analysis.add(obtainDoubleValueFromCell(X,cellWithinX, columnX), obtainDoubleValueFromCell(Y,cellWithinY, columnY))
+		);
+	}
+
+	public static void spreadsheetAsString(DrawGraphs.AggregateStringValues agg, DataSelection source,
+										   ColumnSelector columnXselector, RESULT_VALUES cellWithinX,
+										   ColumnSelector columnYselector, RESULT_VALUES cellWithinY)
+	{
+		source.iterateThroughData(columnXselector,columnYselector,(columnX, X, columnY, Y) ->
+				agg.merge(X == null?null:obtainStringValueFromCell(X,cellWithinX,columnX),Y == null?null:obtainStringValueFromCell(Y,cellWithinY, columnY))
+		);
+	}
+
 
 	public static SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>
 		constructResultsCollector(DrawGraphs.CSVExperimentResult resultCSV) {
@@ -607,70 +1046,42 @@ public class MarkovExperiment
 
 				StringBuffer csvLine = new StringBuffer();
 				csvLine.append(data.whetherLearningSuccessfulOrAborted);
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(data.differenceBCR.getValue());// 1
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(data.differenceStructural.getValue());// 2
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(data.invalidMergersNearRoot);// 3
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(data.missedMergersNearRoot); // 4
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(data.invalidMergersFarFromRoot);// 5
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(data.missedMergersFarFromRoot); // 6
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(data.validMergers); // 7
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(data.nrOfstates.getValue());// 8
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(sm.inconsistencyReference);// 9
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(data.inconsistency);// 10
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceBCR.getValue());// 1
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.differenceStructural.getValue());// 2
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersNearRoot);// 3
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersNearRoot); // 4
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.invalidMergersFarFromRoot);// 5
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.missedMergersFarFromRoot); // 6
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.validMergers); // 7
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.nrOfstates.getValue());// 8
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.inconsistencyReference);// 9
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistency);// 10
 
 				if (result.parameters.learnerToUse.isMarkov()) {
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(data.inconsistencyAverage);// 11
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(data.inconsistencySD);// 12
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(data.inconsistencyAlwaysPositive);// 13
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);// 14
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(sm.markovTransitionPrecision);// 15
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(sm.markovTransitionRecall);// 16
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(sm.markovHolePrecision);// 17
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(sm.markovHoleRecall);// 18
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(sm.predictionAccuracyForReferenceGraph);// 19
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(data.relativeInconsistency);// 20
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(data.predictionAccuracy);// 21
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(sm.comparisonsPerformed);// 22
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencyAverage);// 11
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencySD);// 12
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencyAlwaysPositive);// 13
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.fractionOfStatesIdentifiedBySingletons);// 14
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionPrecision);// 15
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovTransitionRecall);// 16
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovHolePrecision);// 17
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovHoleRecall);// 18
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.predictionAccuracyForReferenceGraph);// 19
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.relativeInconsistency);// 20
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.predictionAccuracy);// 21
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);// 22
 				}
 
 				if (result.parameters.markovParameters.useCentreVertex) {
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(sm.centreCorrect);
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-					csvLine.append(sm.centrePathNumber);
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.centreCorrect);
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.centrePathNumber);
 				}
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(sm.referenceGraph.pathroutines.computeAlphabet().size());// 23
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append( (double)sm.referenceGraph.pathroutines.countEdges()/(sm.referenceGraph.getStateNumber() * sm.referenceGraph.getStateNumber()));// 24
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append( data.density );// 25
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(sm.transitionsSampled);
-				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);
-				csvLine.append(Math.round(data.executionTime / 1000000000.));// execution time is in nanoseconds, we only need seconds.
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.referenceGraph.pathroutines.computeAlphabet().size());// 23
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append( (double)sm.referenceGraph.pathroutines.countEdges()/(sm.referenceGraph.getStateNumber() * sm.referenceGraph.getStateNumber()));// 24
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append( data.density );// 25
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.transitionsSampled);
+				DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(Math.round(data.executionTime / 1000000000.));// execution time is in nanoseconds, we only need seconds.
+
 				experimentrunner.RecordCSV(resultCSV, result.parameters, csvLine.toString());
 			}
 
@@ -690,7 +1101,6 @@ public class MarkovExperiment
 		final int trainingSamplesPerFSM = 2;
 		final double traceLengthMultiplierMax = 16;
 
-		final boolean pathsOrSets = true;
 		final int[] statesToUse = new int[]{20,40};
 
 		public static final int datasetSize = 256;
@@ -763,7 +1173,7 @@ public class MarkovExperiment
 //			E_MarkovCaseStudies.runExperiment(learningGroup);
 //			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
-			E_MarkovCentre.runExperiment(learningGroup);
+//			E_MarkovCentre.runExperiment(learningGroup);
 			E_MarkovAlphabet.runExperiment(learningGroup);
 //			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			E_MarkovTraceConstSize.runExperiment(learningGroup);
@@ -779,30 +1189,6 @@ public class MarkovExperiment
 		{
 			learningGroup.experimentRunner.successfulTermination();
 			DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.
-		}
-	}
-	
-	public static class AverageValue
-	{
-		public double actualElem, RefercneElem;
-		public AverageValue(double a, double b) {
-			actualElem=a;RefercneElem=b;
-		}
-		
-		public AverageValue add(double a, double b)
-		{
-			actualElem+=a;RefercneElem+=b;return this;
-		}
-		
-		public AverageValue add(AverageValue d)
-		{
-			add(d.actualElem,d.RefercneElem);return this;
-		}
-		
-		@Override
-		public String toString()
-		{
-			return "(Actual: "+actualElem+", Reference: "+RefercneElem+")";
 		}
 	}
 }

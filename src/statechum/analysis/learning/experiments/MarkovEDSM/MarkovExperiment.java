@@ -1105,6 +1105,14 @@ public class MarkovExperiment
 
 		public static final int datasetSize = 256;
 
+		public static List<Integer> getTraceLenMultValues() {
+			List<Integer> traceLenMultValues = new LinkedList<>();
+			for (int i = 4; i <= MarkovExperiment.LearningExperimentGroupParameters.datasetSize; i <<= 1)
+				traceLenMultValues.add(i);
+
+			return traceLenMultValues;
+		}
+
 		public static final int baseNumberOfTracesMult = 8;
 
 		Pair<Integer,Integer> getTracesLengthmultBaseline(int states) {
@@ -1171,13 +1179,13 @@ public class MarkovExperiment
 		try
 		{
 //			E_MarkovCaseStudies.runExperiment(learningGroup);
-//			E_MarkovBaselineLearn.runExperiment(learningGroup);
-//			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
-			E_MarkovCentre.runExperiment(learningGroup);
-			E_MarkovAlphabet.runExperiment(learningGroup);
-//			E_MarkovTraceLenMult.runExperiment(learningGroup);
+			E_MarkovBaselineLearn.runExperiment(learningGroup);
+			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
+//			E_MarkovCentre.runExperiment(learningGroup);
+//			E_MarkovAlphabet.runExperiment(learningGroup);
+			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			E_MarkovTraceConstSize.runExperiment(learningGroup);
-			E_MarkovPrefixLen.runExperiment(learningGroup);
+//			E_MarkovPrefixLen.runExperiment(learningGroup);
 //			E_MarkovTraceNum.runExperiment(learningGroup);
 //			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		}

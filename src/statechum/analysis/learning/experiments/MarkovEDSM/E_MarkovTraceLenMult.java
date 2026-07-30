@@ -1,19 +1,16 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.Pair;
-import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
-import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.LearningExperimentGroupParameters.getTraceLenMultValues;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.E_DIFF;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 
@@ -39,7 +36,7 @@ public class E_MarkovTraceLenMult {
         boolean aveOrMax = true;// average divide by the divisor
         boolean pathsOrSets = true;
         boolean penaliseMissingPaths = true;
-        int [] traceLenMultValues = new int[] { 4,16,32, 64, 128 };
+        List<Integer> traceLenMultValues = getTraceLenMultValues();
         double alphabetMultiplier = 2;
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {

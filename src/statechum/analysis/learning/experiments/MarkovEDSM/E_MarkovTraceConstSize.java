@@ -1,19 +1,16 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.Pair;
-import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
-import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.LearningExperimentGroupParameters.getTraceLenMultValues;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.E_DIFF;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 
@@ -41,19 +38,15 @@ public class E_MarkovTraceConstSize {
         boolean penaliseMissingPaths = true;
 
         boolean pathsOrSets = true;
-        List<Integer> traceLenMultValues = new LinkedList<>();
-        for(int i=4;i <= MarkovExperiment.LearningExperimentGroupParameters.datasetSize;i <<= 1)
-            traceLenMultValues.add(i);
+        List<Integer> traceLenMultValues = getTraceLenMultValues();
         double alphabetMultiplier = 2;
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample)
                     for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
                         for (int traceLenMultV:traceLenMultValues) {
-                            int scalingFactor = learningGroup.getScalingFactor(states);
-
-                            int traceLenMult = traceLenMultV * scalingFactor;
-                            int traceQuantityToUse = MarkovExperiment.LearningExperimentGroupParameters.datasetSize * scalingFactor/ traceLenMult;
+                            int traceLenMult = traceLenMultV * learningGroup.getScalingFactor(states);
+                            int traceQuantityToUse = MarkovExperiment.LearningExperimentGroupParameters.datasetSize * learningGroup.getScalingFactor(states)/ traceLenMult;
                             for (final int preset : learnerExperiment)
                                 for (LearningAlgorithms.ScoringToApply learnerKind :
                                         preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph

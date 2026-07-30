@@ -44,7 +44,7 @@ public class E_MarkovScoreVsInconsistency {
         boolean [] penaliseMissingPathsValues = {true,false};
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
-        int [] chunkSizeValues = new int[]{3, 4};
+        int [] chunkSizeValues = new int[]{2, 3, 4};
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample) {

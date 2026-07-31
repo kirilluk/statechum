@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersColumnFromCSV;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
+import static statechum.analysis.learning.experiments.MarkovEDSM.PerformFirstMerge.checkSetOfStatesAgainstReference;
 import static statechum.analysis.learning.rpnicore.TestFSMAlgo.buildSet;
 
 @RunWith(ParameterizedWithName.class)
@@ -3386,4 +3387,66 @@ public class TestMarkovLearner
 				NumberFormatException.class, "For input string: \"A.0\"");
 	}
 
+	@Test
+	public void testCheckSetOfStatesAgainstReference0() {
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-b->C-c->A", "testCheckSetOfStatesAgainstReference0", config, converter);
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A1-a->B1-a->B2-a->B3-a->B4 / B2-b->C1-c->A2-a->B5-b->C3", "testCheckSetOfStatesAgainstReferenceA", config, converter);
+		for (CmpVertex vert : pta.transitionMatrix.keySet())
+			Assert.assertTrue(checkSetOfStatesAgainstReference(pta, Arrays.asList(vert), fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta, Collections.emptyList(), fsm));
+	}
+
+	@Test
+	public void testCheckSetOfStatesAgainstReference1() {
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->A-b->A-c->A", "testCheckSetOfStatesAgainstReference1", config, converter);
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A1-a->B1-a->B2-a->B3-a->B4 / B2-b->C1-c->A2-a->B5-b->C3", "testCheckSetOfStatesAgainstReferenceA", config, converter);
+		for (CmpVertex vert : pta.transitionMatrix.keySet())
+			Assert.assertTrue(checkSetOfStatesAgainstReference(pta, Arrays.asList(vert), fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta, Collections.emptyList(), fsm));
+
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("B1"),pta.findVertex("B2")),fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("B1"),pta.findVertex("B2"),pta.findVertex("B5")),fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("B1"),pta.findVertex("B2"),pta.findVertex("C3")),fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("A1"),pta.findVertex("A2")),fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("A1"),pta.findVertex("A2"),pta.findVertex("B5")),fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("B5"),pta.findVertex("B2"),pta.findVertex("B4"),pta.findVertex("B3")),fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("B5"),pta.findVertex("B2"),pta.findVertex("B4"),pta.findVertex("B3"),pta.findVertex("C3")),fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("C3"),pta.findVertex("C1")),fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("C3"),pta.findVertex("C1"),pta.findVertex("A1")),fsm));
+	}
+
+	@Test
+	public void testCheckSetOfStatesAgainstReference2() {
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-b->C-c->A", "testCheckSetOfStatesAgainstReference2",config,converter);
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A1-a->B1-a->B2-a->B3-a->B4 / B2-b->C1-c->A2-a->B5-b->C3", "testCheckSetOfStatesAgainstReferenceA",config,converter);
+
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("B1"),pta.findVertex("B2")),fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("B1"),pta.findVertex("B2"),pta.findVertex("B5")),fsm));
+		Assert.assertFalse(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("B1"),pta.findVertex("B2"),pta.findVertex("C3")),fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("A1"),pta.findVertex("A2")),fsm));
+		Assert.assertFalse(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("A1"),pta.findVertex("A2"),pta.findVertex("B5")),fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("B5"),pta.findVertex("B2"),pta.findVertex("B4"),pta.findVertex("B3")),fsm));
+		Assert.assertFalse(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("B5"),pta.findVertex("B2"),pta.findVertex("B4"),pta.findVertex("B3"),pta.findVertex("C3")),fsm));
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("C3"),pta.findVertex("C1")),fsm));
+		Assert.assertFalse(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("C3"),pta.findVertex("C1"),pta.findVertex("A1")),fsm));
+	}
+
+	@Test
+	public void testCheckSetOfStatesAgainstReference3() {
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-b->C-c->A", "testCheckSetOfStatesAgainstReference2",config,converter);
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A1-a->B1-a->B2-a->B3-a->B4 / B2-b->C1-c->A2-a->B5-c->C3", "testCheckSetOfStatesAgainstReferenceB",config,converter);
+		Assert.assertTrue(checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("B1"),pta.findVertex("B2")),fsm));
+		TestHelper.checkForCorrectException(() ->
+				checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.findVertex("B1"),pta.findVertex("C3")),fsm),
+				IllegalArgumentException.class, "Transition C3 does not exist from reference state B");
+	}
+
+	@Test
+	public void testCheckSetOfStatesAgainstReference4() {
+		final LearnerGraph fsm = FsmParserStatechum.buildLearnerGraph("A-a->B-a->B-b->C-c->A", "testCheckSetOfStatesAgainstReference2",config,converter);
+		final LearnerGraph pta = FsmParserStatechum.buildLearnerGraph("A1-a->B1-a->B2-a->B3-a->B4 / B2-b->C1-c->A2-a->B5-b->C3", "testCheckSetOfStatesAgainstReferenceA",config,converter);
+		TestHelper.checkForCorrectException(() ->
+						checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.generateNewCmpVertex(pta.nextID(true),config),pta.findVertex("C3")),fsm),
+				IllegalArgumentException.class, "was supplied with a collection of states some of which are not reachable");
+	}
 }

@@ -17,11 +17,7 @@
  */
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import statechum.JUConstants;
 import statechum.Label;
@@ -69,21 +65,7 @@ public class PerformFirstMerge
 		{
 			for(Set<CmpVertex> collection:verticesToMergeBasedOnInitialPTA)
 			{// we need to check that all states in the collection are associated with the same state in the reference graph.
-				Map<CmpVertex,LinkedList<Label>> vertToPaths =  PairOfPaths.convertSetOfStatesToPaths(pta,collection);// this obtains all the paths to reach states of interest, we then trace them in the reference graph. 
-				CmpVertex expectedState = null;
-				for(CmpVertex vertFromCollection:collection)
-				{
-					List<Label> path = vertToPaths.get(vertFromCollection);
-					CmpVertex obtainedVertex = referenceGraph.getVertex(path);
-					if (expectedState == null)
-						expectedState = obtainedVertex;
-					else
-						if (expectedState != obtainedVertex)
-						{
-							correctCentre = false;break;// our paths do not correctly identify states of the expected graph
-						}
-				}
-				
+				correctCentre = checkSetOfStatesAgainstReference(pta,collection,referenceGraph);
 				if (!correctCentre)
 					break;
 			}
@@ -99,5 +81,59 @@ public class PerformFirstMerge
 			ptaToUseForInference.clearColours();ptaToUseForInference.getInit().setColour(null);vertexWithMostTransitions.setColour(JUConstants.RED);
 		}
 		
+	}
+
+	/** Given a collection of states in a PTA, checks that they all correspond to the same state of a reference graph.
+	 */
+	public static boolean checkSetOfStatesAgainstReference(LearnerGraph pta, Collection<CmpVertex> statesOfInterestArg, LearnerGraph referenceGraph)
+	{
+		Queue<CmpVertex> referenceState = new LinkedList<>();
+		Queue<CmpVertex> fringe = new LinkedList<>();
+		Set<CmpVertex> statesInFringe = new HashSet<>();// in order not to iterate through the list all the time.
+		fringe.add(pta.getInit());referenceState.add(referenceGraph.getInit());
+		Set<CmpVertex> statesOfInterest = new TreeSet<>(statesOfInterestArg);// make a copy of the set, otherwise we might modify something like a keyset of our coregraph and mess up both the graph and the traversal process.
+		int pathsLeft=statesOfInterest.size();
+
+		CmpVertex expectedStateInReference = null;
+		while(!fringe.isEmpty())
+		{
+			CmpVertex currentState = fringe.remove();
+			CmpVertex stateInReference = referenceState.remove();
+			if (statesOfInterest.contains(currentState))
+			{
+				pathsLeft--;
+				statesOfInterest.remove(currentState);
+
+				if (expectedStateInReference == null) // first time we meet this state
+					expectedStateInReference = stateInReference;
+				else
+					if (!expectedStateInReference.equals(stateInReference)) // one of the states from statesOfInterestArg does not match a different state, report this.
+						return false;
+
+				if (pathsLeft <= 0)
+					break;// finished
+			}
+
+			Map<Label,CmpVertex> targets = pta.transitionMatrix.get(currentState);
+			Map<Label,CmpVertex> targetInReference = referenceGraph.transitionMatrix.get(stateInReference);
+			if(targets != null && !targets.isEmpty())
+				for(Map.Entry<Label,CmpVertex> labelstate:targets.entrySet())
+				{
+					CmpVertex target = labelstate.getValue();
+					if (!statesInFringe.contains(target))
+					{
+						fringe.offer(target);
+						CmpVertex newStateInReference = targetInReference.get(labelstate.getKey());
+						if (newStateInReference == null)
+							throw new IllegalArgumentException("Transition "+ labelstate.getValue()+" does not exist from reference state "+stateInReference);
+						referenceState.add(newStateInReference);
+					}
+				}
+		}
+
+		if (pathsLeft > 0)
+			throw new IllegalArgumentException("checkSetOfStatesAgainstReference was supplied with a collection of states some of which are not reachable");
+
+		return true;
 	}
 }

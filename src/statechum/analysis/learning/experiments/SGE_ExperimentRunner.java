@@ -433,7 +433,7 @@ public class SGE_ExperimentRunner
 				while(line != null)
 				{
 					String [] data = line.split(separatorRegEx,-2);
-					if (data.length < 1)
+					if (line.length() < 1 || data.length < 1)
 						throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" did not log any result");
 					String name = data[0];
 					if (name.equals(CHECKSUMFIELD))
@@ -444,6 +444,7 @@ public class SGE_ExperimentRunner
 						if (crc.getValue() != extractedValue)
 							throw new IllegalArgumentException("Experiment in "+constructFileName(rCounter)+" has an invalid CRC");
 						foundCRC = true;
+						break;// ignore garbage (if any) at the end of the file.
 					}
 					else
 					if (name.equals(CPUSPEEDFIELD))

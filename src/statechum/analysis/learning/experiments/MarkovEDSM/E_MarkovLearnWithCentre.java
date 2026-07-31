@@ -38,7 +38,7 @@ public class E_MarkovLearnWithCentre {
         boolean penaliseMissingPaths = true;
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
-
+        final int chunkSizeToEvaluate = 3;
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample)
@@ -59,11 +59,9 @@ public class E_MarkovLearnWithCentre {
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
                                                 })
+                                for (double weightOfInconsistencies : learnerKind.isMarkov() ? new double[]{0.5, 1.0, 2.0} : new double[]{1.0})
                                 {
-                                    int chunkSizeToEvaluate = 3;
-//                                    double weightOfInconsistencies = 2.0;// good value for learning with 10 states
-                                    double weightOfInconsistencies = 0.5;// good value for learning with 20 states
-                                    for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} : new Pair[]{new Pair(1, 1), new Pair(1, 2), new Pair(2, 4)}) {
+                                    for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 4)} : new Pair[]{new Pair(1, 8), new Pair(2, 8)}) {
                                         int wlen = wlen_divisor.firstElem, divisor = wlen_divisor.secondElem;
                                         ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
                                         ev.config = learningGroup.eval.config.copy();
@@ -127,7 +125,6 @@ public class E_MarkovLearnWithCentre {
                                             long inconsistency = obtainLongValueFromCell(Y, E_INCONSISTENCY_LEARNT,column);
 
                                             MarkovLearningParameters.ColumnParseOutcome columnValues=parseMarkovParametersColumnFromCSV(columnText);
-        //                                    String[] columnValues = columnText.split("[_=]");
                                             if (learntOK && columnValues.learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV && columnValues.parameters.preset == preset) {
                                                 // Now at the columns of interest (specific preset but different parameter of Markov)
                                                 MarkovExperiment.LearningReport report = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText,Y, column);
@@ -150,7 +147,7 @@ public class E_MarkovLearnWithCentre {
                             formatter.format("%1d", traceQuantityToUse);
                             gr_BestStructuralForDifferentPreset.add(sb + "_M", bestLearningResultForThisRowAndAllPresets.get(0).structural);
                             gr_BestStructuralForDifferentPreset.add(sb + "_MC", bestLearningResultForThisRow.structural);
-                            gr_BestStructuralForDifferentPreset.add(sb + "_S", vh_score);
+                            gr_BestStructuralForDifferentPreset.add(sb + "_VH", vh_score);
                             for (Map.Entry<Integer, MarkovExperiment.LearningReport> entry : bestLearningResultForThisRowAndAllPresets.entrySet())
                                 gr_PresetPerformance.add(presetDescription[entry.getKey()], entry.getValue().structural);
                             gr_PresetPerformance.add("Best", bestLearningResultForThisRow.structural);
@@ -167,7 +164,7 @@ public class E_MarkovLearnWithCentre {
                     formatter.format("%1d", traceQuantityToUse);
                     labelValuesForComparativeAnalysis.add(sb + "_M");
                     labelValuesForComparativeAnalysis.add(sb + "_MC");
-                    labelValuesForComparativeAnalysis.add(sb + "_S");
+                    labelValuesForComparativeAnalysis.add(sb + "_VH");
                 }
                 gr_BestStructuralForDifferentPreset.setOrderingOfLabels(labelValuesForComparativeAnalysis);
                 gr_BestStructuralForDifferentPreset.reportResults(learningGroup.gr);

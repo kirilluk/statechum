@@ -88,8 +88,8 @@ public class E_MarkovAlphabet {
                 for (final double alphabetMultiplier : alphabetMultValues) {
                     FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, -1,
                             rowHeader -> rowHeader.alphabetMultiplier == alphabetMultiplier,
-                            resultCSV);
-                    report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(alphabetMultiplier), null);
+                            null, resultCSV);
+                    report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(alphabetMultiplier), null, null);
                     learnerToHowOftenBestForAllMultipliers.computeIfAbsent(alphabetMultiplier, aDouble -> report);
 
                     // Now select the best result from all those available

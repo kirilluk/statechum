@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static statechum.analysis.learning.DrawGraphs.obtainValueFromCell;
 import static statechum.analysis.learning.experiments.MarkovEDSM.E_MarkovCentre.MarkovCentreLearningParameters.description;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.LearningExperimentGroupParameters.baseNumberOfTracesMult;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.getValueFromMapGivenSelector;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 
@@ -244,50 +245,52 @@ public class E_MarkovCentre {
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             for (int states : learningGroup.statesToUse) {
+
                 Map<Integer, CentreSelectionResults> results = new TreeMap<>();
 
                 for (Map.Entry<String, Map<String, String>> rowEntry : centreCSV.rowColumnText.entrySet()) {
-                    for (int traceQuantityToUse : new int[]{1, 8}) {
-                        results.computeIfAbsent(traceQuantityToUse, integer -> new CentreSelectionResults(learningGroup, states, traceQuantityToUse));
-                        CentreSelectionResults resultsToUpdate = results.get(traceQuantityToUse);
-                        MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
+                    MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
+                    if (rowValues.states == states) {
+                        for (int traceQuantityToUse : new int[]{1, baseNumberOfTracesMult}) {
+                            results.computeIfAbsent(traceQuantityToUse, integer -> new CentreSelectionResults(learningGroup, states, traceQuantityToUse));
+                            CentreSelectionResults resultsToUpdate = results.get(traceQuantityToUse);
 //                        String[] rowValues = rowEntry.getKey().split("[_=]");
-                        if (rowValues.traceQuantity == traceQuantityToUse) {
+                            if (rowValues.traceQuantity == traceQuantityToUse) {
 
-                            for (int wlen : wlen_values)
-                                for (int d : divisor_values) {
-                                    MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen centreStrategy =
-                                            new MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen(LearningAlgorithms.ScoringToApply.SCORING_MARKOV,1, true, d,wlen);
-                                    MarkovExperiment.ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(), centreStrategy);
-                                    if (Y != null) {
-                                        boolean centreCorrect = Boolean.parseBoolean(obtainValueFromCell(Y.value, 0));
-                                        int pathsCount = Integer.parseInt(obtainValueFromCell(Y.value, 1));
+                                for (int wlen : wlen_values)
+                                    for (int d : divisor_values) {
+                                        MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen centreStrategy =
+                                                new MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, 1, true, d, wlen);
+                                        MarkovExperiment.ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(), centreStrategy);
+                                        if (Y != null) {
+                                            boolean centreCorrect = Boolean.parseBoolean(obtainValueFromCell(Y.value, 0));
+                                            int pathsCount = Integer.parseInt(obtainValueFromCell(Y.value, 1));
 
-                                        if (pathsCount > 0) {
-                                            int inconsistency = Integer.parseInt(obtainValueFromCell(Y.value, 2));
-                                            if (inconsistency > inconsistencyClamp)
-                                                inconsistency = inconsistencyClamp;
+                                            if (pathsCount > 0) {
+                                                int inconsistency = Integer.parseInt(obtainValueFromCell(Y.value, 2));
+                                                if (inconsistency > inconsistencyClamp)
+                                                    inconsistency = inconsistencyClamp;
 
-                                            String parametersAsString = wlen + "_" + d;
-                                            resultsToUpdate.total.computeIfAbsent(parametersAsString, k -> new AtomicInteger(0));
-                                            resultsToUpdate.total.get(parametersAsString).incrementAndGet();
-                                            resultsToUpdate.count.computeIfAbsent(parametersAsString, k -> new AtomicInteger(0));
-                                            if (centreCorrect)
-                                                resultsToUpdate.count.get(parametersAsString).incrementAndGet();
+                                                String parametersAsString = wlen + "_" + d;
+                                                resultsToUpdate.total.computeIfAbsent(parametersAsString, k -> new AtomicInteger(0));
+                                                resultsToUpdate.total.get(parametersAsString).incrementAndGet();
+                                                resultsToUpdate.count.computeIfAbsent(parametersAsString, k -> new AtomicInteger(0));
+                                                if (centreCorrect)
+                                                    resultsToUpdate.count.get(parametersAsString).incrementAndGet();
 
-                                            resultsToUpdate.gr_InconsistenciesForCentres.add(parametersAsString + "_" + (centreCorrect ? "T" : "F"), (double) inconsistency, centreCorrect ? null : "red", null);
-                                            resultsToUpdate.gr_CorrectVsInconsistency.add(Boolean.toString(centreCorrect), (double) inconsistency, null, null);
-                                            long inconsistencyWithPractice = Integer.parseInt(obtainValueFromCell(Y.value, 3));
-                                            if (inconsistencyWithPractice > inconsistencyClamp)
-                                                inconsistencyWithPractice = inconsistencyClamp;
-                                            resultsToUpdate.gr_CorrectVsInconsistencyWithPracticeLearn.add(Boolean.toString(centreCorrect), (double) inconsistencyWithPractice, null, null);
+                                                resultsToUpdate.gr_InconsistenciesForCentres.add(parametersAsString + "_" + (centreCorrect ? "T" : "F"), (double) inconsistency, centreCorrect ? null : "red", null);
+                                                resultsToUpdate.gr_CorrectVsInconsistency.add(Boolean.toString(centreCorrect), (double) inconsistency, null, null);
+                                                long inconsistencyWithPractice = Integer.parseInt(obtainValueFromCell(Y.value, 3));
+                                                if (inconsistencyWithPractice > inconsistencyClamp)
+                                                    inconsistencyWithPractice = inconsistencyClamp;
+                                                resultsToUpdate.gr_CorrectVsInconsistencyWithPracticeLearn.add(Boolean.toString(centreCorrect), (double) inconsistencyWithPractice, null, null);
+                                            }
                                         }
                                     }
-                                }
+                            }
                         }
                     }
                 }
-
                 for (Map.Entry<Integer, CentreSelectionResults> resultsEntry : results.entrySet()) {
                     CentreSelectionResults centreResults = resultsEntry.getValue();
                     for (Map.Entry<String, AtomicInteger> entry : centreResults.count.entrySet()) {

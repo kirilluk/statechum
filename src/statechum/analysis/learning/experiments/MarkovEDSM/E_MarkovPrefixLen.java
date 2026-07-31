@@ -15,7 +15,6 @@ import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.obtainDoubleValueFromCell;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersColumnFromCSV;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
@@ -163,7 +162,7 @@ public class E_MarkovPrefixLen {
                         }
 
                         FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states,perStateSquaredDensity100,resultCSV);
-                        report.getResultForBestPerformingMarkovLearner(null, null);
+                        report.getResultForBestPerformingMarkovLearner(null, null, null);
                         for(Map.Entry<Integer, List<MarkovExperiment.LearningReport>> resultEntry:report.getExperimentsResultsPerChunkLen().entrySet()) {
                             int chunkLen = resultEntry.getKey();
                             DrawGraphs.RBagPlot gr_StructuralVsReferenceAccuracyAllDensities = map_StructuralVsReferenceAccuracyAllDensities.
@@ -274,7 +273,7 @@ public class E_MarkovPrefixLen {
                             new File(learningGroup.outPathPrefix + description+"_"+states+"_bestprefixlen_and_mult_" + states + "_"+perStateSquaredDensity100+"_defaultorder_bestorder.pdf"), 0, 1, true);
                     // Now select the best result from all those available
                     FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, perStateSquaredDensity100, resultCSV);
-                    report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest, gr_StructuralDiffDefaultOrdering);
+                    report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest, gr_StructuralDiffDefaultOrdering, null);
                     System.out.println("Values for "+states+" and "+perStateSquaredDensity100+" : "+report.getExperimentResults().size());
                     gr_StructuralDiffBest.reportResults(learningGroup.gr);
                     gr_StructuralDiffDefaultOrdering.reportResults(learningGroup.gr);

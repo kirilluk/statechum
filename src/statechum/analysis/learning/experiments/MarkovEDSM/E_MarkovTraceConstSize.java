@@ -88,7 +88,8 @@ public class E_MarkovTraceConstSize {
                 final Map<Integer, SquareBagPlot> gr_StructuralDiffBestMap = new TreeMap<>();
                 Map<Integer, FilterCollectionOfResultsForBestPerformingLearner> learnerToHowOftenBestForAllMultipliers = new TreeMap<>();
 
-                for (final int traceLenMult : traceLenMultValues) {
+                for (final int traceLenMultV : traceLenMultValues) {
+                    int traceLenMult = traceLenMultV * learningGroup.getScalingFactor(states);
                     // Now select the best result from all those available
                     for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                         MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
@@ -98,8 +99,10 @@ public class E_MarkovTraceConstSize {
                                     new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
                                             new File(learningGroup.outPathPrefix + description + "_" + states + "_constant_size_tracelen=" + traceLenMult + "_constsize_VH_structuraldiffBest.pdf"), 0, 1, true));
 
-                            FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, -1, resultCSV);
-                            report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(traceLenMult), null);
+                            FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, -1,
+                                    rowHeader -> rowHeader.traceLengthMultiplier == traceLenMult,
+                                    null, resultCSV);
+                            report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(traceLenMult), null, null);
                             learnerToHowOftenBestForAllMultipliers.computeIfAbsent(traceLenMult,aInteger -> report);
 
                             MarkovExperiment.ColumnAndValue Y_VH = getValueFromMapGivenSelector(rowEntry.getValue(), new MarkovExperiment.ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH));
@@ -110,7 +113,7 @@ public class E_MarkovTraceConstSize {
                                 Formatter formatter = new Formatter(sb, Locale.US);
                                 formatter.format("%3d", traceLenMult);
                                 gr_BestStructuralForLengthMultiplier.add(sb + "_M", bestLearningResult.structural);
-                                gr_BestStructuralForLengthMultiplier.add(sb + "_S", vh_score);
+                                gr_BestStructuralForLengthMultiplier.add(sb + "_VH", vh_score);
                             } else
                                 System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
                         }

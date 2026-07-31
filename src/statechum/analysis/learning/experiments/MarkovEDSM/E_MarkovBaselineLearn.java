@@ -210,7 +210,7 @@ public class E_MarkovBaselineLearn {
                             new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_difference_vs_learnt_relativeinconsistency.pdf"));
                     final DrawGraphs.RBagPlot gr_StructuralVsReferenceRelativeInconsistency = new DrawGraphs.RBagPlot("Relative inconsistency", "Structural Score",
                             new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_difference_vs_reference_relativeinconsistency.pdf"));
-                    report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest, null);
+                    report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest, null, null);
 //                gr_PerformanceOfLearners.add("MARKOV",bestLearningResult.structural, null, null);
                             for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                                 MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());

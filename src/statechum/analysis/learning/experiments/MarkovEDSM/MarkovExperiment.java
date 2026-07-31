@@ -1144,7 +1144,7 @@ public class MarkovExperiment
         if (stateNumber < 40)
             return new int[]{0,20, 30};
 
-        return new int[]{0,20};
+        return new int[]{0};
     }
 
 	public static int [] densityFromStateNumber(int stateNumber) {
@@ -1179,15 +1179,15 @@ public class MarkovExperiment
 		try
 		{
 //			E_MarkovCaseStudies.runExperiment(learningGroup);
-			E_MarkovBaselineLearn.runExperiment(learningGroup);
-			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
+//			E_MarkovBaselineLearn.runExperiment(learningGroup);
+//			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			E_MarkovCentre.runExperiment(learningGroup);
 //			E_MarkovAlphabet.runExperiment(learningGroup);
-			E_MarkovTraceLenMult.runExperiment(learningGroup);
+//			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			E_MarkovTraceConstSize.runExperiment(learningGroup);
-//			E_MarkovPrefixLen.runExperiment(learningGroup);
-//			E_MarkovTraceNum.runExperiment(learningGroup);
-//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+			E_MarkovPrefixLen.runExperiment(learningGroup);
+			E_MarkovTraceNum.runExperiment(learningGroup);
+			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		}
 		catch(Exception ex)
 		{

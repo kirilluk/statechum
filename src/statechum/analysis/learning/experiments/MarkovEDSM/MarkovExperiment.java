@@ -1185,9 +1185,9 @@ public class MarkovExperiment
 //			E_MarkovAlphabet.runExperiment(learningGroup);
 //			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			E_MarkovTraceConstSize.runExperiment(learningGroup);
-			E_MarkovPrefixLen.runExperiment(learningGroup);
-//			E_MarkovTraceNum.runExperiment(learningGroup);
-//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+//			E_MarkovPrefixLen.runExperiment(learningGroup);
+			E_MarkovTraceNum.runExperiment(learningGroup);
+			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		}
 		catch(Exception ex)
 		{

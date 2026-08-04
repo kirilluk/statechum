@@ -118,14 +118,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static java.lang.Math.round;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersColumnFromCSV;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
-import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 import javax.swing.SwingUtilities;
 
@@ -139,8 +134,6 @@ import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.Helper;
 import statechum.StatechumXML.StringSequenceWriter;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment;
-import statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
@@ -329,7 +322,7 @@ public class DrawGraphs {
 		if (data.size() == 1 && names != null) throw new IllegalArgumentException("in a graph with one component, names are not used");
 		if (data.size() > 1 && names != null && names.size() != data.size()) throw new IllegalArgumentException("mismatch between name and data length"); 
 		StringBuilder result = new StringBuilder();
-		result.append("boxplot(");
+		result.append("boxplot(xaxt=\"n\",yaxt=\"n\",");
 		boolean firstVectorOfData = true;
 		for(List<Double> arg:data)
 		{
@@ -362,6 +355,7 @@ public class DrawGraphs {
 				result.append(")");
 			}
 		}
+
 		if (otherAttrs != null && !otherAttrs.isEmpty()) {
 			for(String other:otherAttrs)
 				if (other != null && !other.isEmpty()) {
@@ -1303,7 +1297,10 @@ public class DrawGraphs {
 		// Displacement of axis
 		protected double xLine=-1,yLine=-1;
 		// Default values of the margins for the graph, thanks to https://stackoverflow.com/questions/5506046/how-do-i-put-more-space-between-the-axis-labels-and-axis-title-in-an-r-boxplot
-		protected int mBot=5,mLeft=4,mTop=4,mRight=2;
+		protected double mBot=5,mLeft=4,mTop=4,mRight=2;
+		protected double mgpTitle =3, mgpLabelX =1,mgpLabelY =1,mgpAxis=0;
+		protected int las = 1;
+
 		public RGraph(String x, String y, File name)
 		{
 			super(name);xAxis = x;yAxis = y;
@@ -1317,11 +1314,23 @@ public class DrawGraphs {
 			yLine = value;
 		}
 
-		public void setMargins(int bot, int left, int top, int right) {
+		public void setMargins(double bot, double left, double top, double right) {
 			mBot = bot;
 			mLeft = left;
 			mTop = top;
 			mRight = right;
+		}
+
+		public void setMgpLabelX(double label) {
+			mgpLabelX = label;
+		}
+
+		public void setMgpLabelY(double label) {
+			mgpLabelY = label;
+		}
+
+		public void setLas(int las) {
+			this.las = las;
 		}
 
 		Map<ELEM,DataColumn> collectionOfResults = new TreeMap<>();
@@ -1334,7 +1343,7 @@ public class DrawGraphs {
 		{
 			otherOptions = str;
 		}
-		
+
 		protected Map<ELEM,String> relabellingOfLabels = new TreeMap<>();
 		protected List<ELEM> orderingOfLabels = null;
 		
@@ -1398,25 +1407,45 @@ public class DrawGraphs {
 
 		double ySize = 4;
 
+		double textXoffset =0, textXsrt=90,textXadj=1.;
+
+		public void configureTextLabels(double xoffset, double srt, double adj) {
+			textXoffset = xoffset;
+			textXsrt = srt;
+			textXadj = adj;
+		}
+
 		/** Computes the horizontal size of the drawing. */
 		abstract protected double computeHorizSize();
 
 		/** Returns a command to draw a graph in R. */
 		protected abstract List<String> getDrawingCommand();
 
-		protected List<String> constructSequenceOfDrawingCommands(Supplier<List<String>> lambda) {
+		protected List<String> constructSequenceOfDrawingCommands(List<String> names, Supplier<List<String>> lambda) {
 			List<String> outcome = new LinkedList<>();
 			outcome.add("curMar=par()$mar");
+//			outcome.add("curMgp=par()$mgp");
 			outcome.add("par(mar=c("+mBot+","+mLeft+","+mTop+","+mRight+"))");
+//			outcome.add("par(mar=c("+mBot+","+mLeft+","+mTop+","+mRight+"),mgp=c("+ mgpTitle +","+ mgpLabel +","+mgpAxis+"))");
+
 			for(String elem: lambda.get())
 				outcome.add(elem);
+			// if we are using labels (names is not null), place those labels with the text command. Otherwise, use the standard axis command
+			String axisTicks = "";
+			if (names != null)
+				axisTicks = ",at=1:"+names.size()+",labels=FALSE";
+			outcome.add("axis(side=1,mgp=c("+ mgpTitle +","+ mgpLabelX+","+mgpAxis+"),las="+las+axisTicks+")");
+			outcome.add("axis(side=2,mgp=c("+ mgpTitle +","+ mgpLabelY+","+mgpAxis+"),las="+las+")");
+			if (names != null)
+				outcome.add("text(x=1:"+names.size()+",y="+textXoffset+",labels="+vectorToR(names, true)+",xpd=NA,srt="+textXsrt+",adj="+textXadj+")");
 			if (!xAxis.isEmpty()) {
 				outcome.add("title(xlab=\""+xAxis+"\""+(xLine >= 0?(",line="+xLine):"")+")");
 			}
 			if (!yAxis.isEmpty()) {
 				outcome.add("title(ylab=\""+yAxis+"\""+(yLine >= 0?(",line="+yLine):"")+")");
 			}
-			outcome.add("par(curMar)");
+//			outcome.add("par(mar=curMar,mgp=curMgp)");
+			outcome.add("par(mar=curMar)");
 			return outcome;
 		}
 
@@ -1599,6 +1628,23 @@ public class DrawGraphs {
 			super(x, y, name);
 		}
 
+		public void setupForTwoLineXLabels() {
+			setXLine(3);
+			setYLine(2);
+			setMargins(4,3,0.2,0.2);
+			setMgpLabelX(0);
+			setMgpLabelY(0.7);
+			configureTextLabels(-0.15,1,0.5);
+		}
+
+		public void setupForOneLineXLabels() {
+			setXLine(2);
+			setYLine(2);
+			setMargins(3,3,0.2,0.2);
+			setMgpLabelX(0.2);
+			setMgpLabelY(0.7);
+		}
+
 		@Override
 		public List<String> getDrawingCommand()
 		{
@@ -1607,7 +1653,7 @@ public class DrawGraphs {
 			
 			if (orderingOfLabels != null)
 			{
-				Set<ELEM> o1 = new TreeSet<>(orderingOfLabels);o1.addAll(orderingOfLabels);
+				Set<ELEM> o1 = new TreeSet<>(orderingOfLabels);
 				if (!o1.equals(collectionOfResults.keySet()))
 					throw new IllegalArgumentException("ordering of labels is "+orderingOfLabels+", actual labels are : "+collectionOfResults.keySet());
 			}
@@ -1631,8 +1677,9 @@ public class DrawGraphs {
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-
-			return constructSequenceOfDrawingCommands( () -> Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,Collections.singletonList(otherOptions))));
+			List<String> namesToUse = names.size()==1?null:names;
+			return constructSequenceOfDrawingCommands(namesToUse, () -> Collections.singletonList(boxPlotToString(data, namesToUse,colours,
+					Arrays.asList("mar=c("+mBot+","+mLeft+","+mTop+","+mRight+")",otherOptions))));
 		}
 
 		@Override
@@ -1678,7 +1725,9 @@ public class DrawGraphs {
 				if (colour == null) colour = defaultColour;
 				colours.add(colour);
 			}
-			return constructSequenceOfDrawingCommands(() ->Collections.singletonList(boxPlotToString(data, names.size()==1?null:names,colours,Arrays.asList("las=2", otherOptions))));
+
+			List<String> namesToUse = names.size()==1?null:names;
+			return constructSequenceOfDrawingCommands(namesToUse, () ->Collections.singletonList(boxPlotToString(data, namesToUse,colours,Arrays.asList("las=2","mar=c("+mBot+","+mLeft+","+mTop+","+mRight+")", otherOptions))));
 		}
 
 		@Override
@@ -1846,6 +1895,12 @@ public class DrawGraphs {
 	{
 		public RBagPlot(String x, String y, File name) {
 			super(x, y,"bagplot", name);
+
+			setMargins(3,3,0.2,0.2);
+			setXLine(1.8);
+			setYLine(2);
+			setMgpLabelX(0.7);
+			setMgpLabelY(0.7);
 		}
 		/** Returns a string reflecting the number of points R bagplot analysis will be limited to. */
 		protected String formatApproxLimit()
@@ -1896,7 +1951,8 @@ public class DrawGraphs {
 		public List<String> getDrawingCommand()
 		{
 			computeDataSet();
-			return constructSequenceOfDrawingCommands( ()->Collections.singletonList(datasetToString(plotType,data, names,Arrays.asList("xlab=\"\",ylab=\"\"",otherOptions()))));
+			return constructSequenceOfDrawingCommands(null, ()->Collections.singletonList(datasetToString(plotType,data, names,
+					Arrays.asList("xlab=\"\",ylab=\"\"","xaxt=\"n\"","yaxt=\"n\"","mar=c("+mBot+","+mLeft+","+mTop+","+mRight+")",otherOptions()))));
 		}
 
 		public boolean graphOk()
@@ -1989,10 +2045,10 @@ public class DrawGraphs {
 		public List<String> getDrawingCommand()
 		{
 			computeDataSet();
-			return constructSequenceOfDrawingCommands( () -> {
+			return constructSequenceOfDrawingCommands(null, () -> {
 				List<String> result = new LinkedList<>();
 				result.add("bplot<-compute."+datasetToString(plotType,data, names,Collections.singletonList(formatApproxLimit())));
-				result.add("plot(bplot,xlim=c("+minValue+","+maxValue+"), ylim=c("+minValue+","+maxValue+"), xlab=\"\",ylab=\"\")");
+				result.add("plot(bplot,xlim=c("+minValue+","+maxValue+"), ylim=c("+minValue+","+maxValue+"), xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\")");
 				if (diag) result.add("abline(0,1)");
 				return result;
 			});

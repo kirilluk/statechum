@@ -76,11 +76,13 @@ public class E_MarkovTraceNum {
 
         learningGroup.experimentRunner.collectOutcomeOfExperiments(constructResultsCollector(resultCSV));
 
-
+        final String numberFormat = "%3d";
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             for (int states : learningGroup.statesToUse) {
-                final RBoxPlot<String> gr_BestStructuralForTraceNumber = new RBoxPlot<>("Trace number", "Structural Score, EDSM-Markov learner",
+                final RBoxPlot<String> gr_BestStructuralForTraceNumber = new RBoxPlot<>("Trace number", "Structural Score, EDSM-Markov",
                         new File(learningGroup.outPathPrefix + description+"_"+states + "_tracenum_structural.pdf"));
+                gr_BestStructuralForTraceNumber.setupForTwoLineXLabels();
+
                 final Map<Integer, SquareBagPlot> gr_StructuralDiffBestMap = new TreeMap<>();
                 Map<Integer, FilterCollectionOfResultsForBestPerformingLearner> learnerToHowOftenBestForAllTraceLength = new TreeMap<>();
 
@@ -92,34 +94,44 @@ public class E_MarkovTraceNum {
                         if (rowValues.traceQuantity == traceQuantityToUse) {
                             final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
                             gr_StructuralDiffBestMap.computeIfAbsent(traceQuantityToUse, aDouble ->
-                                    new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
-                                            new File(learningGroup.outPathPrefix + description+"_"+states+"_tracenum_num=" + traceQuantityToUse + "_VH_structuraldiffBest.pdf"), 0, 1, true));
-
-                            FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, -1,
-                                    rowHeader -> rowHeader.traceQuantity == traceQuantityToUse,
-                                    columnParse -> columnParse.parameters.chunkLen == chunkSizeToEvaluate,
-                                    resultCSV);
-                            report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(traceQuantityToUse), null,
-                                    (pair) -> {
-                                        double markov = pair.firstElem, vh_score = pair.secondElem;
-                                        StringBuilder sb = new StringBuilder();
-                                        Formatter formatter = new Formatter(sb, Locale.US);
-                                        formatter.format("%3d", traceQuantityToUse);
-                                        gr_BestStructuralForTraceNumber.add(sb + "_M", markov);
-                                        gr_BestStructuralForTraceNumber.add(sb + "_VH", vh_score);
-                                    });
-                            learnerToHowOftenBestForAllTraceLength.computeIfAbsent(traceQuantityToUse,aInteger -> report);
+                                    new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov",
+                                            new File(learningGroup.outPathPrefix + description + "_" + states + "_tracenum_num=" + traceQuantityToUse + "_VH_structuraldiffBest.pdf"), 0, 1, true));
                         }
-
                     }
+
+                    FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, -1,
+                            rowHeader -> rowHeader.traceQuantity == traceQuantityToUse,
+                            columnParse -> columnParse.parameters.chunkLen == chunkSizeToEvaluate,
+                            resultCSV);
+                    report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(traceQuantityToUse), null,
+                            (pair) -> {
+                                double markov = pair.firstElem, vh_score = pair.secondElem;
+                                StringBuilder sb = new StringBuilder();
+                                Formatter formatter = new Formatter(sb, Locale.US);
+                                formatter.format(numberFormat, traceQuantityToUse);
+                                gr_BestStructuralForTraceNumber.add("M\n"+sb, markov);
+                                gr_BestStructuralForTraceNumber.add("VH\n"+sb, vh_score);
+                            });
+                    learnerToHowOftenBestForAllTraceLength.computeIfAbsent(traceQuantityToUse,aInteger -> report);
                 }
+
+                List<String> ordering = new LinkedList<>();
+                for (final int traceQuantityToUseV : traceQuantityValues) {
+                    int traceQuantityToUse = traceQuantityToUseV*learningGroup.getScalingFactor(states);
+                    StringBuilder sb = new StringBuilder();
+                    Formatter formatter = new Formatter(sb, Locale.US);
+                    formatter.format(numberFormat, traceQuantityToUse);
+                    ordering.add("M\n"+sb);
+                    ordering.add("VH\n"+sb);
+                }
+                gr_BestStructuralForTraceNumber.setOrderingOfLabels(ordering);
 
                 for (final int traceQuantityToUseV : traceQuantityValues) {
                     int traceQuantityToUse = traceQuantityToUseV*learningGroup.getScalingFactor(states);
-                    System.out.println("trace quantity: " + traceQuantityToUse);
+//                    System.out.println("trace quantity: " + traceQuantityToUse);
 
                     gr_StructuralDiffBestMap.get(traceQuantityToUse).reportResults(learningGroup.gr);
-                    learnerToHowOftenBestForAllTraceLength.get(traceQuantityToUse).reportResults();
+//                    learnerToHowOftenBestForAllTraceLength.get(traceQuantityToUse).reportResults();
                 }
                 gr_BestStructuralForTraceNumber.reportResults(learningGroup.gr);
             }

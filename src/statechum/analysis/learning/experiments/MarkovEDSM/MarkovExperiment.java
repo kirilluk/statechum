@@ -1166,7 +1166,7 @@ public class MarkovExperiment
 		learningGroup.eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);// small automata hence no need for array STATETREE.STATETREE_ARRAY);
 		//STATETREE_ARRAY);
 		learningGroup.eval.config.setLearnerScoreMode(ScoreMode.GENERAL_NOFULLMERGE);
-		learningGroup.eval.config.setTimeOut(3600000L*16L);// timeout for tasks, in milliseconds, equivalent to 16hrs runtime for an old Xeon 5670 @ 2.93Ghz, modern E5/i7 are 3x faster.
+		learningGroup.eval.config.setTimeOut(3600000L*6L);// timeout for tasks, in milliseconds, equivalent to 6hrs runtime.
 		learningGroup.eval.config.setOverride_usePTAMerging(false);
 
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
@@ -1186,8 +1186,8 @@ public class MarkovExperiment
 //			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			E_MarkovTraceConstSize.runExperiment(learningGroup);
 			E_MarkovPrefixLen.runExperiment(learningGroup);
-			E_MarkovTraceNum.runExperiment(learningGroup);
-			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+//			E_MarkovTraceNum.runExperiment(learningGroup);
+//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		}
 		catch(Exception ex)
 		{

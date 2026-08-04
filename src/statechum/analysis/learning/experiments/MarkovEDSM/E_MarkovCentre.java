@@ -158,14 +158,24 @@ public class E_MarkovCentre {
             String prefix = learningGroup.outPathPrefix + description + "_" + states + "_" + traceNum + "_";
             gr_NumberOfCentreCorrect = new DrawGraphs.RBoxPlot<>("Centre Selection", "Number of correct selection",
                     new File(prefix + "centreselection_numbercorrect.pdf"));
+            gr_NumberOfCentreCorrect.setupForOneLineXLabels();
+            gr_NumberOfCentreCorrect.configureTextLabels(-3,1,0.5);
             gr_PercentageOfCentreCorrect = new DrawGraphs.RBoxPlot<>("Centre Selection", "% of correct selection",
                     new File(prefix + "centreselection_percentagecorrect.pdf"));
+            gr_PercentageOfCentreCorrect.setupForOneLineXLabels();
+            gr_PercentageOfCentreCorrect.configureTextLabels(-3,1,0.5);
             gr_InconsistenciesForCentres = new DrawGraphs.RBoxPlot<>("Centre Selection", "Inconsistency (clamped to " + inconsistencyClamp + " )",
                     new File(prefix + "centreselection_inconsistency.pdf"));
+            gr_InconsistenciesForCentres.setupForOneLineXLabels();
+            gr_InconsistenciesForCentres.configureTextLabels(-5,1,0.5);
             gr_CorrectVsInconsistency = new DrawGraphs.RBoxPlot<>("Centre correctly predicted", "Inconsistency (clamped to " + inconsistencyClamp + " )",
                     new File(prefix + "centrecorrect_inconsistency.pdf"));
+            gr_CorrectVsInconsistency.setupForOneLineXLabels();
+            gr_CorrectVsInconsistency.configureTextLabels(-5,1,0.5);
             gr_CorrectVsInconsistencyWithPracticeLearn = new DrawGraphs.RBoxPlot<>("Centre correctly predicted", "Inconsistency P (clamped to " + inconsistencyClamp + " )",
                     new File(prefix + "centrecorrect_inconsistency_P.pdf"));
+            gr_CorrectVsInconsistencyWithPracticeLearn.setupForOneLineXLabels();
+            gr_CorrectVsInconsistencyWithPracticeLearn.configureTextLabels(-3,1,0.5);
         }
 
         public void report() {

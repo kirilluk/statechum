@@ -19,11 +19,11 @@ import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.Learning
 
 class FilterCollectionOfResultsForBestPerformingLearner {
     protected int states;
-    protected int perStateSquaredDensity100 = -1;
-    DrawGraphs.CSVExperimentResult resultCSV = null;
-    AtomicBoolean multipleOrderingsOfStates = new AtomicBoolean(false);
-    Function<MarkovLearningParameters,Boolean> selectorRow = elems -> true;
-    Function<MarkovLearningParameters.ColumnParseOutcome, Boolean> selectorCol = elems -> true;
+    final protected int perStateSquaredDensity100;
+    final DrawGraphs.CSVExperimentResult resultCSV;
+    final AtomicBoolean multipleOrderingsOfStates = new AtomicBoolean(false);
+    final Function<MarkovLearningParameters,Boolean> selectorRow;
+    final Function<MarkovLearningParameters.ColumnParseOutcome, Boolean> selectorCol;
     protected Map<String, AtomicInteger> learnerToHowOftenBest = new HashMap<>(), learnerToHowOftenDefaultOrdering = new HashMap<>();
 
     /**
@@ -52,7 +52,8 @@ class FilterCollectionOfResultsForBestPerformingLearner {
         this.states = states;
         this.perStateSquaredDensity100 = perStateSquaredDensity100;
         this.resultCSV = resultCSV;
-        this.selectorRow = selRow;this.selectorCol = selCol;
+        this.selectorRow = selRow == null? elems-> true : selRow;
+        this.selectorCol = selCol == null? elems-> true : selCol;
     }
     protected List<MarkovExperiment.LearningReport> experimentResults = new ArrayList<>();
     public List<MarkovExperiment.LearningReport> getExperimentResults() {

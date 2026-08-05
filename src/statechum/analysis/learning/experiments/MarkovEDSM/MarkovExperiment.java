@@ -295,7 +295,7 @@ public class MarkovExperiment
                     final MarkovModel markovModelFromReference = new MarkovModel(par.markovParameters.chunkLen, true, true, true, false);
                     dataSample.predictionAccuracyForReferenceGraph = markovModelFromReference.computeSelfInconsistencyFromAutomaton(referenceGraph);
                 }
-                dataSample.actualLearner.relativeInconsistency = MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(actualAutomaton,learnerInitConfiguration.getLabelConverter(),markovModel,checker,20);
+                dataSample.actualLearner.relativeInconsistency = -1;//MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(actualAutomaton,learnerInitConfiguration.getLabelConverter(),markovModel,checker,20);
                 dataSample.actualLearner.predictionAccuracy = -1;
                 if (dataSample.actualLearner.whetherLearningSuccessfulOrAborted == AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK)
                 {
@@ -1182,12 +1182,12 @@ public class MarkovExperiment
 //			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			E_MarkovCentre.runExperiment(learningGroup);
-//			E_MarkovAlphabet.runExperiment(learningGroup);
+			E_MarkovAlphabet.runExperiment(learningGroup);
 //			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			E_MarkovTraceConstSize.runExperiment(learningGroup);
 //			E_MarkovPrefixLen.runExperiment(learningGroup);
-			E_MarkovTraceNum.runExperiment(learningGroup);
-			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+//			E_MarkovTraceNum.runExperiment(learningGroup);
+//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		}
 		catch(Exception ex)
 		{

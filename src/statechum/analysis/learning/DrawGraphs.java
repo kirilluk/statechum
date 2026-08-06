@@ -2338,7 +2338,7 @@ public class DrawGraphs {
 		try {
 			wr = new FileWriter(file);
 
-
+			wr.append(formatTEX(result, false));
 		} catch (IOException e) {
 			Helper.throwUnchecked("failed to write file "+file.getAbsolutePath(), e);
 		}

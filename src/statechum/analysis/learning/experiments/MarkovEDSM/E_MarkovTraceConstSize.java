@@ -11,7 +11,6 @@ import java.util.*;
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.LearningExperimentGroupParameters.getTraceLenMultValues;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.E_DIFF;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
@@ -115,7 +114,7 @@ public class E_MarkovTraceConstSize {
                                 formatter.format(numberFormat, traceLenMult);
                                 gr_BestStructuralForLengthMultiplier.add("M\n"+sb, markov);
                                 gr_BestStructuralForLengthMultiplier.add("VH\n"+sb, vh_score);
-                            });
+                            }, null);
                     learnerToHowOftenBestForAllMultipliers.computeIfAbsent(traceLenMult, aDouble -> report);
                 }
 

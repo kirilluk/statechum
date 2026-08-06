@@ -226,7 +226,8 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 			throw new IllegalArgumentException("Column "+column+" should have an odd number of entries");
 
 		String [] learner_preset = elem[0].split("-");
-		LearningAlgorithms.ScoringToApply learner = LearningAlgorithms.ScoringToApply.valueOf("SCORING_"+learner_preset[0]);
+		// When parsing, we replace the @ sign with an underscore because underscore is reserved as a separator for key-value pairs.
+		LearningAlgorithms.ScoringToApply learner = LearningAlgorithms.ScoringToApply.valueOf("SCORING_"+learner_preset[0].replace('@','_'));
 		int preset = Integer.parseInt(learner_preset[1]);
 
 		for(int i=1;i<elem.length;i+=2) {

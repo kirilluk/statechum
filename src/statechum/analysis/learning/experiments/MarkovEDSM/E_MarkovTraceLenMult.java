@@ -113,7 +113,7 @@ public class E_MarkovTraceLenMult {
                                 formatter.format(numberFormat, traceLenMult);
                                 gr_BestStructuralForLengthMultiplier.add("M\n"+sb, markov);
                                 gr_BestStructuralForLengthMultiplier.add("VH\n"+sb, vh_score);
-                            });
+                            }, null);
                     learnerToHowOftenBestForAllMultipliers.computeIfAbsent(traceLenMult, aDouble -> report);
                 }
 

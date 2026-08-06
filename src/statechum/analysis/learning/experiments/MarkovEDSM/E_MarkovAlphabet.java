@@ -10,9 +10,7 @@ import java.util.*;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
-import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovAlphabet {
@@ -121,7 +119,7 @@ public class E_MarkovAlphabet {
                                 formatter.format(numberFormat, alphabetMultiplier);
                                 gr_BestStructuralForAlphabet.add("M\n"+sb, markov);
                                 gr_BestStructuralForAlphabet.add("VH\n"+sb, vh_score);
-                            });
+                            }, null);
                     learnerToHowOftenBestForAllMultipliers.computeIfAbsent(alphabetMultiplier, aDouble -> report);
                 }
 

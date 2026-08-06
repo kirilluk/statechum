@@ -69,15 +69,18 @@ class FilterCollectionOfResultsForBestPerformingLearner {
      *
      * @param gr_StructuralDiffBest            where to plot best v.s. VH.
      * @param gr_StructuralDiffDefaultOrdering where to plot best across multiple orderings v.s. default ordering.
-     * @param markov_vh_score_handler
+     * @param markov_vh_diff_score_handler called with a pair of Diff scores for Markov v.s. VH
+     * @param markov_vh_bcr_score_handler called with a pair of BCR scores for Markov v.s. VH
      */
     public Map<String, AtomicInteger> getResultForBestPerformingMarkovLearner(SquareBagPlot gr_StructuralDiffBest, SquareBagPlot gr_StructuralDiffDefaultOrdering,
-                                                                              Consumer<Pair<Double, Double>> markov_vh_score_handler) {
+                                                                              Consumer<Pair<Double, Double>> markov_vh_diff_score_handler,
+                                                                              Consumer<Pair<Double, Double>> markov_vh_bcr_score_handler) {
         // Now select the best result from all those available
         for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
             MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
 
-            if ((perStateSquaredDensity100 < 0 || rowValues.perStateSquaredDensityMultipliedBy100 == perStateSquaredDensity100) && rowValues.states == states &&
+            if ((perStateSquaredDensity100 < 0 || rowValues.perStateSquaredDensityMultipliedBy100 == perStateSquaredDensity100) &&
+                    (states < 0 || rowValues.states == states) &&
                 selectorRow.apply(rowValues)) {
                 final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport(),bestLearningResultForDefaultOrdering = new MarkovExperiment.LearningReport();
                 final Map<Integer,MarkovExperiment.LearningReport> resultForChunkLen = new TreeMap<>();
@@ -119,8 +122,10 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                     if (gr_StructuralDiffDefaultOrdering != null)
                         gr_StructuralDiffDefaultOrdering.add(bestLearningResultForDefaultOrdering.structural, bestLearningResult.structural, null, null);
 
-                    if (markov_vh_score_handler != null)
-                        markov_vh_score_handler.accept(new Pair<>(bestLearningResult.structural,vh_score));
+                    if (markov_vh_diff_score_handler != null)
+                        markov_vh_diff_score_handler.accept(new Pair<>(bestLearningResult.structural,vh_score));
+                    if (markov_vh_bcr_score_handler != null)
+                        markov_vh_bcr_score_handler.accept(new Pair<>(bestLearningResult.bcr,obtainDoubleValueFromCell(Y_VH.value, E_BCR,Y_VH.column)));
                 }
                 else
                     System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());

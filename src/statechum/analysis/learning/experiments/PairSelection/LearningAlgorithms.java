@@ -566,7 +566,8 @@ public class LearningAlgorithms
 		SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_VH_0("LFL_S_0"), SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_VH_3("LFL_S_3"),
 		SCORING_LIMITEDLOOPS_0("LL_0"),SCORING_LIMITEDLOOPS_3("LL_3"),
 		SCORING_LIMITEDLOOPS_VH_0("LL_S_0"), SCORING_LIMITEDLOOPS_VH_3("LL_S_3"),
-		SCORING_LIMITEDSELFLOOPS_VH_0("PROGRESS+VH_0"), SCORING_LIMITEDSELFLOOPS_VH_2("PROGRESS+VH_2"), SCORING_LIMITEDSELFLOOPS_VH_3("PROGRESS+VH_3"), SCORING_LIMITEDSELFLOOPS_VH_4("PROGRESS+VH_4");
+		SCORING_LIMITEDSELFLOOPS_VH_0("PROGRESS+VH_0"), SCORING_LIMITEDSELFLOOPS_VH_2("PROGRESS+VH_2"),
+		SCORING_LIMITEDSELFLOOPS_VH_3("PROGRESS+VH_3"), SCORING_LIMITEDSELFLOOPS_VH_4("PROGRESS+VH_4");
 		
 		public final String name;
 		public final String reportedName;
@@ -576,7 +577,9 @@ public class LearningAlgorithms
 		{
 			if (!name().startsWith("SCORING_"))
 				throw new IllegalArgumentException("Name of enumeration reflecting learner kind should start with SCORING_");
-			reportedName = name().substring(name().indexOf("_")+1);
+			// Here we replace the underscore with an @ sign to make it more practical to parse when encountered as part of a file name
+			// because underscore is reserved as a separator for key-value pairs..
+			reportedName = name().substring(name().indexOf("_")+1).replace('_','@');
 
 			name = nameText;scoringMarkov = false;
 		}
@@ -584,7 +587,9 @@ public class LearningAlgorithms
 		{
 			if (!name().startsWith("SCORING_"))
 				throw new IllegalArgumentException("Name of enumeration reflecting learner kind should start with SCORING_");
-			reportedName = name().substring(name().indexOf("_")+1);
+			// Here we replace the underscore with an @ sign to make it more practical to parse when encountered as part of a file name
+			// because underscore is reserved as a separator for key-value pairs..
+			reportedName = name().substring(name().indexOf("_")+1).replace('_','@');
 
 			name = nameText;scoringMarkov = markov;
 		}

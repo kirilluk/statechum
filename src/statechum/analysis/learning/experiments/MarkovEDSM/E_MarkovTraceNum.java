@@ -111,7 +111,7 @@ public class E_MarkovTraceNum {
                                 formatter.format(numberFormat, traceQuantityToUse);
                                 gr_BestStructuralForTraceNumber.add("M\n"+sb, markov);
                                 gr_BestStructuralForTraceNumber.add("VH\n"+sb, vh_score);
-                            });
+                            }, null);
                     learnerToHowOftenBestForAllTraceLength.computeIfAbsent(traceQuantityToUse,aInteger -> report);
                 }
 

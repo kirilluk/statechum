@@ -22,11 +22,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.analysis.Erlang.Synapse;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -45,6 +47,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
+import statechum.analysis.learning.linear.DifferenceVisualiser;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -55,6 +58,7 @@ import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningP
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.constructLearner;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
+import static statechum.analysis.learning.rpnicore.FsmParserStatechum.buildLearnerGraphND;
 
 
 public class MarkovExperiment
@@ -156,14 +160,15 @@ public class MarkovExperiment
 					LearnerGraphND inverseOfPtaAfterInitialMerge = MarkovClassifier.computeInverseGraph(firstMerge.ptaToUseForInference);
 					System.out.println("Centre vertex: " + firstMerge.vertexWithMostTransitions + " number of transitions: " +
 							WaveBlueFringe.countTransitions(firstMerge.ptaToUseForInference,
-									inverseOfPtaAfterInitialMerge, firstMerge.vertexWithMostTransitions));
+									inverseOfPtaAfterInitialMerge, firstMerge.vertexWithMostTransitions)+
+							" , reduction: "+pta.getStateNumber()+" -> "+firstMerge.ptaToUseForInference.getStateNumber());
 				}
 			}
 	
 			SampleData dataSample = new SampleData(referenceGraph,null);
 
 			EDSM_MarkovLearner markovLearner = null;
-			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer;
+			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer = null;
 			saveGraph(namePTA, firstMerge.ptaToUseForInference);// although it may seem that pars.getExperimentID()
 			// would be a better name than a full name, in cases where we use a middle vertex PTA to start from is
 			// different to the one generated from a reference graph. Hence using full name and recording lots of graphs.
@@ -176,29 +181,14 @@ public class MarkovExperiment
 			switch(par.learnerToUse)
 			{
 				case SCORING_MARKOV:
-					redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen);
+					redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen,par.reportMergeStatisticsWhenTheCorrectSolutionIsKnown);
 					markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaBuilt,0,
-							par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, redReducer);
+							par.markovParameters,ScoreMode.ONLYOVERRIDE, redReducer);
 					markovLearner.setMarkov(markovModel);markovLearner.setChecker(checker);
 					learnerOfPairs = markovLearner;
 					break;
-				case SCORING_MARKOV_1:
-					redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen);
-					markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaBuilt,1,
-							par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, redReducer);
-					markovLearner.setMarkov(markovModel);markovLearner.setChecker(checker);
-					learnerOfPairs = markovLearner;
-					break;
-				case SCORING_MARKOV_2:
-					redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen);
-					markovLearner = new EDSM_MarkovLearner(learnerInitConfiguration,ptaBuilt,2,
-							par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, redReducer);
-					markovLearner.setMarkov(markovModel);markovLearner.setChecker(checker);
-					learnerOfPairs = markovLearner;
-					break;
-
                 case SCORING_ORACLE_STATISTICS:
-                    redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen);
+                    redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(referenceGraph,false,par.markovParameters.chunkLen,par.reportMergeStatisticsWhenTheCorrectSolutionIsKnown);
                     markovLearner = new LearnerRelyingOnOracle(learnerInitConfiguration,ptaBuilt,0,
                             par.markovParameters,ScoreMode.GENERAL_NOFULLMERGE, redReducer,referenceGraph);
                     markovLearner.setMarkov(markovModel);markovLearner.setChecker(checker);
@@ -261,7 +251,15 @@ public class MarkovExperiment
 			dataSample.stateNumber = referenceGraph.getStateNumber();
 			LearnerGraph trimmedGraph = LearningSupportRoutines.trimUncoveredTransitions(pta,referenceGraph);
 
-//			Visualiser.updateFrame(referenceGraph,trimmedGraph);
+
+//			LearnerGraphND grA=buildLearnerGraphND(graphA, "labellingDemo_A_"+counter,config,null),
+//					grB=buildLearnerGraphND(graphB, "labellingDemo_B_"+counter,config,null);
+
+
+//			DirectedSparseGraph gr = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(
+//					Synapse.StatechumProcess.constructFSM(referenceGraph), DifferenceVisualiser.ChangesToGraph.computeGD(referenceGraph, actualAutomaton,referenceGraph.config));
+//			Visualiser.updateFrame(gr, null);
+//			Visualiser.updateFrame(referenceGraph,actualAutomaton);
 //			Visualiser.waitForKey();
 
 			dataSample.transitionsSampled = Math.round(100*(double)trimmedGraph.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());

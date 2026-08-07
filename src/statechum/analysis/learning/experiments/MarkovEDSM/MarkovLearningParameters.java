@@ -40,7 +40,8 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 	boolean usePrintf = false;
 	public int perStateSquaredDensityMultipliedBy100 = 0;
 	public MarkovParameters markovParameters = new MarkovParameters();
-	
+	boolean reportMergeStatisticsWhenTheCorrectSolutionIsKnown = true;
+
 	public MarkovLearningParameters(ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample)
 	{
 		learnerToUse = l;
@@ -96,6 +97,10 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 	
 	public void setTraceLengthMultiplier(double traceMulti) {
 		traceLengthMultiplier=traceMulti;
+	}
+
+	public void disableReportMergeStatisticsWhenSolutionIsKnown() {
+		reportMergeStatisticsWhenTheCorrectSolutionIsKnown = false;
 	}
 
 	@Override

@@ -124,7 +124,7 @@ public class LearningAlgorithms
 	
 	public static class ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown implements StateMergingStatistics
 	{
-		protected final boolean reportReducedReds;
+		protected final boolean reportReducedReds, reportMergeStatistics;
 		protected final LearnerGraph referenceGraph;
 		protected int totalReds=0;
 		protected int nearRootThreshold = 0;
@@ -184,10 +184,10 @@ public class LearningAlgorithms
 			case SCORING_VH_PTA:
 			case SCORING_VH_PTARECURSIVE:
 			case SCORING_VH_RED:
-				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, true,depthThreshold);
+				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, true,depthThreshold, true);
 				break;
 			default:
-				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, false,depthThreshold);
+				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, false,depthThreshold, true);
 				break;
 			}
 			return redReducer;
@@ -207,10 +207,10 @@ public class LearningAlgorithms
 			case SCORING_VH_PTA:
 			case SCORING_VH_PTARECURSIVE:
 			case SCORING_VH_RED:
-				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, true,depthThreshold);
+				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, true,depthThreshold, true);
 				break;
 			default:
-				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, false,depthThreshold);
+				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, false,depthThreshold, true);
 				break;
 			}
 			return redReducer;
@@ -218,11 +218,12 @@ public class LearningAlgorithms
 		}
 
 		public ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(LearnerGraph graph, boolean useReducedReds) {
-			this(graph,useReducedReds,0);
+			this(graph,useReducedReds,0, true);
 		}
 
-		public ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(LearnerGraph graph, boolean useReducedReds, int depthThreshold) {
+		public ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(LearnerGraph graph, boolean useReducedReds, int depthThreshold, boolean reportMergeStatistics) {
 			referenceGraph = graph;reportReducedReds = useReducedReds;nearRootThreshold = depthThreshold;
+			this.reportMergeStatistics=reportMergeStatistics;
 		}
 		
 		@Override
@@ -241,40 +242,45 @@ public class LearningAlgorithms
 		{
 			if (pair instanceof PairScore)
 				inconsistenciesInMerge.add(((PairScore)pair).getAnotherScore());
-			List<CmpVertex> vertices = new ArrayList<>(3);vertices.add(pair.getQ());vertices.add(pair.getR());
-			Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(graphBeforeMerge, vertices);
-			LinkedList<Label> seqB = stateToPath.get(pair.getQ());
-			CmpVertex refVertBlue = referenceGraph.getVertex(seqB);
-			LinkedList<Label> seqR = stateToPath.get(pair.getR());
-			CmpVertex refVertRed = referenceGraph.getVertex(seqR);
-			boolean blueAccept = refVertBlue != null && refVertBlue.isAccept(), redAccept = refVertRed != null && refVertRed.isAccept();
-			if (refVertBlue == refVertRed || (!blueAccept && !redAccept))
-				validMergers++;
-			else
-				if (seqB.size() < nearRootThreshold || seqR.size() < nearRootThreshold)
+
+			if (reportMergeStatistics) {
+				List<CmpVertex> vertices = new ArrayList<>(3);
+				vertices.add(pair.getQ());
+				vertices.add(pair.getR());
+				Map<CmpVertex, LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(graphBeforeMerge, vertices);
+				LinkedList<Label> seqB = stateToPath.get(pair.getQ());
+				CmpVertex refVertBlue = referenceGraph.getVertex(seqB);
+				LinkedList<Label> seqR = stateToPath.get(pair.getR());
+				CmpVertex refVertRed = referenceGraph.getVertex(seqR);
+				boolean blueAccept = refVertBlue != null && refVertBlue.isAccept(), redAccept = refVertRed != null && refVertRed.isAccept();
+				if (refVertBlue == refVertRed || (!blueAccept && !redAccept))
+					validMergers++;
+				else if (seqB.size() < nearRootThreshold || seqR.size() < nearRootThreshold)
 					invalidMergersNearRoot++;
 				else
 					invalidMergers++;
+			}
 		}
 		
 		@Override
 		public void stateSelectedAsRed(LearnerGraph graph, CmpVertex redVertex, Collection<CmpVertex> reds) 
 		{
 			totalReds = reds.size()+1;// 1 accounts for vertex redVertex
-			
-			List<CmpVertex> verts = new ArrayList<>(reds.size() + 2);// we ensure there is at least one spare slot left, otherwise array may choose to resize itself.
-			verts.addAll(reds);verts.add(redVertex);
-			Map<CmpVertex,LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(graph, verts);
-			LinkedList<Label> seqForNewRedState = stateToPath.get(redVertex);
-			CmpVertex refVertRed = referenceGraph.getVertex(seqForNewRedState);
-			for(CmpVertex v:reds) {
-				if (referenceGraph.getVertex(stateToPath.get(v)) == refVertRed)
-				{// found a different red state that corresponds to the same state in a reference graph.
-					if (seqForNewRedState.size() < nearRootThreshold)
-						missedMergersNearRoot++;
-					else
-						missedMergers++;
-					return;// do not proceed with other reds
+			if (reportMergeStatistics) {
+				List<CmpVertex> verts = new ArrayList<>(reds.size() + 2);// we ensure there is at least one spare slot left, otherwise array may choose to resize itself.
+				verts.addAll(reds);
+				verts.add(redVertex);
+				Map<CmpVertex, LinkedList<Label>> stateToPath = PairOfPaths.convertSetOfStatesToPaths(graph, verts);
+				LinkedList<Label> seqForNewRedState = stateToPath.get(redVertex);
+				CmpVertex refVertRed = referenceGraph.getVertex(seqForNewRedState);
+				for (CmpVertex v : reds) {
+					if (referenceGraph.getVertex(stateToPath.get(v)) == refVertRed) {// found a different red state that corresponds to the same state in a reference graph.
+						if (seqForNewRedState.size() < nearRootThreshold)
+							missedMergersNearRoot++;
+						else
+							missedMergers++;
+						return;// do not proceed with other reds
+					}
 				}
 			}
 		}		

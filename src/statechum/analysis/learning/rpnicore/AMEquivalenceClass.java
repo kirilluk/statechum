@@ -43,7 +43,7 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	 * for all states belonging to those classes.
 	 * This set makes it possible to do this.
 	 */
-	private final Set<CmpVertex> states = new TreeSet<>();
+	private Set<CmpVertex> states = new LinkedHashSet<>();
 
 	/** Accumulates the states which are not compatible to states in this equivalence class. */
 	final Set<CmpVertex> incompatibleStates = new TreeSet<>();
@@ -331,6 +331,9 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 		
 		updateRep(to.getRepresentative());
 		if (!to.getStates().isEmpty()) updateColour(to.currentColour);
+//		if (states instanceof TreeSet && states.size() > 10) {
+//			Set<CmpVertex> newStates = new LinkedHashSet<>();newStates.addAll(states);states = newStates;
+//		}
 		states.addAll(to.states);
 		return singleton;
 	}

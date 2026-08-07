@@ -215,6 +215,8 @@ public class PairScoreComputation {
 			case ONLYOVERRIDE:
 				computedScore = scoreComputationOverride.overrideScoreComputation(new PairScore(blue,red,0, 0));
 				compatibilityScore=scoreComputationOverride.getLastComputedCompatibilityScore();
+				if (blue.isAccept() && computedScore < coregraph.config.getRejectPositivePairsWithScoresLessThan())
+					computedScore = -1;
 				return new PairScore(blue,red,computedScore, compatibilityScore);
 			case COMPATIBILITY:
 				computedScore = computePairCompatibilityScore(pairToComputeFrom);compatibilityScore=computedScore;

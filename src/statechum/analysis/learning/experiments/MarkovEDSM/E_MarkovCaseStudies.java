@@ -1,9 +1,6 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
-import statechum.Configuration;
-import statechum.GlobalConfiguration;
-import statechum.Helper;
-import statechum.Pair;
+import statechum.*;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
@@ -12,6 +9,7 @@ import statechum.analysis.learning.rpnicore.FsmParserDot;
 import statechum.analysis.learning.rpnicore.FsmParserStatechum;
 import statechum.analysis.learning.rpnicore.LearnerGraph;
 import statechum.analysis.learning.rpnicore.Transform;
+import statechum.collections.MapWithSearch;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,6 +48,14 @@ public class E_MarkovCaseStudies {
                 }
                 LearnerGraph referenceGraph = FsmParserDot.buildLearnerGraph(referenceDot,dotConfig,
                         conv, true,true,USE_START0);
+                for(Map.Entry<DeterministicDirectedSparseGraph.CmpVertex, MapWithSearch<Label, Label, DeterministicDirectedSparseGraph.CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet()) {
+                    Set<Label> unimpLabels = new TreeSet<>();
+                    for(Label lbl:entry.getValue().keySet())
+                        if (lbl.toString().matches(".*/\\s*UNIMPL.*"))
+                            unimpLabels.add(lbl);
+                    for(Label lbl:unimpLabels)
+                        entry.getValue().remove(lbl);
+                }
                 referenceGraph.setName(caseStudyName);
                 return referenceGraph;
         }

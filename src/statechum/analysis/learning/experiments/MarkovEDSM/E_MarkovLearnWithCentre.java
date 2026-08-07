@@ -73,6 +73,7 @@ public class E_MarkovLearnWithCentre {
                                         parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets,
                                                 new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, divisor, 0, wlen);
                                         parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
+                                        parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
                                         MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);
                                         learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                         learningGroup.experimentRunner.submitTask(learnerRunner);

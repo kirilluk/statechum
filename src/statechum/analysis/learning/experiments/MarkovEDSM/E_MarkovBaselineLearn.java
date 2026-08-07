@@ -18,7 +18,7 @@ import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.Learning
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovBaselineLearn {
-    public static final String description = "baseline";
+    public static final String description = "baselineP";
 
     public static class MarkovLearningBaselineParameters extends MarkovLearningParameters {
 
@@ -68,6 +68,7 @@ public class E_MarkovBaselineLearn {
                                 parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets,
                                         new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, 0, 0, 0);
                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
+                                parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
                                 MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);
                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                 learningGroup.experimentRunner.submitTask(learnerRunner);

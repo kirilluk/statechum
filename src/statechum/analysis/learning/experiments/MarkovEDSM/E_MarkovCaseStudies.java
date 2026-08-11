@@ -2,7 +2,9 @@ package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.*;
 import statechum.analysis.learning.DrawGraphs;
+import statechum.analysis.learning.Visualiser;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator;
 import statechum.analysis.learning.rpnicore.*;
@@ -23,8 +25,7 @@ import static statechum.analysis.learning.rpnicore.FsmParserDot.HOW_TO_FIND_INIT
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovCaseStudies {
-    public static String [] caseStudies = new String[] {"coffeemachine", "coffeemachine - with_reset", "coffeemachine - noresetonerror","CVS","OpenSSH-8.8p1 - with_reset",
-            "TCP_Linux_Client - with_reset","tls-1.2-openssl-1.1.1 - with_reset","xraypowercontrol - learnresult6 - with_reset"};
+    public static String [] caseStudies = new String[] {"CVS","SSH","MinePump","ATM","SmallTrain","FanTempMonitor"};
 
     public static LearnerGraph constructAutomatonForCaseStudy(String caseStudyName, Configuration config, final Transform.ConvertALabel conv) {
         switch(caseStudyName){
@@ -32,7 +33,45 @@ public class E_MarkovCaseStudies {
                 // Derived from a similar model described in:
                 // D. Lo and S. Khoo, “QUARK: Empirical assessment of automaton-based specification miners,” in Proceedings of the Working Conference on Reverse Engineering (WCRE’06). IEEE Computer Society, 2006, pp. 51–60.
                 return FsmParserStatechum.buildLearnerGraph(
-                        "q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q1\nq3-changedirectory->q9-listnames->q10-delete->q10-changedirectory->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedirectory->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "specgraph",config,conv);
+                        "q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q1\nq3-changedirectory->q9-listnames->q10-delete->q10-changedirectory->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedirectory->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "cvs",config,conv);
+            case "SSH":
+                // Almost verbatim from Verifying an implementation of SSH Poll, E.; Schubert, A. 2007. The two new parts are a 'comm' transition looping in the COMMUNICATION state and the 'reset' transition.
+                return FsmParserStatechum.buildLearnerGraph(
+                "DISCONNECTED -connect! -> WAIT_VERSION - version? -> VERSION_RECEIVED - version! -> WAIT_KEXINIT / WAIT_VERSION-version! ->VERSION_SENT-version? ->WAIT_KEXINIT /"+
+                        "WAIT_KEXINIT -kexinit? -> KEXINIT_RECEIVED -kexinit!->KEXINIT_SENT - kexdh_init!-> WAIT_KEXDH_REPLY -kexdh_reply? ->WAIT_NEWKEYS /"+
+                                "WAIT_KEXINIT -kexinit! ->KEXINIT_SENT_NOTR -kexinit? ->KEXINIT_SENT / KEXINIT_SENT_NOTR -kexdh_init! ->KEXDH_KEXINIT_SENT_NOTR - kexinit? -> KEXINIT_KEXDH_INIT_SENT - kexdh_reply? ->WAIT_NEWKEYS /"+
+                                        "WAIT_NEWKEYS -newkeys? -> NEWKEYS_RECEIVED -newkeys! -> COMMUNICATION / WAIT_NEWKEYS -newkeys! ->NEWKEYS_SENT-newkeys? ->COMMUNICATION -comm->COMMUNICATION /"+
+                                                "COMMUNICATION - kexinit? ->KEXINIT_RECEIVED / COMMUNICATION -kexinit! ->KEXINIT_SENT_NOTR /" +
+                        "COMMUNICATION -reset->DISCONNECTED","ssh",config,conv);
+            case "ATM":
+                // The ATM is from Figure 5: An implementation of MTS in Fig. 4 of Existential Live Sequence Charts Revisited by German Sibay, Sebastian Uchitel and Victor Braberman,
+                // with a ejectCard transition added from state 4 to 0.
+                return FsmParserStatechum.buildLearnerGraph("0-pwd->1-verify->2-wait->3-verifying->4-ok->5-reqCash->6-getBalance->7-cash->8-updateBalance->5 / 7-notEnoughCash->5 / 4-wrongPwd->0 / 2-verifying->9-wait->4 / 5-ejectCard->0"
+                        ,"ATM",config,conv);
+            case "MinePump":
+                // The Mine pump is from Figure 10: Final MTS of Existential Live Sequence Charts Revisited by German Sibay, Sebastian Uchitel and Victor Braberman
+                return FsmParserStatechum.buildLearnerGraph(
+                "0-tick->0 -medWater->1-lowWater->0 / 1-tick->1 -switchOn->2 -tick->2 - highWater->3-tick->3-medWater->4-tick->4-highWater->3 / 4 -lowWater->5-switchOff->0 /"+
+                        "2-methAppears->6 / 4 -methAppears->6 - switchOff->7-tick->7-highWater->8-tick->8-medWater->7 / 8-methLeaves->9 -switchOn->3 / 7-methLeaves->10 -tick->10 -switchOn->2 /"+
+                        "10-methAppears->11-tick->11-highWater->12-tick->12-medWater->11 / 11-lowWater->13-tick->13-medWater->11 / 11-methLeaves->1 / 13-methLeaves->0 / "+
+                        "0 - methAppears->13 / 2-lowWater->15 / 1-highWater->9 / 1-methAppears->11 / 3-methAppears->14 - switchOff->8 /"+
+                        "15 -switchOff ->16 -tick->16-medWater->17 -tick->17-highWater->9 / 17-methAppears->18-tick->18-methLeaves->17 / 18-highWater->19-tick->19 -methLeaves->9 /"+
+                        "16-methAppears->20-tick->20 - medWater->18 / 20-methLeaves->16"
+                        ,"MinePump",config,conv);
+            case "SmallTrain":
+                // This is the small train controller from Figure 3 of Scenarios, Goals, and State Machines: a Win-Win Partnership for Model Synthesis Christophe Damas, Bernard Lambeau, and Axel van Lamsweerde,
+                // where the dead-end state 5 was removed.
+                return FsmParserStatechum.buildLearnerGraph("0-start->2-stop->0 -a.pres->9-a.prop->11-e.open->1-close->0 / 0-open->1/2-a.pres->4-a.prop->8-e.stop->11","SmallTrain",config,conv);
+
+            case "FanTempMonitor":
+                LearnerGraph fanTempMonitorWithNegatives = new LearnerGraph(config);
+                try {
+                    AbstractPersistence.loadGraph("resources/i2c_study/i2c_outcome_correct", fanTempMonitorWithNegatives,conv);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                fanTempMonitorWithNegatives.setName("FanTempMonitor");
+                return LearningSupportRoutines.removeAllNegatives(fanTempMonitorWithNegatives);
             default:
                 Configuration dotConfig = config.copy();dotConfig.setLabelKind(Configuration.LABELKIND.LABEL_STRING);
                 String referenceDot;
@@ -45,14 +84,6 @@ public class E_MarkovCaseStudies {
                 }
                 LearnerGraph referenceGraph = FsmParserDot.buildLearnerGraph(referenceDot,dotConfig,
                         conv, true,true,USE_START0);
-//                for(Map.Entry<DeterministicDirectedSparseGraph.CmpVertex, MapWithSearch<Label, Label, DeterministicDirectedSparseGraph.CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet()) {
-//                    Set<Label> unimpLabels = new TreeSet<>();
-//                    for(Label lbl:entry.getValue().keySet())
-//                        if (lbl.toString().matches(".*/\\s*UNIMPL.*"))
-//                            unimpLabels.add(lbl);
-//                    for(Label lbl:unimpLabels)
-//                        entry.getValue().remove(lbl);
-//                }
                 referenceGraph.setName(caseStudyName);
                 return referenceGraph;
         }
@@ -63,9 +94,7 @@ public class E_MarkovCaseStudies {
     // experiments with a specific one do not replace experiments with others.
     public static Set<String> whichCaseStudyToRun = new TreeSet<>();
     static {
-//        whichCaseStudyToRun.add("CVS");
-        whichCaseStudyToRun.addAll(Arrays.asList("OpenSSH-8.8p1 - with_reset"));
-                //"TCP_Linux_Client - with_reset","tls-1.2-openssl-1.1.1 - with_reset","xraypowercontrol - learnresult6 - with_reset"));
+        whichCaseStudyToRun.add("FanTempMonitor");
     }
 
     public static class MarkovLearningBaselineParameters extends MarkovLearningParameters {
@@ -91,6 +120,8 @@ public class E_MarkovCaseStudies {
         public void generateReferenceFSM()
         {
             referenceGraph = constructAutomatonForCaseStudy(caseStudies[par.sample],learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter());
+            Visualiser.updateFrame(referenceGraph, null);
+            Visualiser.waitForKey();
         }
     }
 
@@ -183,7 +214,7 @@ public class E_MarkovCaseStudies {
                                                     new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, wlen_divisor.secondElem, 0, wlen_divisor.firstElem);
                                             parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                             parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
-                                            parameters.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP,0.6, 10);
+//                                            parameters.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP,0.6, 10);
                                             MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(parameters, ev);
                                             learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                             learningGroup.experimentRunner.submitTask(learnerRunner);

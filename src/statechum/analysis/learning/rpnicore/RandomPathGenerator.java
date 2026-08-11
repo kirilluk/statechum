@@ -437,9 +437,10 @@ public class RandomPathGenerator {
 
 	static void blastPathForExploration(LearnerGraphND inverseGraph, Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration,
 										List<CmpVertex> statesToExplore, int stepsToTake) {
+		List<CmpVertex> currentStates = new LinkedList<>(statesToExplore);
 		for(int step=0;step<=stepsToTake;step++) {
 			List<CmpVertex> newStates = new LinkedList<>();
-			for (CmpVertex state : statesToExplore)
+			for (CmpVertex state : currentStates)
 				for (Entry<Label, List<CmpVertex>> entry : inverseGraph.transitionMatrix.get(state).entrySet())
 					for (CmpVertex vertex : inverseGraph.getTargets(entry.getValue())) {
 						AtomicInteger value = stateToCounterExploration.get(vertex).get(entry.getKey());
@@ -450,6 +451,8 @@ public class RandomPathGenerator {
 					}
 			if (newStates.isEmpty())
 				break;
+
+			currentStates = newStates;
 		}
 	}
 
@@ -496,10 +499,18 @@ public class RandomPathGenerator {
 
 			if (poorVisitedCounter > 0 && minValue < Integer.MAX_VALUE)
 				exploreStartingFromThis.add(stateToExploration.getKey());
+
+			if (exploreStartingFromThis.size() > g.getStateNumber()/10)
+				break;
 		}
 
-		if (!exploreStartingFromThis.isEmpty())
+		if (!exploreStartingFromThis.isEmpty()) {
+//			System.out.print("Blasted path to : ");
+//			for (CmpVertex explore : exploreStartingFromThis)
+//				System.out.print(explore+" ");
+//			System.out.println();
 			blastPathForExploration(inverseGraph, stateToCounterExploration, exploreStartingFromThis, step);
+		}
 	}
 
 

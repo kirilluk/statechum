@@ -435,34 +435,40 @@ public class RandomPathGenerator {
 		return path;
 	}
 
-//	static void updateBiasForExplorationA(LearnerGraphND inverseGraph, Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration,
-//								  CmpVertex state, double poorVisitedCounter, double weight, int step) {
-//			for(Entry<Label,List<CmpVertex>> entry:inverseGraph.transitionMatrix.get(state).entrySet())
-//				for(CmpVertex vertex:inverseGraph.getTargets(entry.getValue())) {
-//					AtomicInteger value = stateToCounterExploration.get(vertex).get(entry.getKey());
-//					int newValue = Math.max(0, (int)(value.get()-poorVisitedCounter*weight));
-//					value.set(newValue);
-//					if (step > 0)
-//						blastPathForExploration(inverseGraph,stateToCounterExploration,vertex,poorVisitedCounter*weight,weight,step-1);
-//				}
-//	}
-
 	static void blastPathForExploration(LearnerGraphND inverseGraph, Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration,
-										List<CmpVertex> statesToExplore, int step) {
-		List<CmpVertex> newStates = new LinkedList<>();
-		for(CmpVertex state:statesToExplore)
-			for(Entry<Label,List<CmpVertex>> entry:inverseGraph.transitionMatrix.get(state).entrySet())
-				for(CmpVertex vertex:inverseGraph.getTargets(entry.getValue())) {
-					AtomicInteger value = stateToCounterExploration.get(vertex).get(entry.getKey());
-	//				int newValue = Math.max(0, (int)(value.get()-poorVisitedCounter*weight));
-	//				value.set(newValue);
-					value.set(0);
-					newStates.add(vertex);
-				}
-		if (step > 0 && !newStates.isEmpty())
-			blastPathForExploration(inverseGraph,stateToCounterExploration,newStates,step-1);
+										List<CmpVertex> statesToExplore, int stepsToTake) {
+		for(int step=0;step<=stepsToTake;step++) {
+			List<CmpVertex> newStates = new LinkedList<>();
+			for (CmpVertex state : statesToExplore)
+				for (Entry<Label, List<CmpVertex>> entry : inverseGraph.transitionMatrix.get(state).entrySet())
+					for (CmpVertex vertex : inverseGraph.getTargets(entry.getValue())) {
+						AtomicInteger value = stateToCounterExploration.get(vertex).get(entry.getKey());
+						//				int newValue = Math.max(0, (int)(value.get()-poorVisitedCounter*weight));
+						//				value.set(newValue);
+						value.set(0);
+						newStates.add(vertex);
+					}
+			if (newStates.isEmpty())
+				break;
+		}
 	}
 
+	/** The purpose of this function is to make states that have not been expored more 'visible' to exploration. The idea is to
+	 * explore all paths leading to those states of up to steps length and reset exploration penalties to zero. In this way, when these
+	 * states are encountered, exploration would really make an effort to enter those states. This is accomplished by computing
+	 * both a minimal exploration for each state and an average one. If any state has any transition explored both infrequently (compared to the
+	 * minimal value and a fraction of average, the idea is only to start handling unreachable states once we explore everything easily
+	 * reachable and hence built-up average), then we zero exploration penalties around those states and those connected to them. This is why
+	 * the function doing this is called 'blast', it literally clears a way to those states. In a way, selecting the number of steps
+	 * (currently fixed at 10% of the state count) is a heuristic. Making it small and the hard-to-get-to states might be unexplored,
+	 * make it too large and a lot of the graph will be zeroed, not providing enough guidance for the exploration to actually get into the
+	 * states of interest.
+	 *
+	 * @param inverseGraph
+	 * @param stateToCounterExploration
+	 * @param stateToCounterActualValues
+	 * @param step
+	 */
 	void constructBiasForExploration(LearnerGraphND inverseGraph,
 											Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration,
 											Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterActualValues,
@@ -492,20 +498,8 @@ public class RandomPathGenerator {
 				exploreStartingFromThis.add(stateToExploration.getKey());
 		}
 
-//		int poorVisitedCounter = 0;
-//		for (Entry<Label, AtomicInteger> labelAndCounter : stateToCounterExploration.get(current).entrySet())
-//			if (labelAndCounter.getValue().get() == 0)
-//				poorVisitedCounter++;
-//		if (poorVisitedCounter > 0)
-//			updateBiasForExploration(inverseGraph,stateToCounterExploration,current,poorVisitedCounter,weight,step);
-
-		if (!exploreStartingFromThis.isEmpty()) {
-//			System.out.print("Blasted path to : ");
-//			for (CmpVertex explore : exploreStartingFromThis)
-//				System.out.print(explore+" ");
-//			System.out.println();
+		if (!exploreStartingFromThis.isEmpty())
 			blastPathForExploration(inverseGraph, stateToCounterExploration, exploreStartingFromThis, step);
-		}
 	}
 
 
@@ -532,9 +526,22 @@ public class RandomPathGenerator {
 			path.clear();if (prefixForAllSequences != null) path.addAll(prefixForAllSequences);
 			CmpVertex current = initialState;
 
+			// This maps transitions looping around a state to the penalties for their use: each time we use one, penalty increases, effectively
+			// prioritising selection of other transitions.
 			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterLoop = new HashMap<>();
+			// This maps transitions to other states to the penalties for their use: each time we use one, penalty increases, effectively
+			// prioritising selection of other transitions. When we explore, we actually rely on both these values and the number of times
+			// each state was explored, effectively prioritising exploration of previously-unexplored states even if we've taken a transtition
+			// to them many times in the past. This can help if there are many outgoing transitions from a state and a 'narrow path' to get there.
+			// In addition, we make sure that unexplored states are prioritised by calling constructBiasForExploration. See the description
+			// for that function for more information.
 			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration = new HashMap<>();
+			// This maps transitions to other states to the penalties for their use: each time we use one, penalty increases, effectively
+			// prioritising selection of other transitions. This is different to stateToCounterExploration in that 'blasting' paths to relatively
+			// unexplored states does not affect this map, making it possible to use these values as an actual guide for what needs 'blasting'.
 			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterActual = new HashMap<>();
+
+			// This creats the initial maps, mapping everything to a zero.
 			populateLabelToVisits(stateToCounterExploration,transitionsNonLoops);
 			populateLabelToVisits(stateToCounterActual,transitionsNonLoops);
 			populateLabelToVisits(stateToCounterLoop,transitionsLoops);
@@ -554,6 +561,8 @@ public class RandomPathGenerator {
 						nextLabel = pickRandomTransition(stateToCounterExploration, stateToCounterActual, transitionsNonLoops, selectionPenalty, current);// take a transition either
 						// because we would like to, or because we have no choice. Note that if transitionLoops has no elements for the
 						// current state, transitionsNonLoops will definitely have elements, otherwise we would have bailed on the row.isEmpty()
+
+						// The call below aims to 'clear a way' to get to states that were not explored well enough.
 						constructBiasForExploration(inverseGraph,stateToCounterExploration,stateToCounterActual,g.getStateNumber()/10);
 					}
 					else
@@ -561,9 +570,6 @@ public class RandomPathGenerator {
 
 
 					path.add(nextLabel);current = g.transitionMatrix.get(current).get(nextLabel);
-
-//					if (i > 300)
-//						System.out.println();
 				}
 
 //				for(Entry<CmpVertex,Map<Label, AtomicInteger>> entryStateToCounter:stateToCounterActual.entrySet()) {
@@ -574,8 +580,6 @@ public class RandomPathGenerator {
 //
 //					System.out.println("State : "+entryStateToCounter.getKey()+", uncovered : "+uncovered);
 //				}
-
-
 			}
 
 			if (path.size() == prefixForAllSequencesLength+positiveLength && !positive)

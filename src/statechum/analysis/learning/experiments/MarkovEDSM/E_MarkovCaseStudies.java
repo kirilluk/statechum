@@ -147,11 +147,11 @@ public class E_MarkovCaseStudies {
         boolean aveOrMax = true;// average divide by the divisor
         final int trainingSamplesPerFSM = 40;// these are fixed automata hence we can try many different values to see how inference performs.
         boolean pathsOrSets = true, penaliseMissingPaths = true;
-        String pathToCaseStudyFiles = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_CASESTUDIES);
-        if (null == pathToCaseStudyFiles ||  pathToCaseStudyFiles.isEmpty())
-            throw new RuntimeException("Cannot load any case studies: path to case studies is not defined");
-        if (!Files.exists(Paths.get(pathToCaseStudyFiles)))
-            throw new RuntimeException("Cannot load any case studies: path to case studies does not exist "+pathToCaseStudyFiles);
+//        String pathToCaseStudyFiles = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_CASESTUDIES);
+//        if (null == pathToCaseStudyFiles ||  pathToCaseStudyFiles.isEmpty())
+//            throw new RuntimeException("Cannot load any case studies: path to case studies is not defined");
+//        if (!Files.exists(Paths.get(pathToCaseStudyFiles)))
+//            throw new RuntimeException("Cannot load any case studies: path to case studies does not exist "+pathToCaseStudyFiles);
 
         Map<Integer,CaseStudyInformation> caseStudyInformationMap = new HashMap<>();
         for (int casestudy=0; casestudy<caseStudies.length; casestudy++)

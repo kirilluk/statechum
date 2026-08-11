@@ -94,7 +94,7 @@ public class E_MarkovCaseStudies {
     // experiments with a specific one do not replace experiments with others.
     public static Set<String> whichCaseStudyToRun = new TreeSet<>();
     static {
-        whichCaseStudyToRun.add("FanTempMonitor");
+//        whichCaseStudyToRun.add("FanTempMonitor");
     }
 
     public static class MarkovLearningBaselineParameters extends MarkovLearningParameters {
@@ -120,8 +120,8 @@ public class E_MarkovCaseStudies {
         public void generateReferenceFSM()
         {
             referenceGraph = constructAutomatonForCaseStudy(caseStudies[par.sample],learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter());
-            Visualiser.updateFrame(referenceGraph, null);
-            Visualiser.waitForKey();
+//            Visualiser.updateFrame(referenceGraph, null);
+//            Visualiser.waitForKey();
         }
     }
 
@@ -145,7 +145,7 @@ public class E_MarkovCaseStudies {
         int[] learnerExperiment = new int[]{0,1};
         final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "results_casestudies.csv"), "results.csv");
         boolean aveOrMax = true;// average divide by the divisor
-        final int trainingSamplesPerFSM = 4;//0;// these are fixed automata hence we can try many different values to see how inference performs.
+        final int trainingSamplesPerFSM = 40;// these are fixed automata hence we can try many different values to see how inference performs.
         boolean pathsOrSets = true, penaliseMissingPaths = true;
         String pathToCaseStudyFiles = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_CASESTUDIES);
         if (null == pathToCaseStudyFiles ||  pathToCaseStudyFiles.isEmpty())
@@ -167,8 +167,8 @@ public class E_MarkovCaseStudies {
                 System.out.println("States: "+states+" , Alphabet: "+reference.getCache().getAlphabet().size()+" , Density: "+density+" done.");
                 Pair<Integer, Integer>[] traces_and_lengths = new Pair[]{
                         new Pair(1, reference.getCache().getAlphabet().size() * states),
-//                        new Pair(states, reference.getCache().getAlphabet().size()),
-//                        new Pair( states * states, reference.getCache().getAlphabet().size())
+                        new Pair(states, reference.getCache().getAlphabet().size()),
+                        new Pair( states * states, reference.getCache().getAlphabet().size())
                 };
                 caseStudyInformationMap.put(casestudy,new CaseStudyInformation(caseStudies[casestudy], casestudy, reference, reference.pathroutines.computeAlphabet().size(), traces_and_lengths));
             }
@@ -194,9 +194,9 @@ public class E_MarkovCaseStudies {
                                             new LearningAlgorithms.ScoringToApply[]{
                                                     LearningAlgorithms.ScoringToApply.SCORING_MARKOV
                                             })
-                                for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{3} : new int[]{2})
+                                for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{2,3,4} : new int[]{2})
                                     for (double weightOfInconsistencies : learnerKind.isMarkov() ?
-                                            new double[]{0.1,0.15,0.25,0.5}//, 2.0, 4.0, 8.0, 16.0}
+                                            new double[]{0.25,0.5,1.0, 2.0, 3.0, 4.0, 6.0, 8.0}
                                             : new double[]{1.0})
                                         for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} :
                                                 new Pair[]{new Pair(1, 2), new Pair(1, 4), new Pair(2, 4), new Pair(2, 8)}) {
@@ -213,7 +213,7 @@ public class E_MarkovCaseStudies {
                                             parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets,
                                                     new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, wlen_divisor.secondElem, 0, wlen_divisor.firstElem);
                                             parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-                                            parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
+//                                            parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
 //                                            parameters.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP,0.6, 10);
                                             MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(parameters, ev);
                                             learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).

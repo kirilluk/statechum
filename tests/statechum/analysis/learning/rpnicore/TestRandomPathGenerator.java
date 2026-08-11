@@ -19,6 +19,7 @@ along with StateChum.  If not, see <http://www.gnu.org/licenses/>.
 package statechum.analysis.learning.rpnicore;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -1413,6 +1414,34 @@ public class TestRandomPathGenerator {
 		List<Label> expected = new LinkedList<>();
 		for(String st:new String[]{"a", "b", "a", "c", "b", "a", "a", "b", "a", "b", "a", "b", "a", "e", "b", "a", "a", "b", "a", "b", "a", "b", "a", "b", "b", "a", "a", "e", "b", "b"})
 			expected.add(AbstractLearnerGraph.generateNewLabel(st, config, converter));
+		Assert.assertEquals(expected,listOfDetails.iterator().next());
+	}
+
+
+	@Test
+	public void test_generate_aimfortransitioncover_prefer_transitions_Walk4()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->F-b->G-a->H-a->H-b->F / H-c->H-d->H-e->H-f->A-a->B-a->F / B-b->F/ B-e->F / B-c->C-a->D-b->E / C-c->F / C-b->F / E-a->F","test_generate_aimfortransitioncover_Walk1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
+		generator.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP);
+		generator.setExplorationPreferenceAndPenalty(0.6,10);
+		generator.generateRandomPosNeg(2, 1, false, new RandomLengthGenerator() {
+
+			@Override
+			public int getLength() {
+				return 150;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,false,null,null);
+		List<List<Label>> listOfDetails = generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
+		Assert.assertEquals(1,listOfDetails.size());
+
+		List<Label> expected = Arrays.asList("a, a, b, a, f, a, b, b, a, f, a, c, b, a, b, a, e, b, a, b, a, c, b, b, a, a, d, d, c, b, a, b, a, e, e, d, f, a, a, b, a, a, c, b, a, a, a, b, a, f, a, a, b, a, c, b, b, a, f, a, e, a, a, b, a, b, b, a, a, f, a, e, b, a, b, b, a, f, a, a, a, a, b, a, f, a, b, a, a, b, a, b, b, a, f, a, e, a, b, a, b, b, a, b, b, a, f, a, b, a, b, a, f, a, c, a, b, a, b, a, b, b, a, a, f, a, c, a, b, a, a, b, a, e, b, b, a, b, b, a, f, a, c, c, a, a, b, a, d, f".split("[ ,]+")).
+				stream().map( k -> new StringLabel(k)).collect(Collectors.toList());
 		Assert.assertEquals(expected,listOfDetails.iterator().next());
 	}
 }

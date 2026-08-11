@@ -328,27 +328,29 @@ public class RandomPathGenerator {
 
 	}
 
+	protected List<Label> pickPathToLowVisitedState(Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounter, CmpVertex current) {
+		Map<CmpVertex,AtomicInteger> penaltyForStateVisits = new TreeMap();
+		List<Label> path = new ArrayList<>();
+
+		for(Entry<CmpVertex,Map<Label, AtomicInteger>> transitions:stateToCounter.entrySet()) {
+			int sum = 0;
+			for (Entry<Label, AtomicInteger> entry : transitions.getValue().entrySet())
+				sum += entry.getValue().get();
+			penaltyForStateVisits.put(transitions.getKey(),new AtomicInteger(sum * 5));
+		}
+
+		return path;
+	}
+
 	protected Label pickRandomTransition(
 			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounter, Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterDiag,
 			Map<CmpVertex,ArrayList<Entry<Label,CmpVertex>>> transitionsToSelectFrom, int selectionPenaltyForLabel,
 			CmpVertex currentState)
 	{
 		Map<Label,AtomicInteger> labelToVisits = stateToCounter.get(currentState);
-//				stateToCounter.computeIfAbsent(currentState,k->{
-//			Map<Label,AtomicInteger> lblToVisits = new HashMap<>();
-//			for(Entry<Label,CmpVertex> entry:transitionsToSelectFrom.get(currentState))
-//				lblToVisits.put(entry.getKey(),new AtomicInteger(0));
-//			return lblToVisits;
-//		});
 		Map<Label,AtomicInteger> labelToVisitsDiag = null;
 		if (stateToCounterDiag != null)
 			labelToVisitsDiag = stateToCounterDiag.get(currentState);
-//			stateToCounterDiag.computeIfAbsent(currentState,k->{
-//				Map<Label,AtomicInteger> lblToVisits = new HashMap<>();
-//				for(Entry<Label,CmpVertex> entry:transitionsToSelectFrom.get(currentState))
-//					lblToVisits.put(entry.getKey(),new AtomicInteger(0));
-//				return lblToVisits;
-//			});
 
 		Map<CmpVertex,AtomicInteger> penaltyForStateVisits = new TreeMap();
 
@@ -365,11 +367,6 @@ public class RandomPathGenerator {
 			sum += entryValue;
 			maxValue = Math.max(maxValue,entryValue);
 		}
-//					System.out.println("State: "+currentState+", elems: "+labelToVisits.size()+", max: "+maxValue+", sum: "+sum+ " total: "+(labelToVisits.size()*(1+maxValue)-sum));
-//					for(Entry<Label,AtomicInteger> entry:labelToVisits.entrySet()) {
-//						System.out.print("\t"+entry.getKey()+" : "+entry.getValue().get());
-//					}
-//					System.out.println();
 
 		int selection = randomNumberGenerator.nextInt(labelToVisits.size()*(1+maxValue)-sum);
 		int curSum=0;
@@ -395,13 +392,13 @@ public class RandomPathGenerator {
 		int generationAttempt = 0;
 		int prefixForAllSequencesLength = prefixForAllSequences == null?0:prefixForAllSequences.size();
 		List<Label> path = new ArrayList<>(walkLength + prefixForAllSequencesLength);
-
 		do
 		{
 			path.clear();if (prefixForAllSequences != null) path.addAll(prefixForAllSequences);
 			CmpVertex current = initialState;
 
 			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounter = new HashMap<>();
+			populateLabelToVisits(stateToCounter,transitions);
 
 			int positiveLength = positive?walkLength:walkLength-1;// this is how many elements to add to what we already have (prefixForAllSequencesLength).
 			if (positiveLength>0)
@@ -438,39 +435,77 @@ public class RandomPathGenerator {
 		return path;
 	}
 
-	static void updateBiasForExploration(LearnerGraphND inverseGraph, Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration,
-								  CmpVertex state, double poorVisitedCounter, double weight, int step) {
+//	static void updateBiasForExplorationA(LearnerGraphND inverseGraph, Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration,
+//								  CmpVertex state, double poorVisitedCounter, double weight, int step) {
+//			for(Entry<Label,List<CmpVertex>> entry:inverseGraph.transitionMatrix.get(state).entrySet())
+//				for(CmpVertex vertex:inverseGraph.getTargets(entry.getValue())) {
+//					AtomicInteger value = stateToCounterExploration.get(vertex).get(entry.getKey());
+//					int newValue = Math.max(0, (int)(value.get()-poorVisitedCounter*weight));
+//					value.set(newValue);
+//					if (step > 0)
+//						blastPathForExploration(inverseGraph,stateToCounterExploration,vertex,poorVisitedCounter*weight,weight,step-1);
+//				}
+//	}
+
+	static void blastPathForExploration(LearnerGraphND inverseGraph, Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration,
+										List<CmpVertex> statesToExplore, int step) {
+		List<CmpVertex> newStates = new LinkedList<>();
+		for(CmpVertex state:statesToExplore)
 			for(Entry<Label,List<CmpVertex>> entry:inverseGraph.transitionMatrix.get(state).entrySet())
 				for(CmpVertex vertex:inverseGraph.getTargets(entry.getValue())) {
 					AtomicInteger value = stateToCounterExploration.get(vertex).get(entry.getKey());
-					int newValue = Math.max(0, (int)(value.get()-poorVisitedCounter*weight));
-					value.set(newValue);
-					if (step > 0)
-						updateBiasForExploration(inverseGraph,stateToCounterExploration,vertex,poorVisitedCounter*weight,weight,step-1);
+	//				int newValue = Math.max(0, (int)(value.get()-poorVisitedCounter*weight));
+	//				value.set(newValue);
+					value.set(0);
+					newStates.add(vertex);
 				}
+		if (step > 0 && !newStates.isEmpty())
+			blastPathForExploration(inverseGraph,stateToCounterExploration,newStates,step-1);
 	}
 
-	static void constructBiasForExploration(LearnerGraphND inverseGraph, Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration, CmpVertex current, double weight, int step) {
-//		int minValue = Integer.MAX_VALUE;
-//		for(Entry<CmpVertex,Map<Label, AtomicInteger>> stateToExploration:stateToCounterExploration.entrySet())
-//			for(Entry<Label,AtomicInteger> labelAndCounter:stateToExploration.getValue().entrySet())
-//				minValue = Math.min(minValue,labelAndCounter.getValue().get());
-//
-//		for(Entry<CmpVertex,Map<Label, AtomicInteger>> stateToExploration:stateToCounterExploration.entrySet()) {
-//			int poorVisitedCounter = 0;
-//			for (Entry<Label, AtomicInteger> labelAndCounter : stateToExploration.getValue().entrySet())
-//				if (labelAndCounter.getValue().get() <= minValue)
-//					poorVisitedCounter++;
-//
-//			if (poorVisitedCounter > 0 && minValue < Integer.MAX_VALUE)
-//				updateBiasForExploration(inverseGraph,stateToCounterExploration,stateToExploration.getKey(),poorVisitedCounter,weight,step);
-//		}
-		int poorVisitedCounter = 0;
-		for (Entry<Label, AtomicInteger> labelAndCounter : stateToCounterExploration.get(current).entrySet())
-			if (labelAndCounter.getValue().get() == 0)
-				poorVisitedCounter++;
-		if (poorVisitedCounter > 0)
-			updateBiasForExploration(inverseGraph,stateToCounterExploration,current,poorVisitedCounter,weight,step);
+	void constructBiasForExploration(LearnerGraphND inverseGraph,
+											Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration,
+											Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterActualValues,
+											int step) {
+		int minValue = Integer.MAX_VALUE;
+		int sum = 0, counter = 0;
+		for(Entry<CmpVertex,Map<Label, AtomicInteger>> stateToExploration:stateToCounterActualValues.entrySet()) {
+			for (Entry<Label, AtomicInteger> labelAndCounter : stateToExploration.getValue().entrySet()) {
+				minValue = Math.min(minValue, labelAndCounter.getValue().get());
+				sum += labelAndCounter.getValue().get();
+			}
+			counter += stateToExploration.getValue().size();
+		}
+
+		int average = 0;
+		if (counter > 0)
+			average = sum/counter;
+
+		List<CmpVertex> exploreStartingFromThis = new LinkedList<>();
+		for(Entry<CmpVertex,Map<Label, AtomicInteger>> stateToExploration:stateToCounterActualValues.entrySet()) {
+			int poorVisitedCounter = 0;
+			for (Entry<Label, AtomicInteger> labelAndCounter : stateToExploration.getValue().entrySet())
+				if (labelAndCounter.getValue().get() <= 2*minValue && labelAndCounter.getValue().get() < average / (5*selectionPenalty))
+					poorVisitedCounter++;
+
+			if (poorVisitedCounter > 0 && minValue < Integer.MAX_VALUE)
+				exploreStartingFromThis.add(stateToExploration.getKey());
+		}
+
+//		int poorVisitedCounter = 0;
+//		for (Entry<Label, AtomicInteger> labelAndCounter : stateToCounterExploration.get(current).entrySet())
+//			if (labelAndCounter.getValue().get() == 0)
+//				poorVisitedCounter++;
+//		if (poorVisitedCounter > 0)
+//			updateBiasForExploration(inverseGraph,stateToCounterExploration,current,poorVisitedCounter,weight,step);
+
+		if (!exploreStartingFromThis.isEmpty()) {
+//			System.out.print("Blasted path to : ");
+//			for (CmpVertex explore : exploreStartingFromThis)
+//				System.out.print(explore+" ");
+//			System.out.println();
+			blastPathForExploration(inverseGraph, stateToCounterExploration, exploreStartingFromThis, step);
+		}
 	}
 
 
@@ -499,9 +534,9 @@ public class RandomPathGenerator {
 
 			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterLoop = new HashMap<>();
 			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration = new HashMap<>();
-			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExplorationDiag = new HashMap<>();
+			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterActual = new HashMap<>();
 			populateLabelToVisits(stateToCounterExploration,transitionsNonLoops);
-			populateLabelToVisits(stateToCounterExplorationDiag,transitionsNonLoops);
+			populateLabelToVisits(stateToCounterActual,transitionsNonLoops);
 			populateLabelToVisits(stateToCounterLoop,transitionsLoops);
 
 			int positiveLength = positive?walkLength:walkLength-1;// this is how many elements to add to what we already have (prefixForAllSequencesLength).
@@ -516,13 +551,10 @@ public class RandomPathGenerator {
 					Label nextLabel = null;
 
 					if (randomNumberGenerator.nextDouble() < explorationPreference || transitionsLoops.get(current).isEmpty()) {
-						if (current.equals(DeterministicDirectedSparseGraph.VertexID.parseID("s16")))
-							System.out.println();
-						nextLabel = pickRandomTransition(stateToCounterExploration, stateToCounterExplorationDiag, transitionsNonLoops, selectionPenalty, current);// take a transition either
+						nextLabel = pickRandomTransition(stateToCounterExploration, stateToCounterActual, transitionsNonLoops, selectionPenalty, current);// take a transition either
 						// because we would like to, or because we have no choice. Note that if transitionLoops has no elements for the
 						// current state, transitionsNonLoops will definitely have elements, otherwise we would have bailed on the row.isEmpty()
-						for(Entry<Label, CmpVertex> entry: g.transitionMatrix.get(current).entrySet())
-							constructBiasForExploration(inverseGraph,stateToCounterExploration,entry.getValue(),0.2,2);
+						constructBiasForExploration(inverseGraph,stateToCounterExploration,stateToCounterActual,g.getStateNumber()/10);
 					}
 					else
 						nextLabel = pickRandomTransition(stateToCounterLoop, null, transitionsLoops,selectionPenalty, current);
@@ -534,14 +566,14 @@ public class RandomPathGenerator {
 //						System.out.println();
 				}
 
-				for(Entry<CmpVertex,Map<Label, AtomicInteger>> entryStateToCounter:stateToCounterExplorationDiag.entrySet()) {
-					Set<Label> uncovered =  new TreeSet<>();
-					for(Entry<Label,AtomicInteger> entry: entryStateToCounter.getValue().entrySet())
-						if (entry.getValue().get() == 0)
-							uncovered.add(entry.getKey());
-
-					System.out.println("State : "+entryStateToCounter.getKey()+", uncovered : "+uncovered);
-				}
+//				for(Entry<CmpVertex,Map<Label, AtomicInteger>> entryStateToCounter:stateToCounterActual.entrySet()) {
+//					Set<Label> uncovered =  new TreeSet<>();
+//					for(Entry<Label,AtomicInteger> entry: entryStateToCounter.getValue().entrySet())
+//						if (entry.getValue().get() == 0)
+//							uncovered.add(entry.getKey());
+//
+//					System.out.println("State : "+entryStateToCounter.getKey()+", uncovered : "+uncovered);
+//				}
 
 
 			}

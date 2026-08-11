@@ -67,7 +67,7 @@ public class E_MarkovCaseStudies {
                 LearnerGraph fanTempMonitorWithNegatives = new LearnerGraph(config);
                 try {
                     String pathToFanTempMonitor = "resources/i2c_study/i2c_outcome_correct";
-                    if (!Files.exists(Paths.get(pathToFanTempMonitor))) // If running on HPC, the working directory is 'stanage'
+                    if (!Files.exists(Paths.get(pathToFanTempMonitor+".xml"))) // If running on HPC, the working directory is 'stanage'
                         pathToFanTempMonitor = "../"+pathToFanTempMonitor;
                     AbstractPersistence.loadGraph(pathToFanTempMonitor, fanTempMonitorWithNegatives,conv);
                 } catch (IOException e) {
@@ -159,7 +159,8 @@ public class E_MarkovCaseStudies {
         Map<Integer,CaseStudyInformation> caseStudyInformationMap = new HashMap<>();
         for (int casestudy=0; casestudy<caseStudies.length; casestudy++)
             if (whichCaseStudyToRun == null || whichCaseStudyToRun.isEmpty() || whichCaseStudyToRun.contains(caseStudies[casestudy])) {
-                System.out.print("Loading " + caseStudies[casestudy] + " ...");
+                if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
+                    System.out.print("Loading " + caseStudies[casestudy] + " ...");
                 Configuration dotConfig = learningGroup.eval.config.copy();
                 // Large amount of data - possibly need Array-based data structures
 //                dotConfig.setTransitionMatrixImplType(Configuration.STATETREE.STATETREE_ARRAY);
@@ -167,7 +168,8 @@ public class E_MarkovCaseStudies {
                 LearnerGraph reference = constructAutomatonForCaseStudy(caseStudies[casestudy], dotConfig, new Transform.InternStringLabel());
                 double density = (double)reference.pathroutines.countEdges()/(reference.getStateNumber() * reference.getStateNumber());
                 int states = reference.getStateNumber();
-                System.out.println("States: "+states+" , Alphabet: "+reference.getCache().getAlphabet().size()+" , Density: "+density+" done.");
+                if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
+                    System.out.println("States: "+states+" , Alphabet: "+reference.getCache().getAlphabet().size()+" , Density: "+density+" done.");
                 Pair<Integer, Integer>[] traces_and_lengths = new Pair[]{
                         new Pair(1, reference.getCache().getAlphabet().size() * states),
                         new Pair(states, reference.getCache().getAlphabet().size()),

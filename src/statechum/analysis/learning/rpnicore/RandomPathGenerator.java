@@ -23,7 +23,9 @@ import edu.uci.ics.jung.algorithms.shortestpath.DijkstraDistance;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import statechum.Configuration;
 import statechum.DeterministicDirectedSparseGraph;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.Label;
@@ -43,6 +45,8 @@ public class RandomPathGenerator {
 	
 	/** An array representation of the transition matrix of the graph, needed for fast computation of random walks. */
 	private final Map<CmpVertex,ArrayList<Entry<Label,CmpVertex>>> transitions = new TreeMap<>();
+	private final Map<CmpVertex,ArrayList<Entry<Label,CmpVertex>>> transitionsLoops = new TreeMap<>();
+	private final Map<CmpVertex,ArrayList<Entry<Label,CmpVertex>>> transitionsNonLoops = new TreeMap<>();
 	/** For each state, stores inputs not accepted from it, needed for fast computation of random walks. */
 	private final Map<CmpVertex,ArrayList<Label>> inputsRejected = new TreeMap<>();
 	
@@ -83,7 +87,7 @@ public class RandomPathGenerator {
 		else initialState=g.getInit();
 		pathLength = diameter(g)+extra;
 		
-		transitions.clear();inputsRejected.clear();
+		transitions.clear();transitionsLoops.clear();transitionsNonLoops.clear();inputsRejected.clear();
 		/* The alphabet of the graph. */
 		Set<Label> alphabet = null;
 		if (alphabetArg == null)
@@ -103,12 +107,27 @@ public class RandomPathGenerator {
 			negatives.removeAll(entry.getValue().keySet());
 			ArrayList<Label> rejects = new ArrayList<>(negatives);
 			inputsRejected.put(entry.getKey(), rejects);
+
+			ArrayList<Entry<Label, CmpVertex>> rowLoop = new ArrayList<>();
+			ArrayList<Entry<Label, CmpVertex>> rowNonLoop = new ArrayList<>();
+			for(Entry<Label, CmpVertex> transition:entry.getValue().entrySet())
+				if (transition.getValue().equals(entry.getKey()))
+					rowLoop.add(transition);
+				else
+					rowNonLoop.add(transition);
+			transitionsLoops.put(entry.getKey(), rowLoop);
+			transitionsNonLoops.put(entry.getKey(), rowNonLoop);
 		}
 		initAllSequences();
 	}
 
-	/** If WALKTYPE_LEADS_TO_INITIAL_STATE, every walk should avoid visiting an initial state but all positive ones should terminate at it.*/
-	public enum WALKTYPE {WALKTYPE_GENERAL, WALKTYPE_LEADS_TO_INITIAL_STATE, WALKTYPE_LIMITEDSELFLOOPS}
+	/** If WALKTYPE_LEADS_TO_INITIAL_STATE, every walk should avoid visiting an initial state but all positive ones should terminate at it.
+	 * For WALKTYPE_AIMFORTRANSITIONCOVER, we make sure that rarely used transitions are prioritised.
+	 * For WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP, we have a specific probability to take a transition to a different state
+	 * (and this is the usually the preference since realistic implementations are unlikely to stay in the same state looping for a good amount of time).
+	 */
+	public enum WALKTYPE {WALKTYPE_GENERAL, WALKTYPE_LEADS_TO_INITIAL_STATE, WALKTYPE_LIMITEDSELFLOOPS,
+		WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP, WALKTYPE_AIMFORTRANSITIONCOVER}
 	protected WALKTYPE walkType = WALKTYPE.WALKTYPE_GENERAL;
 
 	public void setWalksShouldLeadToInitialState()
@@ -117,13 +136,20 @@ public class RandomPathGenerator {
 		constructShortestPathsToInitAndLongestPathsAvoidingInit();
 	}
 
+
 	public void setWalkType(WALKTYPE type) {
 		if (type == WALKTYPE.WALKTYPE_LEADS_TO_INITIAL_STATE)
 			setWalksShouldLeadToInitialState();
 		else
 			walkType = type;
 	}
-	
+
+	protected double explorationPreference = 0.7;
+	protected int selectionPenalty = 1;
+	public void setExplorationPreferenceAndPenalty(double value, int selectionPenalty) {
+		explorationPreference = value;this.selectionPenalty = selectionPenalty;
+	}
+
 	/** If not null, during construction of paths looping in the initial state, the unique transition will appear at the end of each generated path. */
 	protected Label appendUniqueToPath = null;
 	
@@ -227,6 +253,10 @@ public class RandomPathGenerator {
 				outcome = generateRandomWalkLeadingToTheInitialState(walkLength, prefixLen, positive, prefixForAllSequences);break;
 			case WALKTYPE_LIMITEDSELFLOOPS:
 				outcome = generateRandomWalkNoConsecutiveSelfloops(walkLength, prefixLen, positive, prefixForAllSequences);break;
+			case WALKTYPE_AIMFORTRANSITIONCOVER:
+				outcome = generateRandomWalkAimingForTransitionCover(walkLength, prefixLen, positive, prefixForAllSequences);break;
+			case WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP:
+				outcome = generateRandomWalkPreferTransitionsAimingForTransitionCover(walkLength, explorationPreference, prefixLen, positive, prefixForAllSequences);break;
 			default:
 				throw new IllegalArgumentException("unknown walk type");
 		}
@@ -272,6 +302,264 @@ public class RandomPathGenerator {
 			
 			generationAttempt++;
 				
+			if (generationAttempt > g.config.getRandomPathAttemptThreshold())
+				return null;
+		}
+		while(prefixLen > 0 && (path.size() < prefixForAllSequencesLength+walkLength || allSequences.contains(path.subList(0, prefixForAllSequencesLength+prefixLen))));
+		return path;
+	}
+
+	/** Populates a map from vertices to a map from labels out of the corresponding states to the number of times they have been visited during exploration.
+	 *
+	 * @param stateToCounter the map to populate
+	 * @param transitionsToSelectFrom transitions to use (we distinguish between transitions looping in the same state and those that change
+	 *                                   a state to a different one. This is intended to reflect how systems work: they usually do not
+	 *                                   spend all their time looping in the same state.
+	 */
+	protected void populateLabelToVisits(Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounter,
+										 Map<CmpVertex,ArrayList<Entry<Label,CmpVertex>>> transitionsToSelectFrom) {
+
+		for(Entry<CmpVertex,ArrayList<Entry<Label,CmpVertex>>> transitions:transitionsToSelectFrom.entrySet()) {
+			Map<Label, AtomicInteger> map = new TreeMap<>();
+			for(Entry<Label,CmpVertex> entry:transitions.getValue())
+				map.put(entry.getKey(),new AtomicInteger(0));
+			stateToCounter.put(transitions.getKey(),map);
+		}
+
+	}
+
+	protected Label pickRandomTransition(
+			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounter, Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterDiag,
+			Map<CmpVertex,ArrayList<Entry<Label,CmpVertex>>> transitionsToSelectFrom, int selectionPenaltyForLabel,
+			CmpVertex currentState)
+	{
+		Map<Label,AtomicInteger> labelToVisits = stateToCounter.get(currentState);
+//				stateToCounter.computeIfAbsent(currentState,k->{
+//			Map<Label,AtomicInteger> lblToVisits = new HashMap<>();
+//			for(Entry<Label,CmpVertex> entry:transitionsToSelectFrom.get(currentState))
+//				lblToVisits.put(entry.getKey(),new AtomicInteger(0));
+//			return lblToVisits;
+//		});
+		Map<Label,AtomicInteger> labelToVisitsDiag = null;
+		if (stateToCounterDiag != null)
+			labelToVisitsDiag = stateToCounterDiag.get(currentState);
+//			stateToCounterDiag.computeIfAbsent(currentState,k->{
+//				Map<Label,AtomicInteger> lblToVisits = new HashMap<>();
+//				for(Entry<Label,CmpVertex> entry:transitionsToSelectFrom.get(currentState))
+//					lblToVisits.put(entry.getKey(),new AtomicInteger(0));
+//				return lblToVisits;
+//			});
+
+		Map<CmpVertex,AtomicInteger> penaltyForStateVisits = new TreeMap();
+
+		for(Entry<CmpVertex,Map<Label, AtomicInteger>> transitions:stateToCounter.entrySet()) {
+			int sum = 0;
+			for (Entry<Label, AtomicInteger> entry : transitions.getValue().entrySet())
+				sum += entry.getValue().get();
+			penaltyForStateVisits.put(transitions.getKey(),new AtomicInteger(sum * 5));
+		}
+
+		int maxValue=0, sum=0;
+		for(Entry<Label,AtomicInteger> entry:labelToVisits.entrySet()) {
+			int entryValue = Math.min(entry.getValue().get(),penaltyForStateVisits.get(g.transitionMatrix.get(currentState).get(entry.getKey())).get());
+			sum += entryValue;
+			maxValue = Math.max(maxValue,entryValue);
+		}
+//					System.out.println("State: "+currentState+", elems: "+labelToVisits.size()+", max: "+maxValue+", sum: "+sum+ " total: "+(labelToVisits.size()*(1+maxValue)-sum));
+//					for(Entry<Label,AtomicInteger> entry:labelToVisits.entrySet()) {
+//						System.out.print("\t"+entry.getKey()+" : "+entry.getValue().get());
+//					}
+//					System.out.println();
+
+		int selection = randomNumberGenerator.nextInt(labelToVisits.size()*(1+maxValue)-sum);
+		int curSum=0;
+
+		Label transitionFound = null;
+		for(Entry<Label,AtomicInteger> labelAndCounter:labelToVisits.entrySet()) {
+			int nextSum = curSum + maxValue+1-Math.min(labelAndCounter.getValue().get(), penaltyForStateVisits.get(g.transitionMatrix.get(currentState).get(labelAndCounter.getKey())).get());
+			if (selection >= curSum && selection < nextSum) {
+				transitionFound = labelAndCounter.getKey();
+				labelAndCounter.getValue().addAndGet(selectionPenaltyForLabel);// update the counter of visits
+				if (labelToVisitsDiag != null)
+					labelToVisitsDiag.get(labelAndCounter.getKey()).addAndGet(selectionPenaltyForLabel);// update true statistics, the one that will not be affected by exploration bias
+				break;
+			}
+			curSum = nextSum;
+		}
+		assert transitionFound != null;// sanity check
+		return transitionFound;
+	}
+
+	List<Label> generateRandomWalkAimingForTransitionCover(int walkLength, int prefixLen, boolean positive, List<Label> prefixForAllSequences)
+	{
+		int generationAttempt = 0;
+		int prefixForAllSequencesLength = prefixForAllSequences == null?0:prefixForAllSequences.size();
+		List<Label> path = new ArrayList<>(walkLength + prefixForAllSequencesLength);
+
+		do
+		{
+			path.clear();if (prefixForAllSequences != null) path.addAll(prefixForAllSequences);
+			CmpVertex current = initialState;
+
+			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounter = new HashMap<>();
+
+			int positiveLength = positive?walkLength:walkLength-1;// this is how many elements to add to what we already have (prefixForAllSequencesLength).
+			if (positiveLength>0)
+			{// if we are asked to generate negative paths of length 1, we cannot start with anything positive.
+				for(int i=0;i<positiveLength;i++)
+				{
+					ArrayList<Entry<Label,CmpVertex>> row = transitions.get(current);
+					if(row.isEmpty())
+						break;// cannot make a transition
+
+					Label nextLabel = pickRandomTransition(stateToCounter,null, transitions,1,current);
+					path.add(nextLabel);current = g.transitionMatrix.get(current).get(nextLabel);
+				}
+			}
+
+			if (path.size() == prefixForAllSequencesLength+positiveLength && !positive)
+			{// successfully generated a positive path of the requested length, append a negative transition.
+				// In the situation where we'd like to generate both negatives and
+				// one element shorter positives, we'd have to copy our positive
+				// and then append a negative to the copy. It takes as long to take
+				// all negatives and make copy of all but one elements, given that
+				// they are ArrayLists.
+				ArrayList<Label> rejects = inputsRejected.get(current);
+				if (!rejects.isEmpty())
+					path.add(rejects.get(randomNumberGenerator.nextInt(rejects.size())));
+			}
+
+			generationAttempt++;
+
+			if (generationAttempt > g.config.getRandomPathAttemptThreshold())
+				return null;
+		}
+		while(prefixLen > 0 && (path.size() < prefixForAllSequencesLength+walkLength || allSequences.contains(path.subList(0, prefixForAllSequencesLength+prefixLen))));
+		return path;
+	}
+
+	static void updateBiasForExploration(LearnerGraphND inverseGraph, Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration,
+								  CmpVertex state, double poorVisitedCounter, double weight, int step) {
+			for(Entry<Label,List<CmpVertex>> entry:inverseGraph.transitionMatrix.get(state).entrySet())
+				for(CmpVertex vertex:inverseGraph.getTargets(entry.getValue())) {
+					AtomicInteger value = stateToCounterExploration.get(vertex).get(entry.getKey());
+					int newValue = Math.max(0, (int)(value.get()-poorVisitedCounter*weight));
+					value.set(newValue);
+					if (step > 0)
+						updateBiasForExploration(inverseGraph,stateToCounterExploration,vertex,poorVisitedCounter*weight,weight,step-1);
+				}
+	}
+
+	static void constructBiasForExploration(LearnerGraphND inverseGraph, Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration, CmpVertex current, double weight, int step) {
+//		int minValue = Integer.MAX_VALUE;
+//		for(Entry<CmpVertex,Map<Label, AtomicInteger>> stateToExploration:stateToCounterExploration.entrySet())
+//			for(Entry<Label,AtomicInteger> labelAndCounter:stateToExploration.getValue().entrySet())
+//				minValue = Math.min(minValue,labelAndCounter.getValue().get());
+//
+//		for(Entry<CmpVertex,Map<Label, AtomicInteger>> stateToExploration:stateToCounterExploration.entrySet()) {
+//			int poorVisitedCounter = 0;
+//			for (Entry<Label, AtomicInteger> labelAndCounter : stateToExploration.getValue().entrySet())
+//				if (labelAndCounter.getValue().get() <= minValue)
+//					poorVisitedCounter++;
+//
+//			if (poorVisitedCounter > 0 && minValue < Integer.MAX_VALUE)
+//				updateBiasForExploration(inverseGraph,stateToCounterExploration,stateToExploration.getKey(),poorVisitedCounter,weight,step);
+//		}
+		int poorVisitedCounter = 0;
+		for (Entry<Label, AtomicInteger> labelAndCounter : stateToCounterExploration.get(current).entrySet())
+			if (labelAndCounter.getValue().get() == 0)
+				poorVisitedCounter++;
+		if (poorVisitedCounter > 0)
+			updateBiasForExploration(inverseGraph,stateToCounterExploration,current,poorVisitedCounter,weight,step);
+	}
+
+
+	List<Label> generateRandomWalkPreferTransitionsAimingForTransitionCover(int walkLength, double explorationPreference,
+																			int prefixLen, boolean positive, List<Label> prefixForAllSequences)
+	{
+		int generationAttempt = 0;
+		int prefixForAllSequencesLength = prefixForAllSequences == null?0:prefixForAllSequences.size();
+		List<Label> path = new ArrayList<>(walkLength + prefixForAllSequencesLength);
+		Configuration shallowCopy = g.config.copy();shallowCopy.setLearnerCloneGraph(false);shallowCopy.setMaxAcceptStateNumber(g.vertPositiveID);shallowCopy.setMaxRejectStateNumber(g.vertNegativeID);
+		LearnerGraphND inverseGraph = new LearnerGraphND(shallowCopy);
+		inverseGraph.initEmpty();
+		AbstractPathRoutines.buildInverse(g,LearnerGraphND.ignoreNone,inverseGraph);
+		for(Entry<CmpVertex,MapWithSearch<Label,Label,List<CmpVertex>>> transitions:inverseGraph.transitionMatrix.entrySet())
+			for(Entry<Label, List<CmpVertex>> entry:transitions.getValue().entrySet()) {
+				List<CmpVertex> targetStates = new ArrayList<>();
+				for (CmpVertex target:entry.getValue())
+					if (!transitions.getKey().equals(target))
+						targetStates.add(target);
+				entry.setValue(targetStates);
+			}
+		do
+		{
+			path.clear();if (prefixForAllSequences != null) path.addAll(prefixForAllSequences);
+			CmpVertex current = initialState;
+
+			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterLoop = new HashMap<>();
+			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExploration = new HashMap<>();
+			Map<CmpVertex,Map<Label, AtomicInteger>> stateToCounterExplorationDiag = new HashMap<>();
+			populateLabelToVisits(stateToCounterExploration,transitionsNonLoops);
+			populateLabelToVisits(stateToCounterExplorationDiag,transitionsNonLoops);
+			populateLabelToVisits(stateToCounterLoop,transitionsLoops);
+
+			int positiveLength = positive?walkLength:walkLength-1;// this is how many elements to add to what we already have (prefixForAllSequencesLength).
+			if (positiveLength>0)
+			{// if we are asked to generate negative paths of length 1, we cannot start with anything positive.
+				for(int i=0;i<positiveLength;i++)
+				{
+					ArrayList<Entry<Label,CmpVertex>> row = transitions.get(current);
+					if(row.isEmpty())
+						break;// cannot make a transition
+
+					Label nextLabel = null;
+
+					if (randomNumberGenerator.nextDouble() < explorationPreference || transitionsLoops.get(current).isEmpty()) {
+						if (current.equals(DeterministicDirectedSparseGraph.VertexID.parseID("s16")))
+							System.out.println();
+						nextLabel = pickRandomTransition(stateToCounterExploration, stateToCounterExplorationDiag, transitionsNonLoops, selectionPenalty, current);// take a transition either
+						// because we would like to, or because we have no choice. Note that if transitionLoops has no elements for the
+						// current state, transitionsNonLoops will definitely have elements, otherwise we would have bailed on the row.isEmpty()
+						for(Entry<Label, CmpVertex> entry: g.transitionMatrix.get(current).entrySet())
+							constructBiasForExploration(inverseGraph,stateToCounterExploration,entry.getValue(),0.2,2);
+					}
+					else
+						nextLabel = pickRandomTransition(stateToCounterLoop, null, transitionsLoops,selectionPenalty, current);
+
+
+					path.add(nextLabel);current = g.transitionMatrix.get(current).get(nextLabel);
+
+//					if (i > 300)
+//						System.out.println();
+				}
+
+				for(Entry<CmpVertex,Map<Label, AtomicInteger>> entryStateToCounter:stateToCounterExplorationDiag.entrySet()) {
+					Set<Label> uncovered =  new TreeSet<>();
+					for(Entry<Label,AtomicInteger> entry: entryStateToCounter.getValue().entrySet())
+						if (entry.getValue().get() == 0)
+							uncovered.add(entry.getKey());
+
+					System.out.println("State : "+entryStateToCounter.getKey()+", uncovered : "+uncovered);
+				}
+
+
+			}
+
+			if (path.size() == prefixForAllSequencesLength+positiveLength && !positive)
+			{// successfully generated a positive path of the requested length, append a negative transition.
+				// In the situation where we'd like to generate both negatives and
+				// one element shorter positives, we'd have to copy our positive
+				// and then append a negative to the copy. It takes as long to take
+				// all negatives and make copy of all but one elements, given that
+				// they are ArrayLists.
+				ArrayList<Label> rejects = inputsRejected.get(current);
+				if (!rejects.isEmpty())
+					path.add(rejects.get(randomNumberGenerator.nextInt(rejects.size())));
+			}
+
+			generationAttempt++;
+
 			if (generationAttempt > g.config.getRandomPathAttemptThreshold())
 				return null;
 		}

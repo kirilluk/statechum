@@ -58,7 +58,7 @@ public class TestMergeStatistics {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
-		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2, true);
 		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();for(String name:new String[] {"A","B","C"}) reds.add(pta.findVertex(VertexID.parseID(name)));
 		evaluator.stateSelectedAsRed(pta, pta.findVertex(VertexID.parseID("E")), reds);
 		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
@@ -76,7 +76,7 @@ public class TestMergeStatistics {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
-		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,false,2);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,false,2, true);
 		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();for(String name:new String[] {"A","B","C"}) reds.add(pta.findVertex(VertexID.parseID(name)));
 		evaluator.stateSelectedAsRed(pta, pta.findVertex(VertexID.parseID("E")), reds);
 		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
@@ -94,7 +94,7 @@ public class TestMergeStatistics {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
-		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,false,2);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,false,2, true);
 		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();for(String name:new String[] {"A","B","C"}) reds.add(pta.findVertex(VertexID.parseID(name)));
 		evaluator.stateSelectedAsRed(pta, pta.findVertex(VertexID.parseID("E")), reds);
 		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
@@ -112,7 +112,7 @@ public class TestMergeStatistics {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
-		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2, true);
 		Collection<CmpVertex> reds = new ArrayList<CmpVertex>();for(String name:new String[] {"A","B"}) reds.add(pta.findVertex(VertexID.parseID(name)));
 		evaluator.stateSelectedAsRed(pta, pta.findVertex(VertexID.parseID("C")), reds);
 
@@ -130,7 +130,7 @@ public class TestMergeStatistics {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
-		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2, true);
 		evaluator.pairSelectedForMerger(pta, new StatePair(pta.findVertex(VertexID.parseID("A")),pta.findVertex(VertexID.parseID("B"))));
 
 		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
@@ -147,7 +147,7 @@ public class TestMergeStatistics {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
-		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2, true);
 		evaluator.pairSelectedForMerger(pta, new StatePair(pta.findVertex(VertexID.parseID("A")),pta.findVertex(VertexID.parseID("E"))));
 
 		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
@@ -164,7 +164,7 @@ public class TestMergeStatistics {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
-		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,2, true);
 		evaluator.pairSelectedForMerger(pta, new StatePair(pta.findVertex(VertexID.parseID("C")),pta.findVertex(VertexID.parseID("E"))));
 
 		assertEquals(1, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);
@@ -181,7 +181,7 @@ public class TestMergeStatistics {
 	{
 		LearnerGraph graph = buildLearnerGraph("A-a->B-a->C-a->D-a->A / B-b->B", "computeStatistics1graph",config,converter);
 		LearnerGraph pta = buildLearnerGraph("A-a->B-a->C-a->D-a->E / B-b->B", "computeStatistics1pta",config,converter);
-		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,5);
+		ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown evaluator = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(graph,true,5, true);
 		evaluator.pairSelectedForMerger(pta, new StatePair(pta.findVertex(VertexID.parseID("C")),pta.findVertex(VertexID.parseID("E"))));
 
 		assertEquals(0, evaluator.getInvalidMergersFarFromRoot(), Configuration.fpAccuracy);

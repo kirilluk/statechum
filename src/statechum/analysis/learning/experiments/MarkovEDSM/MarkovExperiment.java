@@ -100,6 +100,9 @@ public class MarkovExperiment
 			// Use a random generator selector passed as a parameter.
 			LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
 			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.trainingSample),5,null);
+			if (par.walkType != null) {
+				generator.setWalkType(par.walkType);generator.setExplorationPreferenceAndPenalty(par.explorationPreference, par.selectionPenalty);
+			}
 			// Using 2*par.traceQuantity reflects the original goal to generate an equal number of positive and
 			// negative traces hence an input to generateRandomPosNeg was expected to be even.
 			// We are not doing this now, instead only generating positive traces in quantity par.traceQuantity.
@@ -1176,8 +1179,8 @@ public class MarkovExperiment
 
 		try
 		{
-//			E_MarkovCaseStudies.runExperiment(learningGroup);
-			E_MarkovBaselineLearn.runExperiment(learningGroup);
+			E_MarkovCaseStudies.runExperiment(learningGroup);
+//			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			E_MarkovCentre.runExperiment(learningGroup);
 //			E_MarkovAlphabet.runExperiment(learningGroup);
@@ -1185,7 +1188,7 @@ public class MarkovExperiment
 //			E_MarkovTraceConstSize.runExperiment(learningGroup);
 //			E_MarkovPrefixLen.runExperiment(learningGroup);
 //			E_MarkovTraceNum.runExperiment(learningGroup);
-			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		}
 		catch(Exception ex)
 		{

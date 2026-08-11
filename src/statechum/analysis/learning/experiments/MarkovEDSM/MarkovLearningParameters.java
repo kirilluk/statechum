@@ -23,6 +23,7 @@ import statechum.Pair;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.ScoringToApply;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
+import statechum.analysis.learning.rpnicore.RandomPathGenerator;
 
 /** Describes setup of experiments using markov learning. This is different to
  * {@link MarkovParameters} that describe how to learn each automaton.
@@ -42,6 +43,10 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 	public MarkovParameters markovParameters = new MarkovParameters();
 	boolean reportMergeStatisticsWhenTheCorrectSolutionIsKnown = true;
 
+	public RandomPathGenerator.WALKTYPE walkType = null;
+	public double explorationPreference;
+	public int selectionPenalty;
+
 	public MarkovLearningParameters(ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample)
 	{
 		learnerToUse = l;
@@ -52,6 +57,10 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 	public void setExperimentID(int traceQuantity, double argTraceLengthMultiplierMax, double argAlphabetMultiplierMax)
 	{
 		this.traceQuantity = traceQuantity;this.traceLengthMultiplierMax = argTraceLengthMultiplierMax;this.alphabetMultiplierMax = argAlphabetMultiplierMax;
+	}
+
+	public void setWalkType(RandomPathGenerator.WALKTYPE walkType, double explorationPreference, int selectionPenalty) {
+		this.walkType = walkType;this.explorationPreference = explorationPreference;this.selectionPenalty = selectionPenalty;
 	}
 
 	enum MarkovRowEnum {

@@ -1259,4 +1259,160 @@ public class TestRandomPathGenerator {
 			expected.add(AbstractLearnerGraph.generateNewLabel(st, config, converter));
 		Assert.assertEquals(expected,listOfDetails.iterator().next());
 	}
+
+	@Test
+	public void test_generate_aimfortransitioncover_Walk1()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->F-b->G-a->H-a->H-b->F / H-c->H-d->H-e->H","test_generate_aimfortransitioncover_Walk1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
+		generator.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER);
+		generator.generateRandomPosNeg(2, 1, false, new RandomLengthGenerator() {
+
+			@Override
+			public int getLength() {
+				return 5;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,false,null,null);
+		List<List<Label>> listOfDetails = generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
+		Assert.assertEquals(1,listOfDetails.size());
+		List<Label> expected = new LinkedList<>();
+		for(String st:new String[]{"b", "a", "e", "b", "b"})
+			expected.add(AbstractLearnerGraph.generateNewLabel(st, config, converter));
+		Assert.assertEquals(expected,listOfDetails.iterator().next());
+	}
+
+	@Test
+	public void test_generate_aimfortransitioncover_Walk2()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->F-b->G-a->H-a->H-b->F / H-c->H-d->H-e->H","test_generate_aimfortransitioncover_Walk1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
+		generator.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER);
+		generator.generateRandomPosNeg(2, 1, false, new RandomLengthGenerator() {
+
+			@Override
+			public int getLength() {
+				return 10;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,false,null,null);
+		List<List<Label>> listOfDetails = generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
+		Assert.assertEquals(1,listOfDetails.size());
+		List<Label> expected = new LinkedList<>();
+		for(String st:new String[]{"b", "a", "e", "b", "b", "a", "c", "a", "d", "e"})
+			expected.add(AbstractLearnerGraph.generateNewLabel(st, config, converter));
+		Assert.assertEquals(expected,listOfDetails.iterator().next());
+	}
+
+	@Test
+	public void test_generate_aimfortransitioncover_Walk3()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->F-b->G-a->H-a->H-b->F / H-c->H-d->H-e->H","test_generate_aimfortransitioncover_Walk1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
+		generator.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER);
+		generator.generateRandomPosNeg(2, 1, false, new RandomLengthGenerator() {
+
+			@Override
+			public int getLength() {
+				return 14;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,false,null,null);
+		List<List<Label>> listOfDetails = generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
+		Assert.assertEquals(1,listOfDetails.size());
+		List<Label> expected = new LinkedList<>();
+		for(String st:new String[]{"b", "a", "e", "b", "b", "a", "c", "a", "d", "e","c","b","a","a"})
+			expected.add(AbstractLearnerGraph.generateNewLabel(st, config, converter));
+		Assert.assertEquals(expected,listOfDetails.iterator().next());
+	}
+
+	@Test
+	public void test_generate_aimfortransitioncover_prefer_transitions_Walk1()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->F-b->G-a->H-a->H-b->F / H-c->H-d->H-e->H","test_generate_aimfortransitioncover_Walk1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
+		generator.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP);
+		generator.generateRandomPosNeg(2, 1, false, new RandomLengthGenerator() {
+
+			@Override
+			public int getLength() {
+				return 5;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,false,null,null);
+		List<List<Label>> listOfDetails = generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
+		Assert.assertEquals(1,listOfDetails.size());
+		List<Label> expected = new LinkedList<>();
+		for(String st:new String[]{"a", "b", "a", "c", "b"})
+			expected.add(AbstractLearnerGraph.generateNewLabel(st, config, converter));
+		Assert.assertEquals(expected,listOfDetails.iterator().next());
+	}
+
+	@Test
+	public void test_generate_aimfortransitioncover_prefer_transitions_Walk2()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->F-b->G-a->H-a->H-b->F / H-c->H-d->H-e->H","test_generate_aimfortransitioncover_Walk1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
+		generator.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP);
+		generator.generateRandomPosNeg(2, 1, false, new RandomLengthGenerator() {
+
+			@Override
+			public int getLength() {
+				return 10;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,false,null,null);
+		List<List<Label>> listOfDetails = generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
+		Assert.assertEquals(1,listOfDetails.size());
+		List<Label> expected = new LinkedList<>();
+		for(String st:new String[]{"a", "b", "a", "c", "b", "a", "a", "b", "a", "b"})
+			expected.add(AbstractLearnerGraph.generateNewLabel(st, config, converter));
+		Assert.assertEquals(expected,listOfDetails.iterator().next());
+	}
+
+	@Test
+	public void test_generate_aimfortransitioncover_prefer_transitions_Walk3()
+	{
+		LearnerGraph graph = buildLearnerGraph("F-a->F-b->G-a->H-a->H-b->F / H-c->H-d->H-e->H","test_generate_aimfortransitioncover_Walk1",config,converter);
+		final RandomPathGenerator generator = new RandomPathGenerator(graph,new Random(0),0,null);
+		generator.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP);
+		generator.generateRandomPosNeg(2, 1, false, new RandomLengthGenerator() {
+
+			@Override
+			public int getLength() {
+				return 30;
+			}
+
+			@Override
+			public int getPrefixLength(int len) {
+				return len;
+			}
+		},true,false,null,null);
+		List<List<Label>> listOfDetails = generator.getAllSequences(0).getData(PTASequenceEngine.truePred);
+		Assert.assertEquals(1,listOfDetails.size());
+		List<Label> expected = new LinkedList<>();
+		for(String st:new String[]{"a", "b", "a", "c", "b", "a", "a", "b", "a", "b", "a", "b", "a", "e", "b", "a", "a", "b", "a", "b", "a", "b", "a", "b", "b", "a", "a", "e", "b", "b"})
+			expected.add(AbstractLearnerGraph.generateNewLabel(st, config, converter));
+		Assert.assertEquals(expected,listOfDetails.iterator().next());
+	}
 }

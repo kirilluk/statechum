@@ -463,7 +463,8 @@ public class AMEquivalenceClass<TARGET_TYPE,CACHE_TYPE extends CachedData<TARGET
 	public String toString() {
 		String mergedDescr = mergedVertex == null?"":mergedVertex.getStringId()+"->";
 		StringBuilder result = new StringBuilder("["+mergedDescr+"{");
-		Iterator<CmpVertex> vertIter = states.iterator();
+		Set<CmpVertex> orderedSet = new TreeSet<>();orderedSet.addAll(states);
+		Iterator<CmpVertex> vertIter = orderedSet.iterator();
 		result.append(vertIter.next().getStringId());
 		while(vertIter.hasNext()) result.append(',').append(vertIter.next().getStringId());
 		result.append("}]");

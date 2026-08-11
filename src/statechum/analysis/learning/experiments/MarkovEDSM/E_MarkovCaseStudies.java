@@ -5,10 +5,7 @@ import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator;
-import statechum.analysis.learning.rpnicore.FsmParserDot;
-import statechum.analysis.learning.rpnicore.FsmParserStatechum;
-import statechum.analysis.learning.rpnicore.LearnerGraph;
-import statechum.analysis.learning.rpnicore.Transform;
+import statechum.analysis.learning.rpnicore.*;
 import statechum.collections.MapWithSearch;
 
 import java.io.File;
@@ -48,14 +45,14 @@ public class E_MarkovCaseStudies {
                 }
                 LearnerGraph referenceGraph = FsmParserDot.buildLearnerGraph(referenceDot,dotConfig,
                         conv, true,true,USE_START0);
-                for(Map.Entry<DeterministicDirectedSparseGraph.CmpVertex, MapWithSearch<Label, Label, DeterministicDirectedSparseGraph.CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet()) {
-                    Set<Label> unimpLabels = new TreeSet<>();
-                    for(Label lbl:entry.getValue().keySet())
-                        if (lbl.toString().matches(".*/\\s*UNIMPL.*"))
-                            unimpLabels.add(lbl);
-                    for(Label lbl:unimpLabels)
-                        entry.getValue().remove(lbl);
-                }
+//                for(Map.Entry<DeterministicDirectedSparseGraph.CmpVertex, MapWithSearch<Label, Label, DeterministicDirectedSparseGraph.CmpVertex>> entry:referenceGraph.transitionMatrix.entrySet()) {
+//                    Set<Label> unimpLabels = new TreeSet<>();
+//                    for(Label lbl:entry.getValue().keySet())
+//                        if (lbl.toString().matches(".*/\\s*UNIMPL.*"))
+//                            unimpLabels.add(lbl);
+//                    for(Label lbl:unimpLabels)
+//                        entry.getValue().remove(lbl);
+//                }
                 referenceGraph.setName(caseStudyName);
                 return referenceGraph;
         }
@@ -137,8 +134,11 @@ public class E_MarkovCaseStudies {
                 double density = (double)reference.pathroutines.countEdges()/(reference.getStateNumber() * reference.getStateNumber());
                 int states = reference.getStateNumber();
                 System.out.println("States: "+states+" , Alphabet: "+reference.getCache().getAlphabet().size()+" , Density: "+density+" done.");
-                Pair<Integer, Integer>[] traces_and_lengths = new Pair[]{new Pair(1, reference.getCache().getAlphabet().size() * states),
-                        new Pair(states, reference.getCache().getAlphabet().size()), new Pair(states * states, reference.getCache().getAlphabet().size())};
+                Pair<Integer, Integer>[] traces_and_lengths = new Pair[]{
+                        new Pair(1, reference.getCache().getAlphabet().size() * states),
+//                        new Pair(states, reference.getCache().getAlphabet().size()),
+//                        new Pair( states * states, reference.getCache().getAlphabet().size())
+                };
                 caseStudyInformationMap.put(casestudy,new CaseStudyInformation(caseStudies[casestudy], casestudy, reference, reference.pathroutines.computeAlphabet().size(), traces_and_lengths));
             }
 
@@ -165,7 +165,7 @@ public class E_MarkovCaseStudies {
                                             })
                                 for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{3} : new int[]{2})
                                     for (double weightOfInconsistencies : learnerKind.isMarkov() ?
-                                            new double[]{0.5, 1.0}//, 2.0, 4.0, 8.0, 16.0}
+                                            new double[]{0.1,0.15,0.25,0.5}//, 2.0, 4.0, 8.0, 16.0}
                                             : new double[]{1.0})
                                         for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} :
                                                 new Pair[]{new Pair(1, 2), new Pair(1, 4), new Pair(2, 4), new Pair(2, 8)}) {
@@ -183,6 +183,7 @@ public class E_MarkovCaseStudies {
                                                     new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, wlen_divisor.secondElem, 0, wlen_divisor.firstElem);
                                             parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                             parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
+                                            parameters.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP,0.5, 20);
                                             MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(parameters, ev);
                                             learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                             learningGroup.experimentRunner.submitTask(learnerRunner);

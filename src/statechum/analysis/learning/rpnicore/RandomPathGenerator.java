@@ -500,7 +500,7 @@ public class RandomPathGenerator {
 			if (poorVisitedCounter > 0 && minValue < Integer.MAX_VALUE)
 				exploreStartingFromThis.add(stateToExploration.getKey());
 
-			if (exploreStartingFromThis.size() > g.getStateNumber()/10)
+			if (exploreStartingFromThis.size() > Math.max(g.getStateNumber()/10,2))
 				break;
 		}
 
@@ -556,6 +556,10 @@ public class RandomPathGenerator {
 			populateLabelToVisits(stateToCounterExploration,transitionsNonLoops);
 			populateLabelToVisits(stateToCounterActual,transitionsNonLoops);
 			populateLabelToVisits(stateToCounterLoop,transitionsLoops);
+			Map<CmpVertex, AtomicInteger> stateToLoopVisitCount = new TreeMap<>();
+			for(Entry<CmpVertex,ArrayList<Entry<Label,CmpVertex>>> transitions:transitionsLoops.entrySet())
+				stateToLoopVisitCount.put(transitions.getKey(),new AtomicInteger(0));
+			int totalLoopVisits = 0;
 
 			int positiveLength = positive?walkLength:walkLength-1;// this is how many elements to add to what we already have (prefixForAllSequencesLength).
 			if (positiveLength>0)
@@ -568,17 +572,23 @@ public class RandomPathGenerator {
 
 					Label nextLabel = null;
 
-					if (randomNumberGenerator.nextDouble() < explorationPreference || transitionsLoops.get(current).isEmpty()) {
+					if (randomNumberGenerator.nextDouble() < explorationPreference || transitionsLoops.get(current).isEmpty()
+							// we prioritise exploration if the loops from the current state are explored enough, that is,
+							// if the number of times we explored a loop is above average across all states.
+						|| stateToLoopVisitCount.get(current).get() * g.getStateNumber() > 2*totalLoopVisits
+					) {
 						nextLabel = pickRandomTransition(stateToCounterExploration, stateToCounterActual, transitionsNonLoops, selectionPenalty, current);// take a transition either
 						// because we would like to, or because we have no choice. Note that if transitionLoops has no elements for the
 						// current state, transitionsNonLoops will definitely have elements, otherwise we would have bailed on the row.isEmpty()
 
 						// The call below aims to 'clear a way' to get to states that were not explored well enough.
-						constructBiasForExploration(inverseGraph,stateToCounterExploration,stateToCounterActual,g.getStateNumber()/10);
+						constructBiasForExploration(inverseGraph,stateToCounterExploration,stateToCounterActual,Math.max(g.getStateNumber()/5,3));
 					}
-					else
-						nextLabel = pickRandomTransition(stateToCounterLoop, null, transitionsLoops,selectionPenalty, current);
-
+					else {
+						nextLabel = pickRandomTransition(stateToCounterLoop, null, transitionsLoops, selectionPenalty, current);
+						stateToLoopVisitCount.get(current).incrementAndGet();
+						totalLoopVisits++;
+					}
 
 					path.add(nextLabel);current = g.transitionMatrix.get(current).get(nextLabel);
 				}
@@ -591,6 +601,7 @@ public class RandomPathGenerator {
 //
 //					System.out.println("State : "+entryStateToCounter.getKey()+", uncovered : "+uncovered);
 //				}
+
 			}
 
 			if (path.size() == prefixForAllSequencesLength+positiveLength && !positive)

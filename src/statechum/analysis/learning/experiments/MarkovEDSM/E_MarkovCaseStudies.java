@@ -66,7 +66,10 @@ public class E_MarkovCaseStudies {
             case "FanTempMonitor":
                 LearnerGraph fanTempMonitorWithNegatives = new LearnerGraph(config);
                 try {
-                    AbstractPersistence.loadGraph("resources/i2c_study/i2c_outcome_correct", fanTempMonitorWithNegatives,conv);
+                    String pathToFanTempMonitor = "resources/i2c_study/i2c_outcome_correct";
+                    if (!Files.exists(Paths.get(pathToFanTempMonitor))) // If running on HPC, the working directory is 'stanage'
+                        pathToFanTempMonitor = "../"+pathToFanTempMonitor;
+                    AbstractPersistence.loadGraph(pathToFanTempMonitor, fanTempMonitorWithNegatives,conv);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

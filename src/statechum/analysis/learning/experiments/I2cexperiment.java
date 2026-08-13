@@ -121,7 +121,7 @@ public class I2cexperiment extends PairQualityLearner
         } finally {
             if (in != null) { try { in.close();in=null; } catch(IOException toBeIgnored) { /* Ignore exception */ } }
         }
-        System.out.println("trace length: "+returnValue.size());
+//        System.out.println("trace length: "+returnValue.size());
         return returnValue;
 	}
 	/*

@@ -20,12 +20,15 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static statechum.analysis.learning.DrawGraphs.*;
+import static statechum.analysis.learning.experiments.I2cexperiment.loadTrace;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
 import static statechum.analysis.learning.rpnicore.FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovCaseStudies {
-    public static String [] caseStudies = new String[] {"CVS","SSH","MinePump","ATM","SmallTrain","FanTempMonitor"};
+    /** Orders case studies - outcome directories use numbers that refer to specific positions in this list hence there should be no renumbering. */
+    public static String [] caseStudies = new String[] {"CVS","SSH","MinePump","ATM","SmallTrain","FanTempMonitor_A","FanTempMonitor_T"};
+    public static Map<Integer,CaseStudyInformation> caseStudyInformationMap = new HashMap<>();
 
     public static LearnerGraph constructAutomatonForCaseStudy(String caseStudyName, Configuration config, final Transform.ConvertALabel conv) {
         switch(caseStudyName){
@@ -63,7 +66,8 @@ public class E_MarkovCaseStudies {
                 // where the dead-end state 5 was removed.
                 return FsmParserStatechum.buildLearnerGraph("0-start->2-stop->0 -a.pres->9-a.prop->11-e.open->1-close->0 / 0-open->1/2-a.pres->4-a.prop->8-e.stop->11","SmallTrain",config,conv);
 
-            case "FanTempMonitor":
+            case "FanTempMonitor_A":
+            case "FanTempMonitor_T":
                 LearnerGraph fanTempMonitorWithNegatives = new LearnerGraph(config);
                 try {
                     String pathToFanTempMonitor = "resources/i2c_study/i2c_outcome_correct";
@@ -97,7 +101,8 @@ public class E_MarkovCaseStudies {
     // experiments with a specific one do not replace experiments with others.
     public static Set<String> whichCaseStudyToRun = new TreeSet<>();
     static {
-//        whichCaseStudyToRun.add("FanTempMonitor");
+        whichCaseStudyToRun.add("FanTempMonitor_A");
+        whichCaseStudyToRun.add("FanTempMonitor_T");
     }
 
     public static class MarkovLearningBaselineParameters extends MarkovLearningParameters {
@@ -126,21 +131,57 @@ public class E_MarkovCaseStudies {
 //            Visualiser.updateFrame(referenceGraph, null);
 //            Visualiser.waitForKey();
         }
+
+        @Override
+        public LearnerGraph constructPTA() {
+           LearnerGraph constructedPTA = caseStudyInformationMap.get(par.sample).constructPTA(learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter());
+           if (constructedPTA == null)
+               constructedPTA = super.constructPTA();
+
+           return constructedPTA;
+        }
     }
 
 
     static class CaseStudyInformation {
+        int trainingSamplesPerFSM = 40;// these are fixed automata hence we can try many different values to see how inference performs.
         public final String name;
         public final int sample;
         public final LearnerGraph referenceGraph;
         public final int alphabetSize;
         Pair<Integer, Integer> [] traces_and_lengths;
-
+        int [] chunkSizesToEvaluate = new int[]{3};
+        double [] weightOfInconsistencies = new double[]{0.25,0.5,1.0, 2.0};
+        final int states;
         public CaseStudyInformation(String name, int sample, LearnerGraph referenceGraph, int alphabetSize, Pair<Integer, Integer>[] traces_and_lengths) {
             this.name = name;this.sample = sample;
             this.referenceGraph = referenceGraph;
             this.alphabetSize = alphabetSize;
             this.traces_and_lengths = traces_and_lengths;
+            this.states = this.referenceGraph.getStateNumber();
+        }
+        public Configuration.STATETREE transitionMatrixImplType = Configuration.STATETREE.STATETREE_LINKEDHASH;
+
+        public void setChunkSizesAndWeightsToEvaluate(int [] chunkSizesToEvaluate, double [] weightOfInconsistencies) {
+            this.chunkSizesToEvaluate = chunkSizesToEvaluate;
+            this.weightOfInconsistencies = weightOfInconsistencies;
+        }
+
+        /** Used to generate a PTA for the case study in case it is not built by randomly exploring a transition graph.
+         *  Should return either null in order to build PTA randomly or a PTA.
+        */
+        public LearnerGraph constructPTA(Configuration config, Transform.ConvertALabel labelConverter) {
+            if (name ==  "FanTempMonitor_T") {
+                LearnerGraph initialPTA = new LearnerGraph(config);
+                initialPTA.paths.augmentPTA(loadTrace("resources/i2c_study/log10.txt", labelConverter, "Err"), true, false, null);
+                return  initialPTA;
+            }
+
+            return null;
+        }
+
+        void setTransitionMatrixImplType(Configuration.STATETREE transitionMatrixImplType) {
+            this.transitionMatrixImplType = transitionMatrixImplType;
         }
     }
 
@@ -148,7 +189,6 @@ public class E_MarkovCaseStudies {
         int[] learnerExperiment = new int[]{0,1};
         final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "results_casestudies.csv"), "results.csv");
         boolean aveOrMax = true;// average divide by the divisor
-        final int trainingSamplesPerFSM = 40;// these are fixed automata hence we can try many different values to see how inference performs.
         boolean pathsOrSets = true, penaliseMissingPaths = true;
 //        String pathToCaseStudyFiles = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_CASESTUDIES);
 //        if (null == pathToCaseStudyFiles ||  pathToCaseStudyFiles.isEmpty())
@@ -156,27 +196,42 @@ public class E_MarkovCaseStudies {
 //        if (!Files.exists(Paths.get(pathToCaseStudyFiles)))
 //            throw new RuntimeException("Cannot load any case studies: path to case studies does not exist "+pathToCaseStudyFiles);
 
-        Map<Integer,CaseStudyInformation> caseStudyInformationMap = new HashMap<>();
-        for (int casestudy=0; casestudy<caseStudies.length; casestudy++)
-            if (whichCaseStudyToRun == null || whichCaseStudyToRun.isEmpty() || whichCaseStudyToRun.contains(caseStudies[casestudy])) {
-                if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
-                    System.out.print("Loading " + caseStudies[casestudy] + " ...");
-                Configuration dotConfig = learningGroup.eval.config.copy();
-                // Large amount of data - possibly need Array-based data structures
-//                dotConfig.setTransitionMatrixImplType(Configuration.STATETREE.STATETREE_ARRAY);
-                dotConfig.setLabelKind(Configuration.LABELKIND.LABEL_STRING);
-                LearnerGraph reference = constructAutomatonForCaseStudy(caseStudies[casestudy], dotConfig, new Transform.InternStringLabel());
-                double density = (double)reference.pathroutines.countEdges()/(reference.getStateNumber() * reference.getStateNumber());
-                int states = reference.getStateNumber();
-                if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
-                    System.out.println("States: "+states+" , Alphabet: "+reference.getCache().getAlphabet().size()+" , Density: "+density+" done.");
-                Pair<Integer, Integer>[] traces_and_lengths = new Pair[]{
-                        new Pair(1, reference.getCache().getAlphabet().size() * states),
-                        new Pair(states, reference.getCache().getAlphabet().size()),
-                        new Pair( states * states, reference.getCache().getAlphabet().size())
-                };
-                caseStudyInformationMap.put(casestudy,new CaseStudyInformation(caseStudies[casestudy], casestudy, reference, reference.pathroutines.computeAlphabet().size(), traces_and_lengths));
-            }
+
+        if (caseStudyInformationMap.isEmpty())
+            for (int casestudy=0; casestudy<caseStudies.length; casestudy++)
+                if (whichCaseStudyToRun == null || whichCaseStudyToRun.isEmpty() || whichCaseStudyToRun.contains(caseStudies[casestudy])) {
+                    if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
+                        System.out.print("Loading " + caseStudies[casestudy] + " ...");
+                    Configuration dotConfig = learningGroup.eval.config.copy();
+                    // Large amount of data - possibly need Array-based data structures
+    //                dotConfig.setTransitionMatrixImplType(Configuration.STATETREE.STATETREE_ARRAY);
+                    dotConfig.setLabelKind(Configuration.LABELKIND.LABEL_STRING);
+                    LearnerGraph reference = constructAutomatonForCaseStudy(caseStudies[casestudy], dotConfig, new Transform.InternStringLabel());
+                    double density = (double)reference.pathroutines.countEdges()/(reference.getStateNumber() * reference.getStateNumber());
+                    int states = reference.getStateNumber();
+                    if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
+                        System.out.println("States: "+states+" , Alphabet: "+reference.getCache().getAlphabet().size()+" , Density: "+density+" done.");
+                    Pair<Integer, Integer>[] traces_and_lengths = new Pair[]{
+                            new Pair(1, reference.getCache().getAlphabet().size() * states),
+                            new Pair(states, reference.getCache().getAlphabet().size()),
+                            new Pair( states * states, reference.getCache().getAlphabet().size())
+                    };
+                    caseStudyInformationMap.put(casestudy,new CaseStudyInformation(caseStudies[casestudy], casestudy, reference, reference.pathroutines.computeAlphabet().size(), traces_and_lengths));
+                    switch(caseStudies[casestudy]){
+                        case "FanTempMonitor_A":
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{5,6,7},new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                            break;
+                        case "FanTempMonitor_T":
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{5,6,7},new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                            caseStudyInformationMap.get(casestudy).setTransitionMatrixImplType(Configuration.STATETREE.STATETREE_ARRAY);// large PTA, use array. PTA is loaded by constructPTA of caseStudyInformation on request when needed.
+                            caseStudyInformationMap.get(casestudy).traces_and_lengths = new Pair[]{
+                                    new Pair(1, 797676 / states)};// bit of a cludge but 797676 is the actual length of the log.
+                            caseStudyInformationMap.get(casestudy).trainingSamplesPerFSM = 1;// we only have one PTA here
+                            break;
+                        default:
+                            break;// use default values
+                    }
+                }
 
         for (int casestudy=0; casestudy<caseStudies.length; casestudy++)
             if (whichCaseStudyToRun == null || whichCaseStudyToRun.isEmpty() || whichCaseStudyToRun.contains(caseStudies[casestudy]))
@@ -187,7 +242,7 @@ public class E_MarkovCaseStudies {
                     {
                         int states = caseStudyInformationMap.get(casestudy).referenceGraph.getStateNumber();
                         int traceQuantityToUse = traces_lengthmult.firstElem;
-                        for (int trainingSample = 0; trainingSample < trainingSamplesPerFSM; ++trainingSample)
+                        for (int trainingSample = 0; trainingSample < caseStudyInformationMap.get(casestudy).trainingSamplesPerFSM; ++trainingSample)
                             for (LearningAlgorithms.ScoringToApply learnerKind :
                                     preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
                                             new LearningAlgorithms.ScoringToApply[]{
@@ -199,9 +254,10 @@ public class E_MarkovCaseStudies {
                                             new LearningAlgorithms.ScoringToApply[]{
                                                     LearningAlgorithms.ScoringToApply.SCORING_MARKOV
                                             })
-                                for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? new int[]{2,3,4} : new int[]{2})
+                                for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? caseStudyInformationMap.get(casestudy).chunkSizesToEvaluate : new int[]{2})
                                     for (double weightOfInconsistencies : learnerKind.isMarkov() ?
-                                            new double[]{0.25,0.5,1.0, 2.0, 3.0, 4.0, 6.0, 8.0}
+                                            caseStudyInformationMap.get(casestudy).weightOfInconsistencies
+                                            //new double[]{0.25,0.5,1.0, 2.0, 3.0, 4.0, 6.0, 8.0}
                                             : new double[]{1.0})
                                         for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} :
                                                 new Pair[]{new Pair(1, 2), new Pair(1, 4), new Pair(2, 4), new Pair(2, 8)}) {
@@ -210,15 +266,15 @@ public class E_MarkovCaseStudies {
                                             ev.config.setOverride_maximalNumberOfStates(states * 2);//LearningAlgorithms.maxStateNumberMultiplier);
                                             if (learnerKind.isMarkov())
                                                 ev.config.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
-                                            // Large amount of data - possibly need Array-based data structures
-//                                            ev.config.setTransitionMatrixImplType(Configuration.STATETREE.STATETREE_ARRAY);
+                                            // For some case studies (FanTempController_T) there is a large amount of data - need Array-based data structures
+                                            ev.config.setTransitionMatrixImplType(caseStudyInformationMap.get(casestudy).transitionMatrixImplType);
                                             MarkovLearningBaselineParameters parameters = new MarkovLearningBaselineParameters(learnerKind, states, 0, 0, casestudy, trainingSample);
                                             parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
                                             parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, 0);
                                             parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets,
                                                     new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, wlen_divisor.secondElem, 0, wlen_divisor.firstElem);
                                             parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-//                                            parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
+                                            parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
 //                                            parameters.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP,0.6, 10);
                                             MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(parameters, ev);
                                             learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
@@ -242,7 +298,6 @@ public class E_MarkovCaseStudies {
                         String plot_filename_prefix = learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_" + traces_lengthmult.firstElem + "_" +
                                 (useCentre ? "centre" : "no_cnt");
 
-                        Map<String, AtomicInteger> learnerToHowOftenBest = new HashMap<>();
                         final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
                                 new File(plot_filename_prefix + "_VH_structuraldiffBest.pdf"), 0, 1, true);
                         final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, VH", "BCR, EDSM-Markov learner",
@@ -260,7 +315,10 @@ public class E_MarkovCaseStudies {
                                 rowHeader -> rowHeader.traceQuantity == traces_lengthmult.firstElem  && rowHeader.sample == entryForCaseStudy.getKey(),
                                 columnParse -> (columnParse.parameters.preset > 0) == useCentre,
                                 resultCSV);
-                        report.getResultForBestPerformingMarkovLearner(null, null,
+
+                        AtomicInteger bestDiffSum = new AtomicInteger(0);
+                        AtomicInteger bestDiffCounter = new AtomicInteger(0);
+                        Map<String, AtomicInteger> learnerToHowOftenBest = report.getResultForBestPerformingMarkovLearner(null, null,
                                 (pair) -> {
                                     double markov = pair.firstElem, vh_score = pair.secondElem;
                                     gr_StructuralDiffBest.add(vh_score, markov, null, null);
@@ -270,6 +328,8 @@ public class E_MarkovCaseStudies {
                                     diffReported.addAndGet(1);
                                     diffAverageMarkov100.addAndGet((int)Math.round(markov*100));
                                     diffAverageVH100.addAndGet((int)Math.round(vh_score*100));
+
+                                    bestDiffSum.addAndGet((int)Math.round(markov*100));bestDiffCounter.incrementAndGet();
                                 },
                                 (pair) -> {
                                     double bcr = pair.firstElem, vh_bcr = pair.secondElem;
@@ -283,9 +343,9 @@ public class E_MarkovCaseStudies {
                                 }
                             );
 
-                        if (diffReported.get() != trainingSamplesPerFSM)
+                        if (diffReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM)
                             throw new IllegalArgumentException("Diff value not reported");
-                        if (bcrReported.get() != trainingSamplesPerFSM)
+                        if (bcrReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM)
                             throw new IllegalArgumentException("BCR value not reported");
 
                         StatisticalTestResult a12_diff = A12_test_Structural.obtainResultFromR();
@@ -319,6 +379,10 @@ public class E_MarkovCaseStudies {
                         List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
                         learners.sort((o1, o2) ->
                                 learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());
+                        int average = bestDiffCounter.get() > 0? bestDiffSum.get()/bestDiffCounter.get() : 0;
+                        System.out.println("CASE STUDY: "+entryForCaseStudy.getValue().name+" centre: "+useCentre+
+                                        " with: "+traces_lengthmult.firstElem+", "+traces_lengthmult.secondElem+entryForCaseStudy.getValue().states+" , Best diff: "+average);
+
                         for (String l : learners)
                             System.out.println(l + " -> " + learnerToHowOftenBest.get(l).get());
                     }

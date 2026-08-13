@@ -709,6 +709,30 @@ public class MarkovExperiment
 		}
 	}
 
+	public static class ColOtherLearner implements ColumnSelector {
+		public final LearningAlgorithms.ScoringToApply scorer;
+		public ColOtherLearner(LearningAlgorithms.ScoringToApply s) {
+			scorer = s;
+		}
+
+		@Override
+		public boolean check(MarkovLearningParameters.ColumnParseOutcome column) {
+			return column.learner != scorer;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (!(o instanceof ColLearner)) return false;
+			ColLearner that = (ColLearner) o;
+			return scorer == that.scorer;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hashCode(scorer);
+		}
+	}
+
 	public class ColLearnerAndPreset implements ColumnSelector {
 		public final LearningAlgorithms.ScoringToApply scorer;
 		public final int preset;

@@ -64,6 +64,7 @@ class FilterCollectionOfResultsForBestPerformingLearner {
     public Map<Integer,List<MarkovExperiment.LearningReport>> getExperimentsResultsPerChunkLen() {
         return resultPerChunkLen;
     }
+
     /**
      * Given a results obtained by Markov learners using different parameters, uses inconsistency values to identify the best performing learner and report its results.
      *

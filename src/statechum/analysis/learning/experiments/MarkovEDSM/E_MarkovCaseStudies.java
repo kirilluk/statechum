@@ -22,6 +22,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.I2cexperiment.loadTrace;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.E_BCR;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.E_DIFF;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 import static statechum.analysis.learning.rpnicore.FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
@@ -103,9 +107,9 @@ public class E_MarkovCaseStudies {
     // experiments with a specific one do not replace experiments with others.
     public static Set<String> whichCaseStudyToRun = new TreeSet<>();
     static {
-        whichCaseStudyToRun.add("MinePump");
-        whichCaseStudyToRun.add("FanTempMonitor_A");
-        whichCaseStudyToRun.add("FanTempMonitor_T");
+//        whichCaseStudyToRun.add("MinePump");
+//        whichCaseStudyToRun.add("FanTempMonitor_A");
+//        whichCaseStudyToRun.add("FanTempMonitor_T");
     }
 
     public static class MarkovLearningBaselineParameters extends MarkovLearningParameters {
@@ -208,7 +212,7 @@ public class E_MarkovCaseStudies {
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0,1};
-        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "results_casestudies.csv"), "results.csv");
+        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "casestudies-results.csv"), "results.csv");
         boolean aveOrMax = true;// average divide by the divisor
         boolean pathsOrSets = true, penaliseMissingPaths = true;
 //        String pathToCaseStudyFiles = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_CASESTUDIES);
@@ -251,7 +255,7 @@ public class E_MarkovCaseStudies {
                     caseStudyInformationMap.put(casestudy,new CaseStudyInformation(caseStudies[casestudy], casestudy, reference, reference.pathroutines.computeAlphabet().size(), traces_and_lengths));
                     Map<Integer,double []> chunkSizesToWeightsMinePump = new TreeMap<>();
                     chunkSizesToWeightsMinePump.put(3,new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
-                    chunkSizesToWeightsMinePump.put(4,new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0});
+                    chunkSizesToWeightsMinePump.put(4,new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0,12.0,16.0});
                     chunkSizesToWeightsMinePump.put(5,new double[]{0.25, 0.5, 1.0});
                     chunkSizesToWeightsMinePump.put(6,new double[]{0.05, 0.1, 0.25});
 
@@ -263,7 +267,7 @@ public class E_MarkovCaseStudies {
                     chunkSizesToWeightsFanTempMonitor.put(7,new double[]{0.5, 1.0, 2.0, 4.0});
                     switch(caseStudies[casestudy]){
                         case "MinePump":
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3,4,5,6});
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3,4});
                             caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsMinePump);
                             break;
                         case "FanTempMonitor_A":
@@ -337,107 +341,143 @@ public class E_MarkovCaseStudies {
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             List<List<String>> outputStatistics = new ArrayList<>();
-            outputStatistics.add(new ArrayList<>(Arrays.asList("Case study","States", "Alphabet", "Traces", "T. Length", "Centre", "Diff, M", "BCR, M", "Diff, VH", "BCR, VH","A12","A12 lo","A12 hi","Wilcoxon")));
+            outputStatistics.add(new ArrayList<>(Arrays.asList("Case study", "States", "Alphabet", "Traces", "T. Length", "Centre", "Diff, M", "BCR, M", "Diff, VH", "BCR, VH", "A12", "A12 lo", "A12 hi", "Wilcoxon")));
+            for (Map.Entry<Integer, CaseStudyInformation> entryForCaseStudy : caseStudyInformationMap.entrySet()) {
+                final RBoxPlot<String> gr_PerformanceOfLearners = new RBoxPlot<>("", "Structural Score",
+                        new File(learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_learner_structural.pdf"));
+                gr_PerformanceOfLearners.setupForTwoLineXLabels();
+                for (final int chunkSizeToEvaluate : entryForCaseStudy.getValue().chunkSizesToEvaluate) {
+                    Pair<Integer, Integer>[] traces_and_lengths = entryForCaseStudy.getValue().traces_and_lengths;
 
-            for (Map.Entry<Integer,CaseStudyInformation> entryForCaseStudy:caseStudyInformationMap.entrySet())
-            {
-                Pair<Integer, Integer> [] traces_and_lengths = entryForCaseStudy.getValue().traces_and_lengths;
+                    for (final boolean useCentre : new boolean[]{false, true})
+                        for (final Pair<Integer, Integer> traces_lengthmult : traces_and_lengths) {
 
-                for (final boolean useCentre : new boolean[]{false,true})
-                    for (final Pair<Integer, Integer> traces_lengthmult : traces_and_lengths) {
-                        String plot_filename_prefix = learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_" + traces_lengthmult.firstElem + "_" +
-                                (useCentre ? "centre" : "no_cnt");
+                            // Now select the non-Markov result from all those available
+                            for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+                                MarkovLearningParameters rowHeader = parseMarkovParametersRowFromCSV(rowEntry.getKey());
+                                if (rowHeader.traceQuantity == traces_lengthmult.firstElem && rowHeader.sample == entryForCaseStudy.getKey()) {
+                                    getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColOtherLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),
+                                            (column, columnText, Y) -> {
+                                                boolean learntOK = obtainStringValueFromCell(Y, MarkovExperiment.RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
+                                                double bcr = obtainDoubleValueFromCell(Y, E_BCR, column);
+                                                double structural = obtainDoubleValueFromCell(Y, E_DIFF, column);
 
-                        final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
-                                new File(plot_filename_prefix + "_VH_structuraldiffBest.pdf"), 0, 1, true);
-                        final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, VH", "BCR, EDSM-Markov learner",
-                                new File(plot_filename_prefix + "_VH_BCRBest.pdf"), 0.5, 1, true);
-                        final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_Structural = new DrawGraphs.WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_str.csv"));
-                        final DrawGraphs.WilcoxonPairedTest Wilcoxon_Test_BCR = new DrawGraphs.WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_bcr.csv"));
-                        final DrawGraphs.A_VarghaDelaney A12_test_Structural = new DrawGraphs.A_VarghaDelaney(new File(plot_filename_prefix + "_A12_str.csv"), 100);
-                        final DrawGraphs.A_VarghaDelaney A12_test_BCR = new DrawGraphs.A_VarghaDelaney(new File(plot_filename_prefix + "_A12_bcr.csv"), 100);
-                        // Now select the best result from all those available
-                        final AtomicInteger diffReported = new AtomicInteger(0), bcrReported = new AtomicInteger(0);
-                        final AtomicInteger diffAverageMarkov100 = new AtomicInteger(0), bcrAverageMarkov100 = new AtomicInteger(0);
-                        final AtomicInteger diffAverageVH100 = new AtomicInteger(0), bcrAverageVH100 = new AtomicInteger(0);
-
-                        FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(-1, -1,
-                                rowHeader -> rowHeader.traceQuantity == traces_lengthmult.firstElem  && rowHeader.sample == entryForCaseStudy.getKey(),
-                                columnParse -> (columnParse.parameters.preset > 0) == useCentre,
-                                resultCSV);
-
-                        AtomicInteger bestDiffSum = new AtomicInteger(0);
-                        AtomicInteger bestDiffCounter = new AtomicInteger(0);
-                        Map<String, AtomicInteger> learnerToHowOftenBest = report.getResultForBestPerformingMarkovLearner(null, null,
-                                (pair) -> {
-                                    double markov = pair.firstElem, vh_score = pair.secondElem;
-                                    gr_StructuralDiffBest.add(vh_score, markov, null, null);
-                                    A12_test_Structural.add(vh_score, markov);
-                                    Wilcoxon_test_Structural.add(vh_score, markov);
-
-                                    diffReported.addAndGet(1);
-                                    diffAverageMarkov100.addAndGet((int)Math.round(markov*100));
-                                    diffAverageVH100.addAndGet((int)Math.round(vh_score*100));
-
-                                    bestDiffSum.addAndGet((int)Math.round(markov*100));bestDiffCounter.incrementAndGet();
-                                },
-                                (pair) -> {
-                                    double bcr = pair.firstElem, vh_bcr = pair.secondElem;
-                                    gr_BcrDiffBest.add(vh_bcr, bcr, null, null);
-                                    A12_test_BCR.add(vh_bcr, bcr);
-                                    Wilcoxon_Test_BCR.add(vh_bcr, bcr);
-
-                                    bcrReported.addAndGet(1);
-                                    bcrAverageMarkov100.addAndGet((int)Math.round(bcr*100));
-                                    bcrAverageVH100.addAndGet((int)Math.round(vh_bcr*100));
+                                                if (// report both successful results and failures.
+                                                        (//column.learner == LearningAlgorithms.ScoringToApply.SCORING_EDSM_4 ||
+                                                        column.learner == LearningAlgorithms.ScoringToApply.SCORING_VH)
+                                                ) {
+                                                    gr_PerformanceOfLearners.add(traces_lengthmult.firstElem+"\n"+column.learner.name,structural);
+                                                }
+                                            });
                                 }
+                            }
+
+
+                            String plot_filename_prefix = learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_" + traces_lengthmult.firstElem + "_" +
+                                    (useCentre ? "centre" : "no_cnt") + "_cl=" + chunkSizeToEvaluate;
+
+                            final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
+                                    new File(plot_filename_prefix + "_VH_structuraldiffBest.pdf"), 0, 1, true);
+                            final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, VH", "BCR, EDSM-Markov learner",
+                                    new File(plot_filename_prefix + "_VH_BCRBest.pdf"), 0.5, 1, true);
+                            final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_Structural = new DrawGraphs.WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_str.csv"));
+                            final DrawGraphs.WilcoxonPairedTest Wilcoxon_Test_BCR = new DrawGraphs.WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_bcr.csv"));
+                            final DrawGraphs.A_VarghaDelaney A12_test_Structural = new DrawGraphs.A_VarghaDelaney(new File(plot_filename_prefix + "_A12_str.csv"), 100);
+                            final DrawGraphs.A_VarghaDelaney A12_test_BCR = new DrawGraphs.A_VarghaDelaney(new File(plot_filename_prefix + "_A12_bcr.csv"), 100);
+                            // Now select the best result from all those available
+                            final AtomicInteger diffReported = new AtomicInteger(0), bcrReported = new AtomicInteger(0);
+                            final AtomicInteger diffAverageMarkov100 = new AtomicInteger(0), bcrAverageMarkov100 = new AtomicInteger(0);
+                            final AtomicInteger diffAverageVH100 = new AtomicInteger(0), bcrAverageVH100 = new AtomicInteger(0);
+
+                            FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(-1, -1,
+                                    rowHeader -> rowHeader.traceQuantity == traces_lengthmult.firstElem && rowHeader.sample == entryForCaseStudy.getKey(),
+                                    columnParse -> (columnParse.parameters.preset > 0) == useCentre && columnParse.parameters.chunkLen == chunkSizeToEvaluate,
+                                    resultCSV);
+
+                            AtomicInteger bestDiffSum = new AtomicInteger(0);
+                            AtomicInteger bestDiffCounter = new AtomicInteger(0);
+                            Map<String, AtomicInteger> learnerToHowOftenBest = report.getResultForBestPerformingMarkovLearner(null, null,
+                                    (pair) -> {
+                                        double markov = pair.firstElem, vh_score = pair.secondElem;
+                                        gr_StructuralDiffBest.add(vh_score, markov, null, null);
+                                        A12_test_Structural.add(vh_score, markov);
+                                        Wilcoxon_test_Structural.add(vh_score, markov);
+
+                                        gr_PerformanceOfLearners.add(traces_lengthmult.firstElem+"\n"+
+                                                        (useCentre?"C":"N")+
+                                                "P_"+(chunkSizeToEvaluate-1),markov);
+
+                                        diffReported.addAndGet(1);
+                                        diffAverageMarkov100.addAndGet((int) Math.round(markov * 100));
+                                        diffAverageVH100.addAndGet((int) Math.round(vh_score * 100));
+
+                                        bestDiffSum.addAndGet((int) Math.round(markov * 100));
+                                        bestDiffCounter.incrementAndGet();
+                                    },
+                                    (pair) -> {
+                                        double bcr = pair.firstElem, vh_bcr = pair.secondElem;
+                                        gr_BcrDiffBest.add(vh_bcr, bcr, null, null);
+                                        A12_test_BCR.add(vh_bcr, bcr);
+                                        Wilcoxon_Test_BCR.add(vh_bcr, bcr);
+
+                                        bcrReported.addAndGet(1);
+                                        bcrAverageMarkov100.addAndGet((int) Math.round(bcr * 100));
+                                        bcrAverageVH100.addAndGet((int) Math.round(vh_bcr * 100));
+                                    }
                             );
 
-                        if (diffReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM)
-                            throw new IllegalArgumentException("Diff value not reported");
-                        if (bcrReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM)
-                            throw new IllegalArgumentException("BCR value not reported");
+                            if (diffReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM)
+                                throw new IllegalArgumentException("Diff value not reported");
+                            if (bcrReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM)
+                                throw new IllegalArgumentException("BCR value not reported");
 
-                        StatisticalTestResult a12_diff = A12_test_Structural.obtainResultFromR();
-                        StatisticalTestResult wilcoxon_diff = Wilcoxon_test_Structural.obtainResultFromR();
+                            StatisticalTestResult a12_diff = A12_test_Structural.obtainResultFromR();
+                            StatisticalTestResult wilcoxon_diff = Wilcoxon_test_Structural.obtainResultFromR();
 
-                        List<String> row = new ArrayList<>();
-                        row.add(entryForCaseStudy.getValue().name);
-                        row.add(Integer.toString(entryForCaseStudy.getValue().referenceGraph.getStateNumber()));
-                        row.add(Integer.toString(entryForCaseStudy.getValue().alphabetSize));
-                        row.add(Integer.toString(traces_lengthmult.firstElem));
-                        row.add(Integer.toString(traces_lengthmult.secondElem* entryForCaseStudy.getValue().referenceGraph.getStateNumber()));
-                        row.add(useCentre?"Y":"");
+                            List<String> row = new ArrayList<>();
+                            row.add(entryForCaseStudy.getValue().name);
+                            row.add(Integer.toString(entryForCaseStudy.getValue().referenceGraph.getStateNumber()));
+                            row.add(Integer.toString(entryForCaseStudy.getValue().alphabetSize));
+                            row.add(Integer.toString(traces_lengthmult.firstElem));
+                            row.add(Integer.toString(traces_lengthmult.secondElem * entryForCaseStudy.getValue().referenceGraph.getStateNumber()));
+                            row.add(useCentre ? "Y" : "");
 
-                        row.add(Integer.toString(diffAverageMarkov100.get()/diffReported.get()));
-                        row.add(Integer.toString(bcrAverageMarkov100.get()/bcrReported.get()));
+                            row.add(Integer.toString(diffAverageMarkov100.get() / diffReported.get()));
+                            row.add(Integer.toString(bcrAverageMarkov100.get() / bcrReported.get()));
 
-                        row.add(Integer.toString(diffAverageVH100.get()/diffReported.get()));
-                        row.add(Integer.toString(bcrAverageVH100.get()/bcrReported.get()));
+                            row.add(Integer.toString(diffAverageVH100.get() / diffReported.get()));
+                            row.add(Integer.toString(bcrAverageVH100.get() / bcrReported.get()));
 
-                        NumberFormat f_A12 = new DecimalFormat("0.00");
-                        NumberFormat f_Wilcoxon = new DecimalFormat("0.00E00");
+                            NumberFormat f_A12 = new DecimalFormat("0.00");
+                            NumberFormat f_Wilcoxon = new DecimalFormat("0.00E00");
 
-                        row.add(f_A12.format(a12_diff.statistic));row.add(f_A12.format(a12_diff.confidence_lo));row.add(f_A12.format(a12_diff.confidence_hi));
-                        row.add(f_Wilcoxon.format(wilcoxon_diff.pvalue));
-                        outputStatistics.add(row);
+                            row.add(f_A12.format(a12_diff.statistic));
+                            row.add(f_A12.format(a12_diff.confidence_lo));
+                            row.add(f_A12.format(a12_diff.confidence_hi));
+                            row.add(f_Wilcoxon.format(wilcoxon_diff.pvalue));
+                            outputStatistics.add(row);
 
-                        gr_StructuralDiffBest.reportResults(learningGroup.gr);gr_BcrDiffBest.reportResults(learningGroup.gr);
-                        A12_test_Structural.reportResults(learningGroup.gr);A12_test_BCR.reportResults(learningGroup.gr);
-                        Wilcoxon_test_Structural.reportResults(learningGroup.gr);Wilcoxon_Test_BCR.reportResults(learningGroup.gr);
+                            gr_StructuralDiffBest.reportResults(learningGroup.gr);
+                            gr_BcrDiffBest.reportResults(learningGroup.gr);
+                            A12_test_Structural.reportResults(learningGroup.gr);
+                            A12_test_BCR.reportResults(learningGroup.gr);
+                            Wilcoxon_test_Structural.reportResults(learningGroup.gr);
+                            Wilcoxon_Test_BCR.reportResults(learningGroup.gr);
 
-                        List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
-                        learners.sort((o1, o2) ->
-                                learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());
-                        int average = bestDiffCounter.get() > 0? bestDiffSum.get()/bestDiffCounter.get() : 0;
-                        System.out.println("CASE STUDY: "+entryForCaseStudy.getValue().name+" centre: "+useCentre+
-                                        " with: "+traces_lengthmult.firstElem+", "+traces_lengthmult.secondElem+entryForCaseStudy.getValue().states+" , Best diff: "+average);
+                            List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
+                            learners.sort((o1, o2) ->
+                                    learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());
+                            int average = bestDiffCounter.get() > 0 ? bestDiffSum.get() / bestDiffCounter.get() : 0;
+                            System.out.println("CASE STUDY: " + entryForCaseStudy.getValue().name + " centre: " + useCentre + " chunkLen: " + chunkSizeToEvaluate +
+                                    " with: " + traces_lengthmult.firstElem + ", " + traces_lengthmult.secondElem + entryForCaseStudy.getValue().states + " , Best diff: " + average);
 
-                        for (String l : learners)
-                            System.out.println(l + " -> " + learnerToHowOftenBest.get(l).get());
-                    }
+                            for (String l : learners)
+                                System.out.println(l + " -> " + learnerToHowOftenBest.get(l).get());
+                        }
 
 
+                }
+                gr_PerformanceOfLearners.reportResults(learningGroup.gr);
             }
             DrawGraphs.writeTEX(new File(learningGroup.outPathPrefix + "casestudies_statistics.tex"),outputStatistics,true);
         }

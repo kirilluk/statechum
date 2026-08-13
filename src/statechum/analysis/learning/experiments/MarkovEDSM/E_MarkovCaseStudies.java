@@ -167,7 +167,7 @@ public class E_MarkovCaseStudies {
             this.alphabetSize = alphabetSize;
             this.traces_and_lengths = traces_and_lengths;
             this.states = this.referenceGraph.getStateNumber();
-            setWeightOfInconsistencies(new double[]{0.25,0.5,1.0, 2.0});
+            setWeightOfInconsistencies(new double[]{0.25,0.5,1.0,2.0});
         }
         public Configuration.STATETREE transitionMatrixImplType = Configuration.STATETREE.STATETREE_LINKEDHASH;
 
@@ -196,6 +196,9 @@ public class E_MarkovCaseStudies {
 
         void setWeightOfInconsistenciesDependingOnChunkLen(Map<Integer,double []> weights) {
             this.chunkLenToWeights = weights;
+            for(int chLen:chunkSizesToEvaluate)
+                if (!chunkLenToWeights.containsKey(chLen))
+                    throw new IllegalStateException("Chunk length "+chLen+" is not present in the weights map");
         }
 
         void setTransitionMatrixImplType(Configuration.STATETREE transitionMatrixImplType) {
@@ -246,23 +249,30 @@ public class E_MarkovCaseStudies {
                             new Pair( states * states, reference.getCache().getAlphabet().size())
                     };
                     caseStudyInformationMap.put(casestudy,new CaseStudyInformation(caseStudies[casestudy], casestudy, reference, reference.pathroutines.computeAlphabet().size(), traces_and_lengths));
-                    Map<Integer,double []> typicalChunkSizesToWeights = new TreeMap<>();
-                    typicalChunkSizesToWeights.put(3,new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
-                    typicalChunkSizesToWeights.put(4,new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0});
-                    typicalChunkSizesToWeights.put(5,new double[]{0.25, 0.5, 1.0});
-                    typicalChunkSizesToWeights.put(6,new double[]{0.05, 0.1, 0.25});
+                    Map<Integer,double []> chunkSizesToWeightsMinePump = new TreeMap<>();
+                    chunkSizesToWeightsMinePump.put(3,new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                    chunkSizesToWeightsMinePump.put(4,new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0});
+                    chunkSizesToWeightsMinePump.put(5,new double[]{0.25, 0.5, 1.0});
+                    chunkSizesToWeightsMinePump.put(6,new double[]{0.05, 0.1, 0.25});
+
+                    Map<Integer,double []> chunkSizesToWeightsFanTempMonitor = new TreeMap<>();
+                    chunkSizesToWeightsFanTempMonitor.put(3,new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                    chunkSizesToWeightsFanTempMonitor.put(4,new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0});
+                    chunkSizesToWeightsFanTempMonitor.put(5,new double[]{0.5, 1.0, 2.0, 4.0});
+                    chunkSizesToWeightsFanTempMonitor.put(6,new double[]{0.5, 1.0, 2.0, 4.0});
+                    chunkSizesToWeightsFanTempMonitor.put(7,new double[]{0.5, 1.0, 2.0, 4.0});
                     switch(caseStudies[casestudy]){
                         case "MinePump":
                             caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3,4,5,6});
-                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(typicalChunkSizesToWeights);
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsMinePump);
                             break;
                         case "FanTempMonitor_A":
                             caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3,4,5,6,7});
-                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(typicalChunkSizesToWeights);
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsFanTempMonitor);
                             break;
                         case "FanTempMonitor_T":
                             caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3,4,5,6,7});
-                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(typicalChunkSizesToWeights);
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsFanTempMonitor);
                             caseStudyInformationMap.get(casestudy).setTransitionMatrixImplType(Configuration.STATETREE.STATETREE_ARRAY);// large PTA, use array. PTA is loaded by constructPTA of caseStudyInformation on request when needed.
                             caseStudyInformationMap.get(casestudy).traces_and_lengths = new Pair[]{
                                     new Pair(1, 797676 / states)};// bit of a cludge but 797676 is the actual length of the log.

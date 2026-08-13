@@ -219,10 +219,10 @@ public class E_MarkovCaseStudies {
                     caseStudyInformationMap.put(casestudy,new CaseStudyInformation(caseStudies[casestudy], casestudy, reference, reference.pathroutines.computeAlphabet().size(), traces_and_lengths));
                     switch(caseStudies[casestudy]){
                         case "FanTempMonitor_A":
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{5,6,7},new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3,4,5,6,7},new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
                             break;
                         case "FanTempMonitor_T":
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{5,6,7},new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3,4,5,6,7},new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
                             caseStudyInformationMap.get(casestudy).setTransitionMatrixImplType(Configuration.STATETREE.STATETREE_ARRAY);// large PTA, use array. PTA is loaded by constructPTA of caseStudyInformation on request when needed.
                             caseStudyInformationMap.get(casestudy).traces_and_lengths = new Pair[]{
                                     new Pair(1, 797676 / states)};// bit of a cludge but 797676 is the actual length of the log.

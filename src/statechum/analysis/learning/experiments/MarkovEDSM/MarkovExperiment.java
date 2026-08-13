@@ -22,11 +22,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
+import statechum.analysis.Erlang.Synapse;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -45,6 +47,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
+import statechum.analysis.learning.linear.DifferenceVisualiser;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;

@@ -38,11 +38,13 @@ public class E_MarkovCaseStudies {
                 return FsmParserStatechum.buildLearnerGraph(
                         "q1-connect->q2-login->q3-setfiletype->q4-rename->q6-storefile->q5-setfiletype->q4-storefile->q7-appendfile->q5\nq3-makedir->q8-makedir->q8-logout->q16-disconnect->q1\nq3-changedirectory->q9-listnames->q10-delete->q10-changedirectory->q9\nq10-appendfile->q11-logout->q16\nq3-storefile->q11\nq3-listfiles->q13-retrievefile->q13-logout->q16\nq13-changedirectory->q14-listfiles->q13\nq7-logout->q16\nq6-logout->q16", "cvs",config,conv);
             case "SSH":
-                // Almost verbatim from Verifying an implementation of SSH Poll, E.; Schubert, A. 2007. The two new parts are a 'comm' transition looping in the COMMUNICATION state and the 'reset' transition.
+                // Almost verbatim from Verifying an implementation of SSH by Poll, E.; Schubert, A. 2007.
+                // The changes are : merged equivalent states WAIT_KEXDH_REPLY and KEXINIT_KEXDH_INIT_SENT into WAIT_KEXDH_REPLY
+                // Added a 'comm' transition looping in the COMMUNICATION state and the 'reset' transition.
                 return FsmParserStatechum.buildLearnerGraph(
                 "DISCONNECTED -connect! -> WAIT_VERSION - version? -> VERSION_RECEIVED - version! -> WAIT_KEXINIT / WAIT_VERSION-version! ->VERSION_SENT-version? ->WAIT_KEXINIT /"+
                         "WAIT_KEXINIT -kexinit? -> KEXINIT_RECEIVED -kexinit!->KEXINIT_SENT - kexdh_init!-> WAIT_KEXDH_REPLY -kexdh_reply? ->WAIT_NEWKEYS /"+
-                                "WAIT_KEXINIT -kexinit! ->KEXINIT_SENT_NOTR -kexinit? ->KEXINIT_SENT / KEXINIT_SENT_NOTR -kexdh_init! ->KEXDH_KEXINIT_SENT_NOTR - kexinit? -> KEXINIT_KEXDH_INIT_SENT - kexdh_reply? ->WAIT_NEWKEYS /"+
+                                "WAIT_KEXINIT -kexinit! ->KEXINIT_SENT_NOTR -kexinit? ->KEXINIT_SENT / KEXINIT_SENT_NOTR -kexdh_init! ->KEXDH_KEXINIT_SENT_NOTR - kexinit? -> WAIT_KEXDH_REPLY /"+
                                         "WAIT_NEWKEYS -newkeys? -> NEWKEYS_RECEIVED -newkeys! -> COMMUNICATION / WAIT_NEWKEYS -newkeys! ->NEWKEYS_SENT-newkeys? ->COMMUNICATION -comm->COMMUNICATION /"+
                                                 "COMMUNICATION - kexinit? ->KEXINIT_RECEIVED / COMMUNICATION -kexinit! ->KEXINIT_SENT_NOTR /" +
                         "COMMUNICATION -reset->DISCONNECTED","ssh",config,conv);
@@ -101,6 +103,7 @@ public class E_MarkovCaseStudies {
     // experiments with a specific one do not replace experiments with others.
     public static Set<String> whichCaseStudyToRun = new TreeSet<>();
     static {
+        whichCaseStudyToRun.add("MinePump");
         whichCaseStudyToRun.add("FanTempMonitor_A");
         whichCaseStudyToRun.add("FanTempMonitor_T");
     }
@@ -143,7 +146,7 @@ public class E_MarkovCaseStudies {
     }
 
 
-    static class CaseStudyInformation {
+    public static class CaseStudyInformation {
         int trainingSamplesPerFSM = 40;// these are fixed automata hence we can try many different values to see how inference performs.
         public final String name;
         public final int sample;
@@ -151,33 +154,48 @@ public class E_MarkovCaseStudies {
         public final int alphabetSize;
         Pair<Integer, Integer> [] traces_and_lengths;
         int [] chunkSizesToEvaluate = new int[]{3};
-        double [] weightOfInconsistencies = new double[]{0.25,0.5,1.0, 2.0};
         final int states;
+
+        /** Maps chunk length to the associated values of weights: larger chunks are usually associated with smaller values of weights.
+         * null means uses  weightOfInconsistencies instead.
+         */
+        Map<Integer,double []> chunkLenToWeights = null;
+
         public CaseStudyInformation(String name, int sample, LearnerGraph referenceGraph, int alphabetSize, Pair<Integer, Integer>[] traces_and_lengths) {
             this.name = name;this.sample = sample;
             this.referenceGraph = referenceGraph;
             this.alphabetSize = alphabetSize;
             this.traces_and_lengths = traces_and_lengths;
             this.states = this.referenceGraph.getStateNumber();
+            setWeightOfInconsistencies(new double[]{0.25,0.5,1.0, 2.0});
         }
         public Configuration.STATETREE transitionMatrixImplType = Configuration.STATETREE.STATETREE_LINKEDHASH;
 
-        public void setChunkSizesAndWeightsToEvaluate(int [] chunkSizesToEvaluate, double [] weightOfInconsistencies) {
+        public void setChunkSizesAndWeightsToEvaluate(int [] chunkSizesToEvaluate) {
             this.chunkSizesToEvaluate = chunkSizesToEvaluate;
-            this.weightOfInconsistencies = weightOfInconsistencies;
         }
 
         /** Used to generate a PTA for the case study in case it is not built by randomly exploring a transition graph.
          *  Should return either null in order to build PTA randomly or a PTA.
         */
         public LearnerGraph constructPTA(Configuration config, Transform.ConvertALabel labelConverter) {
-            if (name ==  "FanTempMonitor_T") {
+            if (Objects.equals(name, "FanTempMonitor_T")) {
                 LearnerGraph initialPTA = new LearnerGraph(config);
                 initialPTA.paths.augmentPTA(loadTrace("resources/i2c_study/log10.txt", labelConverter, "Err"), true, false, null);
                 return  initialPTA;
             }
 
             return null;
+        }
+
+        void setWeightOfInconsistencies(double [] weightOfInconsistencies) {
+            chunkLenToWeights = new TreeMap<>();
+            for(int chLen:chunkSizesToEvaluate)
+                chunkLenToWeights.put(chLen,weightOfInconsistencies);
+        }
+
+        void setWeightOfInconsistenciesDependingOnChunkLen(Map<Integer,double []> weights) {
+            this.chunkLenToWeights = weights;
         }
 
         void setTransitionMatrixImplType(Configuration.STATETREE transitionMatrixImplType) {
@@ -207,6 +225,17 @@ public class E_MarkovCaseStudies {
     //                dotConfig.setTransitionMatrixImplType(Configuration.STATETREE.STATETREE_ARRAY);
                     dotConfig.setLabelKind(Configuration.LABELKIND.LABEL_STRING);
                     LearnerGraph reference = constructAutomatonForCaseStudy(caseStudies[casestudy], dotConfig, new Transform.InternStringLabel());
+                    try
+                    {
+                        WMethod.computeWSet_reducedmemory(reference);
+                    }
+                    catch(WMethod.EquivalentStatesException ex) {
+                        System.out.println("Equivalent states:");
+                        for(EquivalenceClass<DeterministicDirectedSparseGraph.CmpVertex,LearnerGraphCachedData> eqClass:ex.getEquivalentStates())
+                            System.out.println(eqClass.toString());
+                        throw new IllegalArgumentException(ex);
+                    }
+
                     double density = (double)reference.pathroutines.countEdges()/(reference.getStateNumber() * reference.getStateNumber());
                     int states = reference.getStateNumber();
                     if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
@@ -217,12 +246,23 @@ public class E_MarkovCaseStudies {
                             new Pair( states * states, reference.getCache().getAlphabet().size())
                     };
                     caseStudyInformationMap.put(casestudy,new CaseStudyInformation(caseStudies[casestudy], casestudy, reference, reference.pathroutines.computeAlphabet().size(), traces_and_lengths));
+                    Map<Integer,double []> typicalChunkSizesToWeights = new TreeMap<>();
+                    typicalChunkSizesToWeights.put(3,new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                    typicalChunkSizesToWeights.put(4,new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0});
+                    typicalChunkSizesToWeights.put(5,new double[]{0.25, 0.5, 1.0});
+                    typicalChunkSizesToWeights.put(6,new double[]{0.05, 0.1, 0.25});
                     switch(caseStudies[casestudy]){
+                        case "MinePump":
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3,4,5,6});
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(typicalChunkSizesToWeights);
+                            break;
                         case "FanTempMonitor_A":
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3,4,5,6,7},new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3,4,5,6,7});
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(typicalChunkSizesToWeights);
                             break;
                         case "FanTempMonitor_T":
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3,4,5,6,7},new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3,4,5,6,7});
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(typicalChunkSizesToWeights);
                             caseStudyInformationMap.get(casestudy).setTransitionMatrixImplType(Configuration.STATETREE.STATETREE_ARRAY);// large PTA, use array. PTA is loaded by constructPTA of caseStudyInformation on request when needed.
                             caseStudyInformationMap.get(casestudy).traces_and_lengths = new Pair[]{
                                     new Pair(1, 797676 / states)};// bit of a cludge but 797676 is the actual length of the log.
@@ -256,7 +296,7 @@ public class E_MarkovCaseStudies {
                                             })
                                 for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? caseStudyInformationMap.get(casestudy).chunkSizesToEvaluate : new int[]{2})
                                     for (double weightOfInconsistencies : learnerKind.isMarkov() ?
-                                            caseStudyInformationMap.get(casestudy).weightOfInconsistencies
+                                            caseStudyInformationMap.get(casestudy).chunkLenToWeights.get(chunkSizeToEvaluate)
                                             //new double[]{0.25,0.5,1.0, 2.0, 3.0, 4.0, 6.0, 8.0}
                                             : new double[]{1.0})
                                         for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} :

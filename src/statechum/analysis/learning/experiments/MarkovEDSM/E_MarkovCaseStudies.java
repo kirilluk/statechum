@@ -220,6 +220,7 @@ public class E_MarkovCaseStudies {
 //        if (!Files.exists(Paths.get(pathToCaseStudyFiles)))
 //            throw new RuntimeException("Cannot load any case studies: path to case studies does not exist "+pathToCaseStudyFiles);
 
+        long timeout = 1800000L*9L;// // for case studies, set timeout to 4.5 hours - the one that runs that long is centre-based computations for FanTempMonitor with 676 traces that do not produce brilliant results anyway (comparable to learning without centre since the PTA is dense enough for normal learning).
 
         if (caseStudyInformationMap.isEmpty())
             for (int casestudy=0; casestudy<caseStudies.length; casestudy++)
@@ -321,7 +322,7 @@ public class E_MarkovCaseStudies {
                                                 ev.config.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
                                             // For some case studies (FanTempController_T) there is a large amount of data - need Array-based data structures
                                             ev.config.setTransitionMatrixImplType(caseStudyInformationMap.get(casestudy).transitionMatrixImplType);
-                                            ev.config.setTimeOut(1800000L*9L);// for case studies, set timeout to 4.5 hours - the one that runs that long is centre-based computations for FanTempMonitor with 676 traces that do not produce brilliant results anyway (comparable to learning without centre since the PTA is dense enough for normal learning).
+                                            ev.config.setTimeOut(timeout);
                                             MarkovLearningBaselineParameters parameters = new MarkovLearningBaselineParameters(learnerKind, states, 0, 0, casestudy, trainingSample);
                                             parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
                                             parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, 0);
@@ -371,6 +372,9 @@ public class E_MarkovCaseStudies {
                                                 ) {
                                                     gr_PerformanceOfLearners.add(traces_lengthmult.firstElem+"\n"+column.learner.name,structural);
                                                     double runtime = obtainDoubleValueFromCell(Y, E_RUNTIME, column);
+                                                    if (runtime > timeout)
+                                                        runtime = timeout;// cap runtime to timeout, esp since earlier runs could run longer.
+
                                                     if (runtime >= 1.0)
                                                         runtime = Math.log10(runtime);
                                                     gr_RuntimeOfLearners.add(traces_lengthmult.firstElem+"\n"+column.learner.name,runtime);
@@ -384,6 +388,8 @@ public class E_MarkovCaseStudies {
                                                     column.learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
                                             (column, columnText, Y) -> {
                                                 double runtime = obtainDoubleValueFromCell(Y, E_RUNTIME, column);
+                                                if (runtime > timeout)
+                                                    runtime = timeout;// cap runtime to timeout, esp since earlier runs could run longer.
                                                 if (runtime >= 1.0)
                                                     runtime = Math.log10(runtime);
                                                 gr_RuntimeOfLearners.add(traces_lengthmult.firstElem+"\n"+

@@ -716,6 +716,8 @@ public class WaveBlueFringe extends PairQualityLearner
 						return true;
 					}
 
+					@Override
+					public void checkTimeout() {}
 				});
 
 				actualAutomaton = learnerOfPairs.learnMachine(new LinkedList<>(), new LinkedList<>());

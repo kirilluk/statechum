@@ -1114,6 +1114,9 @@ public class LearningAlgorithms
 				public boolean useFirstFoundRed() {
 					return true;
 				}
+
+				@Override
+				public void checkTimeout() {}
 			});
 			updatePairQualityStatistics(graph,outcome);
 			return outcome;
@@ -1578,6 +1581,8 @@ public class LearningAlgorithms
 			return true;
 		}
 
+		@Override
+		public void checkTimeout() {}
 	}
 	
 	public static final ScoresForGraph zeroScore;

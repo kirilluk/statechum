@@ -137,6 +137,10 @@ public class TestLearnFromTracesUsingMarkov
 		public boolean useFirstFoundRed() {
 			return true;
 		}
+
+		@Override
+		public void checkTimeout() {
+		}
 	}
 	
 	@Test

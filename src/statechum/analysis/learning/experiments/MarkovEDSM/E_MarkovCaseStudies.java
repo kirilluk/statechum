@@ -108,7 +108,7 @@ public class E_MarkovCaseStudies {
     static {
 //        whichCaseStudyToRun.add("MinePump");
 //        whichCaseStudyToRun.add("FanTempMonitor_A");
-        whichCaseStudyToRun.add("FanTempMonitor_T");
+//        whichCaseStudyToRun.add("FanTempMonitor_T");
     }
 
     public static class MarkovLearningBaselineParameters extends MarkovLearningParameters {
@@ -321,6 +321,7 @@ public class E_MarkovCaseStudies {
                                                 ev.config.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
                                             // For some case studies (FanTempController_T) there is a large amount of data - need Array-based data structures
                                             ev.config.setTransitionMatrixImplType(caseStudyInformationMap.get(casestudy).transitionMatrixImplType);
+                                            ev.config.setTimeOut(1800000L*9L);// for case studies, set timeout to 4.5 hours - the one that runs that long is centre-based computations for FanTempMonitor with 676 traces that do not produce brilliant results anyway (comparable to learning without centre since the PTA is dense enough for normal learning).
                                             MarkovLearningBaselineParameters parameters = new MarkovLearningBaselineParameters(learnerKind, states, 0, 0, casestudy, trainingSample);
                                             parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
                                             parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, 0);

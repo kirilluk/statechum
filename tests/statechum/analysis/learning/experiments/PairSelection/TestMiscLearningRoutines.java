@@ -478,6 +478,10 @@ public class TestMiscLearningRoutines
 					// In this test, we check that all the right blue states to turn red were chosen hence it is wrong to stop after the first found one.
 					return false;
 				}
+
+				@Override
+				public void checkTimeout() {
+				}
 			});
 			
 			Set<PairScore> pairsReturnedAsSet = new TreeSet<>(pairsReturned);
@@ -554,6 +558,10 @@ public class TestMiscLearningRoutines
 				public boolean useFirstFoundRed() {
 					// Make sure we choose all the blue states that need to become red.
 					return false;
+				}
+
+				@Override
+				public void checkTimeout() {
 				}
 			});
 			

@@ -779,6 +779,9 @@ public class PairQualityLearner
 				public boolean useFirstFoundRed() {
 					return true;
 				}
+
+				@Override
+				public void checkTimeout() {}
 			});
 			if (!outcome.isEmpty())
 			{
@@ -1459,6 +1462,8 @@ public class PairQualityLearner
 				return lastComputedCompatibilityScore;
 			}
 
+			@Override
+			public void checkTimeout() {}
 		}
 		
 		

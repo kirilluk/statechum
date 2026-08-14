@@ -79,6 +79,12 @@ public class PairScoreComputation {
 		 */
 		boolean useFirstFoundRed();
 
+		/** For exteremely dense graphs (such as constructed by starting with a highly branching PTA and then doing a 'centre',
+		 * comparison of red states with blue states could take forever (such as 10hrs). Hence we need to abort early, not just
+		 * when a pair is found. This method will be periodically called for this reason.
+		 */
+		void checkTimeout();
+
 		/** Given a graph, the current collection of red nodes and those not compatible with any 
 		 * current red nodes, this function is supposed to decide which of the blue nodes to promote to red.
 		 * For completeness, it can be called with a single entry in the tentativeRedNodes. This is used to
@@ -132,8 +138,11 @@ public class PairScoreComputation {
 					if (currentBlueState.getColour() == null ||
 							currentBlueState.getColour() == JUConstants.BLUE)
 					{// the next vertex is not marked red, hence it has to become blue
+						if (decisionProcedure != null)
+							decisionProcedure.checkTimeout();
 
 						int numberOfCompatiblePairs = 0;
+						int counter = 0;
 						for(CmpVertex oldRed:reds)
 						{
 							PairScore pair = obtainPair(currentBlueState,oldRed,decisionProcedure);
@@ -143,6 +152,9 @@ public class PairScoreComputation {
 								++numberOfCompatiblePairs;
 								if (GlobalConfiguration.getConfiguration().isAssertEnabled() && coregraph.config.getDebugMode()) PathRoutines.checkPTAConsistency(coregraph, currentBlueState);
 							}
+							counter++;
+							if (decisionProcedure != null && counter % 40 > 0)
+								decisionProcedure.checkTimeout();
 						}
 						
 						// This node is currently a blue node and remains blue until I decide which of the current potentially red nodes become red.

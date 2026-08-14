@@ -275,6 +275,10 @@ public class RPNIBlueFringeVariability
 					public boolean useFirstFoundRed() {
 						return true;
 					}
+
+					@Override
+					public void checkTimeout() {
+					}
 				});
 				
 				if (!outcome.isEmpty())

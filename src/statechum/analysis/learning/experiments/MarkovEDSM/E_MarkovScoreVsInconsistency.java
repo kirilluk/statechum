@@ -75,7 +75,34 @@ public class E_MarkovScoreVsInconsistency {
                 }
             }
 
-        learningGroup.experimentRunner.collectOutcomeOfExperiments(constructResultsCollector(resultCSV));
+        final SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>> resultsCollector =
+            constructResultsCollector(resultCSV);
+        learningGroup.experimentRunner.collectOutcomeOfExperiments(new SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>() {
+
+            @Override
+            public void processSubResult(ExperimentResult<MarkovLearningParameters> result, SGE_ExperimentRunner.RunSubExperiment<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>> experimentrunner) throws
+                    IOException {// in these experiments, samples are singleton sequences because we run each of them in a separate process, in order to increase the efficiency with which all tasks are split between CPUs in an iceberg grid.
+                PairQualityLearner.SampleData sm = result.samples.get(0);
+                PairQualityLearner.ScoresForGraph data = sm.actualLearner;
+
+                resultsCollector.processSubResult(result,experimentrunner);
+
+                List<OtpErlangObject> pairs = new ArrayList<>();
+                for(PairQualityLearner.PairScoreValue value:data.mergeStatistics)
+                    pairs.add(new OtpErlangTuple(new OtpErlangObject[]{
+                            new OtpErlangBoolean(value.validMerge),new OtpErlangLong(value.score),new OtpErlangLong(value.inconsistency)}));
+//                System.out.println("Pairs : "+pairs.size()+" runtime: "+Math.round(data.executionTime / 1000000000.));
+                String statisticsFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(learningGroup.outPathPrefix + directoryExperimentStatistics,learnStatistics,result.parameters);
+                try (FileWriter statisticsFile = new FileWriter(statisticsFileName)) {
+                    statisticsFile.write(ErlangLabel.dumpErlangObject(new OtpErlangList(pairs.toArray(new OtpErlangObject[0]))));
+                }
+            }
+
+            @Override
+            public SGEExperimentResult[] getGraphs() {
+                return resultsCollector.getGraphs();
+            }
+        });
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
             for (int states : learningGroup.statesToUse)

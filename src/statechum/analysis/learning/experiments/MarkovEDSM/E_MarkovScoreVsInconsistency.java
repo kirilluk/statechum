@@ -117,9 +117,6 @@ public class E_MarkovScoreVsInconsistency {
                 multToBCR.put(new Pair<>(chunkLen,value),new DrawGraphs.SquareBagPlot("BCR, logistic regression", "BCR, "+value,
                     new File(learningGroup.outPathPrefix + File.separator + description + "bcr_logistic_ch="+chunkLen+"_vs_mult+"+value+".pdf"), 0.5, 1, true));
 
-//            final DrawGraphs.SquareBagPlot bcrLogisticRegressionVsMultiplicationBest = new DrawGraphs.SquareBagPlot("BCR, logistic regression", "BCR, 1.0",
-//                    new File(learningGroup.outPathPrefix + File.separator + description + "bcr_logistic_vs_mult_best.pdf"), 0.5, 1, true);
-
             int numberOfPoints = 0;
             for (int states_C : learningGroup.statesToUse)
                 for (int ignoredA : MarkovExperiment.densityFromStateNumber(states_C))
@@ -133,12 +130,6 @@ public class E_MarkovScoreVsInconsistency {
             ProgressIndicator progress = new ProgressIndicator("Reporting results",numberOfPoints);
             for (int states : learningGroup.statesToUse)
                 for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
-//                    String experimentName = learningGroup.outPathPrefix + "statistics_"+states+"_"+perStateSquaredDensity100+"_";
-//                    final Map<Integer,ScatterPlot> gr_ScoreVsInconsistency = new TreeMap<>();
-//                    for (final int chunkSizeToEvaluate : chunkSizeValues) {
-//                        gr_ScoreVsInconsistency.put(chunkSizeToEvaluate, new ScatterPlot("Inconsistency", "Score",
-//                                new File(learningGroup.outPathPrefix + "statistics_" + states + "_" + perStateSquaredDensity100 + "_" + chunkSizeToEvaluate + "_"+penaliseMissingPaths+"_score_vs_inconsistency.pdf")));
-//                    }
                     for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample) {
                         for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{learningGroup.getTracesLengthmultBaseline(states)}) {
                             int traceQuantityToUse = traces_lengthmult.firstElem;
@@ -170,13 +161,6 @@ public class E_MarkovScoreVsInconsistency {
                                         // ignore error, we'll know that file was not read because fileContents will be null.
                                     }
                                     if (fileContents != null) {
-                                        String pathSuffix = "statistics_" + states + "_" + perStateSquaredDensity100 + "_" + chunkSizeToEvaluate + "_"+penaliseMissingPaths+"_score_vs_inconsistency.pdf";
-                                        // Created for each learning attempt
-//                                        ScatterPlot gr_ScoreVsInconsistencyEachLearn = new ScatterPlot("Inconsistency", "Score",
-//                                                new File(pathName + File.separator+pathSuffix));
-//                                        ScatterPlot gr_ScoreVsInconsistency = pathToScatterPlot.computeIfAbsent(pathSuffix,suffix -> new ScatterPlot("Inconsistency", "Score",
-//                                                new File(learningGroup.outPathPrefix + File.separator+ sanitiseFileName(parameters.getSubExperimentName())+suffix)));
-
                                         List<PairQualityLearner.PairScoreValue> values = new ArrayList<>();
                                         OtpErlangObject listOfPairsAsObject = ErlangLabel.parseText(fileContents);
                                         if (!(listOfPairsAsObject instanceof OtpErlangList))
@@ -188,34 +172,13 @@ public class E_MarkovScoreVsInconsistency {
                                             long score = ((OtpErlangLong) pair.elementAt(1)).longValue();
                                             long inconsistency = ((OtpErlangLong) pair.elementAt(2)).longValue();
                                             values.add(new PairQualityLearner.PairScoreValue(validMerge, score, inconsistency));
-//                                            if (score < 100 && inconsistency < 1000)
-//                                                gr_ScoreVsInconsistencyEachLearn.add((double) inconsistency, (double) score, validMerge ? "green" : "red", null);
-//                                                gr_ScoreVsInconsistency.add((double) inconsistency, (double) score, validMerge ? "green" : "red", null);
-//                                                gr_ScoreVsInconsistency.get(chunkSizeToEvaluate).add((double) inconsistency, (double) score, validMerge ? "green" : "red", null);
                                         }
-
-//                                        gr_ScoreVsInconsistencyEachLearn.reportResults(learningGroup.gr);
-
 
                                         DrawGraphs.LogisticRegression regression = new DrawGraphs.LogisticRegression(values,"fit","pairvalues");
 //                                        System.out.println(pathName+" , "+ states + "_" + perStateSquaredDensity100 + "_" + chunkSizeToEvaluate + "_"+penaliseMissingPaths+" : "+regression.reportNormalisedCoefficients());
                                         ConfusionMatrix confUsingLogisticRegression = regression.computeConfusionMatrix(values);
 //                                        System.out.println("Logistic regression: "+confUsingLogisticRegression+" F1="+confUsingLogisticRegression.fMeasure()+", BCR="+confUsingLogisticRegression.BCR());
-//                                        double bestBcr=0.0;
-                                        /*
-                                        for(double consideredWeightOfInconsistencies:new double[]{0.25,0.5,1.,2.})
-                                            for(double offset:new double[]{0})//,0.25,0.5,1})
-                                            {
-                                                ConfusionMatrix confGivenWeight = LogisticRegression.computeConfusionMatrixGivenWeightOfInconsistencies(values,consideredWeightOfInconsistencies,offset);
-//                                                if (confGivenWeight.BCR() > bestBcr) bestBcr = confGivenWeight.BCR();
-                                                for(Map.Entry<Pair<Integer,Double>,SquareBagPlot> mult_and_plot:multToBCR.entrySet())
-                                                    if (mult_and_plot.getKey().firstElem == chunkSizeToEvaluate && Math.abs(consideredWeightOfInconsistencies - mult_and_plot.getKey().secondElem) < 1e-7)
-                                                        mult_and_plot.getValue().add(confUsingLogisticRegression.BCR(), confGivenWeight.BCR());
-    //                                            System.out.println("Score-"+consideredWeightOfInconsistencies+"*inconsistency >= "+offset+": "+confGivenWeight+" F1="+confGivenWeight.fMeasure()+", BCR="+confGivenWeight.BCR());
-                                            }
-//                                        bcrLogisticRegressionVsMultiplicationBest.add(confUsingLogisticRegression.BCR(), bestBcr);
 
-                                        */
                                         for(Map.Entry<Pair<Integer,Double>,SquareBagPlot> mult_and_plot:multToBCR.entrySet())
                                             if (mult_and_plot.getKey().firstElem == chunkSizeToEvaluate) {
                                                 ConfusionMatrix confGivenWeight = LogisticRegression.computeConfusionMatrixGivenWeightOfInconsistencies(values,mult_and_plot.getKey().secondElem,0.0);
@@ -225,15 +188,9 @@ public class E_MarkovScoreVsInconsistency {
                                 }
                         }
                     }
-//                    for (final int chunkSizeToEvaluate : chunkSizeValues) {
-//                        gr_ScoreVsInconsistency.get(chunkSizeToEvaluate).reportResults(learningGroup.gr);
-//                    }
                 }
-//            for(ScatterPlot plot:pathToScatterPlot.values())
-//                plot.reportResults(learningGroup.gr);
             for(SquareBagPlot plot:multToBCR.values())
                 plot.reportResults(learningGroup.gr);
-//            bcrLogisticRegressionVsMultiplicationBest.reportResults(learningGroup.gr);
         }
         return resultCSV;
     }

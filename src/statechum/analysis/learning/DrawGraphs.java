@@ -104,6 +104,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -138,6 +140,7 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
+import weka.Run;
 
 
 public class DrawGraphs {
@@ -1513,11 +1516,24 @@ public class DrawGraphs {
 		protected static String variableName = "m";
 
 		@Override
-		public void reportResults(@SuppressWarnings("unused") DrawGraphs gr)
+		public void reportResults(@SuppressWarnings("unused") DrawGraphs gr) {
+			reportResults(gr,false);
+		}
+		public void reportResults(@SuppressWarnings("unused") DrawGraphs gr, boolean ignoreException)
 		{
 			if (!valuesA.isEmpty())
 			{
-				StatisticalTestResult o=obtainResultFromR();
+				StatisticalTestResult o=obtainResultFromR(ignoreException);
+				if (!o.valueValid) {// invalid results, ensure to remove the file that might have been recorded with previous values
+					if (file.exists()) {
+						if (!file.delete())
+							throw new IllegalArgumentException("Obtained values were invalid but the file with previous values could not be deleted " + file.getAbsolutePath());
+					}
+                    return;
+				}
+
+				// Now we know that the values are valid, write them out
+
 				FileWriter writer = null;
 				try {
 					writer = new FileWriter(file);
@@ -1541,11 +1557,11 @@ public class DrawGraphs {
 		}
 
 		/** Requests results of statistical analysis from R. */
-		public StatisticalTestResult obtainResultFromR()
+		public StatisticalTestResult obtainResultFromR(boolean ignoreException)
 		{
 			List<String> drawingCommands = new LinkedList<>();
 			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
-			return StatisticalTestResult.performAnalysis(drawingCommands, variableName, getMethodNames());
+			return StatisticalTestResult.performAnalysis(drawingCommands, variableName, getMethodNames(), ignoreException);
 		}
 
 		public List<String> getDrawingCommand()
@@ -1830,14 +1846,21 @@ public class DrawGraphs {
 		}
 
 		/** Requests results of statistical analysis from R. */
-		public StatisticalTestResult obtainResultFromR() {
+		public StatisticalTestResult obtainResultFromR(boolean ignoreFailure) {
 			List<String> drawingCommands = new LinkedList<>();
 			drawingCommands.addAll(getDrawingCommand());
 			drawingCommands.addAll(extraCommands);
 
 			StatisticalTestResult STR = new StatisticalTestResult();
-			for (String cmd : drawingCommands)
-				eval(cmd, "failed to run " + cmd);
+			try {
+				for (String cmd : drawingCommands)
+					eval(cmd, "failed to run " + cmd);
+			}
+			catch(RuntimeException e) {
+				if (!ignoreFailure)
+					throw e;
+				return STR;// return statistics marked as invalid.
+			}
 			if (confidenceValuesNumber == 0)
 				STR.statistic = valueAsDouble(engine.eval(variableName));
 			else
@@ -1851,6 +1874,7 @@ public class DrawGraphs {
 				STR.confidence_lo = valueAsDouble(engine.eval(variableName+"[1]"));
 				STR.confidence_hi = valueAsDouble(engine.eval(variableName+"[2]"));
 			}
+			STR.valueValid = true;
 			return STR;
 		}
 
@@ -2101,21 +2125,43 @@ public class DrawGraphs {
 		double parameter=0.;
 		public double confidence_lo=0.;
 		public double confidence_hi=0.;
-		
+		/** Until we populate this structure, the value is not valid. */
+		public boolean valueValid = false;
+
+		public StatisticalTestResult() {}
+
+		public StatisticalTestResult(double statistic, double pvalue, String alternative, double parameter, double confidence_lo, double confidence_hi) {
+			this.statistic = statistic;
+			this.pvalue = pvalue;
+			this.alternative = alternative;
+			this.parameter = parameter;
+			this.confidence_lo = confidence_lo;
+			this.confidence_hi = confidence_hi;
+			this.valueValid = true;
+		}
+
 		/** Using a supplied list of commands, obtains a result.
 		 * 
 		 * @param drawingCommands commands to run, the outcome of the last one is reported.
 		 * @param varName the variable used to assign the outcome in the commands executed.
 		 * @param expectedMethodNames When computing a result, R reports the name of the method used. We can use it to check that the right method was passed in the commands to compute the result, just in case.
+		 * @param ignoreException if true, will proceed, ignoring any exception (such as where there is not enough data to compute a statistic. The output will be marked invalid.
 		 * @return the results of the analysis, computed by running the supplied list of commands.
 		 */
-		public static StatisticalTestResult performAnalysis(List<String> drawingCommands,String varName, String [] expectedMethodNames)
+		public static StatisticalTestResult performAnalysis(List<String> drawingCommands,String varName, String [] expectedMethodNames, boolean ignoreException)
 		{
 			if (drawingCommands.isEmpty())
 				throw new IllegalArgumentException("no command to perform statistical analysis");
 			StatisticalTestResult STR=new StatisticalTestResult();
-			for(String cmd:drawingCommands)
-				eval(cmd,"failed to run "+cmd);
+			try {
+				for (String cmd : drawingCommands)
+					eval(cmd, "failed to run " + cmd);
+			}
+			catch(RuntimeException e) {
+				if (ignoreException)
+					return STR;// return result marked as invalid
+				throw e;// if not ignore, re-throw
+			}
 			STR.statistic=valueAsDouble(engine.eval(varName+"$statistic"));
 			STR.pvalue=valueAsDouble(engine.eval(varName+"$p.value"));
 			STR.alternative=engine.eval(varName+"$alternative").asString();
@@ -2132,6 +2178,8 @@ public class DrawGraphs {
 			}
 			if (!found)
 				throw new IllegalArgumentException("expected to use method \""+ expectedMethods +"\" but got \""+methodName+"\"");
+
+			STR.valueValid=true;
 			return STR;
 		}
 	}

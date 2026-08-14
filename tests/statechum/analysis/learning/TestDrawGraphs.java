@@ -249,7 +249,8 @@ public class TestDrawGraphs {
 		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
 
 		StringWriter s=new StringWriter();
-		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
+		StatisticalTestResult result = w.obtainResultFromR(false);w.writetofile(result,s);
+		Assert.assertTrue(result.valueValid);
 		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon signed rank test,1.0,0.5000000000000001\n",s.toString());
 	}
 	
@@ -271,7 +272,8 @@ public class TestDrawGraphs {
 		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
 
 		StringWriter s=new StringWriter();
-		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
+		StatisticalTestResult result = w.obtainResultFromR(false);w.writetofile(result,s);
+		Assert.assertTrue(result.valueValid);
 		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon rank sum test,2.0,0.3758250874886983\n",s.toString());
 	}
 
@@ -310,7 +312,8 @@ public class TestDrawGraphs {
 		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
 
 		StringWriter s=new StringWriter();
-		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
+		StatisticalTestResult result = w.obtainResultFromR(false);w.writetofile(result,s);
+		Assert.assertTrue(result.valueValid);
 		Assert.assertEquals("Method,Statistic\nA_VarghaDelaney (A12) test,0.7777777777777778\n",s.toString());
 	}
 	@Test
@@ -325,7 +328,8 @@ public class TestDrawGraphs {
 
 		w.resetRandomSeed();
 		StringWriter s=new StringWriter();
-		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
+		StatisticalTestResult result = w.obtainResultFromR(false);w.writetofile(result,s);
+		Assert.assertTrue(result.valueValid);
 		String expectedFixedPart = "Method,Statistic,confidence_lo,confidence_high\nA_VarghaDelaney (A12) test (100),0.6825,";
 		Assert.assertEquals(expectedFixedPart,s.toString().substring(0,expectedFixedPart.length()));
 		String[] confidence_interval = s.toString().substring(expectedFixedPart.length()).split(",");
@@ -335,7 +339,7 @@ public class TestDrawGraphs {
 	}
 
 	@Test
-	public void testVarghaDelaney_Test3() throws IOException
+	public void testVarghaDelaney_Test3a() throws IOException
 	{
 		@SuppressWarnings("unused")
 		DrawGraphs gr = new DrawGraphs();// loads the R library
@@ -343,8 +347,19 @@ public class TestDrawGraphs {
 		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
 
 		checkForCorrectException(() -> {
-			w.obtainResultFromR();
+			w.obtainResultFromR(false);
 		},IllegalArgumentException.class,"not enough");// error from R
+	}
+	@Test
+	public void testVarghaDelaney_Test3b() throws IOException
+	{
+		@SuppressWarnings("unused")
+		DrawGraphs gr = new DrawGraphs();// loads the R library
+		final DrawGraphs.A_VarghaDelaney w = new DrawGraphs.A_VarghaDelaney(new File("test"),10000);
+		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
+
+		StatisticalTestResult result = w.obtainResultFromR(true);
+		Assert.assertFalse(result.valueValid);
 	}
 	@Test
 	public void testKruskal_Wallis_TestToString()
@@ -364,7 +379,8 @@ public class TestDrawGraphs {
 		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
 		StringWriter s=new StringWriter();
 		
-		StatisticalTestResult result = w.obtainResultFromR();w.writetofile(result,s);
+		StatisticalTestResult result = w.obtainResultFromR(false);w.writetofile(result,s);
+		Assert.assertTrue(result.valueValid);
 		Assert.assertEquals(2.0,result.statistic,Configuration.fpAccuracy);// values obtained by recording the results rather than attempting to determine what should be returned.
 		Assert.assertEquals(0.36787944117144233,result.pvalue,Configuration.fpAccuracy);Assert.assertEquals(2.0,result.parameter,Configuration.fpAccuracy);
 		Assert.assertNull(result.alternative);

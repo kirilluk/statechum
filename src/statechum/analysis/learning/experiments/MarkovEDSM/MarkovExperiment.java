@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.*;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
+import edu.uci.ics.jung.utils.UserData;
 import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
@@ -257,12 +258,13 @@ public class MarkovExperiment
 //			LearnerGraphND grA=buildLearnerGraphND(graphA, "labellingDemo_A_"+counter,config,null),
 //					grB=buildLearnerGraphND(graphB, "labellingDemo_B_"+counter,config,null);
 
-
-//			DirectedSparseGraph gr = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(
-//					Synapse.StatechumProcess.constructFSM(referenceGraph), DifferenceVisualiser.ChangesToGraph.computeGD(referenceGraph, actualAutomaton,referenceGraph.config));
-//			Visualiser.updateFrame(gr, null);
-//			Visualiser.updateFrame(referenceGraph,actualAutomaton);
-//			Visualiser.waitForKey();
+//			if (dataSample.actualLearner.differenceStructural.getValue() > 0.965) {
+//				DirectedSparseGraph gr = DifferenceVisualiser.ChangesToGraph.computeVisualisationParameters(
+//						Synapse.StatechumProcess.constructFSM(referenceGraph), DifferenceVisualiser.ChangesToGraph.computeGD(referenceGraph, actualAutomaton, referenceGraph.config));
+//				Visualiser.updateFrame(gr, null);gr.setUserDatum(JUConstants.TITLE,referenceGraph.getName(), UserData.SHARED);
+//				Visualiser.updateFrame(actualAutomaton,referenceGraph);
+//				Visualiser.waitForKey();
+//			}
 
 			dataSample.transitionsSampled = Math.round(100*(double)trimmedGraph.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges());
 			statechum.Pair<Double,Double> correctnessOfTransitionPredictionsByMarkov = new MarkovClassifierLG(markovModel, referenceGraph,null).evaluateCorrectnessOfMarkov(true, false);

@@ -22,8 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.I2cexperiment.loadTrace;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.E_BCR;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.E_DIFF;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 import static statechum.analysis.learning.rpnicore.FsmParserDot.HOW_TO_FIND_INITIAL_STATE.USE_START0;
@@ -109,7 +108,7 @@ public class E_MarkovCaseStudies {
     static {
 //        whichCaseStudyToRun.add("MinePump");
 //        whichCaseStudyToRun.add("FanTempMonitor_A");
-//        whichCaseStudyToRun.add("FanTempMonitor_T");
+        whichCaseStudyToRun.add("FanTempMonitor_T");
     }
 
     public static class MarkovLearningBaselineParameters extends MarkovLearningParameters {
@@ -124,7 +123,7 @@ public class E_MarkovCaseStudies {
         }
     }
 
-    public static class MarkovLearnerRunnerForCaseStudies extends MarkovExperiment.MarkovLearnerRunner {
+    public static class MarkovLearnerRunnerForCaseStudies extends MarkovLearnerRunner {
 
         public MarkovLearnerRunnerForCaseStudies(MarkovLearningBaselineParameters parameters, ProgressDecorator.LearnerEvaluationConfiguration ev) {
             super(parameters, ev);
@@ -210,7 +209,7 @@ public class E_MarkovCaseStudies {
         }
     }
 
-    public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
+    public static void runExperiment(LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0,1};
         final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "casestudies-results.csv"), "results.csv");
         boolean aveOrMax = true;// average divide by the divisor
@@ -330,7 +329,7 @@ public class E_MarkovCaseStudies {
                                             parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                             parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
 //                                            parameters.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP,0.6, 10);
-                                            MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(parameters, ev);
+                                            MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(parameters, ev);
                                             learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                             learningGroup.experimentRunner.submitTask(learnerRunner);
                                         }
@@ -346,6 +345,9 @@ public class E_MarkovCaseStudies {
                 final RBoxPlot<String> gr_PerformanceOfLearners = new RBoxPlot<>("", "Structural Score",
                         new File(learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_learner_structural.pdf"));
                 gr_PerformanceOfLearners.setupForTwoLineXLabels();
+                final RBoxPlot<String> gr_RuntimeOfLearners = new RBoxPlot<>("", "Runtime",
+                        new File(learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_learner_runtime.pdf"));
+                gr_RuntimeOfLearners.setupForTwoLineXLabels();
                 for (final int chunkSizeToEvaluate : entryForCaseStudy.getValue().chunkSizesToEvaluate) {
                     Pair<Integer, Integer>[] traces_and_lengths = entryForCaseStudy.getValue().traces_and_lengths;
 
@@ -358,7 +360,7 @@ public class E_MarkovCaseStudies {
                                 if (rowHeader.traceQuantity == traces_lengthmult.firstElem && rowHeader.sample == entryForCaseStudy.getKey()) {
                                     getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColOtherLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),
                                             (column, columnText, Y) -> {
-                                                boolean learntOK = obtainStringValueFromCell(Y, MarkovExperiment.RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
+                                                boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
                                                 double bcr = obtainDoubleValueFromCell(Y, E_BCR, column);
                                                 double structural = obtainDoubleValueFromCell(Y, E_DIFF, column);
 
@@ -367,7 +369,27 @@ public class E_MarkovCaseStudies {
                                                         column.learner == LearningAlgorithms.ScoringToApply.SCORING_VH)
                                                 ) {
                                                     gr_PerformanceOfLearners.add(traces_lengthmult.firstElem+"\n"+column.learner.name,structural);
+                                                    double runtime = obtainDoubleValueFromCell(Y, E_RUNTIME, column);
+                                                    if (runtime >= 1.0)
+                                                        runtime = Math.log10(runtime);
+                                                    gr_RuntimeOfLearners.add(traces_lengthmult.firstElem+"\n"+column.learner.name,runtime);
                                                 }
+                                            });
+
+                                    getAllValuesFromMapGivenRegexp(rowEntry.getValue(),
+                                            column ->
+                                                    (column.parameters.preset > 0) == useCentre &&
+                                                    column.parameters.chunkLen == chunkSizeToEvaluate &&
+                                                    column.learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
+                                            (column, columnText, Y) -> {
+                                                double runtime = obtainDoubleValueFromCell(Y, E_RUNTIME, column);
+                                                if (runtime >= 1.0)
+                                                    runtime = Math.log10(runtime);
+                                                gr_RuntimeOfLearners.add(traces_lengthmult.firstElem+"\n"+
+                                                        (useCentre?"C":"N")+
+                                                        "P_"+(chunkSizeToEvaluate-1),runtime);
+//                                                if (traces_lengthmult.firstElem > 600 && obtainDoubleValueFromCell(Y, E_RUNTIME, column)> 10000)
+//                                                    System.out.println(traces_lengthmult.firstElem+","+(useCentre?"C":"N")+"P_"+(chunkSizeToEvaluate-1)+"\t"+runtime+"\t"+columnText);
                                             });
                                 }
                             }
@@ -380,10 +402,10 @@ public class E_MarkovCaseStudies {
                                     new File(plot_filename_prefix + "_VH_structuraldiffBest.pdf"), 0, 1, true);
                             final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, VH", "BCR, EDSM-Markov learner",
                                     new File(plot_filename_prefix + "_VH_BCRBest.pdf"), 0.5, 1, true);
-                            final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_Structural = new DrawGraphs.WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_str.csv"));
-                            final DrawGraphs.WilcoxonPairedTest Wilcoxon_Test_BCR = new DrawGraphs.WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_bcr.csv"));
-                            final DrawGraphs.A_VarghaDelaney A12_test_Structural = new DrawGraphs.A_VarghaDelaney(new File(plot_filename_prefix + "_A12_str.csv"), 100);
-                            final DrawGraphs.A_VarghaDelaney A12_test_BCR = new DrawGraphs.A_VarghaDelaney(new File(plot_filename_prefix + "_A12_bcr.csv"), 100);
+                            final WilcoxonPairedTest Wilcoxon_test_Structural = new WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_str.csv"));
+                            final WilcoxonPairedTest Wilcoxon_Test_BCR = new WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_bcr.csv"));
+                            final A_VarghaDelaney A12_test_Structural = new A_VarghaDelaney(new File(plot_filename_prefix + "_A12_str.csv"), 100);
+                            final A_VarghaDelaney A12_test_BCR = new A_VarghaDelaney(new File(plot_filename_prefix + "_A12_bcr.csv"), 100);
                             // Now select the best result from all those available
                             final AtomicInteger diffReported = new AtomicInteger(0), bcrReported = new AtomicInteger(0);
                             final AtomicInteger diffAverageMarkov100 = new AtomicInteger(0), bcrAverageMarkov100 = new AtomicInteger(0);
@@ -431,8 +453,8 @@ public class E_MarkovCaseStudies {
                             if (bcrReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM)
                                 throw new IllegalArgumentException("BCR value not reported");
 
-                            StatisticalTestResult a12_diff = A12_test_Structural.obtainResultFromR();
-                            StatisticalTestResult wilcoxon_diff = Wilcoxon_test_Structural.obtainResultFromR();
+                            StatisticalTestResult a12_diff =A12_test_Structural.obtainResultFromR(true);
+                            StatisticalTestResult wilcoxon_diff = Wilcoxon_test_Structural.obtainResultFromR(false);
 
                             List<String> row = new ArrayList<>();
                             row.add(entryForCaseStudy.getValue().name);
@@ -451,16 +473,22 @@ public class E_MarkovCaseStudies {
                             NumberFormat f_A12 = new DecimalFormat("0.00");
                             NumberFormat f_Wilcoxon = new DecimalFormat("0.00E00");
 
-                            row.add(f_A12.format(a12_diff.statistic));
-                            row.add(f_A12.format(a12_diff.confidence_lo));
-                            row.add(f_A12.format(a12_diff.confidence_hi));
-                            row.add(f_Wilcoxon.format(wilcoxon_diff.pvalue));
+                            if (a12_diff.valueValid) {
+                                row.add(f_A12.format(a12_diff.statistic));
+                                row.add(f_A12.format(a12_diff.confidence_lo));
+                                row.add(f_A12.format(a12_diff.confidence_hi));
+                                row.add(f_Wilcoxon.format(wilcoxon_diff.pvalue));
+                            }
+                            else
+                                for(int i=0;i<4;++i)
+                                    row.add("UNK");
+
                             outputStatistics.add(row);
 
                             gr_StructuralDiffBest.reportResults(learningGroup.gr);
                             gr_BcrDiffBest.reportResults(learningGroup.gr);
-                            A12_test_Structural.reportResults(learningGroup.gr);
-                            A12_test_BCR.reportResults(learningGroup.gr);
+                            A12_test_Structural.reportResults(learningGroup.gr,true);
+                            A12_test_BCR.reportResults(learningGroup.gr,true);
                             Wilcoxon_test_Structural.reportResults(learningGroup.gr);
                             Wilcoxon_Test_BCR.reportResults(learningGroup.gr);
 
@@ -477,9 +505,9 @@ public class E_MarkovCaseStudies {
 
 
                 }
-                gr_PerformanceOfLearners.reportResults(learningGroup.gr);
+                gr_PerformanceOfLearners.reportResults(learningGroup.gr);gr_RuntimeOfLearners.reportResults(learningGroup.gr);
             }
-            DrawGraphs.writeTEX(new File(learningGroup.outPathPrefix + "casestudies_statistics.tex"),outputStatistics,true);
+            writeTEX(new File(learningGroup.outPathPrefix + "casestudies_statistics.tex"),outputStatistics,true);
         }
     }
 }

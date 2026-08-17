@@ -852,9 +852,7 @@ public class MarkovExperiment
         for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
             getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), null, (column, columnText, Y) -> {
                 boolean learntOK = obtainStringValueFromCell(Y, E_SUCCESS,column).equals(LEARNING_OK.name);
-                if (!learntOK) {
-                    invalidCellValues.add(E_INCONSISTENCY_ALWAYSPOSITIVE);
-                }
+
                 if (obtainDoubleValueFromCell(Y, E_RELATIVEINCONSISTENCY_LEARNT,column) < 0.0)
                     invalidCellValues.add(E_RELATIVEINCONSISTENCY_LEARNT);// negative value of relative inconsistency means we chose not to compute it.
                 if (learntOK && (obtainDoubleValueFromCell(Y, E_DIFF, column) < 1.0 || obtainDoubleValueFromCell(Y, E_BCR, column) < 1.0)) {

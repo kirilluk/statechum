@@ -104,8 +104,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -123,6 +121,8 @@ import java.util.TreeSet;
 import java.util.function.Supplier;
 
 import static java.lang.Math.round;
+import static statechum.analysis.learning.DrawGraphs.RGraph.PLOT_X_LABELS.XLABELS_R;
+import static statechum.analysis.learning.DrawGraphs.RGraph.PLOT_X_LABELS.XLABELS_TEXT_AUTO;
 
 import javax.swing.SwingUtilities;
 
@@ -140,7 +140,6 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
-import weka.Run;
 
 
 public class DrawGraphs {
@@ -319,7 +318,7 @@ public class DrawGraphs {
 	 * @param otherAttrs additional attributes to set, null if not used.
 	 * @return The string to be sent to R for evaluation.
 	 */
-	protected static String boxPlotToString(List<List<Double>> data,List<String> names,boolean labelsAuto, List<String> colour, List<String> otherAttrs)
+	protected static String boxPlotToString(List<List<Double>> data, List<String> names, RGraph.PLOT_X_LABELS labelsAuto, List<String> colour, List<String> otherAttrs)
 	{
 		if (data.isEmpty()) throw new IllegalArgumentException("cannot plot an empty graph");
 		if (data.size() == 1 && names != null) throw new IllegalArgumentException("in a graph with one component, names are not used");
@@ -327,7 +326,7 @@ public class DrawGraphs {
 		StringBuilder result = new StringBuilder();
 		result.append("boxplot(");
         result.append("yaxt=\"n\",");
-        if (!labelsAuto)
+        if (labelsAuto != XLABELS_R)
             result.append("xaxt=\"n\",");
 		boolean firstVectorOfData = true;
 		for(List<Double> arg:data)
@@ -1307,6 +1306,13 @@ public class DrawGraphs {
 		protected double mgpTitle =3, mgpLabelX =1,mgpLabelY =1,mgpAxis=0;
 		protected int las = 1;
 
+		/** Whether minimal and maximal values were assigned. */
+		protected boolean minMaxValueAssigned = false;
+		/** Minimial and maximal values. The purpose is to move text axis labels where they need to be, however the 'text' command scales
+		 * values based on the scale of the graph and min/max values make it possible to compute the precise position of such a label.
+		 */
+		protected double minYValue = 0, maxYValue = 0;
+
 		public RGraph(String x, String y, File name)
 		{
 			super(name);xAxis = x;yAxis = y;
@@ -1388,6 +1394,13 @@ public class DrawGraphs {
 			if (xMin != null && xMin.compareTo(el) > 0) return;
 			if (xMax != null && xMax.compareTo(el) < 0) return;
 
+			if (!minMaxValueAssigned) {
+				minMaxValueAssigned = true;
+				minYValue = value;maxYValue = value;
+			}
+			minYValue = Math.min(minYValue, value);
+			maxYValue = Math.max(maxYValue, value);
+
             DataColumn column = collectionOfResults.computeIfAbsent(el, k -> new DataColumn());
             column.results.add(value);
 			if (colour != null) collectionOfResults.get(el).colour=colour;
@@ -1414,7 +1427,8 @@ public class DrawGraphs {
 		double ySize = 4;
 
         /** True for automatic placement of labels, set to false for manual placement. */
-        boolean labelsAuto = true;
+        public enum PLOT_X_LABELS { XLABELS_R, XLABELS_TEXT_AUTO, XLABELS_TEXT_MANUAL };
+		protected PLOT_X_LABELS labelsAuto = XLABELS_R;
 
 		double textXoffset =0, textXsrt=90,textXadj=1.;
 
@@ -1422,11 +1436,13 @@ public class DrawGraphs {
 			textXoffset = xoffset;
 			textXsrt = srt;
 			textXadj = adj;
-            labelsAuto = false;// since we are setting placement of labels, auto is false and labels are manually placed with the 'text' command
+            labelsAuto = PLOT_X_LABELS.XLABELS_TEXT_AUTO;// since we are setting placement of labels, auto is false and labels are placed with the 'text' command
             // (hence xoffset depends on the scale of the graph whereas for auto they are placed automatically at the bottom).
+			// It is possible to compute the xoffset automatically accounting for the scale, for this labelsAuto needs to be PLOT_X_LABELS.XLABELS_TEXT_AUTO
+			// as opposed to labelsAuto = PLOT_X_LABELS.XLABELS_TEXT_MANUAL
 		}
 
-        public void setLabelsAuto(boolean auto) {
+        public void setLabelsAuto(PLOT_X_LABELS auto) {
             labelsAuto = auto;
         }
 
@@ -1449,11 +1465,15 @@ public class DrawGraphs {
 			String axisTicks = "";
 			if (names != null)
 				axisTicks = ",at=1:"+names.size()+",labels=FALSE";
-            if (!labelsAuto)
+            if (labelsAuto != XLABELS_R)
 			    outcome.add("axis(side=1,mgp=c("+ mgpTitle +","+ mgpLabelX+","+mgpAxis+"),las="+las+axisTicks+")");
 			outcome.add("axis(side=2,mgp=c("+ mgpTitle +","+ mgpLabelY+","+mgpAxis+"),las="+las+")");
-			if (names != null && !labelsAuto)
-				outcome.add("text(x=1:"+names.size()+",y="+textXoffset+",labels="+vectorToR(names, true)+",xpd=NA,srt="+textXsrt+",adj="+textXadj+")");
+
+			double textOffset = textXoffset;
+			if (labelsAuto == XLABELS_TEXT_AUTO)
+				textOffset = minYValue -0.15 * (maxYValue - minYValue);
+			if (names != null && labelsAuto != XLABELS_R)
+				outcome.add("text(x=1:"+names.size()+",y="+textOffset+",labels="+vectorToR(names, true)+",xpd=NA,srt="+textXsrt+",adj="+textXadj+")");
 			if (!xAxis.isEmpty()) {
 				outcome.add("title(xlab=\""+xAxis+"\""+(xLine >= 0?(",line="+xLine):"")+")");
 			}

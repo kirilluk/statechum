@@ -118,6 +118,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static java.lang.Math.round;
@@ -1237,7 +1238,14 @@ public class DrawGraphs {
 		}
 
 		public static double plotSize = 4;
-		
+
+		/** Pch values (shape of points) will be converted to colour when a graph is plotted if this is set. */
+		protected Function<String,String> pchToColour;
+
+		public void interpretColourAsPch(Function<String,String> value) {
+			pchToColour = value;
+		}
+
 		@Override
 		public void reportResults(DrawGraphs gr)
 		{
@@ -1260,37 +1268,62 @@ public class DrawGraphs {
 			if (values.isEmpty()) throw new IllegalArgumentException("cannot plot an empty graph");
 			
 			// plot(as.vector(t[[1]]),as.vector(t[[2]]) , type = "p",col="blue",xlim=range(0,20), ylim=range(0, 20))
-			boolean firstGraph = true;
+			StringBuilder result = new StringBuilder();result.append("plot(c(");
+			boolean startVector = true;
 			for(Entry<String,Collection<DataPoint> > entry:values.entrySet())
-				if (!entry.getValue().isEmpty())
-				{
-					StringBuilder result = new StringBuilder();
+				if (!entry.getValue().isEmpty()) {
+					for (DataPoint d : entry.getValue()) {
+						if (!startVector) result.append(",");
+						else startVector = false;
 
-					if (firstGraph)
-						firstGraph = false;
-					else
-						outcome.add("par(new=TRUE)");
-
-					result.append("plot(c(");
-					boolean startVector = true;
-					for(DataPoint d:entry.getValue())
-					{
-						if (!startVector) result.append(",");else startVector=false;
 						result.append(d.x);
 					}
-					result.append("),c(");
-					startVector = true;
-					for(DataPoint d:entry.getValue())
-					{
-						if (!startVector) result.append(",");else startVector=false;
+				}
+			result.append("),c(");
+
+			startVector = true;
+			for(Entry<String,Collection<DataPoint> > entry:values.entrySet())
+				if (!entry.getValue().isEmpty()) {
+					for (DataPoint d : entry.getValue()) {
+						if (!startVector) result.append(",");
+						else startVector = false;
+
 						result.append(d.y);
 					}
-					result.append("),type = \"p\",col=\"");result.append(entry.getKey());result.append("\",xlab=\"");result.append(xAxis);result.append("\",ylab=\"");result.append(yAxis);
-					// thanks to http://stackoverflow.com/questions/1154242/getting-rid-of-axis-values-in-r-plot for the way to remove axes.
-					result.append("\",axes=FALSE, frame.plot=TRUE)");
-					outcome.add(result.toString());
 				}
-			
+
+			result.append(")");
+			if (pchToColour != null) {// interpret provided values as pch values and convert them to colours later
+				result.append(",pch=c(");
+				startVector = true;
+				for (Entry<String, Collection<DataPoint>> entry : values.entrySet())
+					if (!entry.getValue().isEmpty()) {
+						for (DataPoint ignored : entry.getValue()) {
+							if (!startVector) result.append(",");
+							else startVector = false;
+							result.append(entry.getKey());
+						}
+					}
+				result.append(")");
+			}
+			result.append(",col=c(");
+			startVector = true;
+			for(Entry<String,Collection<DataPoint> > entry:values.entrySet())
+				if (!entry.getValue().isEmpty()) {
+					for(DataPoint ignored :entry.getValue())
+					{
+						if (!startVector) result.append(",");else startVector=false;
+						result.append("\"");
+						result.append(pchToColour == null? entry.getKey():pchToColour.apply(entry.getKey()));
+						result.append("\"");
+					}
+				}
+			result.append("),type = \"p\"");
+			result.append(",xlab=\"");result.append(xAxis);result.append("\",ylab=\"");result.append(yAxis);
+			// thanks to http://stackoverflow.com/questions/1154242/getting-rid-of-axis-values-in-r-plot for the way to remove axes.
+			result.append("\",axes=TRUE, frame.plot=TRUE)");
+			outcome.add(result.toString());
+
 			return outcome;
 		}
 		

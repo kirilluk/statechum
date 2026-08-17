@@ -1437,7 +1437,7 @@ public class TestDrawGraphs {
 		final ScatterPlot plot = new ScatterPlot("x axis", "y axis", new File("plotName"));
 
 		plot.add(0, 0, "red");plot.add(1, 0, "red");plot.add(0, 1, "red");plot.add(1, 1, "red");
-		Assert.assertEquals(arrayToString(Collections.singletonList("plot(c(0.0,1.0,0.0,1.0),c(0.0,0.0,1.0,1.0),type = \"p\",col=\"red\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)")),arrayToString(plot.getDrawingCommand()));
+		Assert.assertEquals(arrayToString(Collections.singletonList("plot(c(0.0,1.0,0.0,1.0),c(0.0,0.0,1.0,1.0),col=c(\"red\",\"red\",\"red\",\"red\"),type = \"p\",xlab=\"x axis\",ylab=\"y axis\",axes=TRUE, frame.plot=TRUE)")),arrayToString(plot.getDrawingCommand()));
 	}
 	
 	@Test
@@ -1447,13 +1447,27 @@ public class TestDrawGraphs {
 		
 		plot.add(0, 0, "red");plot.add(1, 0, "red");plot.add(0, 1, "red");plot.add(1, 1, "red");
 		plot.add(0, 0.5, "blue");plot.add(1.5, 0, "green");plot.add(0, 1.5, "blue");plot.add(1.2, 1, "red");
-		Assert.assertEquals(arrayToString(Arrays.asList("plot(c(0.0,0.0),c(0.5,1.5),type = \"p\",col=\"blue\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)",
-                "par(new=TRUE)",
-                "plot(c(1.5),c(0.0),type = \"p\",col=\"green\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)",
-                "par(new=TRUE)",
-                "plot(c(0.0,1.0,0.0,1.0,1.2),c(0.0,0.0,1.0,1.0,1.0),type = \"p\",col=\"red\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)")),arrayToString(plot.getDrawingCommand()));
+		Assert.assertEquals(arrayToString(Arrays.asList("plot(c(0.0,0.0,1.5,0.0,1.0,0.0,1.0,1.2),c(0.5,1.5,0.0,0.0,0.0,1.0,1.0,1.0),col=c(\"blue\",\"blue\",\"green\",\"red\",\"red\",\"red\",\"red\",\"red\"),type = \"p\",xlab=\"x axis\",ylab=\"y axis\",axes=TRUE, frame.plot=TRUE)")),arrayToString(plot.getDrawingCommand()));
 	}
-	
+
+	@Test
+	public void testDrawingScatterPlot3()
+	{
+		final ScatterPlot plot = new ScatterPlot("x axis", "y axis", new File("plotName"));
+
+		plot.add(0, 0, "1");plot.add(1, 0, "1");plot.add(0, 1, "1");plot.add(1, 1, "1");
+		plot.add(0, 0.5, "2");plot.add(1.5, 0, "3");plot.add(0, 1.5, "2");plot.add(1.2, 1, "1");
+		plot.interpretColourAsPch(pch-> {
+			switch (pch) {
+				case "1": return "red";
+				case "2": return "blue";
+				case "3": return "green";
+			}
+			throw new IllegalArgumentException("Unknown pch");
+		});
+		Assert.assertEquals(arrayToString(Arrays.asList("plot(c(0.0,1.0,0.0,1.0,1.2,0.0,0.0,1.5),c(0.0,0.0,1.0,1.0,1.0,0.5,1.5,0.0),pch=c(1,1,1,1,1,2,2,3),col=c(\"red\",\"red\",\"red\",\"red\",\"red\",\"blue\",\"blue\",\"green\"),type = \"p\",xlab=\"x axis\",ylab=\"y axis\",axes=TRUE, frame.plot=TRUE)")),arrayToString(plot.getDrawingCommand()));
+	}
+
 	@Test
 	public void testDrawingScatterFail()
 	{

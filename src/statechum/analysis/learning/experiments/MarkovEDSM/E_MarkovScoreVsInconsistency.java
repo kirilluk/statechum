@@ -232,17 +232,23 @@ public class E_MarkovScoreVsInconsistency {
                 }
             for(SquareBagPlot plot:multToBCR.values())
                 plot.reportResults(learningGroup.gr);
+
+            final String pchValid = "1";
             for(Map.Entry<Pair<Integer,Double>,Map<BEST_WORST_BCR,BCRAndValues>> valuesForBCRKindEntry:bcrKindForChunkLenAndWeight.entrySet()) {
                 for(Map.Entry<BEST_WORST_BCR,BCRAndValues> kindOfBcr_Values:valuesForBCRKindEntry.getValue().entrySet()) {
+                    String suffix = description +
+                            "bcr_logistic_ch=" + valuesForBCRKindEntry.getKey().firstElem + "_vs_mult+" +
+                            valuesForBCRKindEntry.getKey().secondElem + "_"+kindOfBcr_Values.getKey()+"(bcr="+kindOfBcr_Values.getValue().bcr+","+kindOfBcr_Values.getValue().description+").pdf";
                     ScatterPlot gr_ScoreVsInconsistencyEachLearn = new ScatterPlot("Inconsistency", "Score",
-                            new File(learningGroup.outPathPrefix + File.separator + description +
-                                    "bcr_logistic_ch=" + valuesForBCRKindEntry.getKey().firstElem + "_vs_mult+" +
-                                    valuesForBCRKindEntry.getKey().secondElem + "_"+kindOfBcr_Values.getKey()+"(bcr="+kindOfBcr_Values.getValue().bcr+","+kindOfBcr_Values.getValue().description+").pdf"));
+                            new File(learningGroup.outPathPrefix + File.separator + suffix));
+                    gr_ScoreVsInconsistencyEachLearn.interpretColourAsPch(pch->pch.equals(pchValid)?"blue":"red");
                     for(PairQualityLearner.PairScoreValue pairScores:kindOfBcr_Values.getValue().values) {
                         long score = pairScores.score, inconsistency = pairScores.inconsistency;
+
                         if (score < 100 && inconsistency < 1000)
-                            gr_ScoreVsInconsistencyEachLearn.add((double) inconsistency, (double) score, pairScores.validMerge ? "green" : "red", null);
+                            gr_ScoreVsInconsistencyEachLearn.add((double) inconsistency, (double) score, pairScores.validMerge ? pchValid : "4", null);
                     }
+
                     gr_ScoreVsInconsistencyEachLearn.reportResults(learningGroup.gr);
                 }
             }

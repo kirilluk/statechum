@@ -137,7 +137,6 @@ public class E_MarkovScoreVsInconsistency {
                                 for (final int chunkSizeToEvaluate : chunkSizeValues)
                                 for (final boolean penaliseMissingPaths:penaliseMissingPathsValues)
                                 {
-                                    progress.next();
                                     LearningAlgorithms.ScoringToApply learnerKind = LearningAlgorithms.ScoringToApply.SCORING_ORACLE_STATISTICS;
                                     double weightOfInconsistencies = 1.0;
                                     ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
@@ -185,6 +184,7 @@ public class E_MarkovScoreVsInconsistency {
                                                 mult_and_plot.getValue().add(confUsingLogisticRegression.BCR(), confGivenWeight.BCR());
                                             }
                                     }
+                                    progress.next();
                                 }
                         }
                     }

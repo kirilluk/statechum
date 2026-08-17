@@ -184,7 +184,10 @@ public class E_MarkovCaseStudies {
         public LearnerGraph constructPTA(Configuration config, Transform.ConvertALabel labelConverter) {
             if (Objects.equals(name, "FanTempMonitor_T")) {
                 LearnerGraph initialPTA = new LearnerGraph(config);
-                initialPTA.paths.augmentPTA(loadTrace("resources/i2c_study/log10.txt", labelConverter, "Err"), true, false, null);
+                String pathToLogForFanTempMonitor_T = "resources/i2c_study/log10.txt";
+                if (!Files.exists(Paths.get(pathToLogForFanTempMonitor_T))) // If running on HPC, the working directory is 'stanage'
+                    pathToLogForFanTempMonitor_T = "../"+pathToLogForFanTempMonitor_T;
+                initialPTA.paths.augmentPTA(loadTrace(pathToLogForFanTempMonitor_T, labelConverter, "Err"), true, false, null);
                 return  initialPTA;
             }
 

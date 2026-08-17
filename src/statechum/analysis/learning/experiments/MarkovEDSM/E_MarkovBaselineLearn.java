@@ -90,9 +90,9 @@ public class E_MarkovBaselineLearn {
                     final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score", new File(experimentName + "inconsistency_structural.pdf"));
                     final DrawGraphs.RBagPlot gr_BCR_vs_structural = new DrawGraphs.RBagPlot("BCR", "Structural Score", new File(experimentName + "bcr_structural.pdf"));
                     final DrawGraphs.RBagPlot gr_TotalMergersVsStructuralScore = new DrawGraphs.RBagPlot("Total mergers", "Structural Score", new File(experimentName + "totalmergers_structural.pdf"));
-                    final DrawGraphs.RBagPlot gr_MistakesNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Mistakes near root", "Structural Score", new File(experimentName  + "mistakes_nearroot_structural.pdf"));
-                    final DrawGraphs.RBagPlot gr_InvalidMergersNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Invalid mergers near root", "Structural Score", new File(experimentName + "invalidmergers_nearroot_structural.pdf"));
-                    final DrawGraphs.RBagPlot gr_MissedMergersNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Missed Mergers near root", "Structural Score", new File(experimentName + "missedmergers_nearroot_structural.pdf"));
+//                    final DrawGraphs.RBagPlot gr_MistakesNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Mistakes near root", "Structural Score", new File(experimentName  + "mistakes_nearroot_structural.pdf"));
+//                    final DrawGraphs.RBagPlot gr_InvalidMergersNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Invalid mergers near root", "Structural Score", new File(experimentName + "invalidmergers_nearroot_structural.pdf"));
+//                    final DrawGraphs.RBagPlot gr_MissedMergersNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Missed Mergers near root", "Structural Score", new File(experimentName + "missedmergers_nearroot_structural.pdf"));
                     final DrawGraphs.RBagPlot gr_BCRVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "BCR Score, EDSM-Markov", new File(experimentName + "inconsistency_bcr.pdf"));
                     final DrawGraphs.SquareBagPlot gr_StructuralDiff = new DrawGraphs.SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov", new File(experimentName + "VH_structuraldiff.pdf"), 0, 1, true);
                     final DrawGraphs.SquareBagPlot gr_StructuralDiffLowDensity =
@@ -165,15 +165,15 @@ public class E_MarkovBaselineLearn {
                                 gr_TotalMergersVsStructuralScore.add(
                                         obtainDoubleValueFromCell(Y, E_ERR_INVALID_NEARROOT,column) + obtainDoubleValueFromCell(Y, E_ERR_INVALID_FARFROMROOT,column) + obtainDoubleValueFromCell(Y, E_VALIDMERGERS,column),
                                         obtainDoubleValueFromCell(Y, E_DIFF,column), null, null);
-                                gr_MistakesNearRootVsStructuralScore.add(
-                                        obtainDoubleValueFromCell(Y, E_ERR_INVALID_NEARROOT,column) + obtainDoubleValueFromCell(Y, E_ERR_MISSED_NEARROOT,column),
-                                        obtainDoubleValueFromCell(Y, E_DIFF,column), null, null);
-                                gr_InvalidMergersNearRootVsStructuralScore.add(
-                                        obtainDoubleValueFromCell(Y, E_ERR_INVALID_NEARROOT,column),
-                                        obtainDoubleValueFromCell(Y, E_DIFF,column), null, null);
-                                gr_MissedMergersNearRootVsStructuralScore.add(
-                                        obtainDoubleValueFromCell(Y, E_ERR_MISSED_NEARROOT,column),
-                                        obtainDoubleValueFromCell(Y, E_DIFF,column), null, null);
+//                                gr_MistakesNearRootVsStructuralScore.add(
+//                                        obtainDoubleValueFromCell(Y, E_ERR_INVALID_NEARROOT,column) + obtainDoubleValueFromCell(Y, E_ERR_MISSED_NEARROOT,column),
+//                                        obtainDoubleValueFromCell(Y, E_DIFF,column), null, null);
+//                                gr_InvalidMergersNearRootVsStructuralScore.add(
+//                                        obtainDoubleValueFromCell(Y, E_ERR_INVALID_NEARROOT,column),
+//                                        obtainDoubleValueFromCell(Y, E_DIFF,column), null, null);
+//                                gr_MissedMergersNearRootVsStructuralScore.add(
+//                                        obtainDoubleValueFromCell(Y, E_ERR_MISSED_NEARROOT,column),
+//                                        obtainDoubleValueFromCell(Y, E_DIFF,column), null, null);
                         });
                     }
 
@@ -193,7 +193,7 @@ public class E_MarkovBaselineLearn {
                     for (@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result : new DrawGraphs.RExperimentResult[]{gr_StructuralVsInconsistency, gr_BCRVsInconsistency,
                             gr_MarkovTransitionPrecisionStructuralDiff, gr_MarkovHoleRecallStructuralDiff, gr_StructuralDiff, gr_BCR_vs_structural,
                             gr_Inconsistencies_and_SD, gr_PosnegNegativeInconsistencies_Structural, gr_TotalMergersVsStructuralScore,
-                            gr_MistakesNearRootVsStructuralScore, gr_MissedMergersNearRootVsStructuralScore, gr_InvalidMergersNearRootVsStructuralScore,
+//                            gr_MistakesNearRootVsStructuralScore, gr_MissedMergersNearRootVsStructuralScore, gr_InvalidMergersNearRootVsStructuralScore,
                             gr_BCR, gr_DiffAgainstKtails1, gr_DiffAgainstKtails2, gr_DiffAgainstEDSM_1, gr_DiffAgainstEDSM_2,
                             Wilcoxon_Test_BCR, Wilcoxon_test_Structural, Mann_Whitney_U_Test_BCR, Mann_Whitney_U_Test_Structural, Kruskal_Wallis_Test_Structural, Kruskal_Wallis_Test_BCR}) {
                         result.reportResults(learningGroup.gr);

@@ -71,7 +71,7 @@ public class TestDrawGraphs {
 	@Test
 	public void testBoxPlotToStringFail1()
 	{
-		checkForCorrectException(() -> DrawGraphs.boxPlotToString(new LinkedList<>(), new LinkedList<>(), new LinkedList<>(),null),IllegalArgumentException.class,"empty");
+		checkForCorrectException(() -> DrawGraphs.boxPlotToString(new LinkedList<>(), new LinkedList<>(),false, new LinkedList<>(),null),IllegalArgumentException.class,"empty");
 	}
 	
 	@Test
@@ -80,7 +80,7 @@ public class TestDrawGraphs {
 		final List<List<Double>> data = new LinkedList<>();
 		data.add(Arrays.asList(4.,5.,5.));
 		data.add(Arrays.asList(4.,5.,5.));
-		checkForCorrectException(() -> DrawGraphs.boxPlotToString(data, new LinkedList<>(), new LinkedList<>(),null),IllegalArgumentException.class,"mismatch");
+		checkForCorrectException(() -> DrawGraphs.boxPlotToString(data, new LinkedList<>(), false,new LinkedList<>(),null),IllegalArgumentException.class,"mismatch");
 	}
 
 	@Test
@@ -88,20 +88,30 @@ public class TestDrawGraphs {
 	{
 		final List<List<Double>> data = new LinkedList<>();
 		data.add(Arrays.asList(4.,5.,5.));
-		checkForCorrectException(() -> DrawGraphs.boxPlotToString(data, new LinkedList<>(), new LinkedList<>(),null),IllegalArgumentException.class,"not used");
+		checkForCorrectException(() -> DrawGraphs.boxPlotToString(data, new LinkedList<>(), false, new LinkedList<>(),null),IllegalArgumentException.class,"not used");
 	}
 
 	@Test
-	public void testBoxPlotToString1a()
+	public void testBoxPlotToString1a1()
 	{
 		final List<List<Double>> data = new LinkedList<>();
 		data.add(Arrays.asList(4.,5.,5.));
 		data.add(Arrays.asList(7.,8.,3.));
 		String colour = DrawGraphs.defaultColour;
-		Assert.assertEquals("boxplot(xaxt=\"n\",yaxt=\"n\",c(4.0,5.0,5.0),c(7.0,8.0,3.0),names=c(\"graphA\",\"graphB\"),col=c(\"green\",\"green\"))",
-				DrawGraphs.boxPlotToString(data, Arrays.asList("graphA","graphB"),Arrays.asList(colour,colour),null));
+		Assert.assertEquals("boxplot(yaxt=\"n\",xaxt=\"n\",c(4.0,5.0,5.0),c(7.0,8.0,3.0),names=c(\"graphA\",\"graphB\"),col=c(\"green\",\"green\"))",
+				DrawGraphs.boxPlotToString(data, Arrays.asList("graphA","graphB"),false,Arrays.asList(colour,colour),null));
 	}
-	
+
+    @Test
+    public void testBoxPlotToString1a2()
+    {
+        final List<List<Double>> data = new LinkedList<>();
+        data.add(Arrays.asList(4.,5.,5.));
+        data.add(Arrays.asList(7.,8.,3.));
+        String colour = DrawGraphs.defaultColour;
+        Assert.assertEquals("boxplot(yaxt=\"n\",c(4.0,5.0,5.0),c(7.0,8.0,3.0),names=c(\"graphA\",\"graphB\"),col=c(\"green\",\"green\"))",
+                DrawGraphs.boxPlotToString(data, Arrays.asList("graphA","graphB"),true,Arrays.asList(colour,colour),null));
+    }
 	/** Same colours. */
 	@Test
 	public void testBoxPlotToString1b()
@@ -110,8 +120,8 @@ public class TestDrawGraphs {
 		data.add(Arrays.asList(4.,5.,5.));
 		data.add(Arrays.asList(7.,8.,3.));
 		String colour = DrawGraphs.defaultColour;
-		Assert.assertEquals("boxplot(xaxt=\"n\",yaxt=\"n\",c(4.0,5.0,5.0),c(7.0,8.0,3.0),names=c(\"graphA\",\"graphB\"),col=c(\"green\",\"green\"),someOther attrs)",
-				DrawGraphs.boxPlotToString(data, Arrays.asList("graphA","graphB"),Arrays.asList(colour,colour),Collections.singletonList("someOther attrs")).toString());
+		Assert.assertEquals("boxplot(yaxt=\"n\",xaxt=\"n\",c(4.0,5.0,5.0),c(7.0,8.0,3.0),names=c(\"graphA\",\"graphB\"),col=c(\"green\",\"green\"),someOther attrs)",
+				DrawGraphs.boxPlotToString(data, Arrays.asList("graphA","graphB"),false,Arrays.asList(colour,colour),Collections.singletonList("someOther attrs")).toString());
 	}
 	
 	/** Same as above but different colours. */
@@ -121,8 +131,8 @@ public class TestDrawGraphs {
 		final List<List<Double>> data = new LinkedList<>();
 		data.add(Arrays.asList(4.,5.,5.));
 		data.add(Arrays.asList(7.,8.,3.));
-		Assert.assertEquals("boxplot(xaxt=\"n\",yaxt=\"n\",c(4.0,5.0,5.0),c(7.0,8.0,3.0),names=c(\"graphA\",\"graphB\"),col=c(\"red\",\"blue\"),someOther attrs)",
-				DrawGraphs.boxPlotToString(data, Arrays.asList("graphA","graphB"),Arrays.asList("red","blue"),Collections.singletonList("someOther attrs")).toString());
+		Assert.assertEquals("boxplot(yaxt=\"n\",xaxt=\"n\",c(4.0,5.0,5.0),c(7.0,8.0,3.0),names=c(\"graphA\",\"graphB\"),col=c(\"red\",\"blue\"),someOther attrs)",
+				DrawGraphs.boxPlotToString(data, Arrays.asList("graphA","graphB"),false,Arrays.asList("red","blue"),Collections.singletonList("someOther attrs")).toString());
 	}
 	
 	/** As above but without labels. */
@@ -132,8 +142,8 @@ public class TestDrawGraphs {
 		final List<List<Double>> data = new LinkedList<>();
 		data.add(Arrays.asList(4.,5.,5.));
 		data.add(Arrays.asList(7.,8.,3.));
-		Assert.assertEquals("boxplot(xaxt=\"n\",yaxt=\"n\",c(4.0,5.0,5.0),c(7.0,8.0,3.0),col=c(\"green\",\"green\"))",
-				DrawGraphs.boxPlotToString(data, null,null,null).toString());
+		Assert.assertEquals("boxplot(yaxt=\"n\",xaxt=\"n\",c(4.0,5.0,5.0),c(7.0,8.0,3.0),col=c(\"green\",\"green\"))",
+				DrawGraphs.boxPlotToString(data, null,false, null,null).toString());
 	}
 	
 	/** As above but one vector and without labels. */
@@ -142,8 +152,8 @@ public class TestDrawGraphs {
 	{
 		final List<List<Double>> data = new LinkedList<>();
 		data.add(Arrays.asList(4.,5.,5.));
-		Assert.assertEquals("boxplot(xaxt=\"n\",yaxt=\"n\",c(4.0,5.0,5.0),col=c(\"green\"))",
-				DrawGraphs.boxPlotToString(data, null,null,null));
+		Assert.assertEquals("boxplot(yaxt=\"n\",xaxt=\"n\",c(4.0,5.0,5.0),col=c(\"green\"))",
+				DrawGraphs.boxPlotToString(data, null,false,null,null));
 	}
 	/** As above but one vector and without labels. */
 	@Test
@@ -151,8 +161,8 @@ public class TestDrawGraphs {
 	{
 		final List<List<Double>> data = new LinkedList<>();
 		data.add(Arrays.asList(4.,5.,5.));
-		Assert.assertEquals("boxplot(xaxt=\"n\",yaxt=\"n\",c(4.0,5.0,5.0),col=c(\"green\"),other attrs)",
-				DrawGraphs.boxPlotToString(data, null,null,Collections.singletonList("other attrs")).toString());
+		Assert.assertEquals("boxplot(yaxt=\"n\",xaxt=\"n\",c(4.0,5.0,5.0),col=c(\"green\"),other attrs)",
+				DrawGraphs.boxPlotToString(data, null,false,null,Collections.singletonList("other attrs")).toString());
 	}
 	
 	public static final File tmpDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP));
@@ -1060,19 +1070,31 @@ public class TestDrawGraphs {
 	}
 	
 	@Test
-	public void testGenerateGraph1a()
+	public void testGenerateGraph1a1()
 	{
 		final String X="axisX", Y="axisY";
 		RGraph<String> g= new RBoxPlot<>(X, Y, new File("someName"));
+        g.setLabelsAuto(false);
 		g.add("one",34.);
-		Assert.assertEquals("[curMar=par()$mar, par(mar=c(5.0,4.0,4.0,2.0)), boxplot(xaxt=\"n\",yaxt=\"n\",c(34.0),col=c(\"green\"),mar=c(5.0,4.0,4.0,2.0)), axis(side=1,mgp=c(3.0,1.0,0.0),las=1), axis(side=2,mgp=c(3.0,1.0,0.0),las=1), title(xlab=\"axisX\"), title(ylab=\"axisY\"), par(mar=curMar)]",g.getDrawingCommand().toString());
+		Assert.assertEquals("[curMar=par()$mar, par(mar=c(5.0,4.0,4.0,2.0)), boxplot(yaxt=\"n\",xaxt=\"n\",c(34.0),col=c(\"green\"),mar=c(5.0,4.0,4.0,2.0)), axis(side=1,mgp=c(3.0,1.0,0.0),las=1), axis(side=2,mgp=c(3.0,1.0,0.0),las=1), title(xlab=\"axisX\"), title(ylab=\"axisY\"), par(mar=curMar)]",g.getDrawingCommand().toString());
 	}
-	
-	@Test
+
+    @Test
+    public void testGenerateGraph1a2()
+    {
+        final String X="axisX", Y="axisY";
+        RGraph<String> g= new RBoxPlot<>(X, Y, new File("someName"));
+        g.setLabelsAuto(true);
+        g.add("one",34.);
+        Assert.assertEquals("[curMar=par()$mar, par(mar=c(5.0,4.0,4.0,2.0)), boxplot(yaxt=\"n\",c(34.0),col=c(\"green\"),mar=c(5.0,4.0,4.0,2.0)), axis(side=2,mgp=c(3.0,1.0,0.0),las=1), title(xlab=\"axisX\"), title(ylab=\"axisY\"), par(mar=curMar)]",g.getDrawingCommand().toString());
+    }
+
+    @Test
 	public void testGenerateGraph1b()
 	{
 		final String X="axisX", Y="axisY";
 		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+        g.setLabelsAuto(false);
 		g.add(4.5,34.);
 		Assert.assertEquals(
 				"[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bagplot(c(4.5),c(34.0),xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\",mar=c(3.0,3.0,0.2,0.2)), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\"axisX\",line=1.8), title(ylab=\"axisY\",line=2.0), par(mar=curMar)]",
@@ -1084,11 +1106,12 @@ public class TestDrawGraphs {
 	{
 		final String X="axisX", Y="axisY";
 		RGraph<String> g= new RBoxPlot<>(X, Y, new File("someName"));
+        g.setLabelsAuto(false);
 		g.add("one",34.);
 		g.add("one",34.);
 		g.add("one",2.);
 		Assert.assertEquals(
-				"[curMar=par()$mar, par(mar=c(5.0,4.0,4.0,2.0)), boxplot(xaxt=\"n\",yaxt=\"n\",c(34.0,34.0,2.0),col=c(\"green\"),mar=c(5.0,4.0,4.0,2.0)), axis(side=1,mgp=c(3.0,1.0,0.0),las=1), axis(side=2,mgp=c(3.0,1.0,0.0),las=1), title(xlab=\"axisX\"), title(ylab=\"axisY\"), par(mar=curMar)]",g.getDrawingCommand().toString());
+				"[curMar=par()$mar, par(mar=c(5.0,4.0,4.0,2.0)), boxplot(yaxt=\"n\",xaxt=\"n\",c(34.0,34.0,2.0),col=c(\"green\"),mar=c(5.0,4.0,4.0,2.0)), axis(side=1,mgp=c(3.0,1.0,0.0),las=1), axis(side=2,mgp=c(3.0,1.0,0.0),las=1), title(xlab=\"axisX\"), title(ylab=\"axisY\"), par(mar=curMar)]",g.getDrawingCommand().toString());
 	}
 	
 	/** Same as above, but with different colours. */
@@ -1097,13 +1120,14 @@ public class TestDrawGraphs {
 	{
 		final String X="axisX", Y="axisY";
 		RGraph<String> g= new RBoxPlot<>(X, Y, new File("someName"));
+        g.setLabelsAuto(false);
 		g.add("one",34.,"cyan",null);
 		g.add("one",34.);
 		g.add("one",2.,"magenta",null);
 		g.add("two",3.);
 		g.add("three",4.,"blue",null);
 		Assert.assertEquals(
-				"[curMar=par()$mar, par(mar=c(5.0,4.0,4.0,2.0)), boxplot(xaxt=\"n\",yaxt=\"n\",c(34.0,34.0,2.0),c(4.0),c(3.0),names=c(\"one\",\"three\",\"two\"),col=c(\"magenta\",\"blue\",\"green\"),mar=c(5.0,4.0,4.0,2.0)), axis(side=1,mgp=c(3.0,1.0,0.0),las=1,at=1:3,labels=FALSE), axis(side=2,mgp=c(3.0,1.0,0.0),las=1), text(x=1:3,y=0.0,labels=c(\"one\",\"three\",\"two\"),xpd=NA,srt=90.0,adj=1.0), title(xlab=\"axisX\"), title(ylab=\"axisY\"), par(mar=curMar)]",
+				"[curMar=par()$mar, par(mar=c(5.0,4.0,4.0,2.0)), boxplot(yaxt=\"n\",xaxt=\"n\",c(34.0,34.0,2.0),c(4.0),c(3.0),names=c(\"one\",\"three\",\"two\"),col=c(\"magenta\",\"blue\",\"green\"),mar=c(5.0,4.0,4.0,2.0)), axis(side=1,mgp=c(3.0,1.0,0.0),las=1,at=1:3,labels=FALSE), axis(side=2,mgp=c(3.0,1.0,0.0),las=1), text(x=1:3,y=0.0,labels=c(\"one\",\"three\",\"two\"),xpd=NA,srt=90.0,adj=1.0), title(xlab=\"axisX\"), title(ylab=\"axisY\"), par(mar=curMar)]",
 				g.getDrawingCommand().toString());
 	}
 	
@@ -1113,12 +1137,13 @@ public class TestDrawGraphs {
 	{
 		final String X="axisX", Y="axisY";
 		RGraph<String> g= new RBoxPlot<>(X, Y, new File("someName"));
+        g.setLabelsAuto(false);
 		g.add("one",34.,"cyan","lbl");
 		g.add("one",34.);
 		g.add("one",2.,"magenta",null);
 		g.add("two",3.);
 		g.add("three",4.,"blue","");
-		Assert.assertEquals("[curMar=par()$mar, par(mar=c(5.0,4.0,4.0,2.0)), boxplot(xaxt=\"n\",yaxt=\"n\",c(34.0,34.0,2.0),c(4.0),c(3.0),names=c(\"lbl\",\"\",\"two\"),col=c(\"magenta\",\"blue\",\"green\"),mar=c(5.0,4.0,4.0,2.0)), axis(side=1,mgp=c(3.0,1.0,0.0),las=1,at=1:3,labels=FALSE), axis(side=2,mgp=c(3.0,1.0,0.0),las=1), text(x=1:3,y=0.0,labels=c(\"lbl\",\"\",\"two\"),xpd=NA,srt=90.0,adj=1.0), title(xlab=\"axisX\"), title(ylab=\"axisY\"), par(mar=curMar)]",g.getDrawingCommand().toString());
+		Assert.assertEquals("[curMar=par()$mar, par(mar=c(5.0,4.0,4.0,2.0)), boxplot(yaxt=\"n\",xaxt=\"n\",c(34.0,34.0,2.0),c(4.0),c(3.0),names=c(\"lbl\",\"\",\"two\"),col=c(\"magenta\",\"blue\",\"green\"),mar=c(5.0,4.0,4.0,2.0)), axis(side=1,mgp=c(3.0,1.0,0.0),las=1,at=1:3,labels=FALSE), axis(side=2,mgp=c(3.0,1.0,0.0),las=1), text(x=1:3,y=0.0,labels=c(\"lbl\",\"\",\"two\"),xpd=NA,srt=90.0,adj=1.0), title(xlab=\"axisX\"), title(ylab=\"axisY\"), par(mar=curMar)]",g.getDrawingCommand().toString());
 	}
 
 	/** This one is a bagplot. */
@@ -1127,6 +1152,7 @@ public class TestDrawGraphs {
 	{
 		final String X="axisX", Y="axisY";
 		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+        g.setLabelsAuto(false);
 		g.add(5.5,34.);
 		g.add(5.5,34.);
 		g.add(5.5,2.);
@@ -1139,11 +1165,12 @@ public class TestDrawGraphs {
 	{
 		final String X="axisX", Y="axisY";
 		RGraph<String> g= new RBoxPlot<>(X, Y, new File("someName"));
+        g.setLabelsAuto(false);
 		g.add("one",34.);
 		g.add("one",34.);
 		g.add("one",2.);
 		g.add("two",2.);
-		Assert.assertEquals("[curMar=par()$mar, par(mar=c(5.0,4.0,4.0,2.0)), boxplot(xaxt=\"n\",yaxt=\"n\",c(34.0,34.0,2.0),c(2.0),names=c(\"one\",\"two\"),col=c(\"green\",\"green\"),mar=c(5.0,4.0,4.0,2.0)), axis(side=1,mgp=c(3.0,1.0,0.0),las=1,at=1:2,labels=FALSE), axis(side=2,mgp=c(3.0,1.0,0.0),las=1), text(x=1:2,y=0.0,labels=c(\"one\",\"two\"),xpd=NA,srt=90.0,adj=1.0), title(xlab=\"axisX\"), title(ylab=\"axisY\"), par(mar=curMar)]",
+		Assert.assertEquals("[curMar=par()$mar, par(mar=c(5.0,4.0,4.0,2.0)), boxplot(yaxt=\"n\",xaxt=\"n\",c(34.0,34.0,2.0),c(2.0),names=c(\"one\",\"two\"),col=c(\"green\",\"green\"),mar=c(5.0,4.0,4.0,2.0)), axis(side=1,mgp=c(3.0,1.0,0.0),las=1,at=1:2,labels=FALSE), axis(side=2,mgp=c(3.0,1.0,0.0),las=1), text(x=1:2,y=0.0,labels=c(\"one\",\"two\"),xpd=NA,srt=90.0,adj=1.0), title(xlab=\"axisX\"), title(ylab=\"axisY\"), par(mar=curMar)]",
 				g.getDrawingCommand().toString());
 	}
 	
@@ -1152,6 +1179,7 @@ public class TestDrawGraphs {
 	{
 		final String X="axisX", Y="axisY";
 		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+        g.setLabelsAuto(false);
 		g.add(5.5,34.);
 		g.add(5.5,34.);
 		g.add(5.5,2.);
@@ -1213,6 +1241,7 @@ public class TestDrawGraphs {
 	{
 		final String X="axisX", Y="axisY";
 		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+        g.setLabelsAuto(false);
 		g.setXboundaries(5.5, 34.);
 		g.add(5.5,34.);g.add(5.5,34.);g.add(5.5,2.);g.add(7.5,2.);
 		Assert.assertEquals("[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bagplot(c(5.5,5.5,5.5,7.5),c(34.0,34.0,2.0,2.0),xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\",mar=c(3.0,3.0,0.2,0.2)), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\"axisX\",line=1.8), title(ylab=\"axisY\",line=2.0), par(mar=curMar)]",
@@ -1224,6 +1253,7 @@ public class TestDrawGraphs {
 	{
 		final String X="axisX", Y="axisY";
 		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+        g.setLabelsAuto(false);
 		g.setXboundaries(5.6, 34.);
 		g.add(5.5,34.);g.add(5.5,34.);g.add(5.5,2.);g.add(7.5,2.);
 		Assert.assertEquals("[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bagplot(c(7.5),c(2.0),xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\",mar=c(3.0,3.0,0.2,0.2)), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\"axisX\",line=1.8), title(ylab=\"axisY\",line=2.0), par(mar=curMar)]",g.getDrawingCommand().toString());
@@ -1234,6 +1264,7 @@ public class TestDrawGraphs {
 	{
 		final String X="axisX", Y="axisY";
 		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+        g.setLabelsAuto(false);
 		g.setYboundaries(5.5, 34.);
 		g.add(5.5,34.);g.add(5.5,34.);g.add(5.5,2.);g.add(7.5,2.);
 		Assert.assertEquals("[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bagplot(c(5.5,5.5),c(34.0,34.0),xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\",mar=c(3.0,3.0,0.2,0.2)), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\"axisX\",line=1.8), title(ylab=\"axisY\",line=2.0), par(mar=curMar)]",g.getDrawingCommand().toString());
@@ -1296,6 +1327,7 @@ public class TestDrawGraphs {
 	{
 		final String X="axisX", Y="axisY";
 		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,true);
+        g.setLabelsAuto(false);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
 		Assert.assertEquals(
 				"[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0)), plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0), xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\"), abline(0,1), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\""+X+"\",line=1.8), title(ylab=\""+Y+"\",line=2.0), par(mar=curMar)]",
@@ -1307,6 +1339,7 @@ public class TestDrawGraphs {
 	{
 		final String X="axisX", Y="axisY";
 		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,false);
+        g.setLabelsAuto(false);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
 		Assert.assertEquals("[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0)), plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0), xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\"), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\""+X+"\",line=1.8), title(ylab=\""+Y+"\",line=2.0), par(mar=curMar)]",
 				g.getDrawingCommand().toString());
@@ -1317,6 +1350,7 @@ public class TestDrawGraphs {
 	{
 		final String X="axisX", Y="axisY";
 		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,true);
+        g.setLabelsAuto(false);
 		g.setLimit(30000);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
 		Assert.assertEquals("[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),approx.limit=30000), plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0), xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\"), abline(0,1), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\""+X+"\",line=1.8), title(ylab=\""+Y+"\",line=2.0), par(mar=curMar)]",
@@ -1344,7 +1378,7 @@ public class TestDrawGraphs {
 	public void testDrawingScatterPlot1()
 	{
 		final ScatterPlot plot = new ScatterPlot("x axis", "y axis", new File("plotName"));
-		
+
 		plot.add(0, 0, "red");plot.add(1, 0, "red");plot.add(0, 1, "red");plot.add(1, 1, "red");
 		Assert.assertEquals(arrayToString(Collections.singletonList("plot(c(0.0,1.0,0.0,1.0),c(0.0,0.0,1.0,1.0),type = \"p\",col=\"red\",xlab=\"x axis\",ylab=\"y axis\",axes=FALSE, frame.plot=TRUE)")),arrayToString(plot.getDrawingCommand()));
 	}

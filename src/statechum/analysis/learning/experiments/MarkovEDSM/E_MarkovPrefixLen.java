@@ -9,6 +9,7 @@ import statechum.analysis.learning.observers.ProgressDecorator;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import static statechum.analysis.learning.DrawGraphs.*;
@@ -98,6 +99,7 @@ public class E_MarkovPrefixLen {
         learningGroup.experimentRunner.collectOutcomeOfExperiments(constructResultsCollector(resultCSV));
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
+            Set<RESULT_VALUES>  validityOfCells = obtainValidityOfCellValues(resultCSV);
             for (final int preset : learnerExperiment) {
                 String presetStr = "-" + preset;
                 String experimentName = learningGroup.outPathPrefix + description+"_";
@@ -117,7 +119,7 @@ public class E_MarkovPrefixLen {
                             map_StructuralVsLearntInconsistencyAccuracyAllDensities = new TreeMap();
 
                     for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumberPrefixLen(states)) {
-                        DataSelection source = new DataSelection(resultCSV,states,perStateSquaredDensity100);
+                        DataSelection source = new DataSelection(resultCSV,states,perStateSquaredDensity100,validityOfCells);
                         final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score", new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_inconsistency_structural.pdf"));
                         spreadsheetToBagPlotNoZeroYValues(gr_StructuralVsInconsistency, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_INCONSISTENCY_LEARNT,
                                 new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
@@ -150,7 +152,7 @@ public class E_MarkovPrefixLen {
                         for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                             MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
                             if (rowValues.perStateSquaredDensityMultipliedBy100 == perStateSquaredDensity100 && rowValues.states == states)
-                                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), (column, columnText, Y) -> {
+                                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,(column, columnText, Y) -> {
                                     double value = obtainDoubleValueFromCell(Y, E_DIFF,column);
                                     boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
 
@@ -163,7 +165,7 @@ public class E_MarkovPrefixLen {
                                 });
                         }
 
-                        FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states,perStateSquaredDensity100,resultCSV);
+                        FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states,perStateSquaredDensity100,resultCSV,validityOfCells);
                         report.getResultForBestPerformingMarkovLearner(null, null, null, null);
                         for(Map.Entry<Integer, List<MarkovExperiment.LearningReport>> resultEntry:report.getExperimentsResultsPerChunkLen().entrySet()) {
                             int chunkLen = resultEntry.getKey();
@@ -288,6 +290,7 @@ public class E_MarkovPrefixLen {
         }
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
             for (int states : learningGroup.statesToUse)
                 for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumberPrefixLen(states)) {
                     final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural Score, VH", "Structural Score, EDSM-Markov",
@@ -295,7 +298,7 @@ public class E_MarkovPrefixLen {
                     final SquareBagPlot gr_StructuralDiffDefaultOrdering = new SquareBagPlot("Structural score, default order", "Structural Score, best order",
                             new File(learningGroup.outPathPrefix + description+"_"+states+"_bestprefixlen_and_mult_" + states + "_"+perStateSquaredDensity100+"_defaultorder_bestorder.pdf"), 0, 1, true);
                     // Now select the best result from all those available
-                    FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, perStateSquaredDensity100, resultCSV);
+                    FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, perStateSquaredDensity100, resultCSV,validityOfCells);
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest, gr_StructuralDiffDefaultOrdering, null, null);
 //                    System.out.println("Values for "+states+" and "+perStateSquaredDensity100+" : "+report.getExperimentResults().size());
                     gr_StructuralDiffBest.reportResults(learningGroup.gr);

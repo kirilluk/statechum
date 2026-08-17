@@ -341,6 +341,7 @@ public class E_MarkovCaseStudies {
         learningGroup.experimentRunner.collectOutcomeOfExperiments(constructResultsCollector(resultCSV));
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
             List<List<String>> outputStatistics = new ArrayList<>();
             outputStatistics.add(new ArrayList<>(Arrays.asList("Case study", "States", "Alphabet", "Traces", "T. Length", "Centre", "Diff, M", "BCR, M", "Diff, VH", "BCR, VH", "A12", "A12 lo", "A12 hi", "Wilcoxon")));
             for (Map.Entry<Integer, CaseStudyInformation> entryForCaseStudy : caseStudyInformationMap.entrySet()) {
@@ -360,7 +361,7 @@ public class E_MarkovCaseStudies {
                             for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                                 MarkovLearningParameters rowHeader = parseMarkovParametersRowFromCSV(rowEntry.getKey());
                                 if (rowHeader.traceQuantity == traces_lengthmult.firstElem && rowHeader.sample == entryForCaseStudy.getKey()) {
-                                    getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColOtherLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),
+                                    getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColOtherLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),validityOfCells,
                                             (column, columnText, Y) -> {
                                                 boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
                                                 double bcr = obtainDoubleValueFromCell(Y, E_BCR, column);
@@ -386,6 +387,7 @@ public class E_MarkovCaseStudies {
                                                     (column.parameters.preset > 0) == useCentre &&
                                                     column.parameters.chunkLen == chunkSizeToEvaluate &&
                                                     column.learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
+                                            validityOfCells,
                                             (column, columnText, Y) -> {
                                                 double runtime = obtainDoubleValueFromCell(Y, E_RUNTIME, column);
                                                 if (runtime > timeout)
@@ -421,7 +423,7 @@ public class E_MarkovCaseStudies {
                             FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(-1, -1,
                                     rowHeader -> rowHeader.traceQuantity == traces_lengthmult.firstElem && rowHeader.sample == entryForCaseStudy.getKey(),
                                     columnParse -> (columnParse.parameters.preset > 0) == useCentre && columnParse.parameters.chunkLen == chunkSizeToEvaluate,
-                                    resultCSV);
+                                    resultCSV,validityOfCells);
 
                             AtomicInteger bestDiffSum = new AtomicInteger(0);
                             AtomicInteger bestDiffCounter = new AtomicInteger(0);

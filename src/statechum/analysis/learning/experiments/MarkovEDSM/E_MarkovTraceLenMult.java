@@ -80,6 +80,7 @@ public class E_MarkovTraceLenMult {
 
         final String numberFormat = "%3d";
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
             for (int states : learningGroup.statesToUse) {
                 final RBoxPlot<String> gr_BestStructuralForLengthMultiplier = new RBoxPlot<>("Trace length multiplier", "Structural Score, EDSM-Markov",
                         new File(learningGroup.outPathPrefix + description + "_" + states + "_lengthmult_structural.pdf"));
@@ -104,7 +105,7 @@ public class E_MarkovTraceLenMult {
                     FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, -1,
                             rowHeader -> rowHeader.traceLengthMultiplier == traceLenMult,
                             columnParse -> columnParse.parameters.chunkLen == chunkSizeToEvaluate,
-                            resultCSV);
+                            resultCSV,validityOfCells);
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(traceLenMult), null,
                             (pair) -> {
                                 double markov = pair.firstElem, vh_score = pair.secondElem;

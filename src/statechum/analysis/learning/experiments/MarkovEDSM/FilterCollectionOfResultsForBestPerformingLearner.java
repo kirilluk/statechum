@@ -13,7 +13,6 @@ import java.util.function.Function;
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.*;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersColumnFromCSV;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
 
@@ -25,6 +24,7 @@ class FilterCollectionOfResultsForBestPerformingLearner {
     final Function<MarkovLearningParameters,Boolean> selectorRow;
     final Function<MarkovLearningParameters.ColumnParseOutcome, Boolean> selectorCol;
     protected Map<String, AtomicInteger> learnerToHowOftenBest = new HashMap<>(), learnerToHowOftenDefaultOrdering = new HashMap<>();
+    final Set<MarkovExperiment.RESULT_VALUES> invalidCellValues;
 
     /**
      * Given a results obtained by Markov learners using different parameters, uses inconsistency values to identify the best performing learner and report its results.
@@ -33,8 +33,8 @@ class FilterCollectionOfResultsForBestPerformingLearner {
      * @param perStateSquaredDensity100 density to consider. Use a negative value to consider all densities for the provided number of states
      * @param resultCSV                 CSV with results to process
      */
-    public FilterCollectionOfResultsForBestPerformingLearner(int states, int perStateSquaredDensity100, DrawGraphs.CSVExperimentResult resultCSV) {
-        this(states,perStateSquaredDensity100,(array) -> true, null, resultCSV);
+    public FilterCollectionOfResultsForBestPerformingLearner(int states, int perStateSquaredDensity100, DrawGraphs.CSVExperimentResult resultCSV,Set<MarkovExperiment.RESULT_VALUES> invalidCellValues) {
+        this(states,perStateSquaredDensity100,(array) -> true, null, resultCSV, invalidCellValues);
     }
 
     /**
@@ -48,12 +48,15 @@ class FilterCollectionOfResultsForBestPerformingLearner {
      */
     public FilterCollectionOfResultsForBestPerformingLearner(int states, int perStateSquaredDensity100,
                                                              Function<MarkovLearningParameters,Boolean> selRow,
-                                                             Function<MarkovLearningParameters.ColumnParseOutcome, Boolean> selCol, CSVExperimentResult resultCSV) {
+                                                             Function<MarkovLearningParameters.ColumnParseOutcome,
+                                                                     Boolean> selCol, CSVExperimentResult resultCSV,
+                                                             Set<MarkovExperiment.RESULT_VALUES> invalidCellValues) {
         this.states = states;
         this.perStateSquaredDensity100 = perStateSquaredDensity100;
         this.resultCSV = resultCSV;
         this.selectorRow = selRow == null? elems-> true : selRow;
         this.selectorCol = selCol == null? elems-> true : selCol;
+        this.invalidCellValues = invalidCellValues;
     }
     protected List<MarkovExperiment.LearningReport> experimentResults = new ArrayList<>();
     public List<MarkovExperiment.LearningReport> getExperimentResults() {
@@ -85,7 +88,7 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                 selectorRow.apply(rowValues)) {
                 final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport(),bestLearningResultForDefaultOrdering = new MarkovExperiment.LearningReport();
                 final Map<Integer,MarkovExperiment.LearningReport> resultForChunkLen = new TreeMap<>();
-                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),
+                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),invalidCellValues,
                         (column, columnText, Y) -> {
                             boolean learntOK = obtainStringValueFromCell(Y, MarkovExperiment.RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
                             boolean alwaysPositive = obtainBooleanValueFromCell(Y, E_INCONSISTENCY_ALWAYSPOSITIVE,column);
@@ -93,17 +96,15 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                             double structural = obtainDoubleValueFromCell(Y, E_DIFF,column);
                             long inconsistency = obtainLongValueFromCell(Y, E_INCONSISTENCY_LEARNT,column);
 
-                            MarkovLearningParameters.ColumnParseOutcome columnValues=parseMarkovParametersColumnFromCSV(columnText);
-
                             if (learntOK && selectorCol.apply(column)) {
                                 MarkovExperiment.LearningReport currentOutcome = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText, Y, column);
-                                if (columnValues.parameters.seedToShuffleSurroundingStates == 0)
+                                if (column.parameters.seedToShuffleSurroundingStates == 0)
                                     bestLearningResultForDefaultOrdering.updateIfValueBetter(currentOutcome);
                                 else
                                     multipleOrderingsOfStates.set(true);
                                 bestLearningResult.updateIfValueBetter(currentOutcome);
 
-                                resultForChunkLen.computeIfAbsent(columnValues.parameters.chunkLen, k->new MarkovExperiment.LearningReport()).updateIfValueBetter(currentOutcome);
+                                resultForChunkLen.computeIfAbsent(column.parameters.chunkLen, k->new MarkovExperiment.LearningReport()).updateIfValueBetter(currentOutcome);
                             }
                         });
                 experimentResults.add(bestLearningResult);
@@ -115,7 +116,7 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                 for(Map.Entry<Integer,MarkovExperiment.LearningReport> result:resultForChunkLen.entrySet())
                     resultPerChunkLen.computeIfAbsent(result.getKey(), k->new ArrayList<>()).add(result.getValue());
 
-                ColumnAndValue Y_VH = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH));
+                ColumnAndValue Y_VH = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH),invalidCellValues);
                 if (Y_VH != null) {
                     double vh_score = obtainDoubleValueFromCell(Y_VH.value, E_DIFF,Y_VH.column);
                     if (gr_StructuralDiffBest != null)

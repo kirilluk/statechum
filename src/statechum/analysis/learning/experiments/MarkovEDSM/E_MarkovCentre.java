@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -26,6 +27,7 @@ import static statechum.analysis.learning.DrawGraphs.obtainValueFromCell;
 import static statechum.analysis.learning.experiments.MarkovEDSM.E_MarkovCentre.MarkovCentreLearningParameters.description;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.LearningExperimentGroupParameters.baseNumberOfTracesMult;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.getValueFromMapGivenSelector;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.obtainValidityOfCellValues;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 
 public class E_MarkovCentre {
@@ -164,18 +166,18 @@ public class E_MarkovCentre {
                     new File(prefix + "centreselection_percentagecorrect.pdf"));
             gr_PercentageOfCentreCorrect.setupForOneLineXLabels();
             gr_PercentageOfCentreCorrect.configureTextLabels(-3,1,0.5);
-            gr_InconsistenciesForCentres = new DrawGraphs.RBoxPlot<>("Centre Selection", "Inconsistency (clamped to " + inconsistencyClamp + " )",
+            gr_InconsistenciesForCentres = new DrawGraphs.RBoxPlot<>("Centre Selection", "Inconsistency (clamped to " + inconsistencyClamp + ")",
                     new File(prefix + "centreselection_inconsistency.pdf"));
             gr_InconsistenciesForCentres.setupForOneLineXLabels();
             gr_InconsistenciesForCentres.configureTextLabels(-5,1,0.5);
-            gr_CorrectVsInconsistency = new DrawGraphs.RBoxPlot<>("Centre correctly predicted", "Inconsistency (clamped to " + inconsistencyClamp + " )",
+            gr_CorrectVsInconsistency = new DrawGraphs.RBoxPlot<>("Centre correctly predicted", "Inconsistency (clamped to " + inconsistencyClamp + ")",
                     new File(prefix + "centrecorrect_inconsistency.pdf"));
             gr_CorrectVsInconsistency.setupForOneLineXLabels();
             gr_CorrectVsInconsistency.configureTextLabels(-5,1,0.5);
-            gr_CorrectVsInconsistencyWithPracticeLearn = new DrawGraphs.RBoxPlot<>("Centre correctly predicted", "Inconsistency P (clamped to " + inconsistencyClamp + " )",
+            gr_CorrectVsInconsistencyWithPracticeLearn = new DrawGraphs.RBoxPlot<>("Centre correctly predicted", "Inconsistency with practice (clamped to " + inconsistencyClamp + ")",
                     new File(prefix + "centrecorrect_inconsistency_P.pdf"));
             gr_CorrectVsInconsistencyWithPracticeLearn.setupForOneLineXLabels();
-            gr_CorrectVsInconsistencyWithPracticeLearn.configureTextLabels(-3,1,0.5);
+            gr_CorrectVsInconsistencyWithPracticeLearn.configureTextLabels(-6,1,0.5);
         }
 
         public void report() {
@@ -254,6 +256,7 @@ public class E_MarkovCentre {
         });
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
+            Set<MarkovExperiment.RESULT_VALUES> invalidCellValues = null;// all values are valid here
             for (int states : learningGroup.statesToUse) {
 
                 Map<Integer, CentreSelectionResults> results = new TreeMap<>();
@@ -261,7 +264,7 @@ public class E_MarkovCentre {
                 for (Map.Entry<String, Map<String, String>> rowEntry : centreCSV.rowColumnText.entrySet()) {
                     MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
                     if (rowValues.states == states) {
-                        for (int traceQuantityToUse : new int[]{1, baseNumberOfTracesMult}) {
+                        for (int traceQuantityToUse : new int[]{1, learningGroup.getTracesLengthmultBaseline(states).firstElem}) {
                             results.computeIfAbsent(traceQuantityToUse, integer -> new CentreSelectionResults(learningGroup, states, traceQuantityToUse));
                             CentreSelectionResults resultsToUpdate = results.get(traceQuantityToUse);
 //                        String[] rowValues = rowEntry.getKey().split("[_=]");
@@ -271,7 +274,7 @@ public class E_MarkovCentre {
                                     for (int d : divisor_values) {
                                         MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen centreStrategy =
                                                 new MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, 1, true, d, wlen);
-                                        MarkovExperiment.ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(), centreStrategy);
+                                        MarkovExperiment.ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(), centreStrategy,invalidCellValues);
                                         if (Y != null) {
                                             boolean centreCorrect = Boolean.parseBoolean(obtainValueFromCell(Y.value, 0));
                                             int pathsCount = Integer.parseInt(obtainValueFromCell(Y.value, 1));

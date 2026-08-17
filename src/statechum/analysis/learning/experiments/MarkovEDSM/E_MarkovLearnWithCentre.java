@@ -87,6 +87,7 @@ public class E_MarkovLearnWithCentre {
 
         final String numberFormat = "%1d";
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
             for (int states : learningGroup.statesToUse) {
                 final RBoxPlot<String> gr_BestStructuralForDifferentPreset = new RBoxPlot<>("Trace length number and learner", "Structural Score, EDSM-Markov",
                         new File(learningGroup.outPathPrefix + description+"_"+states + "_centre-learner_structural.pdf"));
@@ -120,7 +121,7 @@ public class E_MarkovLearnWithCentre {
                                 bestLearningResultForThisRowAndAllPresets.computeIfAbsent(preset, integer -> new MarkovExperiment.LearningReport());
                                 MarkovExperiment.LearningReport bestLearningResultForThisRowAndPreset = bestLearningResultForThisRowAndAllPresets.get(preset);
 
-                                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),
+                                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),validityOfCells,
                                         (column, columnText, Y) -> {
                                             // Here columnText is the description of the learner used, Y is the values reported by processSubResult above.
                                             boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
@@ -129,7 +130,7 @@ public class E_MarkovLearnWithCentre {
                                             double structural = obtainDoubleValueFromCell(Y, E_DIFF,column);
                                             long inconsistency = obtainLongValueFromCell(Y, E_INCONSISTENCY_LEARNT,column);
 
-                                            MarkovLearningParameters.ColumnParseOutcome columnValues=parseMarkovParametersColumnFromCSV(columnText);
+                                            MarkovLearningParameters.ColumnParseOutcome columnValues=parseMarkovParametersColumnFromCSV(columnText,validityOfCells);
                                             if (learntOK && columnValues.learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV && columnValues.parameters.preset == preset) {
                                                 // Now at the columns of interest (specific preset but different parameter of Markov)
                                                 MarkovExperiment.LearningReport report = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText,Y, column);
@@ -148,7 +149,7 @@ public class E_MarkovLearnWithCentre {
                                         "(inconsistency "+bestLearningResultForThisRowAndAllPresets.get(preset_M_Both).inconsistency+" )");
                             }
 
-                            ColumnAndValue Y_VH = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH));
+                            ColumnAndValue Y_VH = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH),validityOfCells);
                             Double vh_score = Y_VH != null? obtainDoubleValueFromCell(Y_VH.value, E_DIFF,Y_VH.column): null;
                             if (vh_score != null)
                                 gr_StructuralDiffBest.add(vh_score, bestLearningResultForThisRow.structural, null, null);

@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.*;
@@ -52,6 +53,8 @@ public class MarkovComparison {
         }
 
         if (curPhase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || curPhase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
+            Set<RESULT_VALUES> invalidCellValuesA = obtainValidityOfCellValues(twoExperiments.get(0));
+            Set<RESULT_VALUES> invalidCellValuesB = obtainValidityOfCellValues(twoExperiments.get(1));
             DrawGraphs gr = new DrawGraphs();
             String pathToResult = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_EXPERIMENTRESULTS) + File.separator;
             final DrawGraphs.SquareBagPlot gr_StructuralDiffComparison = new DrawGraphs.SquareBagPlot(experimentsToCompare[0], experimentsToCompare[1],
@@ -66,9 +69,9 @@ public class MarkovComparison {
             final DrawGraphs.WilcoxonPairedTest Wilcoxon_test_all_paths = new DrawGraphs.WilcoxonPairedTest(new File(pathToResult + description+"-"+"Wilcoxon_t_all_paths.csv"));
             for (Map.Entry<String, Map<String, String>> rowEntryA : twoExperiments.get(0).rowColumnText.entrySet()) {
                 Map<String, String> entryB = twoExperiments.get(1).rowColumnText.get(rowEntryA.getKey());
-                MarkovExperiment.ColumnAndValue cellsA = getValueFromMapGivenSelector(rowEntryA.getValue(), new MarkovExperiment.ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV));
+                MarkovExperiment.ColumnAndValue cellsA = getValueFromMapGivenSelector(rowEntryA.getValue(), new MarkovExperiment.ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),invalidCellValuesA);
                 double valueA = obtainDoubleValueFromCell(cellsA.value, E_DIFF, cellsA.column);
-                MarkovExperiment.ColumnAndValue cellsB = getValueFromMapGivenSelector(entryB, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV));
+                MarkovExperiment.ColumnAndValue cellsB = getValueFromMapGivenSelector(entryB, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),invalidCellValuesB);
                 double valueB = obtainDoubleValueFromCell(cellsB.value, E_DIFF, cellsB.column);
 
 //                String Y_VH = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");

@@ -79,6 +79,7 @@ public class E_MarkovAlphabet {
 
         final String numberFormat = "%-3.1f";
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
             for (int states : learningGroup.statesToUse) {
                 final RBoxPlot<String> gr_BestStructuralForAlphabet = new RBoxPlot<>("Alphabet multiplier and learner", "Structural Score, EDSM-Markov",
                         new File(learningGroup.outPathPrefix + description + "_" + states + "_alphabetmult_structural.pdf"));
@@ -108,8 +109,7 @@ public class E_MarkovAlphabet {
                     FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, -1,
                             rowHeader -> rowHeader.alphabetMultiplier == alphabetMultiplier,
                             columnParse -> columnParse.parameters.chunkLen == chunkSizeToEvaluate,
-                            resultCSV);
-
+                            resultCSV,validityOfCells);
 
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(alphabetMultiplier), null,
                             (pair) -> {

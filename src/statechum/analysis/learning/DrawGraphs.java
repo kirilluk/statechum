@@ -319,13 +319,16 @@ public class DrawGraphs {
 	 * @param otherAttrs additional attributes to set, null if not used.
 	 * @return The string to be sent to R for evaluation.
 	 */
-	protected static String boxPlotToString(List<List<Double>> data,List<String> names,List<String> colour, List<String> otherAttrs)
+	protected static String boxPlotToString(List<List<Double>> data,List<String> names,boolean labelsAuto, List<String> colour, List<String> otherAttrs)
 	{
 		if (data.isEmpty()) throw new IllegalArgumentException("cannot plot an empty graph");
 		if (data.size() == 1 && names != null) throw new IllegalArgumentException("in a graph with one component, names are not used");
 		if (data.size() > 1 && names != null && names.size() != data.size()) throw new IllegalArgumentException("mismatch between name and data length"); 
 		StringBuilder result = new StringBuilder();
-		result.append("boxplot(xaxt=\"n\",yaxt=\"n\",");
+		result.append("boxplot(");
+        result.append("yaxt=\"n\",");
+        if (!labelsAuto)
+            result.append("xaxt=\"n\",");
 		boolean firstVectorOfData = true;
 		for(List<Double> arg:data)
 		{
@@ -1410,13 +1413,22 @@ public class DrawGraphs {
 
 		double ySize = 4;
 
+        /** True for automatic placement of labels, set to false for manual placement. */
+        boolean labelsAuto = true;
+
 		double textXoffset =0, textXsrt=90,textXadj=1.;
 
 		public void configureTextLabels(double xoffset, double srt, double adj) {
 			textXoffset = xoffset;
 			textXsrt = srt;
 			textXadj = adj;
+            labelsAuto = false;// since we are setting placement of labels, auto is false and labels are manually placed with the 'text' command
+            // (hence xoffset depends on the scale of the graph whereas for auto they are placed automatically at the bottom).
 		}
+
+        public void setLabelsAuto(boolean auto) {
+            labelsAuto = auto;
+        }
 
 		/** Computes the horizontal size of the drawing. */
 		abstract protected double computeHorizSize();
@@ -1437,9 +1449,10 @@ public class DrawGraphs {
 			String axisTicks = "";
 			if (names != null)
 				axisTicks = ",at=1:"+names.size()+",labels=FALSE";
-			outcome.add("axis(side=1,mgp=c("+ mgpTitle +","+ mgpLabelX+","+mgpAxis+"),las="+las+axisTicks+")");
+            if (!labelsAuto)
+			    outcome.add("axis(side=1,mgp=c("+ mgpTitle +","+ mgpLabelX+","+mgpAxis+"),las="+las+axisTicks+")");
 			outcome.add("axis(side=2,mgp=c("+ mgpTitle +","+ mgpLabelY+","+mgpAxis+"),las="+las+")");
-			if (names != null)
+			if (names != null && !labelsAuto)
 				outcome.add("text(x=1:"+names.size()+",y="+textXoffset+",labels="+vectorToR(names, true)+",xpd=NA,srt="+textXsrt+",adj="+textXadj+")");
 			if (!xAxis.isEmpty()) {
 				outcome.add("title(xlab=\""+xAxis+"\""+(xLine >= 0?(",line="+xLine):"")+")");
@@ -1694,7 +1707,7 @@ public class DrawGraphs {
 				colours.add(colour);
 			}
 			List<String> namesToUse = names.size()==1?null:names;
-			return constructSequenceOfDrawingCommands(namesToUse, () -> Collections.singletonList(boxPlotToString(data, namesToUse,colours,
+			return constructSequenceOfDrawingCommands(namesToUse, () -> Collections.singletonList(boxPlotToString(data, namesToUse,labelsAuto,colours,
 					Arrays.asList("mar=c("+mBot+","+mLeft+","+mTop+","+mRight+")",otherOptions))));
 		}
 
@@ -1743,7 +1756,7 @@ public class DrawGraphs {
 			}
 
 			List<String> namesToUse = names.size()==1?null:names;
-			return constructSequenceOfDrawingCommands(namesToUse, () ->Collections.singletonList(boxPlotToString(data, namesToUse,colours,Arrays.asList("las=2","mar=c("+mBot+","+mLeft+","+mTop+","+mRight+")", otherOptions))));
+			return constructSequenceOfDrawingCommands(namesToUse, () ->Collections.singletonList(boxPlotToString(data, namesToUse,labelsAuto,colours,Arrays.asList("las=2","mar=c("+mBot+","+mLeft+","+mTop+","+mRight+")", otherOptions))));
 		}
 
 		@Override

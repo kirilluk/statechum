@@ -12,6 +12,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static java.lang.Math.abs;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
@@ -47,6 +48,8 @@ public class MarkovCheckEquivalence {
         }
 
         if (curPhase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || curPhase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
+            Set<RESULT_VALUES> invalidCellValuesA = obtainValidityOfCellValues(twoExperiments.get(0));
+            Set<RESULT_VALUES> invalidCellValuesB = obtainValidityOfCellValues(twoExperiments.get(1));
             DrawGraphs gr = new DrawGraphs();
             String pathToResult = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_EXPERIMENTRESULTS) + File.separator;
             final DrawGraphs.RBagPlot gr_Time = new DrawGraphs.RBagPlot(experimentsToCompare[0], experimentsToCompare[1],
@@ -56,13 +59,13 @@ public class MarkovCheckEquivalence {
             int countAabove = 0,countBabove=0;
             for (Map.Entry<String, Map<String, String>> rowEntryA : twoExperiments.get(0).rowColumnText.entrySet()) {
                 Map<String, String> entryB = twoExperiments.get(1).rowColumnText.get(rowEntryA.getKey());
-                ColumnAndValue cellsA = getValueFromMapGivenSelector(rowEntryA.getValue(), new MarkovExperiment.ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV));
+                ColumnAndValue cellsA = getValueFromMapGivenSelector(rowEntryA.getValue(), new MarkovExperiment.ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),invalidCellValuesA);
                 double valueA = obtainDoubleValueFromCell(cellsA.value, E_DIFF, cellsA.column);
                 double valueBCRA = obtainDoubleValueFromCell(cellsA.value, E_BCR, cellsA.column);
                 double valueStructuralA = obtainDoubleValueFromCell(cellsA.value, E_DIFF, cellsA.column);
 
                 double timeA = obtainDoubleValueFromCell(cellsA.value, E_RUNTIME, cellsA.column);
-                ColumnAndValue cellsB = getValueFromMapGivenSelector(entryB, new MarkovExperiment.ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV));
+                ColumnAndValue cellsB = getValueFromMapGivenSelector(entryB, new MarkovExperiment.ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),invalidCellValuesB);
                 double valueBCRB = obtainDoubleValueFromCell(cellsB.value, E_BCR, cellsB.column);
                 double valueStructuralB = obtainDoubleValueFromCell(cellsB.value, E_DIFF, cellsB.column);
                 double timeB = obtainDoubleValueFromCell(cellsB.value, E_RUNTIME, cellsB.column);

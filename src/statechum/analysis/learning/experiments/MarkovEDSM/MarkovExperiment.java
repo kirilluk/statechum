@@ -55,6 +55,7 @@ import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleState
 import statechum.analysis.learning.rpnicore.RandomPathGenerator.RandomLengthGenerator;
 
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_SECTION.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.RESULT_VALUES.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersColumnFromCSV;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.constructLearner;
@@ -793,11 +794,12 @@ public class MarkovExperiment
 			return Objects.hash(scorer, preset, divisor, wlen, averageOrMax);
 		}
 	}
-	public static void getAllValuesFromMapGivenRegexp(Map<String,String> map, ColumnSelector columnSelector, ExperimentBlockForColumn lambda)
+
+	public static void getAllValuesFromMapGivenRegexp(Map<String,String> map, ColumnSelector columnSelector, Set<MarkovExperiment.RESULT_VALUES> invalidCellValues, ExperimentBlockForColumn lambda)
 	{
 		for(Map.Entry<String,String> entry:map.entrySet()) {
 			String columnText = entry.getKey();
-			MarkovLearningParameters.ColumnParseOutcome column = parseMarkovParametersColumnFromCSV(columnText);
+			MarkovLearningParameters.ColumnParseOutcome column = parseMarkovParametersColumnFromCSV(columnText,invalidCellValues);
 			if (columnSelector.check(column))
 				lambda.processBlock(column, columnText, entry.getValue());
 		}
@@ -808,6 +810,8 @@ public class MarkovExperiment
 		String [] elements = columnValue.split(",");
 		if (elements.length <= cellNumber || cellNumber < 0)
 			throw new IllegalArgumentException("invalid cell number "+cellNumber+", should be 0.."+elements.length);
+        if (column.invalidCellValues != null && column.invalidCellValues.contains(cellID))
+            throw new IllegalArgumentException("Value in cell "+cellID+" was not computed by this experiment");
 		return elements[cellNumber];
 	}
 
@@ -843,10 +847,41 @@ public class MarkovExperiment
 		}
 	}
 
-	public static ColumnAndValue getValueFromMapGivenSelector(Map<String,String> map, ColumnSelector regexp)
+    public static Set<RESULT_VALUES> obtainValidityOfCellValues(DrawGraphs.CSVExperimentResult resultCSV) {
+        Set<RESULT_VALUES> invalidCellValues = new TreeSet<>();
+        for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+            getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), null, (column, columnText, Y) -> {
+                boolean learntOK = obtainStringValueFromCell(Y, E_SUCCESS,column).equals(LEARNING_OK.name);
+                if (!learntOK) {
+                    invalidCellValues.add(E_INCONSISTENCY_ALWAYSPOSITIVE);
+                }
+                if (obtainDoubleValueFromCell(Y, E_RELATIVEINCONSISTENCY_LEARNT,column) < 0.0)
+                    invalidCellValues.add(E_RELATIVEINCONSISTENCY_LEARNT);// negative value of relative inconsistency means we chose not to compute it.
+                if (learntOK && (obtainDoubleValueFromCell(Y, E_DIFF, column) < 1.0 || obtainDoubleValueFromCell(Y, E_BCR, column) < 1.0)) {
+                    // This is the case where we did not learn an exact automaton.
+                    // If in this case values of mistakes near or far from root are all zeroes, it means
+                    // we chose not to compute those values.
+                    if (obtainIntValueFromCell(Y, E_ERR_INVALID_NEARROOT, column) == 0 &&
+                            obtainIntValueFromCell(Y, E_ERR_INVALID_FARFROMROOT, column) == 0 &&
+                            obtainIntValueFromCell(Y, E_ERR_MISSED_NEARROOT, column) == 0 &&
+                            obtainIntValueFromCell(Y, E_ERR_MISSED_FARFROMROOT, column) == 0)
+                    {
+                        invalidCellValues.add(E_ERR_INVALID_NEARROOT);
+                        invalidCellValues.add(E_ERR_INVALID_FARFROMROOT);
+                        invalidCellValues.add(E_ERR_MISSED_NEARROOT);
+                        invalidCellValues.add(E_ERR_MISSED_FARFROMROOT);
+                    }
+                }
+            });
+        }
+
+        return invalidCellValues;
+    }
+
+	public static ColumnAndValue getValueFromMapGivenSelector(Map<String,String> map, ColumnSelector regexp, Set<RESULT_VALUES> invalidCellValues)
 	{
 		for(Map.Entry<String,String> entry:map.entrySet()) {
-			MarkovLearningParameters.ColumnParseOutcome column = parseMarkovParametersColumnFromCSV(entry.getKey());
+			MarkovLearningParameters.ColumnParseOutcome column = parseMarkovParametersColumnFromCSV(entry.getKey(),invalidCellValues);
 			if (regexp.check(column))
 				return new ColumnAndValue(entry.getKey(), column, entry.getValue());
 		}
@@ -854,41 +889,41 @@ public class MarkovExperiment
 	}
 
 
-	public static void spreadsheetAsDouble(DrawGraphs.AggregateValues agg, DrawGraphs.CSVExperimentResult whereFrom,
+	public static void spreadsheetAsDouble(DrawGraphs.AggregateValues agg, DrawGraphs.CSVExperimentResult whereFrom,Set<RESULT_VALUES> invalidCellValues,
 										   ColumnSelector columnX, RESULT_VALUES cellWithinX,
 										   ColumnSelector columnY, RESULT_VALUES cellWithinY)
 	{
 		for(Map.Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
-			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX);
-			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY);
+			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX,invalidCellValues);
+			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY,invalidCellValues);
 			if (X != null && Y != null)
 				agg.merge(obtainDoubleValueFromCell(X.value,cellWithinX,X.column), obtainDoubleValueFromCell(Y.value,cellWithinY,Y.column));
 		}
 	}
 
 
-	public static void spreadsheetAsDouble(DrawGraphs.RStatisticalAnalysis analysis, DrawGraphs.CSVExperimentResult whereFrom,
+	public static void spreadsheetAsDouble(DrawGraphs.RStatisticalAnalysis analysis, DrawGraphs.CSVExperimentResult whereFrom,Set<RESULT_VALUES> invalidCellValues,
 										   ColumnSelector columnX, RESULT_VALUES cellWithinX,
 										   ColumnSelector columnY, RESULT_VALUES cellWithinY)
 	{
 		for(Map.Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
-			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX);
-			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY);
+			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX,invalidCellValues);
+			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY,invalidCellValues);
 			if (X != null && Y != null)
 				analysis.add(obtainDoubleValueFromCell(X.value,cellWithinX,X.column), obtainDoubleValueFromCell(Y.value,cellWithinY,Y.column));
 		}
 	}
 
-	public static void spreadsheetAsString(DrawGraphs.AggregateStringValues agg, DrawGraphs.CSVExperimentResult whereFrom,
+	public static void spreadsheetAsString(DrawGraphs.AggregateStringValues agg, DrawGraphs.CSVExperimentResult whereFrom,Set<RESULT_VALUES> invalidCellValues,
 										   ColumnSelector columnX, RESULT_VALUES cellWithinX,
 										   ColumnSelector columnY, RESULT_VALUES cellWithinY)
 	{
 		for(Map.Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
-			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX);
-			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY);
+			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX,invalidCellValues);
+			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY,invalidCellValues);
 			agg.merge(X == null?null:obtainStringValueFromCell(X.value,cellWithinX,X.column),Y == null?null:obtainStringValueFromCell(Y.value,cellWithinY,Y.column));
 		}
 	}
@@ -903,15 +938,15 @@ public class MarkovExperiment
 	 * @param colour the colour to use. Calling this method multiple times permits construction of coloured graphs.
 	 * @param label label to add with each value.
 	 */
-	public static void spreadsheetToBagPlot(DrawGraphs.RBagPlot plot, DrawGraphs.CSVExperimentResult whereFrom,
+	public static void spreadsheetToBagPlot(DrawGraphs.RBagPlot plot, DrawGraphs.CSVExperimentResult whereFrom,Set<RESULT_VALUES> invalidCellValues,
 											ColumnSelector columnX, RESULT_VALUES cellWithinX,
 											ColumnSelector columnY, RESULT_VALUES cellWithinY,
 											String colour, String label)
 	{
 		for(Map.Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
-			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX);
-			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY);
+			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX, invalidCellValues);
+			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY, invalidCellValues);
 			if (X != null && Y != null)
 				plot.add(obtainDoubleValueFromCell(X.value,cellWithinX,X.column), obtainDoubleValueFromCell(Y.value,cellWithinY,Y.column), colour, label);
 		}
@@ -927,15 +962,15 @@ public class MarkovExperiment
 	 * @param label label to add with each value.
 	 */
 	public static void spreadsheetToBagPlotNoZeroYValues(DrawGraphs.RBagPlot plot,
-														 DrawGraphs.CSVExperimentResult whereFrom,
+														 DrawGraphs.CSVExperimentResult whereFrom,Set<RESULT_VALUES> invalidCellValues,
 														 ColumnSelector columnX, RESULT_VALUES cellWithinX,
 														 ColumnSelector columnY, RESULT_VALUES cellWithinY,
 														 String colour, String label)
 	{
 		for(Map.Entry<String,Map<String,String>> rowEntry:whereFrom.rowColumnText.entrySet())
 		{
-			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX);
-			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY);
+			ColumnAndValue X = getValueFromMapGivenSelector(rowEntry.getValue(),columnX, invalidCellValues);
+			ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(),columnY, invalidCellValues);
 			if (X != null && Y != null) {
 				double value = obtainDoubleValueFromCell(Y.value,cellWithinY,Y.column);
 				if (value > 0.)
@@ -949,16 +984,20 @@ public class MarkovExperiment
 		final DrawGraphs.CSVExperimentResult whereFrom;
 		final int states;
 		final int perStateSquaredDensity100;
+        final Set<RESULT_VALUES> invalidCellValues;
 
-		/** Creates an instance of data source containing a spreadsheet and selection criteria for automata.
+        /** Creates an instance of data source containing a spreadsheet and selection criteria for automata.
 		 * @param whereFrom spreadsheet to get data from
 		 * @param states automata with that number of states to select
 		 * @param perStateSquaredDensity100 density to select
 		 */
-		public DataSelection(DrawGraphs.CSVExperimentResult whereFrom, int states, int perStateSquaredDensity100) {
+		public DataSelection(DrawGraphs.CSVExperimentResult whereFrom, int states, int perStateSquaredDensity100, Set<RESULT_VALUES> invalidCellValues) {
 			this.whereFrom = whereFrom;
 			this.states = states;
 			this.perStateSquaredDensity100 = perStateSquaredDensity100;
+            if (invalidCellValues == null)
+                throw new IllegalArgumentException("invalidCellValues cannot be null, its value needs to be obtained via obtainValidityOfCellValues(resultCSV)");
+            this.invalidCellValues = invalidCellValues;
 		}
 
 		public interface ProcessExperimentEntry {
@@ -980,12 +1019,12 @@ public class MarkovExperiment
 				MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
 				if (rowValues.perStateSquaredDensityMultipliedBy100 == perStateSquaredDensity100 && rowValues.states == states) {
 					for(Map.Entry<String,String> entryX:rowEntry.getValue().entrySet()) {
-						MarkovLearningParameters.ColumnParseOutcome columnX = parseMarkovParametersColumnFromCSV(entryX.getKey());
+						MarkovLearningParameters.ColumnParseOutcome columnX = parseMarkovParametersColumnFromCSV(entryX.getKey(),invalidCellValues);
 						if (obtainStringValueFromCell(entryX.getValue(), RESULT_VALUES.E_SUCCESS,columnX).equals(LEARNING_OK.name) && columnXselector.check(columnX)) {
 							String X = entryX.getValue();
 							if (!columnXselector.equals(columnYselector)) {
 								for (Map.Entry<String, String> entryY : rowEntry.getValue().entrySet()) {
-									MarkovLearningParameters.ColumnParseOutcome columnY = parseMarkovParametersColumnFromCSV(entryX.getKey());
+									MarkovLearningParameters.ColumnParseOutcome columnY = parseMarkovParametersColumnFromCSV(entryY.getKey(),invalidCellValues);
 									if (obtainStringValueFromCell(entryY.getValue(), RESULT_VALUES.E_SUCCESS,columnY).equals(LEARNING_OK.name) && columnYselector.check(columnY)) {
 										String Y = entryY.getValue();
 										if (X != null && Y != null)
@@ -1204,9 +1243,9 @@ public class MarkovExperiment
 
 		try
 		{
-			E_MarkovCaseStudies.runExperiment(learningGroup);
-//			E_MarkovBaselineLearn.runExperiment(learningGroup);
-			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
+//			E_MarkovCaseStudies.runExperiment(learningGroup);
+			E_MarkovBaselineLearn.runExperiment(learningGroup);
+//			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			E_MarkovCentre.runExperiment(learningGroup);
 //			E_MarkovAlphabet.runExperiment(learningGroup);
 //			E_MarkovTraceLenMult.runExperiment(learningGroup);

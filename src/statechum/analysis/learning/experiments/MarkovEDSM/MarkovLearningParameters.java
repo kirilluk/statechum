@@ -206,11 +206,12 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 	public static class ColumnParseOutcome {
 		public final MarkovParameters parameters;
 		public final ScoringToApply learner;
+        public final Set<MarkovExperiment.RESULT_VALUES> invalidCellValues;
 
-
-		public ColumnParseOutcome(MarkovParameters parameters, ScoringToApply learner) {
+		public ColumnParseOutcome(MarkovParameters parameters, ScoringToApply learner, Set<MarkovExperiment.RESULT_VALUES> invalidCellValues) {
 			this.parameters = parameters;
 			this.learner = learner;
+            this.invalidCellValues = invalidCellValues;
 		}
 
 		@Override
@@ -226,7 +227,7 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 		}
 	}
 
-	public static ColumnParseOutcome parseMarkovParametersColumnFromCSV(String column) {
+	public static ColumnParseOutcome parseMarkovParametersColumnFromCSV(String column,Set<MarkovExperiment.RESULT_VALUES> invalidCellValues) {
 		double weightOfInconsistencies_Weight = -1, weightAndOffsetOfInconsistencies_Offset = -1;
 		boolean blue_states_forward_and_backwards = false;
 		boolean useAverageOrMax = true;
@@ -299,7 +300,7 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 		if (!expectedValue.equals(column))
 			throw new IllegalArgumentException("Parsing of column \""+column+"\" produced a different outcome of \""+expectedValue+"\"");
 
-		return new ColumnParseOutcome(outcome,learner);
+		return new ColumnParseOutcome(outcome,learner, invalidCellValues);
 	}
 
 	@Override

@@ -38,6 +38,33 @@ public class E_MarkovScoreVsInconsistency {
 
     public static String learnStatistics = "statistics";
 
+    enum BEST_WORST_BCR {RESULT_MARKOV_BEST, RESULT_MARKOV_WORST, RESULT_LOGISTIC_BEST, RESULT_LOGISTIC_WORST}
+    public static class BCRAndValues {
+        double bcr;
+        List<PairQualityLearner.PairScoreValue> values;
+        String description = null;
+
+        public BCRAndValues(double bcr) {
+            this.bcr = bcr;this.values = null;description = null;
+        }
+
+        public void assignIfBetter(double bcr, List<PairQualityLearner.PairScoreValue> values, String description) {
+            if (bcr > this.bcr) {
+                this.bcr = bcr;
+                this.values = values;
+                this.description = description;
+            }
+        }
+
+        public void assignIfWorse(double bcr, List<PairQualityLearner.PairScoreValue> values, String description) {
+            if (bcr < this.bcr) {
+                this.bcr = bcr;
+                this.values = values;
+                this.description = description;
+            }
+        }
+
+    }
     public static CSVExperimentResult runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) throws FileNotFoundException {
         final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + description+"-results.csv"), "results.csv");
         boolean aveOrMax = true;// average divide by the divisor
@@ -113,9 +140,9 @@ public class E_MarkovScoreVsInconsistency {
             chunkLenToWeights.put(4,new double[]{0.25,0.5,1.0});
             Map<Pair<Integer,Double>,DrawGraphs.SquareBagPlot> multToBCR = new  TreeMap<>();
             for(int chunkLen: chunkSizeValues)
-            for(double value:chunkLenToWeights.get(chunkLen))
-                multToBCR.put(new Pair<>(chunkLen,value),new DrawGraphs.SquareBagPlot("BCR, logistic regression", "BCR, "+value,
-                    new File(learningGroup.outPathPrefix + File.separator + description + "bcr_logistic_ch="+chunkLen+"_vs_mult+"+value+".pdf"), 0.5, 1, true));
+                for(double weight:chunkLenToWeights.get(chunkLen))
+                    multToBCR.put(new Pair<>(chunkLen,weight),new DrawGraphs.SquareBagPlot("BCR, logistic regression", "BCR, "+weight,
+                        new File(learningGroup.outPathPrefix + File.separator + description + "bcr_logistic_ch="+chunkLen+"_vs_mult+"+weight+".pdf"), 0.5, 1, true));
 
             int numberOfPoints = 0;
             for (int states_C : learningGroup.statesToUse)
@@ -126,6 +153,8 @@ public class E_MarkovScoreVsInconsistency {
                                 for (final int ignoredC : chunkSizeValues)
                                     for (final boolean ignoredD:penaliseMissingPathsValues)
                                         ++numberOfPoints;
+
+            Map<Pair<Integer,Double>,Map<BEST_WORST_BCR,BCRAndValues>> bcrKindForChunkLenAndWeight = new HashMap<>();
 
             ProgressIndicator progress = new ProgressIndicator("Reporting results",numberOfPoints);
             for (int states : learningGroup.statesToUse)
@@ -178,10 +207,22 @@ public class E_MarkovScoreVsInconsistency {
                                         ConfusionMatrix confUsingLogisticRegression = regression.computeConfusionMatrix(values);
 //                                        System.out.println("Logistic regression: "+confUsingLogisticRegression+" F1="+confUsingLogisticRegression.fMeasure()+", BCR="+confUsingLogisticRegression.BCR());
 
+
+                                        // Now go through the plots to populate and only add to the plot with the right parameters.
                                         for(Map.Entry<Pair<Integer,Double>,SquareBagPlot> mult_and_plot:multToBCR.entrySet())
                                             if (mult_and_plot.getKey().firstElem == chunkSizeToEvaluate) {
                                                 ConfusionMatrix confGivenWeight = LogisticRegression.computeConfusionMatrixGivenWeightOfInconsistencies(values,mult_and_plot.getKey().secondElem,0.0);
                                                 mult_and_plot.getValue().add(confUsingLogisticRegression.BCR(), confGivenWeight.BCR());
+                                                Map<BEST_WORST_BCR,BCRAndValues> valuesForBCRKind = bcrKindForChunkLenAndWeight.computeIfAbsent(new Pair<>(chunkSizeToEvaluate,mult_and_plot.getKey().secondElem),
+                                                        p->new TreeMap<>());
+                                                valuesForBCRKind.computeIfAbsent(BEST_WORST_BCR.RESULT_LOGISTIC_BEST, k -> new BCRAndValues(0)).
+                                                        assignIfBetter(confUsingLogisticRegression.BCR(),values,regression.reportCoefficients());
+                                                valuesForBCRKind.computeIfAbsent(BEST_WORST_BCR.RESULT_LOGISTIC_WORST, k -> new BCRAndValues(2.0)).
+                                                        assignIfWorse(confUsingLogisticRegression.BCR(),values,regression.reportCoefficients());
+                                                valuesForBCRKind.computeIfAbsent(BEST_WORST_BCR.RESULT_MARKOV_BEST, k -> new BCRAndValues(0)).
+                                                        assignIfBetter(confGivenWeight.BCR(),values,regression.reportCoefficients());
+                                                valuesForBCRKind.computeIfAbsent(BEST_WORST_BCR.RESULT_MARKOV_WORST, k -> new BCRAndValues(2.0)).
+                                                        assignIfWorse(confGivenWeight.BCR(),values,regression.reportCoefficients());
                                             }
                                     }
                                     progress.next();
@@ -191,6 +232,20 @@ public class E_MarkovScoreVsInconsistency {
                 }
             for(SquareBagPlot plot:multToBCR.values())
                 plot.reportResults(learningGroup.gr);
+            for(Map.Entry<Pair<Integer,Double>,Map<BEST_WORST_BCR,BCRAndValues>> valuesForBCRKindEntry:bcrKindForChunkLenAndWeight.entrySet()) {
+                for(Map.Entry<BEST_WORST_BCR,BCRAndValues> kindOfBcr_Values:valuesForBCRKindEntry.getValue().entrySet()) {
+                    ScatterPlot gr_ScoreVsInconsistencyEachLearn = new ScatterPlot("Inconsistency", "Score",
+                            new File(learningGroup.outPathPrefix + File.separator + description +
+                                    "bcr_logistic_ch=" + valuesForBCRKindEntry.getKey().firstElem + "_vs_mult+" +
+                                    valuesForBCRKindEntry.getKey().secondElem + "_"+kindOfBcr_Values.getKey()+"(bcr="+kindOfBcr_Values.getValue().bcr+","+kindOfBcr_Values.getValue().description+").pdf"));
+                    for(PairQualityLearner.PairScoreValue pairScores:kindOfBcr_Values.getValue().values) {
+                        long score = pairScores.score, inconsistency = pairScores.inconsistency;
+                        if (score < 100 && inconsistency < 1000)
+                            gr_ScoreVsInconsistencyEachLearn.add((double) inconsistency, (double) score, pairScores.validMerge ? "green" : "red", null);
+                    }
+                    gr_ScoreVsInconsistencyEachLearn.reportResults(learningGroup.gr);
+                }
+            }
         }
         return resultCSV;
     }

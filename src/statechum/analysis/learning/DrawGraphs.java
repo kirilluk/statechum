@@ -2042,7 +2042,8 @@ public class DrawGraphs {
 		{
 			computeDataSet();
 			return constructSequenceOfDrawingCommands(null, ()->Collections.singletonList(datasetToString(plotType,data, names,
-					Arrays.asList("xlab=\"\",ylab=\"\"","xaxt=\"n\"","yaxt=\"n\"","mar=c("+mBot+","+mLeft+","+mTop+","+mRight+")",otherOptions()))));
+					Arrays.asList("xlab=\"\",ylab=\"\""+(labelsAuto == XLABELS_R?"":",xaxt=\"n\""),
+							"yaxt=\"n\"","mar=c("+mBot+","+mLeft+","+mTop+","+mRight+")",otherOptions()))));
 		}
 
 		public boolean graphOk()

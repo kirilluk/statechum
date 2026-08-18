@@ -1112,7 +1112,19 @@ public class TestDrawGraphs {
 				"[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bagplot(c(4.5),c(34.0),xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\",mar=c(3.0,3.0,0.2,0.2)), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\"axisX\",line=1.8), title(ylab=\"axisY\",line=2.0), par(mar=curMar)]",
 				g.getDrawingCommand().toString());
 	}
-	
+
+	@Test
+	public void testGenerateGraph1c()
+	{
+		final String X="axisX", Y="axisY";
+		RGraph<Double> g=new RBagPlot(X,Y, new File("someName"));
+		g.setLabelsAuto(XLABELS_R);
+		g.add(4.5,34.);
+		Assert.assertEquals(
+				"[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bagplot(c(4.5),c(34.0),xlab=\"\",ylab=\"\",yaxt=\"n\",mar=c(3.0,3.0,0.2,0.2)), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\"axisX\",line=1.8), title(ylab=\"axisY\",line=2.0), par(mar=curMar)]",
+				g.getDrawingCommand().toString());
+	}
+
 	@Test
 	public void testGenerateGraph2()
 	{

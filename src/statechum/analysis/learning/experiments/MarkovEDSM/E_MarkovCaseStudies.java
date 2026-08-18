@@ -106,7 +106,7 @@ public class E_MarkovCaseStudies {
     // experiments with a specific one do not replace experiments with others.
     public static Set<String> whichCaseStudyToRun = new TreeSet<>();
     static {
-//        whichCaseStudyToRun.add("SmallTrain");
+        whichCaseStudyToRun.add("SmallTrain");
 //        whichCaseStudyToRun.add("CVS");
 //        whichCaseStudyToRun.add("MinePump");
 //        whichCaseStudyToRun.add("FanTempMonitor_A");
@@ -301,6 +301,22 @@ public class E_MarkovCaseStudies {
                     return true;
             }
         }
+
+        /** Expected to return true if a particular result is to be included in the final spreadsheet. Used in conjunction
+         * with filter, mostly to select the best prefix length.
+         *
+         * @param name case study to consider
+         * @return whether the value should be included in the reported table
+         */
+        public boolean addToSpreadsheet(String name) {
+            if (!filter(name))
+                return false;
+            switch(name) {
+                case "SmallTrain":
+                    return chunkSize == 4;
+            }
+            return true;
+        }
     }
 
     public static void runExperiment(LearningExperimentGroupParameters learningGroup) {
@@ -442,7 +458,7 @@ public class E_MarkovCaseStudies {
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
             List<List<String>> outputStatistics = new ArrayList<>();
-            outputStatistics.add(new ArrayList<>(Arrays.asList("Case study", "States", "Alphabet", "Traces", "T. Length", "Centre", "Diff, M", "BCR, M", "Diff, VH", "BCR, VH", "A12", "A12 lo", "A12 hi", "Wilcoxon")));
+            outputStatistics.add(new ArrayList<>(Arrays.asList("Case study", "States", "Alphabet", "Traces", "T. Length", "Centre", "P.Len","Diff, M", "BCR, M", "Diff, VH", "BCR, VH", "A12", "A12 lo", "A12 hi", "Wilcoxon")));
             for (Map.Entry<Integer, CaseStudyInformation> entryForCaseStudy : caseStudyInformationMap.entrySet()) {
 
                 // We need to compute the smallest runtime that was deemed to be a timeout. It is subsequently used as a cap
@@ -605,7 +621,7 @@ public class E_MarkovCaseStudies {
                                         (traces_lengthmult.secondElem * entryForCaseStudy.getValue().referenceGraph.getStateNumber());
                                 row.add(Integer.toString(traceLength));
                                 row.add(useCentre ? "Y" : "");
-
+                                row.add(Integer.toString(chunkSizeToEvaluate-1));
                                 row.add(Integer.toString(diffAverageMarkov100.get() / diffReported.get()));
                                 row.add(Integer.toString(bcrAverageMarkov100.get() / bcrReported.get()));
 
@@ -624,7 +640,11 @@ public class E_MarkovCaseStudies {
                                     for (int i = 0; i < 4; ++i)
                                         row.add("UNK");
 
-                                outputStatistics.add(row);
+                                ResultsXAxis xValue=new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV,traces_lengthmult.firstElem,chunkSizeToEvaluate,useCentre);
+
+                                // We are here for different values of chunklen
+                                if (xValue.addToSpreadsheet(entryForCaseStudy.getValue().name))
+                                    outputStatistics.add(row);
                                 gr_StructuralDiffBest.reportResults(learningGroup.gr);
                                 gr_BcrDiffBest.reportResults(learningGroup.gr);
                                 A12_test_Structural.reportResults(learningGroup.gr, true);

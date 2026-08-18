@@ -1,6 +1,7 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.Pair;
+import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator;
@@ -11,6 +12,8 @@ import java.util.*;
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_TIMEOUT;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovAlphabet {
@@ -94,17 +97,30 @@ public class E_MarkovAlphabet {
                 Map<Double, FilterCollectionOfResultsForBestPerformingLearner> learnerToHowOftenBestForAllMultipliers = new TreeMap<>();
 
                 for (final double alphabetMultiplier : alphabetMultValues) {
+                    final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score",
+                            new File(learningGroup.outPathPrefix + description + "_" + states + "alphabet_alphabetmult=" + alphabetMultiplier + "_inconsistency_structural.pdf"));
+
                     // Now select the best result from all those available
                     for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                         MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
-                        if (rowValues.alphabetMultiplier == alphabetMultiplier) {
+                        if (rowValues.alphabetMultiplier == alphabetMultiplier && rowValues.states == states) {
 
                             gr_StructuralDiffBestMap.computeIfAbsent(alphabetMultiplier, aDouble ->
                                         new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov",
                                                 new File(learningGroup.outPathPrefix + description + "_" + states + "alphabet_alphabetmult=" + alphabetMultiplier + "_VH_structuraldiffBest.pdf"), 0, 1, true)
                                 );
+
+                            getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
+                                    (column, columnText, Y) -> {
+                                        boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
+                                        if (learntOK)
+                                            gr_StructuralVsInconsistency.add(obtainDoubleValueFromCell(Y,RESULT_VALUES.E_INCONSISTENCY_LEARNT,column),
+                                                    obtainDoubleValueFromCell(Y,RESULT_VALUES.E_DIFF,column));
+                                    });
                         }
                     }
+
+                    gr_StructuralVsInconsistency.reportResults(learningGroup.gr);
 
                     FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, -1,
                             rowHeader -> rowHeader.alphabetMultiplier == alphabetMultiplier,

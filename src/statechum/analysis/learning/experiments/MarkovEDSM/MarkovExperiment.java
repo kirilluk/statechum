@@ -1242,6 +1242,7 @@ public class MarkovExperiment
 		try
 		{
 			E_MarkovCaseStudies.runExperiment(learningGroup);
+//			E_MarkovTempFanMonitor600.runExperiment(learningGroup);
 //			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			E_MarkovCentre.runExperiment(learningGroup);

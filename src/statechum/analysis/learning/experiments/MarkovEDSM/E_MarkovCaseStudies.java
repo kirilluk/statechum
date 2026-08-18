@@ -116,7 +116,7 @@ public class E_MarkovCaseStudies {
 //        whichCaseStudyToRun.add("ATM");
 //        whichCaseStudyToRun.add("SSH");
 //        whichCaseStudyToRun.add("MinePump");
-//        whichCaseStudyToRun.add(caseStudyFanTempMonitor);
+        whichCaseStudyToRun.add(caseStudyFanTempMonitor);
 //        whichCaseStudyToRun.add(caseStudyFanTempMonitorSingleTrace);
     }
 
@@ -375,78 +375,7 @@ public class E_MarkovCaseStudies {
 
         long timeout = 1800000L * 9L;// // for case studies, set timeout to 4.5 hours - the one that runs that long is centre-based computations for FanTempMonitor with 676 traces that do not produce brilliant results anyway (comparable to learning without centre since the PTA is dense enough for normal learning).
 
-        if (caseStudyInformationMap.isEmpty())
-            for (int casestudy = 0; casestudy < caseStudies.length; casestudy++)
-                if (whichCaseStudyToRun == null || whichCaseStudyToRun.isEmpty() || whichCaseStudyToRun.contains(caseStudies[casestudy])) {
-                    if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
-                        System.out.print("Loading " + caseStudies[casestudy] + " ...");
-                    Configuration dotConfig = learningGroup.eval.config.copy();
-                    dotConfig.setLabelKind(Configuration.LABELKIND.LABEL_STRING);
-                    LearnerGraph reference = constructAutomatonForCaseStudy(caseStudies[casestudy], dotConfig, new Transform.InternStringLabel());
-                    try {
-                        WMethod.computeWSet_reducedmemory(reference);
-                    } catch (WMethod.EquivalentStatesException ex) {
-                        System.out.println("Equivalent states:");
-                        for (EquivalenceClass<DeterministicDirectedSparseGraph.CmpVertex, LearnerGraphCachedData> eqClass : ex.getEquivalentStates())
-                            System.out.println(eqClass.toString());
-                        throw new IllegalArgumentException(ex);
-                    }
-
-                    double density = (double) reference.pathroutines.countEdges() / (reference.getStateNumber() * reference.getStateNumber());
-                    int states = reference.getStateNumber();
-                    if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
-                        System.out.println("States: " + states + " , Alphabet: " + reference.getCache().getAlphabet().size() + " , Density: " + density + " done.");
-                    Pair<Integer, Integer>[] traces_and_lengths = new Pair[]{
-                            new Pair(1, reference.getCache().getAlphabet().size() * states),
-                            new Pair(states, reference.getCache().getAlphabet().size()),
-                            new Pair(states * states, reference.getCache().getAlphabet().size())
-                    };
-                    caseStudyInformationMap.put(casestudy, new CaseStudyInformation(caseStudies[casestudy], casestudy, reference, reference.pathroutines.computeAlphabet().size(), traces_and_lengths));
-                    Map<Integer, double[]> chunkSizesToWeightsMinePump = new TreeMap<>();
-                    chunkSizesToWeightsMinePump.put(3, new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
-                    chunkSizesToWeightsMinePump.put(4, new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 12.0, 16.0});
-                    chunkSizesToWeightsMinePump.put(5, new double[]{0.25, 0.5, 1.0});
-                    chunkSizesToWeightsMinePump.put(6, new double[]{0.05, 0.1, 0.25});
-
-                    Map<Integer, double[]> chunkSizesToWeightsFanTempMonitor = new TreeMap<>();
-                    chunkSizesToWeightsFanTempMonitor.put(3, new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
-                    chunkSizesToWeightsFanTempMonitor.put(4, new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
-                    chunkSizesToWeightsFanTempMonitor.put(5, new double[]{0.5, 1.0, 2.0, 4.0, 8.0});
-                    chunkSizesToWeightsFanTempMonitor.put(6, new double[]{0.5, 1.0, 2.0, 4.0, 8.0});
-                    chunkSizesToWeightsFanTempMonitor.put(7, new double[]{0.5, 1.0, 2.0, 4.0, 8.0});
-                    switch (caseStudies[casestudy]) {
-                        case "SmallTrain":
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
-                            break;
-                        case "SSH":
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
-                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistencies(new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 12.0, 16.0});
-                            break;
-                        case "CVS":
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
-                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistencies(new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 12.0, 16.0});
-                            break;
-                        case "MinePump":
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
-                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsMinePump);
-                            break;
-                        case caseStudyFanTempMonitor:
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{4, 5, 6, 7});
-                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsFanTempMonitor);
-                            break;
-                        case caseStudyFanTempMonitorSingleTrace:
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4, 5, 6, 7});
-                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsFanTempMonitor);
-                            caseStudyInformationMap.get(casestudy).setTransitionMatrixImplType(Configuration.STATETREE.STATETREE_ARRAY);// large PTA, use array. PTA is loaded by constructPTA of caseStudyInformation on request when needed.
-                            caseStudyInformationMap.get(casestudy).traces_and_lengths = new Pair[]{
-                                    new Pair(1, 797676 / states)};// bit of a cludge but 797676 is the actual length of the log however it is expressed here in proportion to the number of states.
-                            caseStudyInformationMap.get(casestudy).trainingSamplesPerFSM = 1;// we only have one PTA here
-                            caseStudyInformationMap.get(casestudy).actualLength = 797676;
-                            break;
-                        default:
-                            break;// use default values
-                    }
-                }
+        fillInCaseStudyExperimentParameters(learningGroup);
 
         for (int casestudy = 0; casestudy < caseStudies.length; casestudy++)
             if (whichCaseStudyToRun == null || whichCaseStudyToRun.isEmpty() || whichCaseStudyToRun.contains(caseStudies[casestudy])) {
@@ -494,9 +423,9 @@ public class E_MarkovCaseStudies {
                                             learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
 
                                             // Important: this is the special case intended to avoid running experiments that do not deliver particularly good results
-                                            // but take forever (many of them time out at 4.5 hours). This happens because we attempt to use centre on a large graph
-                                            // that causes a large number of comparions to be made (in the range of 100k - 1M), each of which is not very fast because we
-                                            // have to compute inconsistency. Hence we keep the existing data points but not add new ones.
+                                            // but take forever (many of them running longer than the 4.5 hours timeout). This happens because we attempt to use centre on a large graph
+                                            // that causes a large number of red-blue comparions to be made (in the range of 100k - 1M), each of which is not very fast because we
+                                            // have to compute inconsistency. Experiments taking points excluded below have been migrated to E_MarkovFanTempMonitor600.java
                                             if (!caseStudyInformationMap.get(casestudy).name.equals(caseStudyFanTempMonitor) || preset == 0 || traceQuantityToUse < 600)
                                                 learningGroup.experimentRunner.submitTask(learnerRunner);
                                         }
@@ -528,69 +457,6 @@ public class E_MarkovCaseStudies {
                                 });
                     }
                 }
-
-                if (entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor)) {
-                    final RBoxPlot<String> gr_AveForLargeNumberOfTraces = new RBoxPlot<String>("Diff, without centre", "Diff, using centre",
-                            new File(learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name+"_structure_600_with_and_without_centre.pdf"));
-                    gr_AveForLargeNumberOfTraces.setupForTwoLineXLabels();
-                    
-                    for (final int chunkSizeToEvaluate : entryForCaseStudy.getValue().chunkSizesToEvaluate) {
-                        Pair<Integer, Integer>[] traces_and_lengths = entryForCaseStudy.getValue().traces_and_lengths;
-
-                        final RBagPlot gr_RuntimeVsComparisonsSlow = new RBagPlot("Comparisons, log10", "Runtime, log10",
-                                new File(learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_chunklen=" + chunkSizeToEvaluate + ",runtime_vs_comparisons_SLOW.pdf"));
-                        final RBagPlot gr_RuntimeVsComparisonsBefore600 = new RBagPlot("Comparisons, log10", "Runtime, log10",
-                                new File(learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_chunklen=" + chunkSizeToEvaluate + ",runtime_vs_comparisons_Before600.pdf"));
-                        gr_RuntimeVsComparisonsSlow.setLabelsAuto(RGraph.PLOT_X_LABELS.XLABELS_R);
-                        gr_RuntimeVsComparisonsSlow.setMargins(3, 4, 0.2, 0.2);
-                        gr_RuntimeVsComparisonsSlow.setYLine(4);
-                        gr_RuntimeVsComparisonsBefore600.setLabelsAuto(RGraph.PLOT_X_LABELS.XLABELS_R);
-
-
-                        for (final boolean useCentre : new boolean[]{false, true})
-                            for (final Pair<Integer, Integer> traces_lengthmult : traces_and_lengths)
-                                if (traces_lengthmult.firstElem > 600) {
-
-                                    // Now select the non-Markov result from all those available
-                                    for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-                                        MarkovLearningParameters rowHeader = parseMarkovParametersRowFromCSV(rowEntry.getKey());
-                                        if (rowHeader.traceQuantity == traces_lengthmult.firstElem && rowHeader.sample == entryForCaseStudy.getKey()) {
-                                            // Evaluate runtime of length Markov learning
-                                            getAllValuesFromMapGivenRegexp(rowEntry.getValue(),
-                                                    column ->
-                                                            (column.parameters.preset > 0) == useCentre &&
-                                                                    column.parameters.chunkLen == chunkSizeToEvaluate &&
-                                                                    column.learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-                                                    validityOfCells,
-                                                    (column, columnText, Y) -> {
-                                                        double runtime = capToTimeout(obtainDoubleValueFromCell(Y, E_RUNTIME, column), timeoutValueObtained);// cap runtime to timeout, esp since earlier experimental runs could run longer than 4.5 hours (esp because they were not as frequently checking for a timeout).
-                                                        boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
-                                                        ResultsXAxis xValue = new ResultsXAxis(column.learner, rowHeader.traceQuantity, chunkSizeToEvaluate, useCentre);
-                                                        if (xValue.filter(entryForCaseStudy.getValue().name)) {
-                                                            if (runtime >= 1.0)
-                                                                runtime = Math.log10(runtime);
-
-                                                            double comparisons = obtainDoubleValueFromCell(Y, E_MARKOV_COMPARISONSPERFORMED, column);
-                                                            if (comparisons > 1.0)
-                                                                comparisons = Math.log10(comparisons);
-                                                            if (rowHeader.traceQuantity < 600 || !useCentre)
-                                                                gr_RuntimeVsComparisonsBefore600.add(comparisons, runtime);
-                                                            else
-                                                                gr_RuntimeVsComparisonsSlow.add(comparisons, runtime);
-                                                        }
-
-                                                        if (learntOK)
-                                                            gr_AveForLargeNumberOfTraces.add(xValue.toString(), obtainDoubleValueFromCell(Y, E_DIFF, column));
-
-                                                    });
-                                        }
-                                    }
-                                }
-                        gr_RuntimeVsComparisonsSlow.reportResults(learningGroup.gr);
-                        gr_RuntimeVsComparisonsBefore600.reportResults(learningGroup.gr);
-                    }
-                    gr_AveForLargeNumberOfTraces.reportResults(learningGroup.gr);
-                } // End of special running time handling of caseStudyFanTempMonitor
 
                 final RBoxPlot<String> gr_PerformanceOfLearners = new RBoxPlot<>("", "Structural Score",
                         new File(learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_learner_structural.pdf"));
@@ -807,5 +673,80 @@ public class E_MarkovCaseStudies {
             }
             writeTEX(new File(learningGroup.outPathPrefix + "casestudies_statistics.tex"), outputStatistics, true);
         }
+    }
+
+    public static void fillInCaseStudyExperimentParameters(LearningExperimentGroupParameters learningGroup) {
+        if (caseStudyInformationMap.isEmpty())
+            for (int casestudy = 0; casestudy < caseStudies.length; casestudy++)
+                if (whichCaseStudyToRun == null || whichCaseStudyToRun.isEmpty() || whichCaseStudyToRun.contains(caseStudies[casestudy])) {
+                    if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
+                        System.out.print("Loading " + caseStudies[casestudy] + " ...");
+                    Configuration dotConfig = learningGroup.eval.config.copy();
+                    dotConfig.setLabelKind(Configuration.LABELKIND.LABEL_STRING);
+                    LearnerGraph reference = constructAutomatonForCaseStudy(caseStudies[casestudy], dotConfig, new Transform.InternStringLabel());
+                    try {
+                        WMethod.computeWSet_reducedmemory(reference);
+                    } catch (WMethod.EquivalentStatesException ex) {
+                        System.out.println("Equivalent states:");
+                        for (EquivalenceClass<DeterministicDirectedSparseGraph.CmpVertex, LearnerGraphCachedData> eqClass : ex.getEquivalentStates())
+                            System.out.println(eqClass.toString());
+                        throw new IllegalArgumentException(ex);
+                    }
+
+                    double density = (double) reference.pathroutines.countEdges() / (reference.getStateNumber() * reference.getStateNumber());
+                    int states = reference.getStateNumber();
+                    if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
+                        System.out.println("States: " + states + " , Alphabet: " + reference.getCache().getAlphabet().size() + " , Density: " + density + " done.");
+                    Pair<Integer, Integer>[] traces_and_lengths = new Pair[]{
+                            new Pair(1, reference.getCache().getAlphabet().size() * states),
+                            new Pair(states, reference.getCache().getAlphabet().size()),
+                            new Pair(states * states, reference.getCache().getAlphabet().size())
+                    };
+                    caseStudyInformationMap.put(casestudy, new CaseStudyInformation(caseStudies[casestudy], casestudy, reference, reference.pathroutines.computeAlphabet().size(), traces_and_lengths));
+                    Map<Integer, double[]> chunkSizesToWeightsMinePump = new TreeMap<>();
+                    chunkSizesToWeightsMinePump.put(3, new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                    chunkSizesToWeightsMinePump.put(4, new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 12.0, 16.0});
+                    chunkSizesToWeightsMinePump.put(5, new double[]{0.25, 0.5, 1.0});
+                    chunkSizesToWeightsMinePump.put(6, new double[]{0.05, 0.1, 0.25});
+
+                    Map<Integer, double[]> chunkSizesToWeightsFanTempMonitor = new TreeMap<>();
+                    chunkSizesToWeightsFanTempMonitor.put(3, new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                    chunkSizesToWeightsFanTempMonitor.put(4, new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                    chunkSizesToWeightsFanTempMonitor.put(5, new double[]{0.5, 1.0, 2.0, 4.0, 8.0});
+                    chunkSizesToWeightsFanTempMonitor.put(6, new double[]{0.5, 1.0, 2.0, 4.0, 8.0});
+                    chunkSizesToWeightsFanTempMonitor.put(7, new double[]{0.5, 1.0, 2.0, 4.0, 8.0});
+                    switch (caseStudies[casestudy]) {
+                        case "SmallTrain":
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
+                            break;
+                        case "SSH":
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistencies(new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 12.0, 16.0});
+                            break;
+                        case "CVS":
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistencies(new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 12.0, 16.0});
+                            break;
+                        case "MinePump":
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsMinePump);
+                            break;
+                        case caseStudyFanTempMonitor:
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{4, 5, 6, 7});
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsFanTempMonitor);
+                            break;
+                        case caseStudyFanTempMonitorSingleTrace:
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4, 5, 6, 7});
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsFanTempMonitor);
+                            caseStudyInformationMap.get(casestudy).setTransitionMatrixImplType(Configuration.STATETREE.STATETREE_ARRAY);// large PTA, use array. PTA is loaded by constructPTA of caseStudyInformation on request when needed.
+                            caseStudyInformationMap.get(casestudy).traces_and_lengths = new Pair[]{
+                                    new Pair(1, 797676 / states)};// bit of a cludge but 797676 is the actual length of the log however it is expressed here in proportion to the number of states.
+                            caseStudyInformationMap.get(casestudy).trainingSamplesPerFSM = 1;// we only have one PTA here
+                            caseStudyInformationMap.get(casestudy).actualLength = 797676;
+                            break;
+                        default:
+                            break;// use default values
+                    }
+                }
     }
 }

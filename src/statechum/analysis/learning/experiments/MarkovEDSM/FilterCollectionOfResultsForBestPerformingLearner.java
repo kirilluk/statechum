@@ -107,30 +107,31 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                                 resultForChunkLen.computeIfAbsent(column.parameters.chunkLen, k->new MarkovExperiment.LearningReport()).updateIfValueBetter(currentOutcome);
                             }
                         });
-                experimentResults.add(bestLearningResult);
-                learnerToHowOftenBest.computeIfAbsent(bestLearningResult.columnText, s -> new AtomicInteger(0));
-                learnerToHowOftenBest.get(bestLearningResult.columnText).addAndGet(1);
-                learnerToHowOftenDefaultOrdering.computeIfAbsent(bestLearningResultForDefaultOrdering.columnText, s -> new AtomicInteger(0));
-                learnerToHowOftenDefaultOrdering.get(bestLearningResultForDefaultOrdering.columnText).addAndGet(1);
+                if (bestLearningResult.column != null) {// if any result was obtained as opposed to everything either missing or eliminated by filters
+                    experimentResults.add(bestLearningResult);
+                    learnerToHowOftenBest.computeIfAbsent(bestLearningResult.columnText, s -> new AtomicInteger(0));
+                    learnerToHowOftenBest.get(bestLearningResult.columnText).addAndGet(1);
+                    learnerToHowOftenDefaultOrdering.computeIfAbsent(bestLearningResultForDefaultOrdering.columnText, s -> new AtomicInteger(0));
+                    learnerToHowOftenDefaultOrdering.get(bestLearningResultForDefaultOrdering.columnText).addAndGet(1);
 
-                for(Map.Entry<Integer,MarkovExperiment.LearningReport> result:resultForChunkLen.entrySet())
-                    resultPerChunkLen.computeIfAbsent(result.getKey(), k->new ArrayList<>()).add(result.getValue());
+                    for (Map.Entry<Integer, MarkovExperiment.LearningReport> result : resultForChunkLen.entrySet())
+                        resultPerChunkLen.computeIfAbsent(result.getKey(), k -> new ArrayList<>()).add(result.getValue());
 
-                ColumnAndValue Y_VH = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH),invalidCellValues);
-                if (Y_VH != null) {
-                    double vh_score = obtainDoubleValueFromCell(Y_VH.value, E_DIFF,Y_VH.column);
-                    if (gr_StructuralDiffBest != null)
-                        gr_StructuralDiffBest.add(vh_score, bestLearningResult.structural, null, null);
-                    if (gr_StructuralDiffDefaultOrdering != null)
-                        gr_StructuralDiffDefaultOrdering.add(bestLearningResultForDefaultOrdering.structural, bestLearningResult.structural, null, null);
+                    ColumnAndValue Y_VH = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH), invalidCellValues);
+                    if (Y_VH != null) {
+                        double vh_score = obtainDoubleValueFromCell(Y_VH.value, E_DIFF, Y_VH.column);
+                        if (gr_StructuralDiffBest != null)
+                            gr_StructuralDiffBest.add(vh_score, bestLearningResult.structural, null, null);
+                        if (gr_StructuralDiffDefaultOrdering != null)
+                            gr_StructuralDiffDefaultOrdering.add(bestLearningResultForDefaultOrdering.structural, bestLearningResult.structural, null, null);
 
-                    if (markov_vh_diff_score_handler != null)
-                        markov_vh_diff_score_handler.accept(new Pair<>(bestLearningResult.structural,vh_score));
-                    if (markov_vh_bcr_score_handler != null)
-                        markov_vh_bcr_score_handler.accept(new Pair<>(bestLearningResult.bcr,obtainDoubleValueFromCell(Y_VH.value, E_BCR,Y_VH.column)));
+                        if (markov_vh_diff_score_handler != null)
+                            markov_vh_diff_score_handler.accept(new Pair<>(bestLearningResult.structural, vh_score));
+                        if (markov_vh_bcr_score_handler != null)
+                            markov_vh_bcr_score_handler.accept(new Pair<>(bestLearningResult.bcr, obtainDoubleValueFromCell(Y_VH.value, E_BCR, Y_VH.column)));
+                    } else
+                        System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
                 }
-                else
-                    System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
 
             }
         }

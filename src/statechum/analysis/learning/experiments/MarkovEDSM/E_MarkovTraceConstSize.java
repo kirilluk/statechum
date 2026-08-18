@@ -81,7 +81,7 @@ public class E_MarkovTraceConstSize {
 
         final String numberFormat = "%3d";
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
             for (int states : learningGroup.statesToUse) {
                 final RBoxPlot<String> gr_BestStructuralForLengthMultiplier = new RBoxPlot<>("Trace length multiplier", "Structural Score",
                         new File(learningGroup.outPathPrefix + description + "_" + states + "_constsize_mult_structural.pdf"));

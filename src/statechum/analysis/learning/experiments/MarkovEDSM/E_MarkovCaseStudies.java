@@ -116,7 +116,7 @@ public class E_MarkovCaseStudies {
 //        whichCaseStudyToRun.add("ATM");
 //        whichCaseStudyToRun.add("SSH");
 //        whichCaseStudyToRun.add("MinePump");
-        whichCaseStudyToRun.add(caseStudyFanTempMonitor);
+//        whichCaseStudyToRun.add(caseStudyFanTempMonitor);
 //        whichCaseStudyToRun.add(caseStudyFanTempMonitorSingleTrace);
     }
 
@@ -454,6 +454,8 @@ public class E_MarkovCaseStudies {
                                         int runtime = (int) Math.round(obtainDoubleValueFromCell(Y, E_RUNTIME, column));
                                         timeoutValueObtained.accumulateAndGet(runtime, (a, b) -> Math.min(a, b));
                                     }
+                                    if (obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100)
+                                        throw new IllegalArgumentException("Case study "+entryForCaseStudy.getValue().name+", experiment "+rowEntry.getKey()+" transition coverage is "+obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column)+", it preferrably should be 100");
                                 });
                     }
                 }

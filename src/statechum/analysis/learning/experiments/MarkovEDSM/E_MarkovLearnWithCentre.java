@@ -87,7 +87,7 @@ public class E_MarkovLearnWithCentre {
 
         final String numberFormat = "%1d";
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
             for (int states : learningGroup.statesToUse) {
                 final RBoxPlot<String> gr_BestStructuralForDifferentPreset = new RBoxPlot<>("Trace length number and learner", "Structural Score, EDSM-Markov",
                         new File(learningGroup.outPathPrefix + description+"_"+states + "_centre-learner_structural.pdf"));

@@ -53,8 +53,8 @@ public class MarkovComparison {
         }
 
         if (curPhase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || curPhase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
-            Set<RESULT_VALUES> invalidCellValuesA = obtainValidityOfCellValues(twoExperiments.get(0));
-            Set<RESULT_VALUES> invalidCellValuesB = obtainValidityOfCellValues(twoExperiments.get(1));
+            Set<RESULT_VALUES> invalidCellValuesA = obtainValidityOfCellValues(twoExperiments.get(0));checkFullTransitionCoverageAttained(twoExperiments.get(0), invalidCellValuesA);
+            Set<RESULT_VALUES> invalidCellValuesB = obtainValidityOfCellValues(twoExperiments.get(1));checkFullTransitionCoverageAttained(twoExperiments.get(1), invalidCellValuesB);
             DrawGraphs gr = new DrawGraphs();
             String pathToResult = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_EXPERIMENTRESULTS) + File.separator;
             final DrawGraphs.SquareBagPlot gr_StructuralDiffComparison = new DrawGraphs.SquareBagPlot(experimentsToCompare[0], experimentsToCompare[1],

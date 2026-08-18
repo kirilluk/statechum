@@ -60,6 +60,7 @@ import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningP
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.constructLearner;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_TIMEOUT;
 
 
 public class MarkovExperiment
@@ -875,6 +876,17 @@ public class MarkovExperiment
 
         return invalidCellValues;
     }
+
+	public static void checkFullTransitionCoverageAttained(DrawGraphs.CSVExperimentResult resultCSV, Set<RESULT_VALUES>  validityOfCells) {
+		for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+			MarkovLearningParameters rowHeader = parseMarkovParametersRowFromCSV(rowEntry.getKey());
+				getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
+						(column, columnText, Y) -> {
+							if (obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100)
+								throw new IllegalArgumentException("Experiment "+rowEntry.getKey()+" transition coverage is "+obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column)+", it preferrably should be 100");
+						});
+		}
+	}
 
 	public static ColumnAndValue getValueFromMapGivenSelector(Map<String,String> map, ColumnSelector regexp, Set<RESULT_VALUES> invalidCellValues)
 	{

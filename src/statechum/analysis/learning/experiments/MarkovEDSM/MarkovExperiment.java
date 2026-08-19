@@ -104,28 +104,41 @@ public class MarkovExperiment
 		public LearnerGraph constructPTA()
 		{
 			// Use a random generator selector passed as a parameter.
-			LearnerGraph pta = new LearnerGraph(learnerInitConfiguration.config);
-			RandomPathGenerator generator = new RandomPathGenerator(referenceGraph,new Random(par.trainingSample),5,null);
-			if (par.walkType != null) {
-				generator.setWalkType(par.walkType);generator.setExplorationPreferenceAndPenalty(par.explorationPreference, par.selectionPenalty);
-			}
-			// Using 2*par.traceQuantity reflects the original goal to generate an equal number of positive and
-			// negative traces hence an input to generateRandomPosNeg was expected to be even.
-			// We are not doing this now, instead only generating positive traces in quantity par.traceQuantity.
-			generator.generateRandomPosNeg(2*par.traceQuantity, 1, false, new RandomLengthGenerator() {
+			int attemptCounter = 0;
+			LearnerGraph pta = null;
+			do {
+				pta = new LearnerGraph(learnerInitConfiguration.config);
+				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph, new Random(par.trainingSample + attemptCounter), 5, null);
+				if (par.walkType != null) {
+					generator.setWalkType(par.walkType);
+					generator.setExplorationPreferenceAndPenalty(par.explorationPreference, par.selectionPenalty);
+				}
+				// Using 2*par.traceQuantity reflects the original goal to generate an equal number of positive and
+				// negative traces hence an input to generateRandomPosNeg was expected to be even.
+				// We are not doing this now, instead only generating positive traces in quantity par.traceQuantity.
+				generator.generateRandomPosNeg(2 * par.traceQuantity, 1, false, new RandomLengthGenerator() {
 
 					@Override
 					public int getLength() {
-						return (int)(par.traceLengthMultiplier*par.states);
+						return (int) (par.traceLengthMultiplier * par.states);
 					}
-	
+
 					@Override
 					public int getPrefixLength(int len) {
 						return len;
 					}
-				},true, false, null,null);
+				}, true, false, null, null);
 
-			pta.paths.augmentPTA(generator.getAllSequences(0));
+				pta.paths.augmentPTA(generator.getAllSequences(0));
+
+				LearnerGraph trimmedGraph = LearningSupportRoutines.trimUncoveredTransitions(pta, referenceGraph);
+				if (trimmedGraph.pathroutines.countEdges() == referenceGraph.pathroutines.countEdges())
+					break;// achieved coverage
+
+				attemptCounter+=1000;
+			}
+			while (true);
+
 			return pta;
 		}
 
@@ -906,28 +919,38 @@ public class MarkovExperiment
             });
 		}
 
+		public static boolean permitMove = true;
+
+		protected List<SGE_ExperimentRunner.FileNameToUse> whatToMove = new ArrayList<>();
+
 		@Override
 		protected void addInternal(PairQualityLearner.ThreadResultID id, String text, SGE_ExperimentRunner.FileNameToUse fileNameForDataPoint) {
 			super.addInternal(id, text, fileNameForDataPoint);
 			String Y = rowColumnText.get(id.getRowID()).get(id.getColumnID());
 			// We do not yet have knowledge which cells may be invalid when results are being populated. The only cell we want is coverage and it is definitely valid.
 			MarkovLearningParameters.ColumnParseOutcome column = parseMarkovParametersColumnFromCSV(id.getColumnID(),null);
-			if (obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100) {
-				SGE_ExperimentRunner.FileNameToUse target = new SGE_ExperimentRunner.FileNameToUse(moveToPrefix,fileNameForDataPoint.fileName);
-				System.out.println(FileSystems.getDefault().getPath(fileNameForDataPoint.toFileName())+" - move -> "+FileSystems.getDefault().getPath(target.toFileName()));
-//				new File(target.toFileName()).getParentFile().mkdirs();
-				/*
-                try {
-                    Files.move(FileSystems.getDefault().getPath(fileNameForDataPoint.toFileName()),FileSystems.getDefault().getPath(target.toFileName()));
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to move "+fileNameForDataPoint.toFileName()+
-							" to "+target.toFileName(),e);
-                }
-
-				 */
-            }
-
+			if (obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100)
+				whatToMove.add(fileNameForDataPoint);
 		}
+
+		public void moveFiles() {
+			if (permitMove && !whatToMove.isEmpty()) {
+				ProgressIndicator progressIndicator = new ProgressIndicator("Moving files", whatToMove.size());
+				for(SGE_ExperimentRunner.FileNameToUse fileNameForDataPoint : whatToMove) {
+					SGE_ExperimentRunner.FileNameToUse target = new SGE_ExperimentRunner.FileNameToUse(moveToPrefix, fileNameForDataPoint.fileName);
+//				System.out.println(FileSystems.getDefault().getPath(fileNameForDataPoint.toFileName())+" - move -> "+FileSystems.getDefault().getPath(target.toFileName()));
+					new File(target.toFileName()).getParentFile().mkdirs();
+					try {
+						Files.move(FileSystems.getDefault().getPath(fileNameForDataPoint.toFileName()), FileSystems.getDefault().getPath(target.toFileName()));
+					} catch (IOException e) {
+						throw new RuntimeException("Failed to move " + fileNameForDataPoint.toFileName() +
+								" to " + target.toFileName(), e);
+					}
+					progressIndicator.next();
+				}
+			}
+		}
+
 	}
 
 

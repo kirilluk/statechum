@@ -45,6 +45,7 @@ import statechum.analysis.learning.DrawGraphs.ScatterPlot;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.PrecisionRecall.ConfusionMatrix;
 import statechum.analysis.learning.experiments.ExperimentRunner;
+import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.experiments.UASExperiment;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelper;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovHelperClassifier;
@@ -745,7 +746,9 @@ public class ConstructClassifier
 		// This has to be run in a standalone mode in order to collect pair data across all experiments 
 		// (which hence have to be all in the same process). This should not be a slow process because
 		// there is not as much to learn as during evaluation and the amount of collected data is quite significant.
-		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),outPathPrefix + PairQualityLearner.directoryExperimentResult,new String[]{PhaseEnum.RUN_STANDALONE.toString()});
+		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner =
+				new RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>>(ExperimentRunner.getCpuNumber(),
+						new SGE_ExperimentRunner.FileNameToUse(outPathPrefix,PairQualityLearner.directoryExperimentResult),new String[]{PhaseEnum.RUN_STANDALONE.toString()});
 
 		final int samplesPerFSM = 8;//16;
 		final int alphabetMultiplier = 1;

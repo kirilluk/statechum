@@ -77,7 +77,7 @@ public class E_MarkovFanTempMonitor600 extends E_MarkovCaseStudies {
                                     parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                     parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
 //                                            parameters.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP,0.6, 10);
-                                    MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(parameters, ev);
+                                    MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(learningGroup.outPathPrefix, parameters, ev);
                                     learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                     learningGroup.experimentRunner.submitTask(learnerRunner);
                                 }

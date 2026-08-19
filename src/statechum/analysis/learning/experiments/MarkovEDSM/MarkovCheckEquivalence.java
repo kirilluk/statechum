@@ -40,7 +40,8 @@ public class MarkovCheckEquivalence {
 
             SGE_ExperimentRunner.configureCPUFreqNormalisation();
 
-            learningGroup.experimentRunner = new SGE_ExperimentRunner.RunSubExperiment<>(ExperimentRunner.getCpuNumber(), learningGroup.outPathPrefix + directoryExperimentResult, args);
+            learningGroup.experimentRunner = new SGE_ExperimentRunner.RunSubExperiment<>(ExperimentRunner.getCpuNumber(),
+                    new SGE_ExperimentRunner.FileNameToUse(learningGroup.outPathPrefix,directoryExperimentResult), args);
             learningGroup.phase = learningGroup.experimentRunner.getPhase();
             if (null == curPhase)
                 curPhase = learningGroup.phase;

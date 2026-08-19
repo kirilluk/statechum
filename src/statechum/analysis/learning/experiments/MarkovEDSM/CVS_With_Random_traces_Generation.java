@@ -58,7 +58,7 @@ public class CVS_With_Random_traces_Generation
 	{
 		public MarkovLearnerUsingReference(MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf, LearnerGraph ref) 
 		{
-			super(parameters, cnf);referenceGraph = ref;
+			super(null,parameters, cnf);referenceGraph = ref;
 		}
 		
 		/** Constructs a reference graph and assigns it to member variable <pre>referenceGraph</pre>. This is a separate method to permit overriding by subclasses.
@@ -87,7 +87,8 @@ public class CVS_With_Random_traces_Generation
 		boolean penaliseMissingPaths = true;
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		
-		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
+		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner =
+				new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), new SGE_ExperimentRunner.FileNameToUse(outPathPrefix,directoryExperimentResult), args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
 

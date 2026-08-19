@@ -43,7 +43,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 {
 	protected final LearnerEvaluationConfiguration learnerInitConfiguration;
 	protected LearnerGraph referenceGraph;
-	protected String graphFileNameDir;
+	protected final SGE_ExperimentRunner.FileNameToUse graphFileNameDir;
 	public final PARS par;
 	
 	protected boolean alwaysRunExperiment = false;
@@ -53,13 +53,14 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		alwaysRunExperiment = b;
 	}
 
-	public UASExperiment(PARS parameters, LearnerEvaluationConfiguration eval, String directoryNamePrefix)
+	public UASExperiment(String outDir, PARS parameters, LearnerEvaluationConfiguration eval, String directoryNamePrefix)
 	{
 		par = parameters;
 		learnerInitConfiguration = eval;
-		String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP)+File.separator+directoryNamePrefix+File.separator+"experimentdata"+File.separator;
+		this.graphFileNameDir = new SGE_ExperimentRunner.FileNameToUse(
+				(outDir == null? GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP):outDir)+File.separator+directoryNamePrefix,
+				"experimentdata");
 		mkDir(outDir);
-		graphFileNameDir = outDir + File.separator;
 	}
 	
 	public static void mkDir(String path)
@@ -102,19 +103,24 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		LearnerGraph outcome = null;
 		if (!alwaysRunExperiment)
 		{
-			String graphFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir,graphPrefix,par);
+			SGE_ExperimentRunner.FileNameToUse graphFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir,graphPrefix,par);
 			
-	    	if (new File(graphFileName).canRead())
+	    	if (new File(graphFileName.toFileName()).canRead())
 	    	{
 		    	outcome = new LearnerGraph(learnerInitConfiguration.config);
+				boolean success = false;
 	    		try
 				{
-	    			AbstractPersistence.loadGraph(graphFileName, outcome, learnerInitConfiguration.getLabelConverter());
-				} 
+	    			AbstractPersistence.loadGraph(graphFileName.toFileName(), outcome, learnerInitConfiguration.getLabelConverter());
+					success = true;
+				}
 	    		catch (IOException | IllegalArgumentException e)
 				{
 					System.out.println("ERROR LOADING OUTCOME OF LEARNING \""+graphFileName+"\", exception text: "+e.getMessage());return null;
 				}
+				if (success)
+					// Report valid data file being processed
+					SGE_ExperimentRunner.handleDataPointBeingOpened(graphFileName);
             }
 		}    	
     	return outcome;
@@ -123,7 +129,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	public void saveGraph(String graphPrefix, LearnerGraph outcome) throws IOException
 	{
 		if (!Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_DISABLEGRAPHSAVE)))
-			outcome.storage.writeGraphML(SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir,graphPrefix,par));	
+			outcome.storage.writeGraphML(SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir,graphPrefix,par).toFileName());
 	}
 	
 	public static List<ScoringToApply> listOfScoringMethodsToApplyThatDependOnEDSMScoring()

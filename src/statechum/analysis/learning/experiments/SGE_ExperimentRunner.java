@@ -30,6 +30,7 @@ import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 import com.ericsson.otp.erlang.OtpErlangInt;
 import com.ericsson.otp.erlang.OtpErlangList;
@@ -64,8 +65,36 @@ public class SGE_ExperimentRunner
 	}
 
 	public static final String separator = "|", separatorRegEx="\\|";
-	
-	
+
+	protected static Consumer<FileNameToUse> observerExperimentDatapoint = null;
+
+	public static void setDataPointHandler(Consumer<FileNameToUse> dataPointHandler) {
+		observerExperimentDatapoint = dataPointHandler;
+	}
+
+	public static void handleDataPointBeingOpened(FileNameToUse dataPointFileName) {
+		if (observerExperimentDatapoint != null) {
+			observerExperimentDatapoint.accept(dataPointFileName);
+		}
+	}
+
+	public static class FileNameToUse {
+		public final String dirToUse, fileName;
+
+		public FileNameToUse(String dirToUse, String fileName) {
+			this.dirToUse = dirToUse;
+			this.fileName = fileName;
+		}
+
+		public String toFileName() {
+			return dirToUse + File.separator + fileName;
+		}
+
+		public String toString() {
+			return toFileName();
+		}
+	}
+
 	public interface processSubExperimentResult<EXPERIMENT_PARAMETERS extends ThreadResultID,RESULT extends ExperimentResult<EXPERIMENT_PARAMETERS>>
 	{
 		/** Called to plot results of the experiment, using the result <i>r</i>. The <i>experimentrunner</i> is what is to be used to perform plotting, via 
@@ -123,7 +152,7 @@ public class SGE_ExperimentRunner
 		protected Set<Integer> taskletWasRun = new TreeSet<>();
 		private final DrawGraphs gr = new DrawGraphs();
 
-		private final String tmpDir;
+		private final FileNameToUse tmpDir;
 		
 		/** Makes it possible to obtain the current phase in order to run phase-specific tasks such as result analysis for the COLLECT_RESULTS phase. */
 		public PhaseEnum getPhase()
@@ -131,9 +160,9 @@ public class SGE_ExperimentRunner
 			return phase;
 		}
 		
-		public RunSubExperiment(int cpuNumber,String dir, String []args)
+		public RunSubExperiment(int cpuNumber,FileNameToUse dirAndSubdir, String []args)
 		{
-			tmpDir = dir+File.separator;
+			this.tmpDir = dirAndSubdir;
 			if (args.length == 0)
 				// no args means standalone
 				phase = PhaseEnum.RUN_STANDALONE;
@@ -325,22 +354,22 @@ public class SGE_ExperimentRunner
 		{
 			return name.replaceAll("[:\\\\/ ]", "_");
 		}
-		
-		public static String constructFileName(String dirToUse, String prefix, ThreadResultID par)
+
+		public static FileNameToUse constructFileName(FileNameToUse prefixOfPath, String prefix, ThreadResultID par)
 		{
-			String pathName = 
-			 dirToUse+sanitiseFileName(par.getSubExperimentName())+"-"+
+			String pathName = prefixOfPath.fileName + File.separator +
+					sanitiseFileName(par.getSubExperimentName())+"-"+
 					sanitiseFileName(par.getRowID());
-			statechum.analysis.learning.experiments.UASExperiment.mkDir(pathName);
-			return pathName+File.separator+sanitiseFileName((prefix == null?"":prefix+"-")+par.getColumnID());
+			statechum.analysis.learning.experiments.UASExperiment.mkDir(prefixOfPath.dirToUse + File.separator + pathName);
+			return new FileNameToUse(prefixOfPath.dirToUse,pathName+File.separator+sanitiseFileName((prefix == null?"":prefix+"-")+par.getColumnID()));
 		}
 
-		public static String constructFileName(String dirToUse, ThreadResultID par)
+		public static FileNameToUse constructFileName(FileNameToUse prefixOfPath, ThreadResultID par)
 		{
-			return constructFileName(dirToUse,null,par);
+			return constructFileName(prefixOfPath,null,par);
 		}
 		
-		protected String constructFileName(int rCounter)
+		protected FileNameToUse constructFileName(int rCounter)
 		{
 			if (!taskIDToParameters.containsKey(rCounter))
 				throw new IllegalArgumentException("task ID "+rCounter+" does not have associated parameters recorded anywhere, has it been added via submitTask?");
@@ -426,7 +455,7 @@ public class SGE_ExperimentRunner
 			BufferedReader reader = null;
 			try
 			{
-				reader = new BufferedReader(new FileReader(constructFileName(rCounter)));
+				reader = new BufferedReader(new FileReader(constructFileName(rCounter).toFileName()));
 				String line = reader.readLine();
 				boolean foundCRC = false;
 			    java.util.zip.CRC32 crc = new java.util.zip.CRC32();
@@ -488,7 +517,7 @@ public class SGE_ExperimentRunner
 			BufferedReader reader = null;
 			try
 			{
-				reader = new BufferedReader(new FileReader(constructFileName(rCounter)));
+				reader = new BufferedReader(new FileReader(constructFileName(rCounter).toFileName()));
 				String line = reader.readLine();
 				boolean foundCRC = false;
 			    java.util.zip.CRC32 crc = new java.util.zip.CRC32();
@@ -557,12 +586,13 @@ public class SGE_ExperimentRunner
 		}
 		private Map<Integer,Set<Integer>> virtTaskToRealTask = null;
 		
-		public static Map<Integer,Set<Integer>> loadVirtTaskToReal(String tmpDir)
+		public static Map<Integer,Set<Integer>> loadVirtTaskToReal(FileNameToUse tmpDir)
 		{
 			BufferedReader reader = null;Map<Integer,Set<Integer>> virtTaskToRealTask = new TreeMap<>();
 			try
 			{
-				reader = new BufferedReader(new FileReader(tmpDir+GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_MAP_FILENAMEPREFIX)+"-virtToReal.map"));
+				reader = new BufferedReader(new FileReader(
+						tmpDir.toFileName()+File.separator+GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_MAP_FILENAMEPREFIX)+"-virtToReal.map"));
 				StringBuilder text = new StringBuilder();
 				String line = reader.readLine();
 				while(line != null)
@@ -632,8 +662,10 @@ public class SGE_ExperimentRunner
 			BufferedWriter outWriter = null;
 			try
 			{
-				UASExperiment.mkDir(tmpDir);
-				outWriter = new BufferedWriter(new FileWriter(tmpDir+GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_MAP_FILENAMEPREFIX)+"-virtToReal.map"));outWriter.write("[\n");
+				UASExperiment.mkDir(tmpDir.toFileName());
+				outWriter = new BufferedWriter(new FileWriter(
+						tmpDir.toFileName()+File.separator+GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.SGE_MAP_FILENAMEPREFIX)+"-virtToReal.map"));
+				outWriter.write("[\n");
 				boolean firstTuple = true;
 				for(int vTaskCnt=0;vTaskCnt<tasksToSplitInto && currentTask < availableTasks.size();++vTaskCnt)
 				{
@@ -740,7 +772,7 @@ public class SGE_ExperimentRunner
 										// we are passing an instance of this RunSubExperiment to processSubResult
 										handlerForExperimentResults.processSubResult(result,this);// we use StringWriter here in order to avoid creating a file if constructing output fails.
 										// At this point outputWriter has all the research data we need and what is left is to record cpu information and CRC value.
-										writer = new BufferedWriter(new FileWriter(constructFileName(tmpDir, result.parameters)));
+										writer = new BufferedWriter(new FileWriter(constructFileName(tmpDir, result.parameters).toFileName()));
 										java.util.zip.CRC32 crc = new java.util.zip.CRC32();
 										outputWriter.append(CPUSPEEDFIELD);outputWriter.append(separator);outputWriter.append(getCpuFreq());outputWriter.append('\n');
 										String text = outputWriter.toString();updateCRC(crc, text);

@@ -72,7 +72,7 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 
 	public BenchmarkCPU(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
 	{
-		super(parameters,eval,directoryNamePrefix);
+		super(null,parameters,eval,directoryNamePrefix);
 	}
 	
 	@Override
@@ -286,7 +286,9 @@ public class BenchmarkCPU extends UASExperiment<EvaluationOfLearnersParameters,E
 					"and the values are not recorded in the interactive mode");
 		}
 
-		final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
+		final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner =
+				new RunSubExperiment<>(ExperimentRunner.getCpuNumber(),
+						new SGE_ExperimentRunner.FileNameToUse(outPathPrefix,directoryExperimentResult), args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");

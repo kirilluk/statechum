@@ -95,7 +95,7 @@ public class E_MarkovScoreVsInconsistency {
                                 parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets,
                                         new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, 0, 0, 0);
                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-                                MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);
+                                MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(learningGroup.outPathPrefix,parameters, ev);
                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                 learningGroup.experimentRunner.submitTask(learnerRunner);
                             }
@@ -120,7 +120,7 @@ public class E_MarkovScoreVsInconsistency {
                     pairs.add(new OtpErlangTuple(new OtpErlangObject[]{
                             new OtpErlangBoolean(value.validMerge),new OtpErlangLong(value.score),new OtpErlangLong(value.inconsistency)}));
 //                System.out.println("Pairs : "+pairs.size()+" runtime: "+Math.round(data.executionTime / 1000000000.));
-                String statisticsFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(learningGroup.outPathPrefix + directoryExperimentStatistics,learnStatistics,result.parameters);
+                String statisticsFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(new SGE_ExperimentRunner.FileNameToUse(learningGroup.outPathPrefix, directoryExperimentStatistics+ File.separator + learnStatistics),result.parameters).toFileName();
                 try (FileWriter statisticsFile = new FileWriter(statisticsFileName)) {
                     statisticsFile.write(ErlangLabel.dumpErlangObject(new OtpErlangList(pairs.toArray(new OtpErlangObject[0]))));
                 }
@@ -178,17 +178,17 @@ public class E_MarkovScoreVsInconsistency {
                                     parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets,
                                             new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, 0, 0, 0);
                                     parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-                                    String pathName = learningGroup.outPathPrefix + directoryExperimentStatistics+sanitiseFileName(parameters.getSubExperimentName())+"-"+
-                                            sanitiseFileName(parameters.getRowID());
-                                    String statisticsFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(
-                                            learningGroup.outPathPrefix + directoryExperimentStatistics,learnStatistics,parameters);
+                                    SGE_ExperimentRunner.FileNameToUse statisticsFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(
+                                            new SGE_ExperimentRunner.FileNameToUse(learningGroup.outPathPrefix, directoryExperimentStatistics + File.separator + learnStatistics),parameters);
                                     String fileContents = null;
-                                    try (BufferedReader statisticsFile = new BufferedReader(new FileReader(statisticsFileName))) {
+                                    try (BufferedReader statisticsFile = new BufferedReader(new FileReader(statisticsFileName.toFileName()))) {
                                         fileContents = statisticsFile.readLine();
                                     } catch (IOException e) {
                                         // ignore error, we'll know that file was not read because fileContents will be null.
                                     }
                                     if (fileContents != null) {
+                                        SGE_ExperimentRunner.handleDataPointBeingOpened(statisticsFileName);
+
                                         List<PairQualityLearner.PairScoreValue> values = new ArrayList<>();
                                         OtpErlangObject listOfPairsAsObject = ErlangLabel.parseText(fileContents);
                                         if (!(listOfPairsAsObject instanceof OtpErlangList))

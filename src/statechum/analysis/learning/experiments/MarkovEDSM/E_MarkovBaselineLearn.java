@@ -69,7 +69,7 @@ public class E_MarkovBaselineLearn {
                                         new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, 0, 0, 0);
                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                 parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
-                                MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);
+                                MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(learningGroup.outPathPrefix, parameters, ev);
                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                 learningGroup.experimentRunner.submitTask(learnerRunner);
                             }

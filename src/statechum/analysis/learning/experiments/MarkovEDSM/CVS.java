@@ -73,9 +73,9 @@ public class CVS
 	{
 		private final LearnerGraph ptaToStartWith;
 
-		public MarkovLearnerFromPTAUsingReference(MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf, LearnerGraph initialPTA, LearnerGraph ref) 
+		public MarkovLearnerFromPTAUsingReference(MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf, LearnerGraph initialPTA, LearnerGraph ref)
 		{
-			super(parameters, cnf);ptaToStartWith = initialPTA;referenceGraph = ref;
+			super(null, parameters, cnf);ptaToStartWith = initialPTA;referenceGraph = ref;
 		}
 		
 		/** Constructs a reference graph and assigns it to member variable <pre>referenceGraph</pre>. This is a separate method to permit overriding by subclasses.
@@ -118,7 +118,9 @@ public class CVS
 		final int[] statesToUse = new int[]{5,10,20,40};
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		boolean penaliseMissingPaths = true;
-		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
+		RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner =
+				new RunSubExperiment<>(ExperimentRunner.getCpuNumber(),
+						new SGE_ExperimentRunner.FileNameToUse(outPathPrefix,directoryExperimentResult), args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase = experimentRunner.getPhase();
 

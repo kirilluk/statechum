@@ -55,8 +55,8 @@ public class E_MarkovCentre {
 
     public static class MarkovCentreIdentification extends MarkovExperiment.MarkovLearnerRunner {
 
-        public MarkovCentreIdentification(MarkovLearningParameters parameters, ProgressDecorator.LearnerEvaluationConfiguration cnf) {
-            super(parameters, cnf);
+        public MarkovCentreIdentification(String outDir, MarkovLearningParameters parameters, ProgressDecorator.LearnerEvaluationConfiguration cnf) {
+            super(outDir, parameters, cnf);
         }
 
         @Override
@@ -223,7 +223,7 @@ public class E_MarkovCentre {
                                         parameters.markovParameters.setMarkovParameters(1, chunkSizeForCentreExperiments, pathsOrSets,
                                                 new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, divisor, 0, wlen);
                                         parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-                                        MarkovCentreIdentification centreIdentificationExperiment = new MarkovCentreIdentification(parameters, ev);
+                                        MarkovCentreIdentification centreIdentificationExperiment = new MarkovCentreIdentification(learningGroup.outPathPrefix, parameters, ev);
                                         centreIdentificationExperiment.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                         learningGroup.experimentRunner.submitTask(centreIdentificationExperiment);
                                     }

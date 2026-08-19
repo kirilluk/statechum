@@ -26,14 +26,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -56,7 +49,8 @@ public class ExperimentRunner
 	protected static final String FS = ",";
 
 	public static final String testSGEDirectory = "__Test_SGE__";
-	public static final File testDir = new File(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),testSGEDirectory);
+	public static final SGE_ExperimentRunner.FileNameToUse testDir =
+			new SGE_ExperimentRunner.FileNameToUse(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP),testSGEDirectory);
 
 	
 	public enum FileType { 
@@ -1088,7 +1082,7 @@ public class ExperimentRunner
 			{
 				if (f.isDirectory())
 				{
-					if (f.getName().equals("A") || f.getName().equals("B") || f.getName().startsWith(outputDirNamePrefix) || f.getAbsolutePath().contains(ExperimentRunner.testDir.getName()))
+					if (f.getName().equals("A") || f.getName().equals("B") || f.getName().startsWith(outputDirNamePrefix) || f.getAbsolutePath().contains(ExperimentRunner.testDir.toFileName()))
 						zapDir(f);
 					else
 						throw new IllegalArgumentException("directory to erase should not contain directories other than A or B or temporary directory, got "+f.getAbsolutePath());
@@ -1101,7 +1095,8 @@ public class ExperimentRunner
 					} catch (InterruptedException e) {
 						// ignore
 					}
-					if (!f.delete()) throw new IllegalArgumentException("cannot delete file "+f+" which is exists="+f.exists()+" directory="+f.isDirectory()+" file="+f.isFile()+" contains files: "+f.list());// if we cannot delete a file after waiting for a second, no point to keep waiting 
+					if (!f.delete()) throw new IllegalArgumentException("cannot delete file "+f+" which is exists="+f.exists()+" directory="+
+							f.isDirectory()+" file="+f.isFile()+" contains files: "+ Arrays.toString(f.list()));// if we cannot delete a file after waiting for a second, no point to keep waiting
 				}
 			}
 			directory.delete();
@@ -1166,7 +1161,7 @@ public class ExperimentRunner
 			// following http://forums.sun.com/thread.jspa?threadID=563892&messageID=2788740
 			List<String> jvmArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
 			boolean debuggerArgsFound = false;
-			if (!Boolean.valueOf(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.FORCEFORK)))
+			if (!Boolean.parseBoolean(GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.FORCEFORK)))
 				for(String arg:jvmArgs)
 					if (arg.startsWith(debugArg))
 					{

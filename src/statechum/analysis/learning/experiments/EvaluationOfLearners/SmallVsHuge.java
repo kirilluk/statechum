@@ -79,7 +79,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 	
 	public SmallVsHuge(SmallVsHugeParameters parameters, LearnerEvaluationConfiguration eval)
 	{
-		super(parameters,eval,directoryNamePrefix);
+		super(null,parameters,eval,directoryNamePrefix);
 	}
 		
 	/** Counts the number of times a path has a repeated label in it. This is used to determine the number of single-state loops in the path. 
@@ -339,7 +339,9 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		mkDir(outPathPrefix+directoryExperimentResult);
-		final RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
+		final RunSubExperiment<SmallVsHugeParameters,ExperimentResult<SmallVsHugeParameters>> experimentRunner =
+				new RunSubExperiment<>(ExperimentRunner.getCpuNumber(),
+						new SGE_ExperimentRunner.FileNameToUse(outPathPrefix,directoryExperimentResult), args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();

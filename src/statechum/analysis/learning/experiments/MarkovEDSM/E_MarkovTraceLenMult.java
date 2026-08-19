@@ -17,9 +17,9 @@ import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningP
 public class E_MarkovTraceLenMult {
     public static final String description = "tracelenMult";
 
-    public static class MarkovAlphabetLearningParameters extends MarkovLearningParameters {
+    public static class MarkovTraceLenMultLearningParameters extends MarkovLearningParameters {
 
-        public MarkovAlphabetLearningParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample) {
+        public MarkovTraceLenMultLearningParameters(LearningAlgorithms.ScoringToApply l, int argStates, double argAlphabetMultiplier, int perStateSquaredDensity10, int argSample, int argTrainingSample) {
             super(l, argStates, argAlphabetMultiplier, perStateSquaredDensity10, argSample, argTrainingSample);
         }
 
@@ -63,13 +63,13 @@ public class E_MarkovTraceLenMult {
                                                 ev.config = learningGroup.eval.config.copy();
                                                 ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
 
-                                                MarkovAlphabetLearningParameters parameters = new MarkovAlphabetLearningParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample);
+                                                MarkovTraceLenMultLearningParameters parameters = new MarkovTraceLenMultLearningParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample);
                                                 parameters.setTraceLengthMultiplier(traceLenMult);
                                                 parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
                                                 parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets,
                                                         new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, divisor, 0, wlen);
                                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-                                                MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);
+                                                MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(learningGroup.outPathPrefix, parameters, ev);
                                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                                 learningGroup.experimentRunner.submitTask(learnerRunner);
                                             }

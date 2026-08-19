@@ -63,7 +63,7 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 
 	public EvaluationOfLearners(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
 	{
-		super(parameters,eval,directoryNamePrefix);
+		super(null,parameters,eval,directoryNamePrefix);
 	}
 	
 	public static final Configuration.ScoreMode conventionalScoringToUse[] = new Configuration.ScoreMode[]{//Configuration.ScoreMode.CONVENTIONAL, Configuration.ScoreMode.COMPATIBILITY, 
@@ -214,7 +214,9 @@ public class EvaluationOfLearners extends UASExperiment<EvaluationOfLearnersPara
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		mkDir(outPathPrefix+directoryExperimentResult);
-		final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),outPathPrefix + directoryExperimentResult,args);
+		final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner =
+				new RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),
+						new SGE_ExperimentRunner.FileNameToUse(outPathPrefix,directoryExperimentResult),args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");

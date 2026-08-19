@@ -20,7 +20,6 @@ import statechum.GlobalConfiguration;
 import statechum.Helper;
 import statechum.GlobalConfiguration.G_PROPERTIES;
 import statechum.TestHelper;
-import statechum.TestHelper.whatToRun;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.DrawGraphs.CSVExperimentResult;
 import statechum.analysis.learning.DrawGraphs.RGraph;
@@ -33,7 +32,6 @@ import statechum.analysis.learning.experiments.EvaluationOfLearners.SmallVsHuge;
 import statechum.analysis.learning.experiments.PairSelection.ExperimentResult;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ThreadResultID;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
 
 /* Important: this test requires R tool to be available and hence JRI native library. */
 public class TestSGE_ExperimentRunner
@@ -52,11 +50,12 @@ public class TestSGE_ExperimentRunner
 		{
 			Assert.assertTrue("could not create "+tmpDir.getAbsolutePath(),tmpDir.mkdir());
 		}
-		
-		if (!ExperimentRunner.testDir.isDirectory())
+
+		File testDirAsFile = new File(ExperimentRunner.testDir.toFileName());
+		if (!testDirAsFile.isDirectory())
 		{
 			for(int t=0;t< 5;++t)
-				if (!ExperimentRunner.testDir.mkdir())
+				if (!testDirAsFile.mkdir())
 				{
 					try {
 						Thread.sleep(10);
@@ -64,8 +63,8 @@ public class TestSGE_ExperimentRunner
 						break;// assume we need to proceed
 					}
 				}
-			if (!ExperimentRunner.testDir.isDirectory())
-				Assert.assertTrue("could not create "+ExperimentRunner.testDir.getAbsolutePath(),ExperimentRunner.testDir.mkdir());
+			if (!testDirAsFile.isDirectory())
+				Assert.assertTrue("could not create "+testDirAsFile,testDirAsFile.mkdir());
 		}
 	}
 
@@ -73,20 +72,19 @@ public class TestSGE_ExperimentRunner
 	public void after()
 	{
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING, globalTimeScaling);
-		ExperimentRunner.zapDir(ExperimentRunner.testDir);
+		ExperimentRunner.zapDir(new File(ExperimentRunner.testDir.toFileName()));
 	}
 
 	public static  class DummyExperiment<PAR extends ThreadResultID> extends UASExperiment<PAR,ExperimentResult<PAR>>
 	{
 		public DummyExperiment(PAR parameters, LearnerEvaluationConfiguration eval, String directoryNamePrefix) 
 		{
-			super(parameters, eval, directoryNamePrefix);
+			super(null, parameters, eval, directoryNamePrefix);
 		}
 		
 		@Override
-		public ExperimentResult<PAR> runexperiment() throws Exception 
-		{
-			return new ExperimentResult<PAR>(par);
+		public ExperimentResult<PAR> runexperiment() {
+			return new ExperimentResult<>(par);
 		}
 		
 	}
@@ -148,19 +146,20 @@ public class TestSGE_ExperimentRunner
 		}
 	}
 	
-	final MockPlot<String> gr_StructuralDiff = new MockPlot<String>("Structural score, VH","Structural Score, EDSM-Markov learner",new File("tmp/runA_struct.pdf"));
-	final MockPlot<String> gr_BCR = new MockPlot<String>("BCR, VH","BCR, EDSM-Markov learner",new File("tmp/runA_BCR.pdf"));
-	final MockPlot<String> gr_a = new MockPlot<String>("Structural score, VH","Structural Score, EDSM-Markov learner",new File("tmp/runA_a.pdf"));
-	final MockPlot<String> gr_b = new MockPlot<String>("BCR, VH","BCR, EDSM-Markov learner",new File("tmp/runA_b.pdf"));
-	final MockCSV csvA = new MockCSV(new File(ExperimentRunner.testDir,"runCSV_A.csv"));
-	final MockCSV csvB = new MockCSV(new File(ExperimentRunner.testDir,"runCSV_B.csv"));
+	final MockPlot<String> gr_StructuralDiff = new MockPlot<>("Structural score, VH", "Structural Score, EDSM-Markov learner", new File("tmp/runA_struct.pdf"));
+	final MockPlot<String> gr_BCR = new MockPlot<>("BCR, VH", "BCR, EDSM-Markov learner", new File("tmp/runA_BCR.pdf"));
+	final MockPlot<String> gr_a = new MockPlot<>("Structural score, VH", "Structural Score, EDSM-Markov learner", new File("tmp/runA_a.pdf"));
+	final MockPlot<String> gr_b = new MockPlot<>("BCR, VH", "BCR, EDSM-Markov learner", new File("tmp/runA_b.pdf"));
+	final MockCSV csvA = new MockCSV(new File(ExperimentRunner.testDir.toFileName(),"runCSV_A.csv"));
+	final MockCSV csvB = new MockCSV(new File(ExperimentRunner.testDir.toFileName(),"runCSV_B.csv"));
 			
 	public int runA(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<>(1,
+                ExperimentRunner.testDir, args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row_first",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<>(new TestParameters("row_first", sample), null, ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -184,10 +183,10 @@ public class TestSGE_ExperimentRunner
 
 	public int runcsv_A(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<>(1, ExperimentRunner.testDir, args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row_second",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<>(new TestParameters("row_second", sample), null, ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -212,10 +211,10 @@ public class TestSGE_ExperimentRunner
 	/** Same as runcsv_A but only csvA is populated with data. */
 	public int runcsv_B(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<>(1, ExperimentRunner.testDir, args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<>(new TestParameters("row", sample), null, ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -240,10 +239,10 @@ public class TestSGE_ExperimentRunner
 	// same as runA but with both labels and colours (as strings since this is what is expected by R)
 	public int runB_both_labels_and_colours(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<>(1, ExperimentRunner.testDir, args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<>(new TestParameters("row", sample), null, ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -268,15 +267,14 @@ public class TestSGE_ExperimentRunner
 	// same as runA but experiment fails for one of the samples
 	public int runC_fails_in_one_of_the_samples(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<>(1, ExperimentRunner.testDir, args);
 		for(int sample=0;sample<3;++sample)
 		{
 			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory){
 				@Override
-				public ExperimentResult<TestParameters> call() throws Exception 
-				{
+				public ExperimentResult<TestParameters> call() {
 					if (par.value != 2)
-						return new ExperimentResult<TestParameters>(par);
+						return new ExperimentResult<>(par);
 					
 					throw new IllegalArgumentException("task failed");
 				}
@@ -305,16 +303,15 @@ public class TestSGE_ExperimentRunner
 	// same as runA but experiment returns null for one of the samples
 	public int runD_null_for_one_of_the_samples(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<>(1, ExperimentRunner.testDir, args);
 		experimentRunner.setThrowOnTaskReturningNull(true);
 		for(int sample=0;sample<3;++sample)
 		{
 			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory){
 				@Override
-				public ExperimentResult<TestParameters> call() throws Exception 
-				{
+				public ExperimentResult<TestParameters> call() {
 					if (par.value != 2)
-						return new ExperimentResult<TestParameters>(par);
+						return new ExperimentResult<>(par);
 					
 					return null;
 				}
@@ -343,14 +340,13 @@ public class TestSGE_ExperimentRunner
 	public int runE(final int timeMult,final MockCSV csvSpreadsheet, String []args)
 	{
 		final Random rnd = new Random(timeMult);
-		final RunSubExperiment<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>> experimentRunner = new RunSubExperiment<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		final RunSubExperiment<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>> experimentRunner = new RunSubExperiment<>(1, ExperimentRunner.testDir, args);
 		for(int sample=0;sample<6;++sample)
 		{
 			DummyExperiment<TestParametersMultiCell> learnerRunner = new DummyExperiment<TestParametersMultiCell>(new TestParametersMultiCell("row",sample),null,ExperimentRunner.testSGEDirectory){
 				@Override
-				public ExperimentResult<TestParametersMultiCell> call() throws Exception 
-				{
-					return new ExperimentResult<TestParametersMultiCell>(par);
+				public ExperimentResult<TestParametersMultiCell> call() {
+					return new ExperimentResult<>(par);
 				}
 			};
 			experimentRunner.submitTask(learnerRunner);
@@ -382,14 +378,13 @@ public class TestSGE_ExperimentRunner
 	public int runF(final int timeMult,final MockCSV csvSpreadsheet, String []args)
 	{
 		final Random rnd = new Random(timeMult);
-		final RunSubExperiment<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>> experimentRunner = new RunSubExperiment<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		final RunSubExperiment<TestParametersMultiCell,ExperimentResult<TestParametersMultiCell>> experimentRunner = new RunSubExperiment<>(1, ExperimentRunner.testDir, args);
 		for(int sample=0;sample<6;++sample)
 		{
 			DummyExperiment<TestParametersMultiCell> learnerRunner = new DummyExperiment<TestParametersMultiCell>(new TestParametersMultiCell("row",sample),null,ExperimentRunner.testSGEDirectory){
 				@Override
-				public ExperimentResult<TestParametersMultiCell> call() throws Exception 
-				{
-					return new ExperimentResult<TestParametersMultiCell>(par);
+				public ExperimentResult<TestParametersMultiCell> call() {
+					return new ExperimentResult<>(par);
 				}
 			};
 			experimentRunner.submitTask(learnerRunner);
@@ -507,10 +502,10 @@ public class TestSGE_ExperimentRunner
 	// same as runA but experiment places invalid data in the output file.
 	public int runE_invalid_data_in_output_file(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<>(1, ExperimentRunner.testDir, args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<>(new TestParameters("row", sample), null, ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -538,10 +533,10 @@ public class TestSGE_ExperimentRunner
 	// Multiple experiments in a single method
 	public int runMultiple(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<>(1, ExperimentRunner.testDir, args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row_first",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<>(new TestParameters("row_first", sample), null, ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -562,7 +557,7 @@ public class TestSGE_ExperimentRunner
 		});
 		for(int sample=0;sample<2;++sample)
 		{
-			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row_second",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<>(new TestParameters("row_second", sample), null, ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -587,11 +582,11 @@ public class TestSGE_ExperimentRunner
 	// Multiple experiments in a single method, the second phase contains a failing experiment
 	public int runMultipleFail2(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<>(1, ExperimentRunner.testDir, args);
 		experimentRunner.setThrowOnTaskReturningNull(true);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row_first",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<>(new TestParameters("row_first", sample), null, ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -614,10 +609,9 @@ public class TestSGE_ExperimentRunner
 		{
 			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row_second",sample),null,ExperimentRunner.testSGEDirectory){
 				@Override
-				public ExperimentResult<TestParameters> call() throws Exception 
-				{
+				public ExperimentResult<TestParameters> call() {
 					if (par.value != 1)
-						return new ExperimentResult<TestParameters>(par);
+						return new ExperimentResult<>(par);
 					
 					return null;
 				}
@@ -645,10 +639,10 @@ public class TestSGE_ExperimentRunner
 	
 	public int runDuplicateFilenames(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<>(1, ExperimentRunner.testDir, args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<>(new TestParameters("row", sample), null, ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -672,10 +666,10 @@ public class TestSGE_ExperimentRunner
 	
 	public int runUnknownGraphs(String []args)
 	{
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<>(1, ExperimentRunner.testDir, args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<>(new TestParameters("row", sample), null, ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -699,11 +693,11 @@ public class TestSGE_ExperimentRunner
 	
 	public int runInvalidFileName(String []args)
 	{
-		final MockPlot<String> gr = new MockPlot<String>("Structural score, VH","Structural Score, EDSM-Markov learner",new File("tmp/|runA_struct.pdf"));
-		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<TestParameters,ExperimentResult<TestParameters>>(1,ExperimentRunner.testDir.getAbsolutePath(),args);
+		final MockPlot<String> gr = new MockPlot<>("Structural score, VH", "Structural Score, EDSM-Markov learner", new File("tmp/|runA_struct.pdf"));
+		RunSubExperiment<TestParameters,ExperimentResult<TestParameters>> experimentRunner = new RunSubExperiment<>(1, ExperimentRunner.testDir, args);
 		for(int sample=0;sample<3;++sample)
 		{
-			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<TestParameters>(new TestParameters("row",sample),null,ExperimentRunner.testSGEDirectory);
+			DummyExperiment<TestParameters> learnerRunner = new DummyExperiment<>(new TestParameters("row", sample), null, ExperimentRunner.testSGEDirectory);
 			experimentRunner.submitTask(learnerRunner);
 		}
 		experimentRunner.collectOutcomeOfExperiments(new processSubExperimentResult<TestParameters,ExperimentResult<TestParameters>>() {
@@ -726,114 +720,83 @@ public class TestSGE_ExperimentRunner
 	}
 	
 	@Test
-	public void testCount1a() throws Exception
-	{
+	public void testCount1a() {
 		Assert.assertEquals(3,runA(new String[]{"COUNT_TASKS","3"}));
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());// until we actually run tasks, there should be nothing recorded.
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
 	@Test
-	public void testCount1b() throws Exception
-	{
+	public void testCount1b() {
 		Assert.assertEquals(3,runD_null_for_one_of_the_samples(new String[]{"COUNT_TASKS","3"}));
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 	
 	@Test
-	public void testCount1c() throws Exception
-	{
+	public void testCount1c() {
 		Assert.assertEquals(3,runcsv_A(new String[]{"COUNT_TASKS","3"}));
 		Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());Assert.assertTrue(csvA.getData().isEmpty());Assert.assertTrue(csvB.getData().isEmpty());// until we actually run tasks, there should be nothing recorded.
 	}
 
 	@Test
-	public void testCount2a() throws Exception
-	{
+	public void testCount2a() {
 		Assert.assertEquals(3,runMultiple(new String[]{"COUNT_TASKS","3"}));
-		Assert.assertEquals("{1=[0], 2=[1, 2], 3=[3, 4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(ExperimentRunner.testDir.getAbsolutePath()+File.separator).toString());
+		Assert.assertEquals("{1=[0], 2=[1, 2], 3=[3, 4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(ExperimentRunner.testDir).toString());
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
 	@Test
-	public void testCount2b() throws Exception
-	{
+	public void testCount2b() {
 		Assert.assertEquals(1,runMultiple(new String[]{"COUNT_TASKS","1"}));
-		Assert.assertEquals("{1=[0, 1, 2, 3, 4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(ExperimentRunner.testDir.getAbsolutePath()+File.separator).toString());
+		Assert.assertEquals("{1=[0, 1, 2, 3, 4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(ExperimentRunner.testDir).toString());
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
 	@Test
-	public void testCount2c() throws Exception
-	{
+	public void testCount2c() {
 		Assert.assertEquals(5,runMultiple(new String[]{"COUNT_TASKS","8"}));
-		Assert.assertEquals("{1=[0], 2=[1], 3=[2], 4=[3], 5=[4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(ExperimentRunner.testDir.getAbsolutePath()+File.separator).toString());
+		Assert.assertEquals("{1=[0], 2=[1], 3=[2], 4=[3], 5=[4]}", statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.loadVirtTaskToReal(ExperimentRunner.testDir).toString());
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
 	@Test
-	public void testCount3() throws Exception
-	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-
-			@Override
-			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				runMultiple(new String[]{"COUNT_TASKS"});
-			}}, IllegalArgumentException.class, "the number of tasks per virtual task has to be provided");
+	public void testCount3() {
+		TestHelper.checkForCorrectException(() -> runMultiple(new String[]{"COUNT_TASKS"}), IllegalArgumentException.class, "the number of tasks per virtual task has to be provided");
 		
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
 	@Test
-	public void testCount4() throws Exception
-	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-
-			@Override
-			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				runMultiple(new String[]{"COUNT_TASKS","3","4"});
-			}}, IllegalArgumentException.class, "the number of tasks per virtual task has to be provided");
+	public void testCount4() {
+		TestHelper.checkForCorrectException(() -> runMultiple(new String[]{"COUNT_TASKS","3","4"}), IllegalArgumentException.class, "the number of tasks per virtual task has to be provided");
 		
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
 	@Test
-	public void testCount5() throws Exception
-	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-
-			@Override
-			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				runMultiple(new String[]{"COUNT_TASKS","-3"});
-			}}, IllegalArgumentException.class, "the number of real tasks to run");
+	public void testCount5() {
+		TestHelper.checkForCorrectException(() -> runMultiple(new String[]{"COUNT_TASKS","-3"}), IllegalArgumentException.class, "the number of real tasks to run");
 		
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
 	@Test
-	public void testCount6() throws Exception
-	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-
-			@Override
-			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				runMultiple(new String[]{"COUNT_TASKS","a"});
-			}}, IllegalArgumentException.class, "invalid number");
+	public void testCount6() {
+		TestHelper.checkForCorrectException(() -> runMultiple(new String[]{"COUNT_TASKS","a"}), IllegalArgumentException.class, "invalid number");
 		
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
 	@Test
-	public void testRun1a() throws Exception
-	{
+	public void testRun1a() {
 		Assert.assertEquals(0,runA(new String[]{}));// runs standalone
 		Assert.assertEquals("[1.0,-1.0,NULL,NULL][2.0,0.0,NULL,NULL][3.0,1.0,NULL,NULL]",gr_BCR.getData());
 		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
@@ -841,8 +804,7 @@ public class TestSGE_ExperimentRunner
 	}
 
 	@Test
-	public void testRun1b() throws Exception
-	{
+	public void testRun1b() {
 		Assert.assertEquals(0,runcsv_A(new String[]{}));// runs standalone
 		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
@@ -851,8 +813,7 @@ public class TestSGE_ExperimentRunner
 	}
 
 	@Test
-	public void testRun1c() throws Exception
-	{
+	public void testRun1c() {
 		Assert.assertEquals(0,runcsv_B(new String[]{}));// runs standalone
 		Assert.assertEquals("[0.0,1.0,NULL,NULL][1.0,2.0,NULL,NULL][2.0,3.0,NULL,NULL]",gr_StructuralDiff.getData());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
@@ -861,8 +822,7 @@ public class TestSGE_ExperimentRunner
 	}
 
 	@Test
-	public void testRun2() throws Exception
-	{
+	public void testRun2() {
 		Assert.assertEquals(0,runB_both_labels_and_colours(new String[]{}));// implicit standalone
 		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0][3.0,1.0,NULL,tt3.0]",gr_BCR.getData());
 		Assert.assertEquals("[0.0,1.0,dd1.0,NULL][1.0,2.0,dd2.0,NULL][2.0,3.0,dd3.0,NULL]",gr_StructuralDiff.getData());
@@ -870,8 +830,7 @@ public class TestSGE_ExperimentRunner
 	}
 
 	@Test
-	public void testRun3() throws Exception
-	{
+	public void testRun3() {
 		Assert.assertEquals(0,runB_both_labels_and_colours(new String[]{"RUN_STANDALONE"}));// explicit standalone
 		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0][3.0,1.0,NULL,tt3.0]",gr_BCR.getData());
 		Assert.assertEquals("[0.0,1.0,dd1.0,NULL][1.0,2.0,dd2.0,NULL][2.0,3.0,dd3.0,NULL]",gr_StructuralDiff.getData());
@@ -879,8 +838,7 @@ public class TestSGE_ExperimentRunner
 	}
 
 	@Test
-	public void testRun4a() throws Exception
-	{
+	public void testRun4a() {
 		Assert.assertEquals(3,runB_both_labels_and_colours(new String[]{"COUNT_TASKS","3"}));
 		Assert.assertEquals(0,runB_both_labels_and_colours(new String[]{"RUN_TASK","1"}));
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
@@ -899,8 +857,7 @@ public class TestSGE_ExperimentRunner
 	}
 	
 	@Test
-	public void testRun4b() throws Exception
-	{
+	public void testRun4b() {
 		Assert.assertEquals(3,runB_both_labels_and_colours(new String[]{"COUNT_TASKS","3"}));
 		Assert.assertEquals(0,runcsv_A(new String[]{"RUN_TASK","1"}));
 		Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());Assert.assertTrue(csvA.getData().isEmpty());Assert.assertTrue(csvB.getData().isEmpty());
@@ -916,8 +873,7 @@ public class TestSGE_ExperimentRunner
 	}
 
 	@Test
-	public void testRun5a() throws Exception
-	{
+	public void testRun5a() {
 		int taskNumber = runMultiple(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=taskNumber;++i)
 			Assert.assertEquals(0,runMultiple(new String[]{"RUN_TASK",""+i}));
@@ -930,8 +886,7 @@ public class TestSGE_ExperimentRunner
 	}
 	
 	@Test
-	public void testRun5b() throws Exception
-	{
+	public void testRun5b() {
 		int count = runcsv_A(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=count;++i)
 			Assert.assertEquals(0,runcsv_A(new String[]{"RUN_TASK",""+i}));
@@ -944,8 +899,7 @@ public class TestSGE_ExperimentRunner
 	}
 
 	@Test
-	public void testRun5c() throws Exception
-	{
+	public void testRun5c() {
 		int count = runcsv_B(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=count;++i)
 			Assert.assertEquals(0,runcsv_B(new String[]{"RUN_TASK",""+i}));
@@ -958,8 +912,7 @@ public class TestSGE_ExperimentRunner
 	}
 
 	@Test
-	public void testRun5c_parallel1() throws Exception
-	{
+	public void testRun5c_parallel1() {
 		int count = runcsv_B(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=count;++i)
 			Assert.assertEquals(0,runcsv_B(new String[]{"RUN_PARALLEL",""+i}));
@@ -973,11 +926,11 @@ public class TestSGE_ExperimentRunner
 
 	public static String readResultFile(CSVExperimentResult result)
 	{
-		StringBuffer buffer = new StringBuffer();
+		StringBuilder buffer = new StringBuilder();
 		try
 		{
 			BufferedReader reader = new BufferedReader(new FileReader(result.getAbsoluteFileName()));
-			String line = null;
+			String line;
 			try
 			{
 				while((line=reader.readLine()) != null)
@@ -999,8 +952,7 @@ public class TestSGE_ExperimentRunner
 	
 	/** Tests handling of missing rows. */
 	@Test
-	public void testRun5c_parallel2() throws Exception
-	{
+	public void testRun5c_parallel2() {
 		int count = runE(10,csvA, new String[]{"COUNT_TASKS","3"});
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.32");
 
@@ -1010,7 +962,7 @@ public class TestSGE_ExperimentRunner
 		for(int i=2;i<4;++i)
 		{
 			TestParametersMultiCell p=new TestParametersMultiCell("row",2);
-			File experimentResultFile = new File(ExperimentRunner.testDir,p.getSubExperimentName()+"-"+p.getRowID()+File.separator+(i % 2));
+			File experimentResultFile = new File(ExperimentRunner.testDir.toFileName(),p.getSubExperimentName()+"-"+p.getRowID()+File.separator+(i % 2));
 			Assert.assertTrue(experimentResultFile.canRead());
 			experimentResultFile.delete();
 		}
@@ -1030,8 +982,7 @@ public class TestSGE_ExperimentRunner
 	
 	/** Tests handling of missing cells. */
 	@Test
-	public void testRun5c_parallel3() throws Exception
-	{
+	public void testRun5c_parallel3() {
 		int count = runE(10,csvA, new String[]{"COUNT_TASKS","3"});
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.32");
 
@@ -1040,7 +991,7 @@ public class TestSGE_ExperimentRunner
 		for(int i=2;i<3;++i)
 		{
 			TestParametersMultiCell p=new TestParametersMultiCell("row",2);
-			File experimentResultFile = new File(ExperimentRunner.testDir,p.getSubExperimentName()+"-"+p.getRowID()+File.separator+(i % 2));
+			File experimentResultFile = new File(ExperimentRunner.testDir.toFileName(),p.getSubExperimentName()+"-"+p.getRowID()+File.separator+(i % 2));
 			Assert.assertTrue(experimentResultFile.canRead());
 			experimentResultFile.delete();
 		}
@@ -1058,8 +1009,7 @@ public class TestSGE_ExperimentRunner
 	}
 	
 	@Test
-	public void testRun5c_checkMatching1a() throws Exception
-	{
+	public void testRun5c_checkMatching1a() {
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
 		int mult0 = 10;
 		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","6"});
@@ -1080,8 +1030,7 @@ public class TestSGE_ExperimentRunner
 	
 	/** Almost the same as testRun5c_checkMatching1a but has missing values. */
 	@Test
-	public void testRun5c_checkMatching1b() throws Exception
-	{
+	public void testRun5c_checkMatching1b() {
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
 		int mult0 = 10;
 		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","6"});
@@ -1091,7 +1040,7 @@ public class TestSGE_ExperimentRunner
 		for(int i=3;i<6;++i)
 		{
 			TestParametersMultiCell p=new TestParametersMultiCell("row",i/2);
-			File experimentResultFile = new File(ExperimentRunner.testDir,p.getSubExperimentName()+"-"+p.getRowID()+File.separator+(i % 2));
+			File experimentResultFile = new File(ExperimentRunner.testDir.toFileName(),p.getSubExperimentName()+"-"+p.getRowID()+File.separator+(i % 2));
 			Assert.assertTrue("missing file for cell "+i,experimentResultFile.canRead());
 			experimentResultFile.delete();
 		}
@@ -1109,8 +1058,7 @@ public class TestSGE_ExperimentRunner
 	}
 	
 	@Test
-	public void testRun5c_checkMatching2() throws Exception
-	{
+	public void testRun5c_checkMatching2() {
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
 		int mult0 = 15;
 		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
@@ -1130,8 +1078,7 @@ public class TestSGE_ExperimentRunner
 	}	
 	
 	@Test
-	public void testRun5c_checkMatching3() throws Exception
-	{
+	public void testRun5c_checkMatching3() {
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
 		int mult0 = 10;
 		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
@@ -1151,8 +1098,7 @@ public class TestSGE_ExperimentRunner
 	}
 	
 	@Test
-	public void testRun5c_checkMatching3_timeouts1() throws Exception
-	{
+	public void testRun5c_checkMatching3_timeouts1() {
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
 		int mult0 = 10;
 		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
@@ -1173,8 +1119,7 @@ public class TestSGE_ExperimentRunner
 
 	/** here timeouts filter all the values. */
 	@Test
-	public void testRun5c_checkMatching3_timeouts2() throws Exception
-	{
+	public void testRun5c_checkMatching3_timeouts2() {
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
 		int mult0 = 10;
 		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
@@ -1193,8 +1138,7 @@ public class TestSGE_ExperimentRunner
 	}	
 
 	@Test
-	public void testRun5c_checkMatching4() throws Exception
-	{
+	public void testRun5c_checkMatching4() {
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
 		int mult0 = 10;
 		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
@@ -1202,25 +1146,20 @@ public class TestSGE_ExperimentRunner
 			runE(mult0,csvA, new String[]{"RUN_PARALLEL",""+i});
 		Assert.assertEquals(0,runE(mult0,csvA, new String[]{"COLLECT_RESULTS"}));
 		
-		TestHelper.checkForCorrectException(new whatToRun() {
-
-			@Override
-			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0)
-					{
-						@Override
-						public int executionTimeInCell() {
-							return -1;
-						}
+		TestHelper.checkForCorrectException(() -> DrawGraphs.computeTimeAndCorrection(csvA, csvB,
+				new TestParametersMultiCell("row",0)
+				{
+					@Override
+					public int executionTimeInCell() {
+						return -1;
 					}
-				, -1,0, 1.0);
-		}}, IllegalArgumentException.class, "no time is present");
+				}
+        , -1,0, 1.0), IllegalArgumentException.class, "no time is present");
 		
 	}	
 
 	@Test
-	public void testRun5c_checkMatching5() throws Exception
-	{
+	public void testRun5c_checkMatching5() {
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
 		int mult0 = 10;
 		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
@@ -1228,25 +1167,20 @@ public class TestSGE_ExperimentRunner
 			runE(mult0,csvA, new String[]{"RUN_PARALLEL",""+i});
 		Assert.assertEquals(0,runE(mult0,csvA, new String[]{"COLLECT_RESULTS"}));
 		
-		TestHelper.checkForCorrectException(new whatToRun() {
-
-			@Override
-			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0)
-					{
-						@Override
-						public int executionTimeInCell() {
-							return 10;
-						}
+		TestHelper.checkForCorrectException(() -> DrawGraphs.computeTimeAndCorrection(csvA, csvB,
+				new TestParametersMultiCell("row",0)
+				{
+					@Override
+					public int executionTimeInCell() {
+						return 10;
 					}
-				, -1,0, 1.0);
-		}}, IllegalArgumentException.class, "value is too high");
+				}
+        , -1,0, 1.0), IllegalArgumentException.class, "value is too high");
 		
 	}	
 
 	@Test
-	public void testRun5c_checkMatching6() throws Exception
-	{
+	public void testRun5c_checkMatching6() {
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.SGE_EXECUTIONTIME_SCALING,"1.0");
 		int mult0 = 10;
 		int count = runE(mult0,csvA, new String[]{"COUNT_TASKS","3"});
@@ -1261,20 +1195,17 @@ public class TestSGE_ExperimentRunner
 		Assert.assertEquals(0,runF(mult1,csvB, new String[]{"COLLECT_RESULTS"}));
 		
 		
-		TestHelper.checkForCorrectException(new whatToRun() {
-
-			@Override
-			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				DrawGraphs.computeTimeAndCorrection(csvA, csvB, new TestParametersMultiCell("row",0), -1,0, 1.0);
-		}}, IllegalArgumentException.class, "Cell [row2,1] is different");
+		TestHelper.checkForCorrectException(() ->
+				DrawGraphs.computeTimeAndCorrection(csvA, csvB,
+						new TestParametersMultiCell("row",0), -1,0, 1.0),
+				IllegalArgumentException.class, "Cell [row2,1] is different");
 		
 	}	
 	
 	
 	/** Tests that a request to only report a specific plot is honoured: here we only request to render a plot that is non-empty. */
 	@Test
-	public void testRun5c_collect1a() throws Exception
-	{
+	public void testRun5c_collect1a() {
 		int count = runcsv_B(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=count;++i)
 			Assert.assertEquals(0,runcsv_B(new String[]{"RUN_TASK",""+i}));
@@ -1288,8 +1219,7 @@ public class TestSGE_ExperimentRunner
 
 	/** Tests that a request to only report a specific plot is honoured: here we only request to render a plot that is empty. */
 	@Test
-	public void testRun5c_collect1b() throws Exception
-	{
+	public void testRun5c_collect1b() {
 		int count = runcsv_B(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=count;++i)
 			Assert.assertEquals(0,runcsv_B(new String[]{"RUN_TASK",""+i}));
@@ -1303,24 +1233,17 @@ public class TestSGE_ExperimentRunner
 
 	/** Tests that a request to only report a specific plot is honoured: here we request a plot that does not exist. */
 	@Test
-	public void testRun5c_collect2() throws Exception
-	{
+	public void testRun5c_collect2() {
 		int count = runcsv_B(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=count;++i)
 			Assert.assertEquals(0,runcsv_B(new String[]{"RUN_TASK",""+i}));
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-					runD_null_for_one_of_the_samples(new String[]{"COLLECT_RESULTS","AA"}); // will throw because experiment 2 did not complete
-			}
-		}, IllegalArgumentException.class, "invalid plot \"AA");	}
+		TestHelper.checkForCorrectException(() -> {
+                runD_null_for_one_of_the_samples(new String[]{"COLLECT_RESULTS","AA"}); // will throw because experiment 2 did not complete
+        }, IllegalArgumentException.class, "invalid plot \"AA");	}
 
 
 	@Test
-	public void testRun5d() throws Exception
-	{
+	public void testRun5d() {
 		Assert.assertEquals(0,runD_null_for_one_of_the_samples(new String[]{"PROGRESS_INDICATOR"}));// 0% complete
 		int counter = runD_null_for_one_of_the_samples(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=counter-1;++i)
@@ -1335,14 +1258,9 @@ public class TestSGE_ExperimentRunner
 		{
 			// ignore this - this experiment should fail
 		}
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-					runD_null_for_one_of_the_samples(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
-			}
-		}, IllegalArgumentException.class, "experiment_name-row"+File.separator+"2");
+		TestHelper.checkForCorrectException(() -> {
+                runD_null_for_one_of_the_samples(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
+        }, IllegalArgumentException.class, "experiment_name-row"+File.separator+"2");
 		Assert.assertEquals(66,runD_null_for_one_of_the_samples(new String[]{"PROGRESS_INDICATOR"}));// 66% complete because one failed.
 		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0]",gr_BCR.getData());// only partial data is available due to failure, 
 			// we cannot eliminate it completely because the failure is only detected part-way through. In reality, we'll not write .pdfs on a failure and thus no data will be available at all. 
@@ -1351,29 +1269,22 @@ public class TestSGE_ExperimentRunner
 	}
 	
 	@Test
-	public void testRun5e() throws Exception
-	{
+	public void testRun5e() {
 		Assert.assertEquals(0,runE_invalid_data_in_output_file(new String[]{"PROGRESS_INDICATOR"}));// 0% complete
 		int counter = runE_invalid_data_in_output_file(new String[]{"COUNT_TASKS","3"});
 		for(int i=1;i<=counter;++i)
 			Assert.assertEquals(0,runE_invalid_data_in_output_file(new String[]{"RUN_TASK",""+i}));
 
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-					runE_invalid_data_in_output_file(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
-			}
-		}, IllegalArgumentException.class, "cannot load a value of type");// value of type File cannot be loaded.
+		TestHelper.checkForCorrectException(() -> {
+                runE_invalid_data_in_output_file(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
+        }, IllegalArgumentException.class, "cannot load a value of type");// value of type File cannot be loaded.
 		Assert.assertEquals(66,runE_invalid_data_in_output_file(new String[]{"PROGRESS_INDICATOR"}));// 66% complete because one failed.
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 	
 	@Test
-	public void testRun5f() throws Exception
-	{
+	public void testRun5f() {
 		for(int i=1;i<=runMultipleFail2(new String[]{"COUNT_TASKS","3"})-1;++i)
 			Assert.assertEquals(0,runMultipleFail2(new String[]{"RUN_TASK",""+i}));
 		try
@@ -1388,20 +1299,14 @@ public class TestSGE_ExperimentRunner
 	}
 	
 	@Test
-	public void testRun5g() throws Exception
-	{
+	public void testRun5g() {
 		int taskCount = runMultiple(new String[]{"COUNT_TASKS","5"});// this should be evaluated once, if done multiple times, it rebuilds a virtual-physical map, leading to skipped tasks.
 		for(int i=1;i<=taskCount-1;++i)
 			Assert.assertEquals(0,runMultiple(new String[]{"RUN_TASK",""+i}));
 		// here we deliberately ignore one of the experiments
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-				runMultipleFail2(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
-			}
-		}, IllegalArgumentException.class, "experiment_name-row_second"+File.separator+"1");
+		TestHelper.checkForCorrectException(() -> {
+            runMultipleFail2(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
+        }, IllegalArgumentException.class, "experiment_name-row_second"+File.separator+"1");
 
 		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0][3.0,1.0,NULL,tt3.0]",gr_BCR.getData());
 		Assert.assertEquals("[0.0,1.0,dd1.0,NULL][1.0,2.0,dd2.0,NULL][2.0,3.0,dd3.0,NULL]",gr_StructuralDiff.getData());
@@ -1410,20 +1315,14 @@ public class TestSGE_ExperimentRunner
 	}
 	
 	@Test
-	public void testRun5g_parallel1() throws Exception
-	{
+	public void testRun5g_parallel1() {
 		int taskCount = runMultiple(new String[]{"COUNT_TASKS","5"});// this should be evaluated once, if done multiple times, it rebuilds a virtual-physical map, leading to skipped tasks.
 		for(int i=1;i<=taskCount-1;++i)
 			Assert.assertEquals(0,runMultiple(new String[]{"RUN_PARALLEL",""+i}));
 		// here we deliberately ignore one of the experiments
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-				runMultipleFail2(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
-			}
-		}, IllegalArgumentException.class, "experiment_name-row_second"+File.separator+"1");
+		TestHelper.checkForCorrectException(() -> {
+            runMultipleFail2(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
+        }, IllegalArgumentException.class, "experiment_name-row_second"+File.separator+"1");
 
 		Assert.assertEquals("[1.0,-1.0,NULL,tt1.0][2.0,0.0,NULL,tt2.0][3.0,1.0,NULL,tt3.0]",gr_BCR.getData());
 		Assert.assertEquals("[0.0,1.0,dd1.0,NULL][1.0,2.0,dd2.0,NULL][2.0,3.0,dd3.0,NULL]",gr_StructuralDiff.getData());
@@ -1432,8 +1331,7 @@ public class TestSGE_ExperimentRunner
 	}
 	
 	@Test
-	public void testRun5g_parallel2() throws Exception
-	{
+	public void testRun5g_parallel2() {
 		int taskCount = runMultiple(new String[]{"COUNT_TASKS","5"});// this should be evaluated once, if done multiple times, it rebuilds a virtual-physical map, leading to skipped tasks.
 		for(int i=1;i<=taskCount-1;++i)
 			Assert.assertEquals(0,runMultiple(new String[]{"RUN_PARALLEL",""+i}));
@@ -1448,8 +1346,7 @@ public class TestSGE_ExperimentRunner
 	
 	// Here we run an experiment, observe failure and then re-run it. This checks correct identification of successfully finished tasks.
 	@Test
-	public void testRun5h() throws Exception
-	{
+	public void testRun5h() {
 		Assert.assertEquals(0,runMultipleFail2(new String[]{"PROGRESS_INDICATOR"}));// 0% complete
 		int taskCount = runMultipleFail2(new String[]{"COUNT_TASKS","5"});
 		Assert.assertEquals(5, taskCount);
@@ -1484,8 +1381,7 @@ public class TestSGE_ExperimentRunner
 	}
 	
 	@Test
-	public void testRun5h_parallel1() throws Exception
-	{
+	public void testRun5h_parallel1() {
 		int taskCount = runMultipleFail2(new String[]{"COUNT_TASKS","5"});
 		Assert.assertEquals(5, taskCount);
 		for(int i=1;i<=taskCount-1;++i)
@@ -1517,8 +1413,7 @@ public class TestSGE_ExperimentRunner
 	}
 	
 	@Test
-	public void testRun5h_parallel2() throws Exception
-	{
+	public void testRun5h_parallel2() {
 		int taskCount = runMultipleFail2(new String[]{"COUNT_TASKS","1"});
 		Assert.assertEquals(1, taskCount);
 		try
@@ -1550,8 +1445,7 @@ public class TestSGE_ExperimentRunner
 	
 	// if I run a task with too high an ID, it is ignored
 	@Test
-	public void testRun6a1() throws Exception
-	{
+	public void testRun6a1() {
 		Assert.assertEquals(3,runMultiple(new String[]{"COUNT_TASKS","3"}));
 		Assert.assertEquals(0,runB_both_labels_and_colours(new String[]{"RUN_TASK","100"}));
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
@@ -1560,8 +1454,7 @@ public class TestSGE_ExperimentRunner
 
 	// if I run a task with too high an ID, it is ignored
 	@Test
-	public void testRun6a2() throws Exception
-	{
+	public void testRun6a2() {
 		Assert.assertEquals(3,runMultiple(new String[]{"COUNT_TASKS","3"}));
 		Assert.assertEquals(0,runB_both_labels_and_colours(new String[]{"RUN_PARALLEL","100"}));
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
@@ -1569,90 +1462,48 @@ public class TestSGE_ExperimentRunner
 	}
 
 	@Test
-	public void testRun6b1() throws Exception
-	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				runB_both_labels_and_colours(new String[]{"RUN_TASK"});
-			}
-		}, IllegalArgumentException.class, "should be");
+	public void testRun6b1() {
+		TestHelper.checkForCorrectException(() -> runB_both_labels_and_colours(new String[]{"RUN_TASK"}), IllegalArgumentException.class, "should be");
 		
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
 	@Test
-	public void testRun6b2() throws Exception
-	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				runB_both_labels_and_colours(new String[]{"RUN_PARALLEL"});
-			}
-		}, IllegalArgumentException.class, "should be");
+	public void testRun6b2() {
+		TestHelper.checkForCorrectException(() -> runB_both_labels_and_colours(new String[]{"RUN_PARALLEL"}), IllegalArgumentException.class, "should be");
 		
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
 	@Test
-	public void testRun6c1() throws Exception
-	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				runB_both_labels_and_colours(new String[]{"RUN_TASK","-100"});
-			}
-		}, IllegalArgumentException.class, "should be positive");
+	public void testRun6c1() {
+		TestHelper.checkForCorrectException(() -> runB_both_labels_and_colours(new String[]{"RUN_TASK","-100"}), IllegalArgumentException.class, "should be positive");
 		
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
 	@Test
-	public void testRun6c2() throws Exception
-	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				runB_both_labels_and_colours(new String[]{"RUN_PARALLEL","-100"});
-			}
-		}, IllegalArgumentException.class, "should be positive");
+	public void testRun6c2() {
+		TestHelper.checkForCorrectException(() -> runB_both_labels_and_colours(new String[]{"RUN_PARALLEL","-100"}), IllegalArgumentException.class, "should be positive");
 		
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
 	@Test
-	public void testRun6d1() throws Exception
-	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				runB_both_labels_and_colours(new String[]{"RUN_TASK","aa"});
-			}
-		}, IllegalArgumentException.class, "invalid number");
+	public void testRun6d1() {
+		TestHelper.checkForCorrectException(() -> runB_both_labels_and_colours(new String[]{"RUN_TASK","aa"}), IllegalArgumentException.class, "invalid number");
 		
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
 	}
 
 	@Test
-	public void testRun6d2() throws Exception
-	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run() throws NumberFormatException, IOException, IncompatibleStatesException {
-				runB_both_labels_and_colours(new String[]{"RUN_PARALLEL","aa"});
-			}
-		}, IllegalArgumentException.class, "invalid number");
+	public void testRun6d2() {
+		TestHelper.checkForCorrectException(() -> runB_both_labels_and_colours(new String[]{"RUN_PARALLEL","aa"}), IllegalArgumentException.class, "invalid number");
 		
 		Assert.assertTrue(gr_BCR.getData().isEmpty());Assert.assertTrue(gr_StructuralDiff.getData().isEmpty());
 		Assert.assertTrue(gr_a.getData().isEmpty());Assert.assertTrue(gr_b.getData().isEmpty());
@@ -1660,30 +1511,14 @@ public class TestSGE_ExperimentRunner
 
 	// This one will fail in a specific experiment
 	@Test
-	public void testRun7() throws Exception
-	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-				runC_fails_in_one_of_the_samples(new String[]{"RUN_STANDALONE"});
-			}
-		}, IllegalArgumentException.class, "task failed");
+	public void testRun7() {
+		TestHelper.checkForCorrectException(() -> runC_fails_in_one_of_the_samples(new String[]{"RUN_STANDALONE"}), IllegalArgumentException.class, "task failed");
 	}
 
 	// This one will fail in a specific experiment
 	@Test
-	public void testRun8() throws Exception
-	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-				runD_null_for_one_of_the_samples(new String[]{"RUN_STANDALONE"});
-			}
-		}, IllegalArgumentException.class, "returned null");
+	public void testRun8() {
+		TestHelper.checkForCorrectException(() -> runD_null_for_one_of_the_samples(new String[]{"RUN_STANDALONE"}), IllegalArgumentException.class, "returned null");
 	}
 
 
@@ -1702,7 +1537,7 @@ public class TestSGE_ExperimentRunner
 		BufferedWriter writer = null;
 		try
 		{
-			writer = new BufferedWriter(new FileWriter(ExperimentRunner.testDir.getAbsolutePath()+File.separator+"experiment_name-row_second/0"));
+			writer = new BufferedWriter(new FileWriter(ExperimentRunner.testDir+File.separator+"experiment_name-row_second/0"));
 			writer.append("junk");
 		}
 		finally
@@ -1713,14 +1548,9 @@ public class TestSGE_ExperimentRunner
 			}
 		}
 		
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-				runMultiple(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
-			}
-		}, IllegalArgumentException.class, "experiment_name-row_second"+File.separator+"0");
+		TestHelper.checkForCorrectException(() -> {
+            runMultiple(new String[]{"COLLECT_RESULTS"}); // will throw because experiment 2 did not complete
+        }, IllegalArgumentException.class, "experiment_name-row_second"+File.separator+"0");
 
 		Assert.assertEquals(80,runMultiple(new String[]{"PROGRESS_INDICATOR"}));// 80% complete because one failed.
 		runMultiple(new String[]{"RUN_TASK","4"});// physical task 3 corresponds to a virtual task 4
@@ -1731,107 +1561,51 @@ public class TestSGE_ExperimentRunner
 	@Test
 	public void testInvalidPhase1()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-				runA(new String[]{"A"});
-			}
-		}, IllegalArgumentException.class, "No enum const");// it is const for java 6 and constant for 7.
+		TestHelper.checkForCorrectException(() -> runA(new String[]{"A"}), IllegalArgumentException.class, "No enum const");// it is const for java 6 and constant for 7.
 	}
 	
 	@Test
 	public void testInvalidPhase2()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-				runA(new String[]{"RUN_STANDALONE","21"});
-			}
-		}, IllegalArgumentException.class, "no arguments");
+		TestHelper.checkForCorrectException(() -> runA(new String[]{"RUN_STANDALONE","21"}), IllegalArgumentException.class, "no arguments");
 	}
 	
 	
 	@Test
 	public void testInvalidPhase3()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-				runA(new String[]{"COLLECT_RESULTS","21","22"});
-			}
-		}, IllegalArgumentException.class, "at most one argument");
+		TestHelper.checkForCorrectException(() -> runA(new String[]{"COLLECT_RESULTS","21","22"}), IllegalArgumentException.class, "at most one argument");
 	}
 		
 	@Test
 	public void testInvalidPhase4()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-				runA(new String[]{"RUN_TASK","-21"}); 
-			}
-		}, IllegalArgumentException.class, "positive");
+		TestHelper.checkForCorrectException(() -> runA(new String[]{"RUN_TASK","-21"}), IllegalArgumentException.class, "positive");
 	}
 	
 	@Test
 	public void testInvalidPhase5()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-				runA(new String[]{"RUN_TASK","0"}); 
-			}
-		}, IllegalArgumentException.class, "positive");
+		TestHelper.checkForCorrectException(() -> runA(new String[]{"RUN_TASK","0"}), IllegalArgumentException.class, "positive");
 	}
 	
 	
 	@Test
 	public void testInvalidGraphs()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-				runDuplicateFilenames(new String[]{});
-			}
-		}, IllegalArgumentException.class, "duplicate");
+		TestHelper.checkForCorrectException(() -> runDuplicateFilenames(new String[]{}), IllegalArgumentException.class, "duplicate");
 	}
 	
 	@Test
 	public void testUnknownGraphs()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-				runUnknownGraphs(new String[]{});
-			}
-		}, IllegalArgumentException.class, "unknown graph");
+		TestHelper.checkForCorrectException(() -> runUnknownGraphs(new String[]{}), IllegalArgumentException.class, "unknown graph");
 	}
 	
 	@Test
 	public void testInvalidFileName()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run()
-			{
-				runInvalidFileName(new String[]{});
-			}
-		}, IllegalArgumentException.class, "invalid file name");
+		TestHelper.checkForCorrectException(() -> runInvalidFileName(new String[]{}), IllegalArgumentException.class, "invalid file name");
 	}
 
 	@Test
@@ -1861,14 +1635,9 @@ public class TestSGE_ExperimentRunner
 	@Test
 	public void testGetCorrection3()
 	{
-		TestHelper.checkForCorrectException(new whatToRun() {
-			
-			@Override
-			public void run() throws IOException
-			{
-				SGE_ExperimentRunner.getCorrection(new BufferedReader(new StringReader("text | t | \n AA | z \n aa |n")),"AA");
-			}
-		}, IllegalArgumentException.class, "invalid file format");
+		TestHelper.checkForCorrectException(() -> SGE_ExperimentRunner.getCorrection(
+				new BufferedReader(new StringReader("text | t | \n AA | z \n aa |n")),"AA"),
+				IllegalArgumentException.class, "invalid file format");
 		
 	}
 }

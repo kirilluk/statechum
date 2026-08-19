@@ -45,7 +45,7 @@ public abstract class PairQualityLearnerRunner extends UASExperiment<PairQuality
 	protected final WekaDataCollector sampleCollector;
 	public PairQualityLearnerRunner(WekaDataCollector collector,PairQualityParameters parameters, LearnerEvaluationConfiguration evalCnf)
 	{
-		super(parameters,evalCnf,PairQualityLearner.directoryNamePrefix);sampleCollector = collector;
+		super(null,parameters,evalCnf,PairQualityLearner.directoryNamePrefix);sampleCollector = collector;
 	}
 	
 	public abstract LearnerWithMandatoryMergeConstraints createLearner(LearnerEvaluationConfiguration evalCnf,final LearnerGraph argReferenceGraph, WekaDataCollector argDataCollector, final LearnerGraph argInitialPTA, ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer);

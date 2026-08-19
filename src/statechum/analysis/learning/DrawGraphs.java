@@ -278,14 +278,14 @@ public class DrawGraphs {
 		callbacks.clearBuffer();
 		REXP result = engine.eval(whatToEval);
 		if (result == null) {
-			StringBuffer sb = new StringBuffer();
+			StringBuilder sb = new StringBuilder();
 			sb.append(errMsg);sb.append(" : ");sb.append(callbacks.getBuffer());sb.append("\n");
 			callbacks.clearBuffer();
 			REXP warnings = engine.eval("warnings()");
 			if (warnings != null && warnings.getType() != 0) {
-				sb.append("Warnings: ");sb.append(callbacks.getBuffer());sb.append(warnings.toString());sb.append("\n");
+				sb.append("Warnings: ");sb.append(callbacks.getBuffer());sb.append(warnings);sb.append("\n");
 			}
-			sb.append("Drawing command: \n"+whatToEval);
+			sb.append("Drawing command: \n").append(whatToEval);
 			throw new IllegalArgumentException(sb.toString());
 		}
 		return result;
@@ -516,7 +516,7 @@ public class DrawGraphs {
 		 * The last argument is set to true if the only purpose is to check that the outcome can be parsed rather than to
 		 * record result. This is important to check whether an experiment has abnormally terminated.
 		 */
-		void parseTextLoadedFromExperimentResult(String []text, String fileNameForErrorMessages, ThreadResultID parameters, boolean onlyCheckItParses);
+		void parseTextLoadedFromExperimentResult(String []text, SGE_ExperimentRunner.FileNameToUse fileNameForErrorMessages, ThreadResultID parameters, boolean onlyCheckItParses);
 
 		/** Called to provide real-time updates to the learning results. The default does nothing. */
 		void drawInteractive(DrawGraphs gr);
@@ -750,37 +750,41 @@ public class DrawGraphs {
 			return file.getAbsolutePath();
 		}
 
+		protected void addInternal(ThreadResultID id, String text, SGE_ExperimentRunner.FileNameToUse fileNameForErrorMessages) {
+			add(id,text);
+		}
 
 		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
 		@Override
-		public void parseTextLoadedFromExperimentResult(final String[] line, String fileNameForErrorMessages, final ThreadResultID parameters, boolean onlyCheckItParses)
+		public void parseTextLoadedFromExperimentResult(final String[] line, SGE_ExperimentRunner.FileNameToUse fileNameForDataPoint, final ThreadResultID parameters, boolean onlyCheckItParses)
 		{
 			final StringSequenceWriter reader = new StringSequenceWriter(null);
 			if (line.length != 7)
-				throw new IllegalArgumentException("experiment "+fileNameForErrorMessages+" has recorded invalid number of values ("+line.length+")for CSV output, it should record 7");
+				throw new IllegalArgumentException("experiment "+fileNameForDataPoint.toFileName()+" has recorded invalid number of values ("+line.length+")for CSV output, it should record 7");
 			//List<String> colText = new ArrayList<String>();colText.add(line[3].split("\\-")[0]);colText.addAll(reader.readInputSequence(line[4]));
 			//final String[] columnText =  colText.toArray(new String[]{});
 			final String[] columnText = reader.readInputSequence(line[4]).toArray(new String[]{});
 			final String[] headerValuesForCells = reader.readInputSequence(line[5]).toArray(new String[]{});
 			
-			if (!onlyCheckItParses)
-				add(new ThreadResultID(){
-	
+			if (!onlyCheckItParses) {
+				SGE_ExperimentRunner.handleDataPointBeingOpened(fileNameForDataPoint);
+				addInternal(new ThreadResultID() {
+
 					@Override
 					public String getRowID() {
 						return line[2];
 					}
-	
+
 					@Override
 					public String[] getColumnText() {
 						return columnText;
 					}
-	
+
 					@Override
 					public String getColumnID() {
 						return line[3];
 					}
-	
+
 					@Override
 					public String[] headerValuesForEachCell() {
 						return headerValuesForCells;
@@ -795,7 +799,8 @@ public class DrawGraphs {
 					public int executionTimeInCell() {
 						return parameters.executionTimeInCell();
 					}
-				},line[6]);
+				}, line[6], fileNameForDataPoint);
+			}
 		}
 	}
 
@@ -1159,10 +1164,10 @@ public class DrawGraphs {
 		/** When experiment completes, the results are written into a file as text. We need to load it into the experiment result file in order to collate across experiments for the final output. */
 		@SuppressWarnings("unchecked")
 		@Override
-		public void parseTextLoadedFromExperimentResult(String[] line, String fileNameForErrorMessages, @SuppressWarnings("unused") ThreadResultID ignoredParameters, boolean onlyCheckItParses)
+		public void parseTextLoadedFromExperimentResult(String[] line, SGE_ExperimentRunner.FileNameToUse fileNameForDataPoint, @SuppressWarnings("unused") ThreadResultID ignoredParameters, boolean onlyCheckItParses)
 		{
 			if (line.length != 6)
-				throw new IllegalArgumentException("Experiment in "+fileNameForErrorMessages+" logged result with invalid number of values ("+line.length+") at "+ Arrays.toString(line));
+				throw new IllegalArgumentException("Experiment in "+fileNameForDataPoint.toFileName()+" logged result with invalid number of values ("+line.length+") at "+ Arrays.toString(line));
 			String argType = line[1], argStringValue = line[2], color=null, label = null;
 			if (!line[4].isEmpty())
 				color = line[4];// yes, colour is a string here because it is passed to the R tool as-is and Java color will confuse it.
@@ -1190,8 +1195,10 @@ public class DrawGraphs {
 				default:
 					throw new IllegalArgumentException("cannot load a value of type " + argType);
 			}
-			if (!onlyCheckItParses)
-				add((ELEM) argValue,yValue,color,label);
+			if (!onlyCheckItParses) {
+				SGE_ExperimentRunner.handleDataPointBeingOpened(fileNameForDataPoint);
+				add((ELEM) argValue, yValue, color, label);
+			}
 		}
 	}
 	

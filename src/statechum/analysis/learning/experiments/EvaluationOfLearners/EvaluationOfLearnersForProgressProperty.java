@@ -52,7 +52,7 @@ public class EvaluationOfLearnersForProgressProperty extends UASExperiment<Evalu
 
 	public EvaluationOfLearnersForProgressProperty(EvaluationOfLearnersParameters parameters, LearnerEvaluationConfiguration eval)
 	{
-		super(parameters,eval,directoryNamePrefix);
+		super(null,parameters,eval,directoryNamePrefix);
 	}
 
 	@Override
@@ -148,7 +148,8 @@ public class EvaluationOfLearnersForProgressProperty extends UASExperiment<Evalu
 		mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
 		mkDir(outPathPrefix+directoryExperimentResult);
-		final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
+		final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner =
+				new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), new SGE_ExperimentRunner.FileNameToUse(outPathPrefix,directoryExperimentResult), args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 		GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");

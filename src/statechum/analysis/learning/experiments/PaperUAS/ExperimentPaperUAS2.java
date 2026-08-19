@@ -1105,7 +1105,7 @@ public class ExperimentPaperUAS2
  		
  		public UASCaseStudy(PaperUASParameters parameters, LearnerGraph reference, String graphFileName,LearnerEvaluationConfiguration eval) 
  		{
-			super(parameters,new LearnerEvaluationConfiguration(eval),directoryNamePrefix);
+			super(null,parameters,new LearnerEvaluationConfiguration(eval),directoryNamePrefix);
 			referenceGraph = reference;
 			inputGraphFileName = graphFileName;
 		}
@@ -1215,7 +1215,8 @@ public class ExperimentPaperUAS2
     	Collection<List<Label>> testSetFull = LearningAlgorithms.buildEvaluationSet(referenceGraph), testSetNoDeprecatesWaypoint = LearningAlgorithms.buildEvaluationSet(referenceWithoutDeprecatesWaypoint);
     	paper.learnerInitConfiguration.testSet = testSetFull;
     	//Visualiser.updateFrame(referenceGraph, null);Visualiser.waitForKey();
- 		RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + directoryExperimentResult, args);
+ 		RunSubExperiment<PaperUASParameters,ExperimentResult<PaperUASParameters>> experimentRunner =
+				new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), new SGE_ExperimentRunner.FileNameToUse(outPathPrefix,directoryExperimentResult), args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 
 		System.out.println("transitions from each state: "+((double)referenceGraph.pathroutines.countEdges()/referenceGraph.transitionMatrix.size()));

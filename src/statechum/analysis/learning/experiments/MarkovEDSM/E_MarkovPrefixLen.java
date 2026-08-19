@@ -88,7 +88,7 @@ public class E_MarkovPrefixLen {
                                                         new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, inconsistencyOffset), penaliseMissingPaths, aveOrMax, divisor, 0, wlen);
                                                 parameters.markovParameters.setShuffleSeed(shuffleSeed);
                                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-                                                MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);
+                                                MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(learningGroup.outPathPrefix, parameters, ev);
                                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                                 learningGroup.experimentRunner.submitTask(learnerRunner);
                                             }

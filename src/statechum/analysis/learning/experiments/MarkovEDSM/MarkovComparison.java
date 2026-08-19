@@ -45,7 +45,8 @@ public class MarkovComparison {
 
             SGE_ExperimentRunner.configureCPUFreqNormalisation();
 
-            learningGroup.experimentRunner = new SGE_ExperimentRunner.RunSubExperiment<>(ExperimentRunner.getCpuNumber(), learningGroup.outPathPrefix + directoryExperimentResult, args);
+            learningGroup.experimentRunner = new SGE_ExperimentRunner.RunSubExperiment<>(ExperimentRunner.getCpuNumber(),
+                    new SGE_ExperimentRunner.FileNameToUse(learningGroup.outPathPrefix,directoryExperimentResult), args);
             learningGroup.phase = learningGroup.experimentRunner.getPhase();
             if (null == curPhase)
                 curPhase = learningGroup.phase;
@@ -145,7 +146,7 @@ public class MarkovComparison {
                                 parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets,
                                         new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, 0, 0, 0);
                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-                                MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev) {
+                                MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(learningGroup.outPathPrefix, parameters, ev) {
                                     @Override
                                     public ExperimentResult<MarkovLearningParameters> runexperiment() {
                                         throw new  UnsupportedOperationException("Here we intend to collate results only, not to run an experiment");

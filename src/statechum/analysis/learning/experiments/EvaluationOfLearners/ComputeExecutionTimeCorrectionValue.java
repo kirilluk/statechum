@@ -58,26 +58,24 @@ public class ComputeExecutionTimeCorrectionValue
 		String[] args={"COLLECT_RESULTS"};
 		
 		String referenceDirectory="6core_benchmark_learners";
-		
+		final String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS);
 		String directoryToUse[] = new String[]{referenceDirectory,directoryToCompareAgainst[0]};
-		String directoryFullPathCollection[] = new String[2];
+		SGE_ExperimentRunner.FileNameToUse directoryFullPathCollection[] = new SGE_ExperimentRunner.FileNameToUse[2];
 		for(int i=0;i<directoryToUse.length;++i)
 		{
-			String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS)+File.separator+directoryToUse[i];//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
-			directoryFullPathCollection[i] = outDir + File.separator;
-			if (!new File(directoryFullPathCollection[i]).isDirectory())
+			directoryFullPathCollection[i] = new SGE_ExperimentRunner.FileNameToUse(outDir,directoryToUse[i]);
+			if (!new File(directoryFullPathCollection[i].toFileName()).isDirectory())
 			{
 				System.out.println("directory "+directoryFullPathCollection[i]+" does not exist or is not a directory");return;
 			}
 		}
 		List<CSVExperimentResult> csvOfExperiment = new ArrayList<CSVExperimentResult>();
-		for(final String directoryFullPath:directoryFullPathCollection)
+		for(final SGE_ExperimentRunner.FileNameToUse directoryFullPath:directoryFullPathCollection)
 		{
-			final String directoryExperimentResult = "experimentresult"+File.separator;
-			
-			
-			final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner = 
-					new RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult>(ExperimentRunner.getCpuNumber(),directoryFullPath + directoryExperimentResult,args);
+			final String directoryExperimentResult = "experimentresult";
+			final RunSubExperiment<EvaluationOfLearnersParameters,EvaluationOfLearnersResult> experimentRunner =
+                    new RunSubExperiment<>(ExperimentRunner.getCpuNumber(),
+                            new SGE_ExperimentRunner.FileNameToUse(directoryFullPath.toFileName(), directoryExperimentResult), args);
 			SGE_ExperimentRunner.configureCPUFreqNormalisation();
 			LearnerEvaluationConfiguration eval = UASExperiment.constructLearnerInitConfiguration();
 			GlobalConfiguration.getConfiguration().setProperty(G_PROPERTIES.LINEARWARNINGS, "false");

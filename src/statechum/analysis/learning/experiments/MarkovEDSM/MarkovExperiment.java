@@ -20,7 +20,11 @@ package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
+import java.util.function.Consumer;
 
 import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
 import edu.uci.ics.jung.utils.UserData;
@@ -67,14 +71,14 @@ public class MarkovExperiment
 {
 	
 	public static final String directoryNamePrefix = "markov";
-	public static final String directoryExperimentResult = "experimentresult"+File.separator;
-	public static final String directoryExperimentStatistics = "experimentstatistics"+File.separator;
+	public static final String directoryExperimentResult = "experimentresult";
+	public static final String directoryExperimentStatistics = "experimentstatistics";
 
 	public static class MarkovLearnerRunner extends UASExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>
 	{
-		public MarkovLearnerRunner(MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf)
+		public MarkovLearnerRunner(String outDir, MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf)
 		{
-			super(parameters,cnf,directoryNamePrefix);
+			super(outDir,parameters,cnf,directoryNamePrefix);
 		}
 
 		/** Constructs a reference graph and assigns it to member variable <pre>referenceGraph</pre>. This is a separate method to permit overriding by subclasses.
@@ -311,7 +315,7 @@ public class MarkovExperiment
 			if (par.usePrintf) {
 				if (dataSample.actualLearner.differenceBCR.getValue() < 1.0 && dataSample.actualLearner.differenceStructural.getValue() == 1.0)
 				{
-					System.out.println("Graph with perfect DIFF but wrong initial state: "+SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir+"outcome-",par));
+					System.out.println("Graph with perfect DIFF but wrong initial state: "+SGE_ExperimentRunner.RunSubExperiment.constructFileName(graphFileNameDir,nameOUTCOME,par));
 					/*
 					CmpVertex newInit = LearningSupportRoutines.findBestMatchForInitialVertexInGraph(actualAutomaton,pta);// this cannot return null since the outcome of learning will have at least one state
 					DifferenceToReferenceDiff.estimationOfDifferenceDiffMeasure(referenceGraph, actualAutomaton, learnerInitConfiguration.config, 1);
@@ -493,9 +497,6 @@ public class MarkovExperiment
 		@Override
 		public void initComputation(LearnerGraph graph) {
 			super.initComputation(graph);
-			long runTime = LearningSupportRoutines.getThreadTime()-startTime;
-			long runTimeSec = Math.round(runTime / 1000000000.);
-//			System.out.println(runTimeSec+" - "+statistics.size());
 		}
 
 		/** The purpose of this method is to compute scores. For this very learner, scores are obtained by comparison of pairs against a
@@ -877,15 +878,78 @@ public class MarkovExperiment
         return invalidCellValues;
     }
 
+
+	public static class DatapointsCollection extends DrawGraphs.CSVExperimentResult {
+		protected final String outPathPrefix, copyToPrefix, moveToPrefix, description;
+		protected final boolean validateTransitionCover;
+
+		public DatapointsCollection(String outPathPrefix, String copyToPathPrefix, String moveToPathPrefix, String description,boolean validateTransitionCover) {
+			super(new File(outPathPrefix + File.separator + description+"-results.csv"), "results.csv");
+			this.outPathPrefix = outPathPrefix;
+			this.copyToPrefix = copyToPathPrefix;
+			this.moveToPrefix = moveToPathPrefix;
+			this.description = description;
+			this.validateTransitionCover = validateTransitionCover;
+
+			SGE_ExperimentRunner.setDataPointHandler(fileNameForDataPoint -> {
+                SGE_ExperimentRunner.FileNameToUse target = new SGE_ExperimentRunner.FileNameToUse(copyToPathPrefix,fileNameForDataPoint.fileName);
+//                System.out.println(FileSystems.getDefault().getPath(fileNameForDataPoint.toFileName())+" - copy -> "+FileSystems.getDefault().getPath(target.toFileName()));
+                /*
+                new File(target.toFileName()).getParentFile().mkdirs();
+                try {
+                    Files.copy(FileSystems.getDefault().getPath(fileNameForDataPoint.toFileName()),FileSystems.getDefault().getPath(target.toFileName()));
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to move "+fileNameForDataPoint.toFileName()+
+                            " to "+target.toFileName(),e);
+                }
+                 */
+            });
+		}
+
+		@Override
+		protected void addInternal(PairQualityLearner.ThreadResultID id, String text, SGE_ExperimentRunner.FileNameToUse fileNameForDataPoint) {
+			super.addInternal(id, text, fileNameForDataPoint);
+			String Y = rowColumnText.get(id.getRowID()).get(id.getColumnID());
+			// We do not yet have knowledge which cells may be invalid when results are being populated. The only cell we want is coverage and it is definitely valid.
+			MarkovLearningParameters.ColumnParseOutcome column = parseMarkovParametersColumnFromCSV(id.getColumnID(),null);
+			if (obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100) {
+				SGE_ExperimentRunner.FileNameToUse target = new SGE_ExperimentRunner.FileNameToUse(moveToPrefix,fileNameForDataPoint.fileName);
+				System.out.println(FileSystems.getDefault().getPath(fileNameForDataPoint.toFileName())+" - move -> "+FileSystems.getDefault().getPath(target.toFileName()));
+//				new File(target.toFileName()).getParentFile().mkdirs();
+				/*
+                try {
+                    Files.move(FileSystems.getDefault().getPath(fileNameForDataPoint.toFileName()),FileSystems.getDefault().getPath(target.toFileName()));
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to move "+fileNameForDataPoint.toFileName()+
+							" to "+target.toFileName(),e);
+                }
+
+				 */
+            }
+
+		}
+	}
+
+
 	public static void checkFullTransitionCoverageAttained(DrawGraphs.CSVExperimentResult resultCSV, Set<RESULT_VALUES>  validityOfCells) {
+		Map<String,String> experimentToWarning = new TreeMap<>();
 		for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-			MarkovLearningParameters rowHeader = parseMarkovParametersRowFromCSV(rowEntry.getKey());
 				getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
 						(column, columnText, Y) -> {
-							if (obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100)
-								throw new IllegalArgumentException("Experiment "+rowEntry.getKey()+" transition coverage is "+obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column)+", it preferrably should be 100");
+							if (obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100) {
+								String warningMessage = "Experiment " + rowEntry.getKey() + " transition coverage is " + obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED, column) + ", it preferrably should be 100";
+								if (experimentToWarning.containsKey(rowEntry.getKey())) {
+									if (!experimentToWarning.get(rowEntry.getKey()).equals(warningMessage))
+										throw new IllegalArgumentException("Experiment " + rowEntry.getKey() + " has different error message values recorded,\n" + experimentToWarning.get(rowEntry.getKey()) + "\nand\n" + warningMessage);
+								}
+								else
+									experimentToWarning.put(rowEntry.getKey(), warningMessage);
+							}
 						});
 		}
+
+		for(String values:experimentToWarning.values())
+			System.out.println(values);
 	}
 
 	public static ColumnAndValue getValueFromMapGivenSelector(Map<String,String> map, ColumnSelector regexp, Set<RESULT_VALUES> invalidCellValues)
@@ -1042,6 +1106,8 @@ public class MarkovExperiment
 									}
 								}
 							} else
+								// This is the special case where two values of the same experiment result are compared,
+								// as opposed to two different experiments (columns) for the same set of traces and reference graph.
 								lambda.processPair(columnX,X, columnX,X);
 						}
 					}
@@ -1210,7 +1276,15 @@ public class MarkovExperiment
 
 		LearnerEvaluationConfiguration eval;
 
+		/** Directory where output (data points) will be stored. */
 		String outPathPrefix;
+		/** Directory where a copy of the data points used in experiments will be copied on request.
+		 * The idea is to only keep the data points used and avoid 'stale' ones that could have
+		 * been computed by a different version of the codebase.
+		 */
+		String copyToPrefix;
+		/** Data points that are deemed worth recomputing are moved to the directory specified here. */
+		String moveToPrefix;
 
 		statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum phase;
 	}
@@ -1236,7 +1310,10 @@ public class MarkovExperiment
 
 		LearningExperimentGroupParameters learningGroup = new LearningExperimentGroupParameters();
 
-		learningGroup.outPathPrefix = outDir + File.separator;
+		learningGroup.outPathPrefix = outDir;
+		learningGroup.copyToPrefix = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS)+File.separator+"copy_of_markov";
+		learningGroup.moveToPrefix = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS)+File.separator+"possibly_recompute_markov";
+
 		learningGroup.eval = UASExperiment.constructLearnerInitConfiguration();
 		learningGroup.eval.config.setTransitionMatrixImplType(STATETREE.STATETREE_LINKEDHASH);// small automata hence no need for array STATETREE.STATETREE_ARRAY);
 		//STATETREE_ARRAY);
@@ -1246,19 +1323,20 @@ public class MarkovExperiment
 
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 
-		learningGroup.experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), learningGroup.outPathPrefix + directoryExperimentResult, args);
+		learningGroup.experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(),
+				new SGE_ExperimentRunner.FileNameToUse(learningGroup.outPathPrefix,directoryExperimentResult), args);
 		learningGroup.phase = learningGroup.experimentRunner.getPhase();
 
 		//final double alphabetMultiplier=2;
 
 		try
 		{
-			E_MarkovCaseStudies.runExperiment(learningGroup);
+//			E_MarkovCaseStudies.runExperiment(learningGroup);
 //			E_MarkovTempFanMonitor600.runExperiment(learningGroup);
 //			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			E_MarkovCentre.runExperiment(learningGroup);
-//			E_MarkovAlphabet.runExperiment(learningGroup);
+			E_MarkovAlphabet.runExperiment(learningGroup);
 //			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			E_MarkovTraceConstSize.runExperiment(learningGroup);
 //			E_MarkovPrefixLen.runExperiment(learningGroup);

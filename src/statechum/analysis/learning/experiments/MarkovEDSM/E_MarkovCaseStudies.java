@@ -30,6 +30,8 @@ import static statechum.analysis.learning.rpnicore.FsmParserDot.HOW_TO_FIND_INIT
 public class E_MarkovCaseStudies {
     public static final String caseStudyFanTempMonitorSingleTrace = "FanTempMonitor_T";
     public static final String caseStudyFanTempMonitor = "FanTempMonitor_A";
+
+    public static final String description = "casestudies";
     /**
      * Orders case studies - outcome directories use numbers that refer to specific positions in this list hence there should be no renumbering.
      */
@@ -128,14 +130,14 @@ public class E_MarkovCaseStudies {
 
         @Override
         public String getSubExperimentName() {
-            return "casestudies";
+            return description;
         }
     }
 
     public static class MarkovLearnerRunnerForCaseStudies extends MarkovLearnerRunner {
 
-        public MarkovLearnerRunnerForCaseStudies(MarkovLearningBaselineParameters parameters, ProgressDecorator.LearnerEvaluationConfiguration ev) {
-            super(parameters, ev);
+        public MarkovLearnerRunnerForCaseStudies(String outDir, MarkovLearningBaselineParameters parameters, ProgressDecorator.LearnerEvaluationConfiguration ev) {
+            super(outDir, parameters, ev);
         }
 
         /**
@@ -419,7 +421,7 @@ public class E_MarkovCaseStudies {
                                             parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                             parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
 //                                            parameters.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP,0.6, 10);
-                                            MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(parameters, ev);
+                                            MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(learningGroup.outPathPrefix, parameters, ev);
                                             learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
 
                                             // Important: this is the special case intended to avoid running experiments that do not deliver particularly good results
@@ -461,17 +463,17 @@ public class E_MarkovCaseStudies {
                 }
 
                 final RBoxPlot<String> gr_PerformanceOfLearners = new RBoxPlot<>("", "Structural Score",
-                        new File(learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_learner_structural.pdf"));
+                        new File(learningGroup.outPathPrefix + description + "_" + entryForCaseStudy.getValue().name + "_learner_structural.pdf"));
                 gr_PerformanceOfLearners.setupForTwoLineXLabels();
                 gr_PerformanceOfLearners.setMargins(3, 3, 0.2, 0.2);
 
                 final RBoxPlot<String> gr_RuntimeOfLearners = new RBoxPlot<>("", "Runtime",
-                        new File(learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_learner_runtime.pdf"));
+                        new File(learningGroup.outPathPrefix + description + "_" + entryForCaseStudy.getValue().name + "_learner_runtime.pdf"));
                 gr_RuntimeOfLearners.setupForTwoLineXLabels();
                 gr_RuntimeOfLearners.setMargins(3, 3, 0.2, 0.2);
 
                 final RBoxPlot<String> gr_SuccessPercentage = new RBoxPlot<>("", "%% success",
-                        new File(learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_learner_successpercentage.pdf"));
+                        new File(learningGroup.outPathPrefix + description + "_" + entryForCaseStudy.getValue().name + "_learner_successpercentage.pdf"));
                 gr_SuccessPercentage.setupForTwoLineXLabels();
                 gr_SuccessPercentage.setMargins(3, 3, 0.2, 0.2);
 
@@ -540,7 +542,7 @@ public class E_MarkovCaseStudies {
                                 for (Map.Entry<ResultsXAxis, AtomicInteger> entry : countsSuccess.entrySet())
                                     gr_SuccessPercentage.add(entry.getKey().toString(), (double) Math.round(100. * (double) entry.getValue().get() / countsTotal.get(entry.getKey()).intValue()));
 
-                                String plot_filename_prefix = learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_" + traces_lengthmult.firstElem + "_" +
+                                String plot_filename_prefix = learningGroup.outPathPrefix + description + "_" + entryForCaseStudy.getValue().name + "_" + traces_lengthmult.firstElem + "_" +
                                         (useCentre ? "centre" : "no_cnt") + "_cl=" + chunkSizeToEvaluate;
 
                                 final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
@@ -673,7 +675,7 @@ public class E_MarkovCaseStudies {
                 gr_SuccessPercentage.setOrderingOfLabels(orderingXaxis);
                 gr_SuccessPercentage.reportResults(learningGroup.gr);
             }
-            writeTEX(new File(learningGroup.outPathPrefix + "casestudies_statistics.tex"), outputStatistics, true);
+            writeTEX(new File(learningGroup.outPathPrefix + description+"_statistics.tex"), outputStatistics, true);
         }
     }
 

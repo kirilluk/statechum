@@ -3,6 +3,7 @@ package statechum.analysis.learning.experiments.MarkovEDSM;
 import statechum.Pair;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
+import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator;
 
@@ -33,7 +34,7 @@ public class E_MarkovAlphabet {
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0};//0,1,2,3
-        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + description+"-results.csv"), "results.csv");
+        final CSVExperimentResult resultCSV = new DatapointsCollection(learningGroup.outPathPrefix, learningGroup.copyToPrefix, learningGroup.moveToPrefix, description, true);
         boolean aveOrMax = true;// average divide by the divisor
         boolean penaliseMissingPaths = true;
         boolean pathsOrSets = true;
@@ -70,15 +71,16 @@ public class E_MarkovAlphabet {
                                                     parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets,
                                                             new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, divisor, 0, wlen);
                                                     parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-                                                    MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(parameters, ev);
+                                                    MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(learningGroup.outPathPrefix,parameters, ev);
                                                     learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
                                                     learningGroup.experimentRunner.submitTask(learnerRunner);
                                                 }
                         }
                     }
 
-                learningGroup.experimentRunner.collectOutcomeOfExperiments(constructResultsCollector(resultCSV));
             }
+
+        learningGroup.experimentRunner.collectOutcomeOfExperiments(constructResultsCollector(resultCSV));
 
         final String numberFormat = "%-3.1f";
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {

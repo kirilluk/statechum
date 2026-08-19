@@ -70,7 +70,9 @@ public class LearnUsingClassifier {
 		String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS)+File.separator+PairQualityLearner.directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
 		UASExperiment.mkDir(outDir);
 		String outPathPrefix = outDir + File.separator;
-		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner = new RunSubExperiment<>(ExperimentRunner.getCpuNumber(), outPathPrefix + PairQualityLearner.directoryExperimentResult, args);
+		RunSubExperiment<PairQualityParameters,ExperimentResult<PairQualityParameters>> experimentRunner =
+				new RunSubExperiment<>(ExperimentRunner.getCpuNumber(),
+						new SGE_ExperimentRunner.FileNameToUse(outPathPrefix,PairQualityLearner.directoryExperimentResult), args);
 		SGE_ExperimentRunner.configureCPUFreqNormalisation();
 		MarkovParameters markovParameters = PairQualityLearner.defaultMarkovParameters();
 		final int samplesPerFSM = 4;

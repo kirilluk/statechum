@@ -1449,7 +1449,7 @@ public class TestDrawGraphs {
 		final ScatterPlot plot = new ScatterPlot("x axis", "y axis", new File("plotName"));
 
 		plot.add(0, 0, "red");plot.add(1, 0, "red");plot.add(0, 1, "red");plot.add(1, 1, "red");
-		Assert.assertEquals(arrayToString(Collections.singletonList("plot(c(0.0,1.0,0.0,1.0),c(0.0,0.0,1.0,1.0),col=c(\"red\",\"red\",\"red\",\"red\"),type = \"p\",xlab=\"x axis\",ylab=\"y axis\",axes=TRUE, frame.plot=TRUE)")),arrayToString(plot.getDrawingCommand()));
+		Assert.assertEquals(arrayToString(Arrays.asList("curMar=par()$mar","par(mar=c(5.0,4.0,4.0,2.0))","x_values <- c(0.0,1.0,0.0,1.0)","y_values <- c(0.0,0.0,1.0,1.0)","col_values <- c(\"red\",\"red\",\"red\",\"red\")","plot(x_values,y_values,col=col_values,type = \"p\",xlab=\"\",ylab=\"\",axes=TRUE, frame.plot=TRUE)","title(xlab=\"x axis\")","title(ylab=\"y axis\")","par(mar=curMar)")),arrayToString(plot.getDrawingCommand()));
 	}
 	
 	@Test
@@ -1459,7 +1459,7 @@ public class TestDrawGraphs {
 		
 		plot.add(0, 0, "red");plot.add(1, 0, "red");plot.add(0, 1, "red");plot.add(1, 1, "red");
 		plot.add(0, 0.5, "blue");plot.add(1.5, 0, "green");plot.add(0, 1.5, "blue");plot.add(1.2, 1, "red");
-		Assert.assertEquals(arrayToString(Arrays.asList("plot(c(0.0,0.0,1.5,0.0,1.0,0.0,1.0,1.2),c(0.5,1.5,0.0,0.0,0.0,1.0,1.0,1.0),col=c(\"blue\",\"blue\",\"green\",\"red\",\"red\",\"red\",\"red\",\"red\"),type = \"p\",xlab=\"x axis\",ylab=\"y axis\",axes=TRUE, frame.plot=TRUE)")),arrayToString(plot.getDrawingCommand()));
+		Assert.assertEquals(arrayToString(Arrays.asList("curMar=par()$mar","par(mar=c(5.0,4.0,4.0,2.0))","x_values <- c(0.0,0.0,1.5,0.0,1.0,0.0,1.0,1.2)","y_values <- c(0.5,1.5,0.0,0.0,0.0,1.0,1.0,1.0)","col_values <- c(\"blue\",\"blue\",\"green\",\"red\",\"red\",\"red\",\"red\",\"red\")","plot(x_values,y_values,col=col_values,type = \"p\",xlab=\"\",ylab=\"\",axes=TRUE, frame.plot=TRUE)","title(xlab=\"x axis\")","title(ylab=\"y axis\")","par(mar=curMar)")),arrayToString(plot.getDrawingCommand()));
 	}
 
 	@Test
@@ -1477,7 +1477,7 @@ public class TestDrawGraphs {
 			}
 			throw new IllegalArgumentException("Unknown pch");
 		});
-		Assert.assertEquals(arrayToString(Arrays.asList("plot(c(0.0,1.0,0.0,1.0,1.2,0.0,0.0,1.5),c(0.0,0.0,1.0,1.0,1.0,0.5,1.5,0.0),pch=c(1,1,1,1,1,2,2,3),col=c(\"red\",\"red\",\"red\",\"red\",\"red\",\"blue\",\"blue\",\"green\"),type = \"p\",xlab=\"x axis\",ylab=\"y axis\",axes=TRUE, frame.plot=TRUE)")),arrayToString(plot.getDrawingCommand()));
+		Assert.assertEquals(arrayToString(Arrays.asList("curMar=par()$mar","par(mar=c(5.0,4.0,4.0,2.0))","x_values <- c(0.0,1.0,0.0,1.0,1.2,0.0,0.0,1.5)","y_values <- c(0.0,0.0,1.0,1.0,1.0,0.5,1.5,0.0)","pch_values <- c(1,1,1,1,1,2,2,3)","col_values <- c(\"red\",\"red\",\"red\",\"red\",\"red\",\"blue\",\"blue\",\"green\")","plot(x_values,y_values,col=col_values,pch=pch_values,type = \"p\",xlab=\"\",ylab=\"\",axes=TRUE, frame.plot=TRUE)","title(xlab=\"x axis\")","title(ylab=\"y axis\")","par(mar=curMar)")),arrayToString(plot.getDrawingCommand()));
 	}
 
 	@Test

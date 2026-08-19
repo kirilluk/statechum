@@ -241,6 +241,9 @@ public class E_MarkovScoreVsInconsistency {
                             valuesForBCRKindEntry.getKey().secondElem + "_"+kindOfBcr_Values.getKey()+"(bcr="+kindOfBcr_Values.getValue().bcr+","+kindOfBcr_Values.getValue().description+").pdf";
                     ScatterPlot gr_ScoreVsInconsistencyEachLearn = new ScatterPlot("Inconsistency", "Score",
                             new File(learningGroup.outPathPrefix + File.separator + suffix));
+                    gr_ScoreVsInconsistencyEachLearn.setMargins(3,3,0.5,0.2);
+                    gr_ScoreVsInconsistencyEachLearn.setXLine(2);
+                    gr_ScoreVsInconsistencyEachLearn.setYLine(2);
                     gr_ScoreVsInconsistencyEachLearn.interpretColourAsPch(pch->pch.equals(pchValid)?"blue":"red");
                     for(PairQualityLearner.PairScoreValue pairScores:kindOfBcr_Values.getValue().values) {
                         long score = pairScores.score, inconsistency = pairScores.inconsistency;

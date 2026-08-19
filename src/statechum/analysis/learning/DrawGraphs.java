@@ -1054,6 +1054,21 @@ public class DrawGraphs {
 	 */
 	public static abstract class RExperimentResult<ELEM extends Comparable<? super ELEM>> implements SGEExperimentResult
 	{
+		protected final String xAxis,yAxis;
+
+		// Displacement of axis
+		protected double xLine=-1,yLine=-1;
+
+
+		public void setXLine(double value) {
+			xLine = value;
+		}
+
+		public void setYLine(double value) {
+			yLine = value;
+		}
+
+
 		protected final File file;
 
 		/** Number of entries in the graph. */
@@ -1067,9 +1082,9 @@ public class DrawGraphs {
 			extraCommands.add(cmd);
 		}
 
-		public RExperimentResult(File name)
+		public RExperimentResult(String xAxis, String yAxis, File name)
 		{
-			file=name;
+			file=name;this.xAxis=xAxis;this.yAxis=yAxis;
 		}
 
 		protected ELEM xMin = null, xMax = null;
@@ -1088,6 +1103,16 @@ public class DrawGraphs {
 		public int size()
 		{
 			return size;
+		}
+
+		// Default values of the margins for the graph, thanks to https://stackoverflow.com/questions/5506046/how-do-i-put-more-space-between-the-axis-labels-and-axis-title-in-an-r-boxplot
+		protected double mBot=5,mLeft=4,mTop=4,mRight=2;
+
+		public void setMargins(double bot, double left, double top, double right) {
+			mBot = bot;
+			mLeft = left;
+			mTop = top;
+			mRight = right;
 		}
 
 		/** Adds key-value pair, additionally permitting one to set both colour and a label for this
@@ -1187,11 +1212,11 @@ public class DrawGraphs {
 	 */
 	public static class ScatterPlot extends RExperimentResult<Double>
 	{
-		protected final String xAxis,yAxis;
+
 		
 		public ScatterPlot(String x, String y, File name) 
 		{
-			super(name);xAxis = x;yAxis = y;
+			super(x, y,name);
 		}
 
 		/** Maps colour to scatterplot values. */
@@ -1264,38 +1289,54 @@ public class DrawGraphs {
 		/** Returns a command to draw a graph in R. */
 		public List<String> getDrawingCommand() 
 		{
-			List<String> outcome = new ArrayList<>();
 			if (values.isEmpty()) throw new IllegalArgumentException("cannot plot an empty graph");
-			
+			List<String> outcome = new ArrayList<>();
+			outcome.add("curMar=par()$mar");
+			outcome.add("par(mar=c("+mBot+","+mLeft+","+mTop+","+mRight+"))");
+
 			// plot(as.vector(t[[1]]),as.vector(t[[2]]) , type = "p",col="blue",xlim=range(0,20), ylim=range(0, 20))
-			StringBuilder result = new StringBuilder();result.append("plot(c(");
-			boolean startVector = true;
-			for(Entry<String,Collection<DataPoint> > entry:values.entrySet())
-				if (!entry.getValue().isEmpty()) {
-					for (DataPoint d : entry.getValue()) {
-						if (!startVector) result.append(",");
-						else startVector = false;
+			{
+				StringBuilder result = new StringBuilder();
+				result.append("x_values <- c(");
 
-						result.append(d.x);
+				boolean startVector = true;
+				for (Entry<String, Collection<DataPoint>> entry : values.entrySet())
+					if (!entry.getValue().isEmpty()) {
+						for (DataPoint d : entry.getValue()) {
+							if (!startVector) result.append(",");
+							else startVector = false;
+
+							result.append(d.x);
+						}
 					}
-				}
-			result.append("),c(");
+				result.append(")");
+				outcome.add(result.toString());
+			}
 
-			startVector = true;
-			for(Entry<String,Collection<DataPoint> > entry:values.entrySet())
-				if (!entry.getValue().isEmpty()) {
-					for (DataPoint d : entry.getValue()) {
-						if (!startVector) result.append(",");
-						else startVector = false;
+			{
+				StringBuilder result = new StringBuilder();
+				result.append("y_values <- c(");
 
-						result.append(d.y);
+				boolean startVector = true;
+				for (Entry<String, Collection<DataPoint>> entry : values.entrySet())
+					if (!entry.getValue().isEmpty()) {
+						for (DataPoint d : entry.getValue()) {
+							if (!startVector) result.append(",");
+							else startVector = false;
+
+							result.append(d.y);
+						}
 					}
-				}
 
-			result.append(")");
+				result.append(")");
+				outcome.add(result.toString());
+			}
+
+
 			if (pchToColour != null) {// interpret provided values as pch values and convert them to colours later
-				result.append(",pch=c(");
-				startVector = true;
+				StringBuilder result = new StringBuilder();
+				result.append("pch_values <- c(");
+				boolean startVector = true;
 				for (Entry<String, Collection<DataPoint>> entry : values.entrySet())
 					if (!entry.getValue().isEmpty()) {
 						for (DataPoint ignored : entry.getValue()) {
@@ -1305,25 +1346,45 @@ public class DrawGraphs {
 						}
 					}
 				result.append(")");
+				outcome.add(result.toString());
 			}
-			result.append(",col=c(");
-			startVector = true;
-			for(Entry<String,Collection<DataPoint> > entry:values.entrySet())
-				if (!entry.getValue().isEmpty()) {
-					for(DataPoint ignored :entry.getValue())
-					{
-						if (!startVector) result.append(",");else startVector=false;
-						result.append("\"");
-						result.append(pchToColour == null? entry.getKey():pchToColour.apply(entry.getKey()));
-						result.append("\"");
+			{
+				StringBuilder result = new StringBuilder();
+				result.append("col_values <- c(");
+				boolean startVector = true;
+				for (Entry<String, Collection<DataPoint>> entry : values.entrySet())
+					if (!entry.getValue().isEmpty()) {
+						for (DataPoint ignored : entry.getValue()) {
+							if (!startVector) result.append(",");
+							else startVector = false;
+							result.append("\"");
+							result.append(pchToColour == null ? entry.getKey() : pchToColour.apply(entry.getKey()));
+							result.append("\"");
+						}
 					}
-				}
-			result.append("),type = \"p\"");
-			result.append(",xlab=\"");result.append(xAxis);result.append("\",ylab=\"");result.append(yAxis);
-			// thanks to http://stackoverflow.com/questions/1154242/getting-rid-of-axis-values-in-r-plot for the way to remove axes.
-			result.append("\",axes=TRUE, frame.plot=TRUE)");
-			outcome.add(result.toString());
+				result.append(")");
+				outcome.add(result.toString());
+			}
 
+			{
+				StringBuilder plot = new StringBuilder();
+				plot.append("plot(x_values,y_values,col=col_values");
+				if (pchToColour != null)
+					plot.append(",pch=pch_values");
+				plot.append(",type = \"p\",xlab=\"\",ylab=\"\"");
+				// thanks to http://stackoverflow.com/questions/1154242/getting-rid-of-axis-values-in-r-plot for the way to remove axes.
+				plot.append(",axes=TRUE, frame.plot=TRUE)");
+				outcome.add(plot.toString());
+			}
+			if (xAxis != null && !xAxis.isEmpty()) {
+				outcome.add("title(xlab=\""+xAxis+"\""+(xLine >= 0?(",line="+xLine):"")+")");
+			}
+			if (yAxis != null && !yAxis.isEmpty()) {
+				outcome.add("title(ylab=\""+yAxis+"\""+(yLine >= 0?(",line="+yLine):"")+")");
+			}
+			outcome.add("par(mar=curMar)");
+//			System.out.println(file);
+//			System.out.println(outcome);
 			return outcome;
 		}
 		
@@ -1331,11 +1392,6 @@ public class DrawGraphs {
 	
 	public static abstract class RGraph<ELEM extends Comparable<? super ELEM>> extends RExperimentResult<ELEM>
 	{
-		protected final String xAxis,yAxis;
-		// Displacement of axis
-		protected double xLine=-1,yLine=-1;
-		// Default values of the margins for the graph, thanks to https://stackoverflow.com/questions/5506046/how-do-i-put-more-space-between-the-axis-labels-and-axis-title-in-an-r-boxplot
-		protected double mBot=5,mLeft=4,mTop=4,mRight=2;
 		protected double mgpTitle =3, mgpLabelX =1,mgpLabelY =1,mgpAxis=0;
 		protected int las = 1;
 
@@ -1348,22 +1404,7 @@ public class DrawGraphs {
 
 		public RGraph(String x, String y, File name)
 		{
-			super(name);xAxis = x;yAxis = y;
-		}
-
-		public void setXLine(double value) {
-			xLine = value;
-		}
-
-		public void setYLine(double value) {
-			yLine = value;
-		}
-
-		public void setMargins(double bot, double left, double top, double right) {
-			mBot = bot;
-			mLeft = left;
-			mTop = top;
-			mRight = right;
+			super(x,y,name);
 		}
 
 		public void setMgpLabelX(double label) {
@@ -1553,7 +1594,7 @@ public class DrawGraphs {
 
 		public RStatisticalAnalysis(String name, String extra, File fileName)
 		{
-			super(fileName);testName = name;extraArg = extra;
+			super(null,null,fileName);testName = name;extraArg = extra;
 		}
 
 		final List<Double> valuesA = new ArrayList<>(1000);
@@ -2041,6 +2082,7 @@ public class DrawGraphs {
 		public List<String> getDrawingCommand()
 		{
 			computeDataSet();
+			// thanks to http://stackoverflow.com/questions/1154242/getting-rid-of-axis-values-in-r-plot for the way to remove axes.
 			return constructSequenceOfDrawingCommands(null, ()->Collections.singletonList(datasetToString(plotType,data, names,
 					Arrays.asList("xlab=\"\",ylab=\"\""+(labelsAuto == XLABELS_R?"":",xaxt=\"n\""),
 							"yaxt=\"n\"","mar=c("+mBot+","+mLeft+","+mTop+","+mRight+")",otherOptions()))));

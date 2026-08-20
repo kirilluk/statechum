@@ -1357,13 +1357,13 @@ public class MarkovExperiment
 //			E_MarkovCaseStudies.runExperiment(learningGroup);
 //			E_MarkovTempFanMonitor600.runExperiment(learningGroup);
 //			E_MarkovBaselineLearn.runExperiment(learningGroup);
-//			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
-//			E_MarkovCentre.runExperiment(learningGroup);
-			E_MarkovAlphabet.runExperiment(learningGroup);
-//			E_MarkovTraceLenMult.runExperiment(learningGroup);
-//			E_MarkovTraceConstSize.runExperiment(learningGroup);
-//			E_MarkovPrefixLen.runExperiment(learningGroup);
-//			E_MarkovTraceNum.runExperiment(learningGroup);
+			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
+			E_MarkovCentre.runExperiment(learningGroup);
+//			E_MarkovAlphabet.runExperiment(learningGroup);
+			E_MarkovTraceLenMult.runExperiment(learningGroup);
+			E_MarkovTraceConstSize.runExperiment(learningGroup);
+			E_MarkovPrefixLen.runExperiment(learningGroup);
+			E_MarkovTraceNum.runExperiment(learningGroup);
 //			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		}
 		catch(Exception ex)

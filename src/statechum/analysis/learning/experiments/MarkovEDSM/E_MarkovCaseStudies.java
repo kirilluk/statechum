@@ -366,7 +366,7 @@ public class E_MarkovCaseStudies {
 
     public static void runExperiment(LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0, 1};
-        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + "casestudies-results.csv"), "results.csv");
+        final DatapointsCollection resultCSV = new DatapointsCollection(learningGroup.outPathPrefix, learningGroup.copyToPrefix, learningGroup.moveToPrefix, description, true);
         boolean aveOrMax = true;// average divide by the divisor
         boolean pathsOrSets = true, penaliseMissingPaths = true;
 //        String pathToCaseStudyFiles = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_CASESTUDIES);

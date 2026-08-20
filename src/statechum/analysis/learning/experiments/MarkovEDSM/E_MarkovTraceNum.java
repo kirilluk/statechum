@@ -30,7 +30,7 @@ public class E_MarkovTraceNum {
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0};//0,1,2,3
-        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + description+"-results.csv"), "results.csv");
+        final DatapointsCollection resultCSV = new DatapointsCollection(learningGroup.outPathPrefix, learningGroup.copyToPrefix, learningGroup.moveToPrefix, description, true);
         boolean aveOrMax = true;// average divide by the divisor
         boolean penaliseMissingPaths = true;
         boolean pathsOrSets = true;
@@ -81,7 +81,7 @@ public class E_MarkovTraceNum {
             Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
             for (int states : learningGroup.statesToUse) {
                 final RBoxPlot<String> gr_BestStructuralForTraceNumber = new RBoxPlot<>("Trace number", "Structural Score, EDSM-Markov",
-                        new File(learningGroup.outPathPrefix + description+"_"+states + "_tracenum_structural.pdf"));
+                        new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_tracenum_structural.pdf"));
                 gr_BestStructuralForTraceNumber.setupForTwoLineXLabels();
 
                 final Map<Integer, SquareBagPlot> gr_StructuralDiffBestMap = new TreeMap<>();
@@ -96,7 +96,7 @@ public class E_MarkovTraceNum {
                             final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
                             gr_StructuralDiffBestMap.computeIfAbsent(traceQuantityToUse, aDouble ->
                                     new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov",
-                                            new File(learningGroup.outPathPrefix + description + "_" + states + "_tracenum_num=" + traceQuantityToUse + "_VH_structuraldiffBest.pdf"), 0, 1, true));
+                                            new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_tracenum_num=" + traceQuantityToUse + "_VH_structuraldiffBest.pdf"), 0, 1, true));
                         }
                     }
 
@@ -136,6 +136,8 @@ public class E_MarkovTraceNum {
                 }
                 gr_BestStructuralForTraceNumber.reportResults(learningGroup.gr);
             }
+
+//            resultCSV.moveFiles();
         }
     }
 }

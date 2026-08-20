@@ -16,8 +16,8 @@ import java.io.*;
 import java.util.*;
 
 import static statechum.analysis.learning.DrawGraphs.*;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.constructResultsCollector;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.directoryExperimentStatistics;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
+import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.checkFullTransitionCoverageAttained;
 import static statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.sanitiseFileName;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
@@ -66,7 +66,7 @@ public class E_MarkovScoreVsInconsistency {
 
     }
     public static CSVExperimentResult runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) throws FileNotFoundException {
-        final CSVExperimentResult resultCSV = new CSVExperimentResult(new File(learningGroup.outPathPrefix + description+"-results.csv"), "results.csv");
+        final DatapointsCollection resultCSV = new DatapointsCollection(learningGroup.outPathPrefix, learningGroup.copyToPrefix, learningGroup.moveToPrefix, description, true);
         boolean aveOrMax = true;// average divide by the divisor
 
         boolean [] penaliseMissingPathsValues = {true};//,false};
@@ -120,7 +120,8 @@ public class E_MarkovScoreVsInconsistency {
                     pairs.add(new OtpErlangTuple(new OtpErlangObject[]{
                             new OtpErlangBoolean(value.validMerge),new OtpErlangLong(value.score),new OtpErlangLong(value.inconsistency)}));
 //                System.out.println("Pairs : "+pairs.size()+" runtime: "+Math.round(data.executionTime / 1000000000.));
-                String statisticsFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(new SGE_ExperimentRunner.FileNameToUse(learningGroup.outPathPrefix, directoryExperimentStatistics+ File.separator + learnStatistics),result.parameters).toFileName();
+                String statisticsFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(
+                        new SGE_ExperimentRunner.FileNameToUse(learningGroup.outPathPrefix, directoryExperimentStatistics),learnStatistics,result.parameters).toFileName();
                 try (FileWriter statisticsFile = new FileWriter(statisticsFileName)) {
                     statisticsFile.write(ErlangLabel.dumpErlangObject(new OtpErlangList(pairs.toArray(new OtpErlangObject[0]))));
                 }
@@ -133,7 +134,8 @@ public class E_MarkovScoreVsInconsistency {
         });
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
-            Map<String,ScatterPlot> pathToScatterPlot = new HashMap<>();
+            Set<MarkovExperiment.RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
+
             Map<Integer,double []> chunkLenToWeights = new TreeMap<>();
             chunkLenToWeights.put(2,new double[]{1.0,2.0,3.0});
             chunkLenToWeights.put(3,new double[]{0.5,1.0,2.0});
@@ -179,11 +181,13 @@ public class E_MarkovScoreVsInconsistency {
                                             new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, 0, 0, 0);
                                     parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                     SGE_ExperimentRunner.FileNameToUse statisticsFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(
-                                            new SGE_ExperimentRunner.FileNameToUse(learningGroup.outPathPrefix, directoryExperimentStatistics + File.separator + learnStatistics),parameters);
+                                            new SGE_ExperimentRunner.FileNameToUse(learningGroup.outPathPrefix, directoryExperimentStatistics),learnStatistics,parameters);
                                     String fileContents = null;
                                     try (BufferedReader statisticsFile = new BufferedReader(new FileReader(statisticsFileName.toFileName()))) {
                                         fileContents = statisticsFile.readLine();
                                     } catch (IOException e) {
+                                        if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE)
+                                            throw new IllegalArgumentException("Failed to read file "+statisticsFileName.toFileName());
                                         // ignore error, we'll know that file was not read because fileContents will be null.
                                     }
                                     if (fileContents != null) {

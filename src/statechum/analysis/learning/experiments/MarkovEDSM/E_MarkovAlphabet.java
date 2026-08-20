@@ -87,7 +87,7 @@ public class E_MarkovAlphabet {
             Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
             for (int states : learningGroup.statesToUse) {
                 final RBoxPlot<String> gr_BestStructuralForAlphabet = new RBoxPlot<>("Alphabet multiplier and learner", "Structural Score, EDSM-Markov",
-                        new File(learningGroup.outPathPrefix + description + "_" + states + "_alphabetmult_structural.pdf"));
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_alphabetmult_structural.pdf"));
 //                gr_BestStructuralForAlphabet.setOtherOptions("las=1");
                 gr_BestStructuralForAlphabet.setXLine(3);
                 gr_BestStructuralForAlphabet.setYLine(2);
@@ -100,7 +100,7 @@ public class E_MarkovAlphabet {
 
                 for (final double alphabetMultiplier : alphabetMultValues) {
                     final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score",
-                            new File(learningGroup.outPathPrefix + description + "_" + states + "alphabet_alphabetmult=" + alphabetMultiplier + "_inconsistency_structural.pdf"));
+                            new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "alphabet_alphabetmult=" + alphabetMultiplier + "_inconsistency_structural.pdf"));
 
                     // Now select the best result from all those available
                     for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
@@ -109,7 +109,7 @@ public class E_MarkovAlphabet {
 
                             gr_StructuralDiffBestMap.computeIfAbsent(alphabetMultiplier, aDouble ->
                                         new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov",
-                                                new File(learningGroup.outPathPrefix + description + "_" + states + "alphabet_alphabetmult=" + alphabetMultiplier + "_VH_structuraldiffBest.pdf"), 0, 1, true)
+                                                new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "alphabet_alphabetmult=" + alphabetMultiplier + "_VH_structuraldiffBest.pdf"), 0, 1, true)
                                 );
 
                             getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
@@ -157,7 +157,7 @@ public class E_MarkovAlphabet {
                 gr_BestStructuralForAlphabet.reportResults(learningGroup.gr);
             }
 
-            resultCSV.moveFiles();
+//            resultCSV.moveFiles();
         }
     }
 }

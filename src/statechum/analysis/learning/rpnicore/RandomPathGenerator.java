@@ -128,7 +128,11 @@ public class RandomPathGenerator {
 	 */
 	public enum WALKTYPE {WALKTYPE_GENERAL, WALKTYPE_LEADS_TO_INITIAL_STATE, WALKTYPE_LIMITEDSELFLOOPS,
 		WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP, WALKTYPE_AIMFORTRANSITIONCOVER}
-	protected WALKTYPE walkType = WALKTYPE.WALKTYPE_GENERAL;
+	protected WALKTYPE walkType = defaultWalkType();
+
+	public static WALKTYPE defaultWalkType() {
+		return WALKTYPE.WALKTYPE_GENERAL;
+	}
 
 	public void setWalksShouldLeadToInitialState()
 	{

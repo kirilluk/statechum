@@ -22,18 +22,14 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
-import java.util.function.Consumer;
+import java.util.concurrent.*;
 
-import edu.uci.ics.jung.graph.impl.DirectedSparseGraph;
-import edu.uci.ics.jung.utils.UserData;
 import statechum.*;
 import statechum.Configuration.STATETREE;
 import statechum.Configuration.ScoreMode;
 import statechum.DeterministicDirectedSparseGraph.CmpVertex;
 import statechum.GlobalConfiguration.G_PROPERTIES;
-import statechum.analysis.Erlang.Synapse;
 import statechum.analysis.learning.*;
 import statechum.analysis.learning.MarkovClassifier.ConsistencyChecker;
 import statechum.analysis.learning.experiments.ExperimentRunner;
@@ -52,7 +48,6 @@ import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.SampleData;
 import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph;
 import statechum.analysis.learning.experiments.mutation.DiffExperiments.MachineGenerator;
-import statechum.analysis.learning.linear.DifferenceVisualiser;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
 import statechum.analysis.learning.rpnicore.*;
 import statechum.analysis.learning.rpnicore.AMEquivalenceClass.IncompatibleStatesException;
@@ -63,8 +58,8 @@ import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperimen
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersColumnFromCSV;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.constructLearner;
+import static statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.sanitiseFileName;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
-import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_TIMEOUT;
 
 
 public class MarkovExperiment
@@ -76,10 +71,47 @@ public class MarkovExperiment
 
 	public static class MarkovLearnerRunner extends UASExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>>
 	{
+		public final String AUTOMATA_PATH="AUTOMATA";
+		public final String PTA_PATH="PTA";
+		/** Starting point for the seed that is used to generate reference graph. Initial value is zero because it is set by generateReferenceFSM.
+		 * Where reference FSM is a case study, the value retains its zero.
+		 */
+		protected final int referenceGeneratorRandomSeed;
+		protected final SGE_ExperimentRunner.FileNameToUse filenameForAutomaton;
+		protected final String ptaPathName, automataPathName;
+		protected final SGE_ExperimentRunner.FileNameToUse filenameForPTA;
+
+		protected MachineGenerator mg;
+
+		public SGE_ExperimentRunner.FileNameToUse getFilenameForPTA()
+		{
+			return filenameForPTA;
+		}
+		public SGE_ExperimentRunner.FileNameToUse getFilenameForAutomaton()
+		{
+			return filenameForAutomaton;
+		}
+
 		public MarkovLearnerRunner(String outDir, MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf)
 		{
-			super(outDir,parameters,cnf,directoryNamePrefix);
+			super(outDir,parameters,cnf,null);
+			referenceGeneratorRandomSeed = Objects.hash(par.sample,par.perStateSquaredDensityMultipliedBy100,par.states);
+
+			String automataParameters =
+					par.states+"_"+par.perStateSquaredDensityMultipliedBy100+"_"+par.alphabetMultiplier+"_"+par.sample+"_"+referenceGeneratorRandomSeed;
+
+			String walkParameters = automataParameters + // ensure that automata parameters are stored, next is the type of walk and its parameters
+					"#"+(par.walkType != null? (par.walkType+"-"+par.explorationPreference+"-"+par.selectionPenalty):RandomPathGenerator.defaultWalkType().toString())+
+					// now report the number of traces and their length, as well as training sample. This is always part of the row ID but we record it just in case.
+					"_"+par.traceQuantity+"_"+(int)(par.traceLengthMultiplier * par.states)+"_"+par.trainingSample;
+
+			automataPathName = graphFileNameDir.fileName + File.separator + AUTOMATA_PATH;
+			filenameForAutomaton = new SGE_ExperimentRunner.FileNameToUse(graphFileNameDir.dirToUse, automataPathName + File.separator + automataParameters + ".xml");
+			ptaPathName = graphFileNameDir.fileName + File.separator + PTA_PATH;
+			filenameForPTA = new SGE_ExperimentRunner.FileNameToUse(graphFileNameDir.dirToUse,
+					ptaPathName + File.separator+sanitiseFileName(nameGENERATEDPTA) + "_" + walkParameters + ".xml");
 		}
+
 
 		/** Constructs a reference graph and assigns it to member variable <pre>referenceGraph</pre>. This is a separate method to permit overriding by subclasses.
 		 */
@@ -91,21 +123,45 @@ public class MarkovExperiment
 			// as it accepts everything).
 			final double density = (double) (par.states * par.perStateSquaredDensityMultipliedBy100) / 100.;
 			MachineGenerator mg = new MachineGenerator(par.states, 400 , (int)Math.round((double)par.states/5));mg.setGenerateConnected(true);
-			
+
 			try {
 			// reference graph has no reject-states, because we assume that undefined transitions lead to reject states.
-				referenceGraph = mg.nextMachine(alphabet, density,Objects.hash(par.sample,par.perStateSquaredDensityMultipliedBy100,par.states), learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
+				referenceGraph = mg.nextMachine(alphabet, density,referenceGeneratorRandomSeed, learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter()).pathroutines.buildDeterministicGraph();
 			} catch (IncompatibleStatesException e) {
 				Helper.throwUnchecked("failed to generate graph", e);
 			}
 		}
 
 		/** Constructs a PTA to learn an FSM from. This could be based on a reference graph or obtained externally. */
-		public LearnerGraph constructPTA()
+		public LearnerGraph constructPTA() {
+			return constructPTA(false);
+		}
+
+		public LearnerGraph constructPTA(boolean saveGeneratedPTA)
 		{
 			// Use a random generator selector passed as a parameter.
 			int attemptCounter = 0;
 			LearnerGraph pta = null;
+
+			if (new File(filenameForPTA.toFileName()).exists()) {
+				// We already have a recorded PTA for this reference graph and row ID hence load it.
+				// The intention is to cut the time needed to generate walks because a lot of experiments will
+				// start with the same PTA. Generation of such PTA that achieves coverage is time-consuming: sometimes around 10 min for 40 states
+				// for a single trace. Possibly needs biasing but since 10 min is broadly ok, we can go with this.
+				pta = new LearnerGraph(learnerInitConfiguration.config);
+                try {
+                    AbstractPersistence.loadGraph(filenameForPTA.toFileName(), pta, learnerInitConfiguration.getLabelConverter());
+                } catch (IOException e) {
+					pta = null;// failed to load, need to generate
+                }
+
+				if (pta != null) {
+					// loaded ok
+					SGE_ExperimentRunner.handleDataPointBeingOpened(filenameForPTA);// report using the PTA that was stored for this set of learners.
+					return pta;
+				}
+            }
+
 			do {
 				pta = new LearnerGraph(learnerInitConfiguration.config);
 				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph, new Random(par.trainingSample + attemptCounter), 5, null);
@@ -139,15 +195,59 @@ public class MarkovExperiment
 			}
 			while (true);
 
-			return pta;
+			if (saveGeneratedPTA) {
+				try {
+					statechum.analysis.learning.experiments.UASExperiment.mkDir(graphFileNameDir.dirToUse + File.separator + ptaPathName);
+					pta.storage.writeGraphML(filenameForPTA.toFileName());
+				} catch (IOException e) {
+					throw new RuntimeException("Failed to write generated PTA to " + filenameForPTA, e);
+				}
+			}
+            return pta;
 		}
 
 		long startTime = 0;
 
+		/** Checks that the saved automaton matches the generated one. If current automaton was not saved, saves it. */
+		public void saveAndCheckGeneratedAutomaton() {
+			if (referenceGraph == null)
+				generateReferenceFSM();
+
+			if (new File(filenameForAutomaton.toFileName()).exists()) {
+				// We already have a recorded automata, check that the generated one matches
+				LearnerGraph existingAutomaton = new LearnerGraph(learnerInitConfiguration.config);
+				try {
+					AbstractPersistence.loadGraph(filenameForAutomaton.toFileName(), existingAutomaton, learnerInitConfiguration.getLabelConverter());
+				} catch (IOException e) {
+					throw new RuntimeException("Failed to load automaton from "+filenameForAutomaton, e);
+				}
+
+				WMethod.DifferentFSMException diff = WMethod.checkM(referenceGraph, referenceGraph.getInit(),existingAutomaton,existingAutomaton.getInit(), WMethod.VERTEX_COMPARISON_KIND.NONE,false);
+				if (diff != null)
+					throw new RuntimeException("Loaded automaton is different from the generated one for "+filenameForAutomaton);
+			}
+			else
+				try {
+					statechum.analysis.learning.experiments.UASExperiment.mkDir(graphFileNameDir.dirToUse + File.separator + automataPathName);
+					referenceGraph.storage.writeGraphML(filenameForAutomaton.toFileName());
+				} catch (IOException e) {
+					throw new RuntimeException("Failed to write generated Automaton to "+filenameForAutomaton.toFileName(), e);
+				}
+		}
+
+		public void generateAndSavePTA() {
+			if (referenceGraph == null)
+				generateReferenceFSM();
+			saveAndCheckGeneratedAutomaton();
+
+			constructPTA(true);
+		}
+
 		@Override
 		public ExperimentResult<MarkovLearningParameters> runexperiment() throws Exception 
 		{
-			generateReferenceFSM();
+			if (referenceGraph == null)
+				generateReferenceFSM();
 			saveGraph(nameReference,referenceGraph);
 
 			ExperimentResult<MarkovLearningParameters> outcome = new ExperimentResult<>(par);
@@ -1326,6 +1426,73 @@ public class MarkovExperiment
 		return new int[]{0};
 	}
 
+	public static class PreGeneratePTA {
+		protected final SGE_ExperimentRunner.PhaseEnum phase;
+		protected final RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner;
+
+		public PreGeneratePTA(SGE_ExperimentRunner.PhaseEnum phase, RunSubExperiment<MarkovLearningParameters,ExperimentResult<MarkovLearningParameters>> experimentRunner) {
+			this.phase = phase;this.experimentRunner = experimentRunner;
+		}
+
+		protected Map<SGE_ExperimentRunner.FileNameToUse,MarkovExperiment.MarkovLearnerRunner> ptaToExperiment = new HashMap<>();
+		protected Map<SGE_ExperimentRunner.FileNameToUse,MarkovExperiment.MarkovLearnerRunner> automatonToExperiment = new HashMap<>();
+
+		protected List<MarkovExperiment.MarkovLearnerRunner> allExperiments = new ArrayList<>();
+
+		public void submitTask(MarkovExperiment.MarkovLearnerRunner experiment) {
+			allExperiments.add(experiment);
+			if (!new File(experiment.getFilenameForAutomaton().toFileName()).canRead())
+				automatonToExperiment.computeIfAbsent(experiment.getFilenameForAutomaton(), p -> experiment);
+			if (!new File(experiment.getFilenameForPTA().toFileName()).canRead())
+				ptaToExperiment.computeIfAbsent(experiment.getFilenameForPTA(), p -> experiment);
+		}
+
+		public void generatePTAAndSubmitTasks() {
+			if (phase == SGE_ExperimentRunner.PhaseEnum.COUNT_TASKS_PARALLELPTA || phase == SGE_ExperimentRunner.PhaseEnum.COUNT_TASKS_PTA)
+			{// pre-generate PTA, in parallel if needed
+
+				// We are in the counting tasks phase, create a pool of threads and run a thread. The idea is to only one since thread on an HPC
+				// but we can run as many as we like locally provided COUNT_TASKS_PARALLEL is active.
+				ExecutorService executorService = Executors.newFixedThreadPool(phase == SGE_ExperimentRunner.PhaseEnum.COUNT_TASKS ? 1 : ExperimentRunner.getCpuNumber());// only create one thread if running on Iceberg on in uni-processor mode.
+				ExecutorCompletionService runner = new ExecutorCompletionService<>(executorService);
+				for (final MarkovExperiment.MarkovLearnerRunner ptaGenerator : automatonToExperiment.values())
+					runner.submit(() -> {
+						ptaGenerator.saveAndCheckGeneratedAutomaton();
+						return null;
+					});
+
+				drainAllQueuedTasks(runner,automatonToExperiment.values());
+
+				for (final MarkovExperiment.MarkovLearnerRunner ptaGenerator : ptaToExperiment.values())
+					runner.submit(() -> {
+						ptaGenerator.generateAndSavePTA();
+						return null;
+					});
+
+				drainAllQueuedTasks(runner,ptaToExperiment.values());
+				executorService.shutdownNow();
+			}
+
+			// now submit all the tasks to the runner
+			for(MarkovExperiment.MarkovLearnerRunner task: allExperiments)
+				experimentRunner.submitTask(task);
+		}
+
+		private void drainAllQueuedTasks(ExecutorCompletionService runner,Collection<MarkovExperiment.MarkovLearnerRunner> tasks) {
+			for (final MarkovLearnerRunner generator : tasks) {
+				try {
+					runner.take().get();// this will throw an exception if any of the tasks failed.
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				} catch (ExecutionException e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}
+	}
+
+
+
 	public static void main(String []args)
 	{
 		String outDir = GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.PATH_EXPERIMENTRESULTS)+File.separator+directoryNamePrefix;//new Date().toString().replace(':', '-').replace('/', '-').replace(' ', '_');
@@ -1357,13 +1524,13 @@ public class MarkovExperiment
 //			E_MarkovCaseStudies.runExperiment(learningGroup);
 //			E_MarkovTempFanMonitor600.runExperiment(learningGroup);
 //			E_MarkovBaselineLearn.runExperiment(learningGroup);
-			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
+//			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 			E_MarkovCentre.runExperiment(learningGroup);
 //			E_MarkovAlphabet.runExperiment(learningGroup);
-			E_MarkovTraceLenMult.runExperiment(learningGroup);
-			E_MarkovTraceConstSize.runExperiment(learningGroup);
-			E_MarkovPrefixLen.runExperiment(learningGroup);
-			E_MarkovTraceNum.runExperiment(learningGroup);
+//			E_MarkovTraceLenMult.runExperiment(learningGroup);
+//			E_MarkovTraceConstSize.runExperiment(learningGroup);
+//			E_MarkovPrefixLen.runExperiment(learningGroup);
+//			E_MarkovTraceNum.runExperiment(learningGroup);
 //			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		}
 		catch(Exception ex)

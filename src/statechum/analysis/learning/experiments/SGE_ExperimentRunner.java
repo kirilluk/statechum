@@ -93,6 +93,18 @@ public class SGE_ExperimentRunner
 		public String toString() {
 			return toFileName();
 		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (!(o instanceof FileNameToUse)) return false;
+			FileNameToUse that = (FileNameToUse) o;
+			return Objects.equals(dirToUse, that.dirToUse) && Objects.equals(fileName, that.fileName);
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(dirToUse, fileName);
+		}
 	}
 
 	public interface processSubExperimentResult<EXPERIMENT_PARAMETERS extends ThreadResultID,RESULT extends ExperimentResult<EXPERIMENT_PARAMETERS>>
@@ -121,6 +133,8 @@ public class SGE_ExperimentRunner
 		COLLECT_RESULTS, // takes results from tasks and builds a spreadsheet or graphs with results. Throws an exception if any task did not complete.
 		COLLECT_AVAILABLE, // similar to COLLECT_RESULTS but only collates results from experiments that have completed. Missing cells are replaced with blanks and rows with no data are omitted completely.
 		COUNT_TASKS, // performs workload partitioning and constructs a map from tasks to tasklets. The parameter is the number of tasks to split the work into (aka the number of processes to run on a grid).
+		COUNT_TASKS_PTA,// Mostly the same as COUNT_TASKS but it additionally pre-generates PTAs if needed therefore could take some time.
+		COUNT_TASKS_PARALLELPTA, // almost the same as COUNT_TASKS_PTA but generates PTAs in parallel.
 		RUN_STANDALONE,  // runs all tasks in one go. This does not create progress files and therefore only useful when everything is likely to complete fast. 
 		// A much better choice is to run "COUNT_TASKS 1" followed by "RUN_PARALLEL 1" which constructs progress files. 
 		RUN_PARALLEL, // this is similar to RUN_TASK but will run all tasklets corresponding to the same virtual task in parallel. This permits multiple PCs to easily run different segments of work across their CPUs.
@@ -195,6 +209,8 @@ public class SGE_ExperimentRunner
 						throw new IllegalArgumentException("no arguments is permitted for phase "+phase);
 					break;
 				case COUNT_TASKS:
+				case COUNT_TASKS_PTA:
+				case COUNT_TASKS_PARALLELPTA:
 					if (args.length != 2)
 						throw new IllegalArgumentException("the number of tasks per virtual task has to be provided");
 					try
@@ -241,7 +257,9 @@ public class SGE_ExperimentRunner
 			switch(phase)
 			{
 			case COUNT_TASKS:
-				outcome = constructVirtToReal();				
+			case COUNT_TASKS_PTA:
+			case COUNT_TASKS_PARALLELPTA:
+				outcome = constructVirtToReal();
 				System.out.println(outcome);
 				break;
 			case PROGRESS_INDICATOR:
@@ -339,6 +357,8 @@ public class SGE_ExperimentRunner
 				runner.submit(task);
 				break;
 			case COUNT_TASKS:
+			case COUNT_TASKS_PTA:
+			case COUNT_TASKS_PARALLELPTA:
 			case PROGRESS_INDICATOR:
 			case REPORT_TASKPARAMETERS:
 			case REPORT_REMAINING_TASKPARAMETERS:
@@ -741,6 +761,8 @@ public class SGE_ExperimentRunner
 					plotAllGraphs(nameToGraph.values(),-1);
 					break;
 				case COUNT_TASKS:
+				case COUNT_TASKS_PTA:
+				case COUNT_TASKS_PARALLELPTA:
 				case PROGRESS_INDICATOR:
 				case REPORT_TASKPARAMETERS:
 				case REPORT_REMAINING_TASKPARAMETERS:
@@ -851,6 +873,8 @@ public class SGE_ExperimentRunner
 				graph.writeTaskOutput(outputWriter,x,y,colour,label);
 				break;
 			case COUNT_TASKS:
+			case COUNT_TASKS_PTA:
+			case COUNT_TASKS_PARALLELPTA:
 			case PROGRESS_INDICATOR:
 			case REPORT_TASKPARAMETERS:
 			case REPORT_REMAINING_TASKPARAMETERS:
@@ -879,6 +903,8 @@ public class SGE_ExperimentRunner
 				experimentResult.writeTaskOutput(outputWriter,id,text);
 				break;
 			case COUNT_TASKS:
+			case COUNT_TASKS_PTA:
+			case COUNT_TASKS_PARALLELPTA:
 			case PROGRESS_INDICATOR:
 			case REPORT_TASKPARAMETERS:
 			case REPORT_REMAINING_TASKPARAMETERS:

@@ -47,7 +47,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 	public final PARS par;
 	
 	protected boolean alwaysRunExperiment = false;
-	
+
 	public void setAlwaysRunExperiment(boolean b) 
 	{
 		alwaysRunExperiment = b;
@@ -58,8 +58,8 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		par = parameters;
 		learnerInitConfiguration = eval;
 		this.graphFileNameDir = new SGE_ExperimentRunner.FileNameToUse(
-				(outDir == null? GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP):outDir)+File.separator+directoryNamePrefix,
-				"experimentdata");
+				(outDir == null? GlobalConfiguration.getConfiguration().getProperty(G_PROPERTIES.TEMP):outDir),
+				(directoryNamePrefix == null?"":(directoryNamePrefix+File.separator))+"experimentdata");
 		mkDir(outDir);
 	}
 	
@@ -177,7 +177,7 @@ public abstract class UASExperiment<PARS extends ThreadResultID,TR extends Threa
 		LearnerGraph buildPTA() throws AugmentFromIfThenAutomatonException, IOException;
 	}
 
-	public static String nameReference="reference",namePTA="pta", namePTABEFORECENTRE="pbc",nameOUTCOME="outcome";
+	public static String nameReference="reference",namePTA="pta", nameGENERATEDPTA="gpta", namePTABEFORECENTRE="pbc",nameOUTCOME="outcome";
 	
 	public static class ScoringModeScore
 	{

@@ -17,17 +17,12 @@ import statechum.analysis.learning.rpnicore.LearnerGraphND;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static statechum.analysis.learning.DrawGraphs.obtainValueFromCell;
 import static statechum.analysis.learning.experiments.MarkovEDSM.E_MarkovCentre.MarkovCentreLearningParameters.description;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.LearningExperimentGroupParameters.baseNumberOfTracesMult;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.getValueFromMapGivenSelector;
-import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.obtainValidityOfCellValues;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 
 public class E_MarkovCentre {
@@ -192,6 +187,7 @@ public class E_MarkovCentre {
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         // IDENTIFICATION OF CENTRE VERTEX
         final DrawGraphs.CSVExperimentResult centreCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + "centre.csv"), "results.csv");
+        MarkovExperiment.PreGeneratePTA tasks = new MarkovExperiment.PreGeneratePTA(learningGroup.phase, learningGroup.experimentRunner);
         boolean aveOrMax = true;// average divide by the divisor
         final int chunkSizeForCentreExperiments = 3;
         int alphabetMultiplier = 2;
@@ -225,9 +221,11 @@ public class E_MarkovCentre {
                                         parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                         MarkovCentreIdentification centreIdentificationExperiment = new MarkovCentreIdentification(learningGroup.outPathPrefix, parameters, ev);
                                         centreIdentificationExperiment.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
-                                        learningGroup.experimentRunner.submitTask(centreIdentificationExperiment);
+                                        tasks.submitTask(centreIdentificationExperiment);
                                     }
                     }
+
+        tasks.generatePTAAndSubmitTasks();// this will generate PTAs and submit tasks to the runner as needed.
         learningGroup.experimentRunner.collectOutcomeOfExperiments(new SGE_ExperimentRunner.processSubExperimentResult<MarkovLearningParameters, ExperimentResult<MarkovLearningParameters>>() {
 
             @Override

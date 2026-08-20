@@ -34,6 +34,7 @@ public class E_MarkovBaselineLearn {
 
     public static DrawGraphs.CSVExperimentResult runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         final DatapointsCollection resultCSV = new DatapointsCollection(learningGroup.outPathPrefix, learningGroup.copyToPrefix, learningGroup.moveToPrefix, description, true);
+        MarkovExperiment.PreGeneratePTA tasks = new MarkovExperiment.PreGeneratePTA(learningGroup.phase, learningGroup.experimentRunner);
         boolean aveOrMax = true;// average divide by the divisor
         boolean penaliseMissingPaths = true;
 
@@ -71,12 +72,13 @@ public class E_MarkovBaselineLearn {
                                 parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
                                 MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(learningGroup.outPathPrefix, parameters, ev);
                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
-                                learningGroup.experimentRunner.submitTask(learnerRunner);
+                                tasks.submitTask(learnerRunner);
                             }
                     }
                 }
         }
 
+        tasks.generatePTAAndSubmitTasks();// this will generate PTAs and submit tasks to the runner as needed.
         learningGroup.experimentRunner.collectOutcomeOfExperiments(constructResultsCollector(resultCSV));
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
@@ -89,7 +91,7 @@ public class E_MarkovBaselineLearn {
 
                     final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score", new File(experimentName + "inconsistency_structural.pdf"));
                     final DrawGraphs.RBagPlot gr_BCR_vs_structural = new DrawGraphs.RBagPlot("BCR", "Structural Score", new File(experimentName + "bcr_structural.pdf"));
-                    final DrawGraphs.RBagPlot gr_TotalMergersVsStructuralScore = new DrawGraphs.RBagPlot("Total mergers", "Structural Score", new File(experimentName + "totalmergers_structural.pdf"));
+//                    final DrawGraphs.RBagPlot gr_TotalMergersVsStructuralScore = new DrawGraphs.RBagPlot("Total mergers", "Structural Score", new File(experimentName + "totalmergers_structural.pdf"));
 //                    final DrawGraphs.RBagPlot gr_MistakesNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Mistakes near root", "Structural Score", new File(experimentName  + "mistakes_nearroot_structural.pdf"));
 //                    final DrawGraphs.RBagPlot gr_InvalidMergersNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Invalid mergers near root", "Structural Score", new File(experimentName + "invalidmergers_nearroot_structural.pdf"));
 //                    final DrawGraphs.RBagPlot gr_MissedMergersNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Missed Mergers near root", "Structural Score", new File(experimentName + "missedmergers_nearroot_structural.pdf"));
@@ -162,9 +164,9 @@ public class E_MarkovBaselineLearn {
                                             obtainDoubleValueFromCell(Y_VH.value, E_DIFF,Y_VH.column),
                                             obtainDoubleValueFromCell(Y, E_DIFF,column), null, null);
                                 gr_PosnegNegativeInconsistencies_Structural.add(Boolean.toString(alwaysPositive), value, null, null);
-                                gr_TotalMergersVsStructuralScore.add(
-                                        obtainDoubleValueFromCell(Y, E_ERR_INVALID_NEARROOT,column) + obtainDoubleValueFromCell(Y, E_ERR_INVALID_FARFROMROOT,column) + obtainDoubleValueFromCell(Y, E_VALIDMERGERS,column),
-                                        obtainDoubleValueFromCell(Y, E_DIFF,column), null, null);
+//                                gr_TotalMergersVsStructuralScore.add(
+//                                        obtainDoubleValueFromCell(Y, E_ERR_INVALID_NEARROOT,column) + obtainDoubleValueFromCell(Y, E_ERR_INVALID_FARFROMROOT,column) + obtainDoubleValueFromCell(Y, E_VALIDMERGERS,column),
+//                                        obtainDoubleValueFromCell(Y, E_DIFF,column), null, null);
 //                                gr_MistakesNearRootVsStructuralScore.add(
 //                                        obtainDoubleValueFromCell(Y, E_ERR_INVALID_NEARROOT,column) + obtainDoubleValueFromCell(Y, E_ERR_MISSED_NEARROOT,column),
 //                                        obtainDoubleValueFromCell(Y, E_DIFF,column), null, null);
@@ -192,7 +194,8 @@ public class E_MarkovBaselineLearn {
 
                     for (@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result : new DrawGraphs.RExperimentResult[]{gr_StructuralVsInconsistency, gr_BCRVsInconsistency,
                             gr_MarkovTransitionPrecisionStructuralDiff, gr_MarkovHoleRecallStructuralDiff, gr_StructuralDiff, gr_BCR_vs_structural,
-                            gr_Inconsistencies_and_SD, gr_PosnegNegativeInconsistencies_Structural, gr_TotalMergersVsStructuralScore,
+                            gr_Inconsistencies_and_SD, gr_PosnegNegativeInconsistencies_Structural,
+                            //gr_TotalMergersVsStructuralScore,
 //                            gr_MistakesNearRootVsStructuralScore, gr_MissedMergersNearRootVsStructuralScore, gr_InvalidMergersNearRootVsStructuralScore,
                             gr_BCR, gr_DiffAgainstKtails1, gr_DiffAgainstKtails2, gr_DiffAgainstEDSM_1, gr_DiffAgainstEDSM_2,
                             Wilcoxon_Test_BCR, Wilcoxon_test_Structural, Mann_Whitney_U_Test_BCR, Mann_Whitney_U_Test_Structural, Kruskal_Wallis_Test_Structural, Kruskal_Wallis_Test_BCR}) {
@@ -239,7 +242,7 @@ public class E_MarkovBaselineLearn {
                     gr_RuntimeOfLearners.reportResults(learningGroup.gr);
 //                    report.reportResults();
                 }
-            resultCSV.moveFiles();
+//            resultCSV.moveFiles();
         }
         return resultCSV;
     }

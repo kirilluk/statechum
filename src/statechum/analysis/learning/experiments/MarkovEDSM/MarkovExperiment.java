@@ -134,10 +134,18 @@ public class MarkovExperiment
 
 		/** Constructs a PTA to learn an FSM from. This could be based on a reference graph or obtained externally. */
 		public LearnerGraph constructPTA() {
-			return constructPTA(false);
+			return constructPTA(false,-1);
 		}
 
-		public LearnerGraph constructPTA(boolean saveGeneratedPTA)
+		/** Loads a PTA if it has been stored. Otherwise, generates it. The generated PTA is saved if saveGeneratedPTA is true
+		 * and the time it took to generate is greater than the provided value. If the provided value is negative, it is
+		 * effectively unused (and whether saved is determined by saveGeneratedPTA).
+		 *
+		 * @param saveGeneratedPTA whether to save generated PTA
+		 * @param how_long_it_has_to_take_to_warrant_saving how long it has to take to generate the PTA in order for it to make sense to save it.
+		 * @return constructed PTA (either loaded from the disk or generated).
+		 */
+		public LearnerGraph constructPTA(boolean saveGeneratedPTA, long how_long_it_has_to_take_to_warrant_saving)
 		{
 			// Use a random generator selector passed as a parameter.
 			int attemptCounter = 0;
@@ -161,6 +169,8 @@ public class MarkovExperiment
 					return pta;
 				}
             }
+
+			long ptaGenerationStartTime = LearningSupportRoutines.getThreadTime();
 
 			do {
 				pta = new LearnerGraph(learnerInitConfiguration.config);
@@ -195,7 +205,9 @@ public class MarkovExperiment
 			}
 			while (true);
 
-			if (saveGeneratedPTA) {
+			long ptaGenerationEndTime = LearningSupportRoutines.getThreadTime();
+
+			if (saveGeneratedPTA && how_long_it_has_to_take_to_warrant_saving < ptaGenerationEndTime - ptaGenerationStartTime) {
 				try {
 					statechum.analysis.learning.experiments.UASExperiment.mkDir(graphFileNameDir.dirToUse + File.separator + ptaPathName);
 					pta.storage.writeGraphML(filenameForPTA.toFileName());
@@ -235,12 +247,12 @@ public class MarkovExperiment
 				}
 		}
 
-		public void generateAndSavePTA() {
+		public void generateAndSavePTA(long how_long_it_has_to_take_to_warrant_saving) {
 			if (referenceGraph == null)
 				generateReferenceFSM();
 			saveAndCheckGeneratedAutomaton();
 
-			constructPTA(true);
+			constructPTA(true, how_long_it_has_to_take_to_warrant_saving);
 		}
 
 		@Override
@@ -1465,7 +1477,7 @@ public class MarkovExperiment
 
 				for (final MarkovExperiment.MarkovLearnerRunner ptaGenerator : ptaToExperiment.values())
 					runner.submit(() -> {
-						ptaGenerator.generateAndSavePTA();
+						ptaGenerator.generateAndSavePTA(20 * 1000000000L);// if takes more than 20 seconds, generate PTA
 						return null;
 					});
 
@@ -1526,12 +1538,12 @@ public class MarkovExperiment
 //			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 			E_MarkovCentre.runExperiment(learningGroup);
-//			E_MarkovAlphabet.runExperiment(learningGroup);
-//			E_MarkovTraceLenMult.runExperiment(learningGroup);
-//			E_MarkovTraceConstSize.runExperiment(learningGroup);
-//			E_MarkovPrefixLen.runExperiment(learningGroup);
-//			E_MarkovTraceNum.runExperiment(learningGroup);
-//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+			E_MarkovAlphabet.runExperiment(learningGroup);
+			E_MarkovTraceLenMult.runExperiment(learningGroup);
+			E_MarkovTraceConstSize.runExperiment(learningGroup);
+			E_MarkovPrefixLen.runExperiment(learningGroup);
+			E_MarkovTraceNum.runExperiment(learningGroup);
+			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 		}
 		catch(Exception ex)
 		{

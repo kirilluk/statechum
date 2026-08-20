@@ -33,6 +33,7 @@ public class E_MarkovTraceConstSize {
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0};//0,1,2,3
         final DatapointsCollection resultCSV = new DatapointsCollection(learningGroup.outPathPrefix, learningGroup.copyToPrefix, learningGroup.moveToPrefix, description, true);
+        MarkovExperiment.PreGeneratePTA tasks = new MarkovExperiment.PreGeneratePTA(learningGroup.phase, learningGroup.experimentRunner);
         boolean aveOrMax = true;// average divide by the divisor
         boolean penaliseMissingPaths = true;
 
@@ -72,11 +73,12 @@ public class E_MarkovTraceConstSize {
                                                 parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
                                                 MarkovExperiment.MarkovLearnerRunner learnerRunner = new MarkovExperiment.MarkovLearnerRunner(learningGroup.outPathPrefix,parameters, ev);
                                                 learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
-                                                learningGroup.experimentRunner.submitTask(learnerRunner);
+                                                tasks.submitTask(learnerRunner);
                                             }
                         }
            }
 
+        tasks.generatePTAAndSubmitTasks();// this will generate PTAs and submit tasks to the runner as needed.
         learningGroup.experimentRunner.collectOutcomeOfExperiments(constructResultsCollector(resultCSV));
 
         final String numberFormat = "%3d";

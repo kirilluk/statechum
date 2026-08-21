@@ -58,8 +58,11 @@ import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperimen
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersColumnFromCSV;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.constructLearner;
+import static statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum.COUNT_TASKS_PARALLELPTA;
 import static statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.sanitiseFileName;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
+import static statechum.analysis.learning.rpnicore.RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER;
+import static statechum.analysis.learning.rpnicore.RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP;
 
 
 public class MarkovExperiment
@@ -77,9 +80,11 @@ public class MarkovExperiment
 		 * Where reference FSM is a case study, the value retains its zero.
 		 */
 		protected final int referenceGeneratorRandomSeed;
+		protected final String automataParameters;
 		protected final SGE_ExperimentRunner.FileNameToUse filenameForAutomaton;
-		protected final String ptaPathName, automataPathName;
-		protected final SGE_ExperimentRunner.FileNameToUse filenameForPTA;
+		protected final String automataPathName;
+		protected String ptaPathName;
+		protected SGE_ExperimentRunner.FileNameToUse filenameForPTA;
 
 		protected MachineGenerator mg;
 
@@ -92,24 +97,27 @@ public class MarkovExperiment
 			return filenameForAutomaton;
 		}
 
-		public MarkovLearnerRunner(String outDir, MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf)
-		{
-			super(outDir,parameters,cnf,null);
-			referenceGeneratorRandomSeed = Objects.hash(par.sample,par.perStateSquaredDensityMultipliedBy100,par.states);
-
-			String automataParameters =
-					par.states+"_"+par.perStateSquaredDensityMultipliedBy100+"_"+par.alphabetMultiplier+"_"+par.sample+"_"+referenceGeneratorRandomSeed;
-
+		public void constructWalkParameters() {
 			String walkParameters = automataParameters + // ensure that automata parameters are stored, next is the type of walk and its parameters
 					"#"+(par.walkType != null? (par.walkType+"-"+par.explorationPreference+"-"+par.selectionPenalty):RandomPathGenerator.defaultWalkType().toString())+
 					// now report the number of traces and their length, as well as training sample. This is always part of the row ID but we record it just in case.
 					"_"+par.traceQuantity+"_"+(int)(par.traceLengthMultiplier * par.states)+"_"+par.trainingSample;
 
-			automataPathName = graphFileNameDir.fileName + File.separator + AUTOMATA_PATH;
-			filenameForAutomaton = new SGE_ExperimentRunner.FileNameToUse(graphFileNameDir.dirToUse, automataPathName + File.separator + automataParameters + ".xml");
 			ptaPathName = graphFileNameDir.fileName + File.separator + PTA_PATH;
 			filenameForPTA = new SGE_ExperimentRunner.FileNameToUse(graphFileNameDir.dirToUse,
 					ptaPathName + File.separator+sanitiseFileName(nameGENERATEDPTA) + "_" + walkParameters + ".xml");
+		}
+
+		public MarkovLearnerRunner(String outDir, MarkovLearningParameters parameters, LearnerEvaluationConfiguration cnf)
+		{
+			super(outDir,parameters,cnf,null);
+			referenceGeneratorRandomSeed = Objects.hash(par.sample,par.perStateSquaredDensityMultipliedBy100,par.states);
+
+			automataParameters =
+					par.states+"_"+par.perStateSquaredDensityMultipliedBy100+"_"+par.alphabetMultiplier+"_"+par.sample+"_"+referenceGeneratorRandomSeed;
+			automataPathName = graphFileNameDir.fileName + File.separator + AUTOMATA_PATH;
+			filenameForAutomaton = new SGE_ExperimentRunner.FileNameToUse(graphFileNameDir.dirToUse, automataPathName + File.separator + automataParameters + ".xml");
+			constructWalkParameters();
 		}
 
 
@@ -171,7 +179,8 @@ public class MarkovExperiment
             }
 
 			long ptaGenerationStartTime = LearningSupportRoutines.getThreadTime();
-
+			boolean generationReported = false;
+			int bestCoverage = 0;
 			do {
 				pta = new LearnerGraph(learnerInitConfiguration.config);
 				RandomPathGenerator generator = new RandomPathGenerator(referenceGraph, new Random(par.trainingSample + attemptCounter), 5, null);
@@ -201,7 +210,27 @@ public class MarkovExperiment
 				if (trimmedGraph.pathroutines.countEdges() == referenceGraph.pathroutines.countEdges())
 					break;// achieved coverage
 
+				int currentCoverage =  100 * trimmedGraph.pathroutines.countEdges()/referenceGraph.pathroutines.countEdges();
+				if (currentCoverage > bestCoverage) {
+					bestCoverage = currentCoverage;
+					if (saveGeneratedPTA && how_long_it_has_to_take_to_warrant_saving*6 < LearningSupportRoutines.getThreadTime() - ptaGenerationStartTime) {
+						try {
+							System.out.println(filenameForPTA.fileName + " best coverage: "+bestCoverage);
+							statechum.analysis.learning.experiments.UASExperiment.mkDir(graphFileNameDir.dirToUse + File.separator + ptaPathName);
+							pta.storage.writeGraphML(filenameForPTA.toFileName()+bestCoverage);
+						} catch (IOException e) {
+							throw new RuntimeException("Failed to write generated PTA to " + filenameForPTA, e);
+						}
+					}
+				}
+
 				attemptCounter+=1000;
+//				if (how_long_it_has_to_take_to_warrant_saving *2 < LearningSupportRoutines.getThreadTime() - ptaGenerationStartTime && !generationReported) {
+//					System.out.println("Generating " + filenameForPTA.fileName);generationReported = true;
+//					par.walkType = WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP;
+//					par.explorationPreference = 0.6;par.selectionPenalty = 10;
+//					constructWalkParameters();
+//				}
 			}
 			while (true);
 
@@ -1460,7 +1489,7 @@ public class MarkovExperiment
 		}
 
 		public void generatePTAAndSubmitTasks() {
-			if (phase == SGE_ExperimentRunner.PhaseEnum.COUNT_TASKS_PARALLELPTA || phase == SGE_ExperimentRunner.PhaseEnum.COUNT_TASKS_PTA)
+			if (phase == COUNT_TASKS_PARALLELPTA || phase == SGE_ExperimentRunner.PhaseEnum.COUNT_TASKS_PTA)
 			{// pre-generate PTA, in parallel if needed
 
 				// We are in the counting tasks phase, create a pool of threads and run a thread. The idea is to only one since thread on an HPC
@@ -1537,13 +1566,21 @@ public class MarkovExperiment
 //			E_MarkovTempFanMonitor600.runExperiment(learningGroup);
 //			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
-			E_MarkovCentre.runExperiment(learningGroup);
-			E_MarkovAlphabet.runExperiment(learningGroup);
-			E_MarkovTraceLenMult.runExperiment(learningGroup);
-			E_MarkovTraceConstSize.runExperiment(learningGroup);
-			E_MarkovPrefixLen.runExperiment(learningGroup);
+//			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovScoreVsInconsistency");
+//			E_MarkovCentre.runExperiment(learningGroup);
+//			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovCentre");
+//			E_MarkovAlphabet.runExperiment(learningGroup);
+//			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovAlphabet");
+//			E_MarkovTraceLenMult.runExperiment(learningGroup);
+//			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceLenMult");
+//			E_MarkovTraceConstSize.runExperiment(learningGroup);
+//			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceConstSize");
+//			E_MarkovPrefixLen.runExperiment(learningGroup);
+//			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovPrefixLen");
 			E_MarkovTraceNum.runExperiment(learningGroup);
-			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceNum");
+//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+//			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovLearnWithCentre");
 		}
 		catch(Exception ex)
 		{

@@ -64,7 +64,7 @@ public class LearnMealy {
         ProgressDecorator.LearnerEvaluationConfiguration learnerInitConfiguration = constructLearnerInitConfiguration();
 
         UASExperiment.ScoringModeScore scoringMethod = new UASExperiment.ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE_MEALY, LearningAlgorithms.ScoringToApply.SCORING_EDSM);
-        LearningAlgorithms.StateMergingStatistics redReducer = LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingVHScoring(referenceGraph, scoringMethod.scoringMethod);
+        LearningAlgorithms.StateMergingStatistics redReducer = LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingHVScoring(referenceGraph, scoringMethod.scoringMethod);
 
         Visualiser graphVisualiser = new Visualiser(0);
 //        LearnerGraph upperGraph = referenceGraph.transform.trimGraph(3, referenceGraph.config);
@@ -134,7 +134,7 @@ public class LearnMealy {
         ProgressDecorator.LearnerEvaluationConfiguration learnerInitConfiguration = constructLearnerInitConfiguration();
 
         UASExperiment.ScoringModeScore scoringMethod = new UASExperiment.ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE_MEALY, LearningAlgorithms.ScoringToApply.SCORING_EDSM);
-        LearningAlgorithms.StateMergingStatistics redReducer = LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingVHScoring(referenceGraph, scoringMethod.scoringMethod);
+        LearningAlgorithms.StateMergingStatistics redReducer = LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingHVScoring(referenceGraph, scoringMethod.scoringMethod);
 
         Visualiser graphVisualiser = new Visualiser(0);
 //        LearnerGraph upperGraph = referenceGraph.transform.trimGraph(3, referenceGraph.config);
@@ -191,7 +191,7 @@ public class LearnMealy {
             ProgressDecorator.LearnerEvaluationConfiguration learnerInitConfiguration = constructLearnerInitConfiguration();
 
             UASExperiment.ScoringModeScore scoringMethod = new UASExperiment.ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE_MEALY, LearningAlgorithms.ScoringToApply.SCORING_EDSM);
-            LearningAlgorithms.StateMergingStatistics redReducer = LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingVHScoring(referenceGraph, scoringMethod.scoringMethod);
+            LearningAlgorithms.StateMergingStatistics redReducer = LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingHVScoring(referenceGraph, scoringMethod.scoringMethod);
 
             Visualiser graphVisualiser = new Visualiser(0);
 //        LearnerGraph upperGraph = referenceGraph.transform.trimGraph(3, referenceGraph.config);
@@ -267,7 +267,7 @@ public class LearnMealy {
                 ProgressDecorator.LearnerEvaluationConfiguration learnerInitConfiguration = constructLearnerInitConfiguration();
 
                 UASExperiment.ScoringModeScore scoringMethod = new UASExperiment.ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE_MEALY, LearningAlgorithms.ScoringToApply.SCORING_EDSM);
-                LearningAlgorithms.StateMergingStatistics redReducer = LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingVHScoring(referenceGraph, scoringMethod.scoringMethod);
+                LearningAlgorithms.StateMergingStatistics redReducer = LearningAlgorithms.ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingHVScoring(referenceGraph, scoringMethod.scoringMethod);
 
                 pta.getInit().setColour(JUConstants.RED);
 

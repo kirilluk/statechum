@@ -273,7 +273,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 				return pta;
 			}
 		};
-		StateMergingStatistics redReducer = ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingVHScoring(referenceGraph,par.scoringMethod);
+		StateMergingStatistics redReducer = ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingHVScoring(referenceGraph,par.scoringMethod);
 			
 		switch(par.learningType)
 		{
@@ -302,7 +302,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		{// Perform semi-pre-merge by building a PTA rather than a graph with loops and learn from there without using constraints
 			LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
 			//Visualiser.updateFrame(reducedPTA.transform.trimGraph(4, reducedPTA.getInit()), pta);
-			// in these experiments I cannot use VH merging because it will stop any mergers with an initial state.
+			// in these experiments I cannot use HV merging because it will stop any mergers with an initial state.
 			learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,scoringToUse);
 			
 			System.out.println("PTApremerge size: "+reducedPTA.getStateNumber()+" states, "+reducedPTA.getAcceptStateNumber()+" accept-states and "+reducedPTA.pathroutines.countEdges()+" transitions");
@@ -316,7 +316,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		{// Perform semi-pre-merge by building a PTA rather than a graph with loops and then use constraints
 			LearnerGraph reducedPTA = LearningSupportRoutines.mergeStatesForUnique(pta,uniqueFromInitial);
 			//Visualiser.updateFrame(reducedPTA.transform.trimGraph(4, reducedPTA.getInit()), pta);
-			// in these experiments I cannot use VH merging because it will stop any mergers with an initial state.
+			// in these experiments I cannot use HV merging because it will stop any mergers with an initial state.
 			learnerOfPairs = new LearningAlgorithms.ReferenceLearner(learnerEval, reducedPTA,scoringToUse);
 			
 			System.out.println("PTApremerge size: "+reducedPTA.getStateNumber()+" states, "+reducedPTA.getAcceptStateNumber()+" accept-states and "+reducedPTA.pathroutines.countEdges()+" transitions");
@@ -399,7 +399,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 							}
 						String []columnText = id.getColumnText();// something like: [preU, GENN, E0, GEN, ARRAY, 4, 16]
 						String scoring = columnText[2];
-						if (scoring.equals(ScoringToApply.SCORING_VH.toString()))
+						if (scoring.equals(ScoringToApply.SCORING_HV.toString()))
 							scoring = "SV";
 						String AB = LearningSupportRoutines.padString(columnText[5],'0',2)+":"+LearningSupportRoutines.padString(columnText[6],'0',2);//+"-"+id.getColumnText()[6];
 						String label = scoring+":"+AB;
@@ -478,7 +478,7 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 		};
 		ScoringModeScore scoringPairEDSM = new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM),
 				scoringPairEDSM4 = new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
-				scoringPairVH = new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_VH);
+				scoringPairHV = new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_HV);
 		
 		List<SmallVsHuge> listOfExperiments = new ArrayList<>();
 		try
@@ -498,9 +498,9 @@ public class SmallVsHuge extends UASExperiment<SmallVsHugeParameters,ExperimentR
 										for(boolean pta:new boolean[]{false})
 										{
 											for(ScoringModeScore scoringPair:new ScoringModeScore[]{
-													scoringPairEDSM,scoringPairEDSM4,scoringPairVH
+													scoringPairEDSM,scoringPairEDSM4,scoringPairHV
 											})
-											if (states <= 20 || scoringPair == scoringPairEDSM || scoringPair == scoringPairVH)
+											if (states <= 20 || scoringPair == scoringPairEDSM || scoringPair == scoringPairHV)
 											{
 													for(LearningType type:new LearningType[]{LearningType.PREMERGEUNIQUE,LearningType.PREMERGE,LearningType.CONVENTIONAL,LearningType.CONSTRAINTS})
 													if (states <= 20 || type != LearningType.CONSTRAINTS)

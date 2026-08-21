@@ -75,7 +75,7 @@ public class MarkovComparison {
                 MarkovExperiment.ColumnAndValue cellsB = getValueFromMapGivenSelector(entryB, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),invalidCellValuesB);
                 double valueB = obtainDoubleValueFromCell(cellsB.value, E_DIFF, cellsB.column);
 
-//                String Y_VH = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_VH + "-0");
+//                String Y_HV = getValueFromMapGivenRegexp(rowEntryA.getValue(), LearningAlgorithms.ScoringToApply.SCORING_HV + "-0");
 
 //                String [] cellsA_split=cellsA.split(",");
 //                String [] cellsB_split=cellsB.split(",");
@@ -99,7 +99,7 @@ public class MarkovComparison {
                 gr_BestVsB.add(valueB, bestLearningResult.structural);
                 Wilcoxon_test_best.add(valueB, bestLearningResult.structural);
 
-//                gr_BestVsA.add(obtainDoubleValueFromCell(Y_VH.value, E_DIFF,Y_VH.column),bestLearningResult.structural);
+//                gr_BestVsA.add(obtainDoubleValueFromCell(Y_HV.value, E_DIFF,Y_HV.column),bestLearningResult.structural);
                 gr_BestVsA.add(valueA,bestLearningResult.structural);
             }
 
@@ -131,7 +131,7 @@ public class MarkovComparison {
                                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
 //                                            LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
 //                                            LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
-                                            LearningAlgorithms.ScoringToApply.SCORING_VH
+                                            LearningAlgorithms.ScoringToApply.SCORING_HV
                                     })
                             {
                                 int chunkSizeToEvaluate = 3;

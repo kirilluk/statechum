@@ -51,7 +51,7 @@ public class E_MarkovTraceLenMult {
                                         preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-                                                        LearningAlgorithms.ScoringToApply.SCORING_VH
+                                                        LearningAlgorithms.ScoringToApply.SCORING_HV
                                                 } :
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
@@ -98,8 +98,8 @@ public class E_MarkovTraceLenMult {
                         MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
                         if (rowValues.traceLengthMultiplier == traceLenMult) {
                             gr_StructuralDiffBestMap.computeIfAbsent(traceLenMult, aDouble ->
-                                    new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov",
-                                            new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_tracemult_tracelen=" + traceLenMult + "_VH_structuraldiffBest.pdf"), 0, 1, true));
+                                    new SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov",
+                                            new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_tracemult_tracelen=" + traceLenMult + "_HV_structuraldiffBest.pdf"), 0, 1, true));
                             gr_StructuralDiffBestMap.get(traceLenMult).setOtherOptions("las=2");
                         }
                     }
@@ -110,12 +110,12 @@ public class E_MarkovTraceLenMult {
                             resultCSV,validityOfCells);
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(traceLenMult), null,
                             (pair) -> {
-                                double markov = pair.firstElem, vh_score = pair.secondElem;
+                                double markov = pair.firstElem, hv_score = pair.secondElem;
                                 StringBuilder sb = new StringBuilder();
                                 Formatter formatter = new Formatter(sb, Locale.US);
                                 formatter.format(numberFormat, traceLenMult);
                                 gr_BestStructuralForLengthMultiplier.add("M\n"+sb, markov);
-                                gr_BestStructuralForLengthMultiplier.add("VH\n"+sb, vh_score);
+                                gr_BestStructuralForLengthMultiplier.add("HV\n"+sb, hv_score);
                             }, null);
                     learnerToHowOftenBestForAllMultipliers.computeIfAbsent(traceLenMult, aDouble -> report);
                 }
@@ -127,7 +127,7 @@ public class E_MarkovTraceLenMult {
                     Formatter formatter = new Formatter(sb, Locale.US);
                     formatter.format(numberFormat, traceLenMult);
                     ordering.add("M\n"+sb);
-                    ordering.add("VH\n"+sb);
+                    ordering.add("HV\n"+sb);
                 }
                 gr_BestStructuralForLengthMultiplier.setOrderingOfLabels(ordering);
 

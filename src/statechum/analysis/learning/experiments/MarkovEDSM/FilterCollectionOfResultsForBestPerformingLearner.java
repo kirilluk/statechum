@@ -71,14 +71,14 @@ class FilterCollectionOfResultsForBestPerformingLearner {
     /**
      * Given a results obtained by Markov learners using different parameters, uses inconsistency values to identify the best performing learner and report its results.
      *
-     * @param gr_StructuralDiffBest            where to plot best v.s. VH.
+     * @param gr_StructuralDiffBest            where to plot best v.s. HV.
      * @param gr_StructuralDiffDefaultOrdering where to plot best across multiple orderings v.s. default ordering.
-     * @param markov_vh_diff_score_handler called with a pair of Diff scores for Markov v.s. VH
-     * @param markov_vh_bcr_score_handler called with a pair of BCR scores for Markov v.s. VH
+     * @param markov_hv_diff_score_handler called with a pair of Diff scores for Markov v.s. HV
+     * @param markov_hv_bcr_score_handler called with a pair of BCR scores for Markov v.s. HV
      */
     public Map<String, AtomicInteger> getResultForBestPerformingMarkovLearner(SquareBagPlot gr_StructuralDiffBest, SquareBagPlot gr_StructuralDiffDefaultOrdering,
-                                                                              Consumer<Pair<Double, Double>> markov_vh_diff_score_handler,
-                                                                              Consumer<Pair<Double, Double>> markov_vh_bcr_score_handler) {
+                                                                              Consumer<Pair<Double, Double>> markov_hv_diff_score_handler,
+                                                                              Consumer<Pair<Double, Double>> markov_hv_bcr_score_handler) {
         // Now select the best result from all those available
         for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
             MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
@@ -117,20 +117,20 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                     for (Map.Entry<Integer, MarkovExperiment.LearningReport> result : resultForChunkLen.entrySet())
                         resultPerChunkLen.computeIfAbsent(result.getKey(), k -> new ArrayList<>()).add(result.getValue());
 
-                    ColumnAndValue Y_VH = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH), invalidCellValues);
-                    if (Y_VH != null) {
-                        double vh_score = obtainDoubleValueFromCell(Y_VH.value, E_DIFF, Y_VH.column);
+                    ColumnAndValue Y_HV = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV), invalidCellValues);
+                    if (Y_HV != null) {
+                        double hv_score = obtainDoubleValueFromCell(Y_HV.value, E_DIFF, Y_HV.column);
                         if (gr_StructuralDiffBest != null)
-                            gr_StructuralDiffBest.add(vh_score, bestLearningResult.structural, null, null);
+                            gr_StructuralDiffBest.add(hv_score, bestLearningResult.structural, null, null);
                         if (gr_StructuralDiffDefaultOrdering != null)
                             gr_StructuralDiffDefaultOrdering.add(bestLearningResultForDefaultOrdering.structural, bestLearningResult.structural, null, null);
 
-                        if (markov_vh_diff_score_handler != null)
-                            markov_vh_diff_score_handler.accept(new Pair<>(bestLearningResult.structural, vh_score));
-                        if (markov_vh_bcr_score_handler != null)
-                            markov_vh_bcr_score_handler.accept(new Pair<>(bestLearningResult.bcr, obtainDoubleValueFromCell(Y_VH.value, E_BCR, Y_VH.column)));
+                        if (markov_hv_diff_score_handler != null)
+                            markov_hv_diff_score_handler.accept(new Pair<>(bestLearningResult.structural, hv_score));
+                        if (markov_hv_bcr_score_handler != null)
+                            markov_hv_bcr_score_handler.accept(new Pair<>(bestLearningResult.bcr, obtainDoubleValueFromCell(Y_HV.value, E_BCR, Y_HV.column)));
                     } else
-                        System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
+                        System.out.println("WARNING: missing HV-value for " + rowEntry.getKey());
                 }
 
             }

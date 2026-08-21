@@ -49,7 +49,7 @@ public class E_MarkovFanTempMonitor600 extends E_MarkovCaseStudies {
                                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
                                             LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
                                             LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
-                                            LearningAlgorithms.ScoringToApply.SCORING_VH
+                                            LearningAlgorithms.ScoringToApply.SCORING_HV
                                     } :
                                     new LearningAlgorithms.ScoringToApply[]{
                                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV
@@ -88,7 +88,7 @@ public class E_MarkovFanTempMonitor600 extends E_MarkovCaseStudies {
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Set<MarkovExperiment.RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
             List<List<String>> outputStatistics = new ArrayList<>();
-            outputStatistics.add(new ArrayList<>(Arrays.asList("Case study", "States", "Alphabet", "Traces", "T. Length", "Centre", "P.Len", "Diff, M", "BCR, M", "Diff, VH", "BCR, VH", "A12", "A12 lo", "A12 hi", "Wilcoxon")));
+            outputStatistics.add(new ArrayList<>(Arrays.asList("Case study", "States", "Alphabet", "Traces", "T. Length", "Centre", "P.Len", "Diff, M", "BCR, M", "Diff, HV", "BCR, HV", "A12", "A12 lo", "A12 hi", "Wilcoxon")));
             for (Map.Entry<Integer, CaseStudyInformation> entryForCaseStudy : caseStudyInformationMap.entrySet()) {
 
                 // We need to compute the smallest runtime that was deemed to be a timeout. It is subsequently used as a cap

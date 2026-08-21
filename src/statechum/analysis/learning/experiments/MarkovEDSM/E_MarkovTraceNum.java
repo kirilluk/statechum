@@ -50,7 +50,7 @@ public class E_MarkovTraceNum {
                                         preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-                                                        LearningAlgorithms.ScoringToApply.SCORING_VH
+                                                        LearningAlgorithms.ScoringToApply.SCORING_HV
                                                 } :
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
@@ -96,8 +96,8 @@ public class E_MarkovTraceNum {
                         if (rowValues.traceQuantity == traceQuantityToUse) {
                             final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
                             gr_StructuralDiffBestMap.computeIfAbsent(traceQuantityToUse, aDouble ->
-                                    new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov",
-                                            new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_tracenum_num=" + traceQuantityToUse + "_VH_structuraldiffBest.pdf"), 0, 1, true));
+                                    new SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov",
+                                            new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_tracenum_num=" + traceQuantityToUse + "_HV_structuraldiffBest.pdf"), 0, 1, true));
                         }
                     }
 
@@ -107,12 +107,12 @@ public class E_MarkovTraceNum {
                             resultCSV,validityOfCells);
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(traceQuantityToUse), null,
                             (pair) -> {
-                                double markov = pair.firstElem, vh_score = pair.secondElem;
+                                double markov = pair.firstElem, hv_score = pair.secondElem;
                                 StringBuilder sb = new StringBuilder();
                                 Formatter formatter = new Formatter(sb, Locale.US);
                                 formatter.format(numberFormat, traceQuantityToUse);
                                 gr_BestStructuralForTraceNumber.add("M\n"+sb, markov);
-                                gr_BestStructuralForTraceNumber.add("VH\n"+sb, vh_score);
+                                gr_BestStructuralForTraceNumber.add("HV\n"+sb, hv_score);
                             }, null);
                     learnerToHowOftenBestForAllTraceLength.computeIfAbsent(traceQuantityToUse,aInteger -> report);
                 }
@@ -124,7 +124,7 @@ public class E_MarkovTraceNum {
                     Formatter formatter = new Formatter(sb, Locale.US);
                     formatter.format(numberFormat, traceQuantityToUse);
                     ordering.add("M\n"+sb);
-                    ordering.add("VH\n"+sb);
+                    ordering.add("HV\n"+sb);
                 }
                 gr_BestStructuralForTraceNumber.setOrderingOfLabels(ordering);
 

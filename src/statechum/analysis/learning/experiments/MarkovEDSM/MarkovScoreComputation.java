@@ -585,7 +585,7 @@ public class MarkovScoreComputation
 		if(graph.pairscores.computePairCompatibilityScore_internal(pair,mergedVertices) < 0)
 			return -1;		
 		
-		if (graph.pairscores.computeScoreVH(pair,false) < 0 && pair.getQ().getDepth()<chunkLen && pair.getR().getDepth() < chunkLen)
+		if (graph.pairscores.computeScoreHV(pair,false) < 0 && pair.getQ().getDepth()<chunkLen && pair.getR().getDepth() < chunkLen)
 			return  -1;
 		long matchscore= 0;
 		assert pair.getQ() != pair.getR();

@@ -53,7 +53,7 @@ public class E_MarkovBaselineLearn {
                                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
                                             LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
                                             LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
-                                            LearningAlgorithms.ScoringToApply.SCORING_VH
+                                            LearningAlgorithms.ScoringToApply.SCORING_HV
                                     })
                             {
                                 int chunkSizeToEvaluate = 3;
@@ -96,10 +96,10 @@ public class E_MarkovBaselineLearn {
 //                    final DrawGraphs.RBagPlot gr_InvalidMergersNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Invalid mergers near root", "Structural Score", new File(experimentName + "invalidmergers_nearroot_structural.pdf"));
 //                    final DrawGraphs.RBagPlot gr_MissedMergersNearRootVsStructuralScore = new DrawGraphs.RBagPlot("Missed Mergers near root", "Structural Score", new File(experimentName + "missedmergers_nearroot_structural.pdf"));
                     final DrawGraphs.RBagPlot gr_BCRVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "BCR Score, EDSM-Markov", new File(experimentName + "inconsistency_bcr.pdf"));
-                    final DrawGraphs.SquareBagPlot gr_StructuralDiff = new DrawGraphs.SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov", new File(experimentName + "VH_structuraldiff.pdf"), 0, 1, true);
+                    final DrawGraphs.SquareBagPlot gr_StructuralDiff = new DrawGraphs.SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov", new File(experimentName + "HV_structuraldiff.pdf"), 0, 1, true);
                     final DrawGraphs.SquareBagPlot gr_StructuralDiffLowDensity =
                         (perStateSquaredDensity100 == 0)?
-                            new DrawGraphs.SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov", new File(experimentName + "lowdensity_VH_structuraldiff.pdf"), 0, 1, true)
+                            new DrawGraphs.SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov", new File(experimentName + "lowdensity_HV_structuraldiff.pdf"), 0, 1, true)
                             :null;
                     final DrawGraphs.RBagPlot gr_MarkovTransitionPrecisionStructuralDiff = new DrawGraphs.RBagPlot("Transition precision Markov", "Structural Score, EDSM-Markov", new File(experimentName + "markovtransitionprecision_structuraldiff.pdf"));
                     final DrawGraphs.RBagPlot gr_MarkovHoleRecallStructuralDiff = new DrawGraphs.RBagPlot("Hole recall Markov", "Structural Score, EDSM-Markov", new File(experimentName + "markovholerecall_structuraldiff.pdf"));
@@ -116,7 +116,7 @@ public class E_MarkovBaselineLearn {
                         gr_PosnegNegativeInconsistencies_Structural.setYLine(2.5);
                         gr_PosnegNegativeInconsistencies_Structural.setMargins(3.5, 3.5, 0.2, 0.2);
                     }
-                    final DrawGraphs.SquareBagPlot gr_BCR = new DrawGraphs.SquareBagPlot("BCR, VH", "BCR, EDSM-Markov", new File(experimentName + "_trace_bcr.pdf"), 0.5, 1, true);
+                    final DrawGraphs.SquareBagPlot gr_BCR = new DrawGraphs.SquareBagPlot("BCR, HV", "BCR, EDSM-Markov", new File(experimentName + "_trace_bcr.pdf"), 0.5, 1, true);
                     final DrawGraphs.SquareBagPlot gr_DiffAgainstKtails1 = new DrawGraphs.SquareBagPlot("Structural Score, K-tails,1", "Structural Score, EDSM-Markov", new File(experimentName + "kt_1_markov.pdf"), 0, 1, true);
                     final DrawGraphs.SquareBagPlot gr_DiffAgainstKtails2 = new DrawGraphs.SquareBagPlot("Structural Score, K-tails,1", "Structural Score, EDSM-Markov", new File(experimentName + "kt_2_markov.pdf"), 0, 1, true);
                     final DrawGraphs.SquareBagPlot gr_DiffAgainstEDSM_1 = new DrawGraphs.SquareBagPlot("Structural Score, EDSM-1", "Structural Score, EDSM-Markov", new File(experimentName + "edsm-1_markov.pdf"), 0, 1, true);
@@ -139,7 +139,7 @@ public class E_MarkovBaselineLearn {
                             new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
                     spreadsheetToBagPlotNoZeroYValues(gr_BCRVsInconsistency, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_INCONSISTENCY_LEARNT,
                             new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_BCR, null, null);
-                    spreadsheetToBagPlot(gr_StructuralDiff, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH), E_DIFF,
+                    spreadsheetToBagPlot(gr_StructuralDiff, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV), E_DIFF,
                             new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
                     spreadsheetToBagPlot(gr_MarkovTransitionPrecisionStructuralDiff, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_MARKOV_TRANSITION_PRECISION,
                             new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
@@ -158,10 +158,10 @@ public class E_MarkovBaselineLearn {
                                 double value = obtainDoubleValueFromCell(Y, E_DIFF,column);
 //                                gr_StructuralVsInconsistency.add(Double.parseDouble(obtainValueFromCell(X, cellWithinX)), value, colour, label);
 
-                                ColumnAndValue Y_VH = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH),validityOfCells);
+                                ColumnAndValue Y_HV = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV),validityOfCells);
                                 if (gr_StructuralDiffLowDensity != null)
                                     gr_StructuralDiffLowDensity.add(
-                                            obtainDoubleValueFromCell(Y_VH.value, E_DIFF,Y_VH.column),
+                                            obtainDoubleValueFromCell(Y_HV.value, E_DIFF,Y_HV.column),
                                             obtainDoubleValueFromCell(Y, E_DIFF,column), null, null);
                                 gr_PosnegNegativeInconsistencies_Structural.add(Boolean.toString(alwaysPositive), value, null, null);
 //                                gr_TotalMergersVsStructuralScore.add(
@@ -179,18 +179,18 @@ public class E_MarkovBaselineLearn {
                         });
                     }
 
-                    spreadsheetToBagPlot(gr_BCR, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH), E_BCR, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_BCR, null, null);
+                    spreadsheetToBagPlot(gr_BCR, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV), E_BCR, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_BCR, null, null);
                     spreadsheetToBagPlot(gr_DiffAgainstKtails1, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_PTAK_1), E_DIFF, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
                     spreadsheetToBagPlot(gr_DiffAgainstKtails2, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_PTAK_2), E_DIFF, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
                     spreadsheetToBagPlot(gr_DiffAgainstEDSM_1, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_EDSM_1), E_DIFF, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
                     spreadsheetToBagPlot(gr_DiffAgainstEDSM_2, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_EDSM_2), E_DIFF, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
 
-                    spreadsheetAsDouble(Wilcoxon_Test_BCR, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_BCR, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH), E_BCR);
-                    spreadsheetAsDouble(Wilcoxon_test_Structural, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH), E_DIFF);
-                    spreadsheetAsDouble(Mann_Whitney_U_Test_BCR, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_BCR, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH), E_BCR);
-                    spreadsheetAsDouble(Mann_Whitney_U_Test_Structural, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH), E_DIFF);
-                    spreadsheetAsDouble(Kruskal_Wallis_Test_BCR, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_BCR, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH), E_BCR);
-                    spreadsheetAsDouble(Kruskal_Wallis_Test_Structural, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH), E_DIFF);
+                    spreadsheetAsDouble(Wilcoxon_Test_BCR, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_BCR, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV), E_BCR);
+                    spreadsheetAsDouble(Wilcoxon_test_Structural, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV), E_DIFF);
+                    spreadsheetAsDouble(Mann_Whitney_U_Test_BCR, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_BCR, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV), E_BCR);
+                    spreadsheetAsDouble(Mann_Whitney_U_Test_Structural, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV), E_DIFF);
+                    spreadsheetAsDouble(Kruskal_Wallis_Test_BCR, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_BCR, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV), E_BCR);
+                    spreadsheetAsDouble(Kruskal_Wallis_Test_Structural, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV), E_DIFF);
 
                     for (@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result : new DrawGraphs.RExperimentResult[]{gr_StructuralVsInconsistency, gr_BCRVsInconsistency,
                             gr_MarkovTransitionPrecisionStructuralDiff, gr_MarkovHoleRecallStructuralDiff, gr_StructuralDiff, gr_BCR_vs_structural,
@@ -211,8 +211,8 @@ public class E_MarkovBaselineLearn {
             for (int states : learningGroup.statesToUse)
                 for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                     FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states,perStateSquaredDensity100,resultCSV,validityOfCells);
-                    final DrawGraphs.SquareBagPlot gr_StructuralDiffBest = new DrawGraphs.SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov",
-                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_VH_structuraldiffBest.pdf"), 0, 1, true);
+                    final DrawGraphs.SquareBagPlot gr_StructuralDiffBest = new DrawGraphs.SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov",
+                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_HV_structuraldiffBest.pdf"), 0, 1, true);
                     final RBoxPlot<String> gr_PerformanceOfLearners = new RBoxPlot<>("", "Structural Score",
                             new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_structural.pdf"));
                     final RBoxPlot<String> gr_RuntimeOfLearners = new RBoxPlot<>("", "Runtime, seconds",

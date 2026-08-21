@@ -26,7 +26,7 @@ import statechum.analysis.learning.StatePair;
 import statechum.analysis.learning.experiments.PaperUAS.ExperimentPaperUAS2.TracesForSeed.Automaton;
 import statechum.analysis.learning.observers.DummyLearner;
 import statechum.analysis.learning.observers.ProgressDecorator.LearnerEvaluationConfiguration;
-import statechum.analysis.learning.rpnicore.PairScoreComputation.VHGeneralScoring;
+import statechum.analysis.learning.rpnicore.PairScoreComputation.HVGeneralScoring;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldMergeStates;
 import statechum.analysis.learning.rpnicore.old_generalised_merge_routines.OldPairScoreComputation;
@@ -250,8 +250,8 @@ public class RPNIBlueFringeVariability
 							Assert.assertEquals(scoreTrue, scoreOld);// ensures that the old computation gets us the same score
 							Assert.assertEquals(scoreTrue, scoreFalse);// ensures that regardless whether we update auxiliary information, the computation still gets us the same score
 
-							long scoreVH = graph.pairscores.computeScoreVH(p, false);
-							long scoreVHGeneral = graph.pairscores.computeVHRejectScoreGeneral(p, collectionOfVerticesToMerge, VHGeneralScoring.S_ONEPAIR);
+							long scoreVH = graph.pairscores.computeScoreHV(p, false);
+							long scoreVHGeneral = graph.pairscores.computeHVRejectScoreGeneral(p, collectionOfVerticesToMerge, HVGeneralScoring.S_ONEPAIR);
 							Assert.assertEquals(scoreVH, scoreVHGeneral);// the one-pair test should be the same
 						}						
 						if (haveToUseGeneralisedComputation)

@@ -305,37 +305,37 @@ public class E_MarkovCaseStudies {
         public boolean filter(String name) {
             switch (name) {
                 case "SmallTrain":
-                    if (learner == LearningAlgorithms.ScoringToApply.SCORING_EDSM_4 || learner == LearningAlgorithms.ScoringToApply.SCORING_VH)
+                    if (learner == LearningAlgorithms.ScoringToApply.SCORING_EDSM_4 || learner == LearningAlgorithms.ScoringToApply.SCORING_HV)
                         return true;
                     if (learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV)
                         return chunkSize >= 3 && chunkSize <= 4 && useCentre == false;
                     return false;
                 case "CVS":
-                    if (learner == LearningAlgorithms.ScoringToApply.SCORING_VH)
+                    if (learner == LearningAlgorithms.ScoringToApply.SCORING_HV)
                         return true;
                     if (learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV)
                         return chunkSize >= 3 && chunkSize <= 4 && useCentre;
                     return false;
                 case "ATM":
-                    if (learner == LearningAlgorithms.ScoringToApply.SCORING_VH || learner == LearningAlgorithms.ScoringToApply.SCORING_EDSM_4 || learner == LearningAlgorithms.ScoringToApply.SCORING_PTAK_2)
+                    if (learner == LearningAlgorithms.ScoringToApply.SCORING_HV || learner == LearningAlgorithms.ScoringToApply.SCORING_EDSM_4 || learner == LearningAlgorithms.ScoringToApply.SCORING_PTAK_2)
                         return true;
                     if (learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV)
                         return chunkSize == 3;
                     return false;
                 case "SSH":
-                    if (learner == LearningAlgorithms.ScoringToApply.SCORING_VH || learner == LearningAlgorithms.ScoringToApply.SCORING_EDSM_4)
+                    if (learner == LearningAlgorithms.ScoringToApply.SCORING_HV || learner == LearningAlgorithms.ScoringToApply.SCORING_EDSM_4)
                         return true;
                     if (learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV)
                         return chunkSize >= 3 && chunkSize <= 3 && useCentre == true;
                     return false;
                 case "MinePump":
-                    if (learner == LearningAlgorithms.ScoringToApply.SCORING_VH)
+                    if (learner == LearningAlgorithms.ScoringToApply.SCORING_HV)
                         return true;
                     if (learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV)
                         return chunkSize >= 3 && chunkSize <= 4;
                     return false;
                 case caseStudyFanTempMonitor:
-                    if (learner == LearningAlgorithms.ScoringToApply.SCORING_VH)
+                    if (learner == LearningAlgorithms.ScoringToApply.SCORING_HV)
                         return true;
                     if (learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV)
                         return chunkSize >= 4;
@@ -393,7 +393,7 @@ public class E_MarkovCaseStudies {
                                                     LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
                                                     LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
                                                     LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
-                                                    LearningAlgorithms.ScoringToApply.SCORING_VH
+                                                    LearningAlgorithms.ScoringToApply.SCORING_HV
                                             } :
                                             new LearningAlgorithms.ScoringToApply[]{
                                                     LearningAlgorithms.ScoringToApply.SCORING_MARKOV
@@ -439,7 +439,7 @@ public class E_MarkovCaseStudies {
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
             List<List<String>> outputStatistics = new ArrayList<>();
-            outputStatistics.add(new ArrayList<>(Arrays.asList("Case study", "States", "Alphabet", "Traces", "T. Length", "Centre", "P.Len", "Diff, M", "BCR, M", "Diff, VH", "BCR, VH", "A12", "A12 lo", "A12 hi", "Wilcoxon")));
+            outputStatistics.add(new ArrayList<>(Arrays.asList("Case study", "States", "Alphabet", "Traces", "T. Length", "Centre", "P.Len", "Diff, M", "BCR, M", "Diff, HV", "BCR, HV", "A12", "A12 lo", "A12 hi", "Wilcoxon")));
             for (Map.Entry<Integer, CaseStudyInformation> entryForCaseStudy : caseStudyInformationMap.entrySet()) {
 
                 // We need to compute the smallest runtime that was deemed to be a timeout. It is subsequently used as a cap
@@ -545,10 +545,10 @@ public class E_MarkovCaseStudies {
                                 String plot_filename_prefix = learningGroup.outPathPrefix + description + "_" + entryForCaseStudy.getValue().name + "_" + traces_lengthmult.firstElem + "_" +
                                         (useCentre ? "centre" : "no_cnt") + "_cl=" + chunkSizeToEvaluate;
 
-                                final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov learner",
-                                        new File(plot_filename_prefix + "_VH_structuraldiffBest.pdf"), 0, 1, true);
-                                final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, VH", "BCR, EDSM-Markov learner",
-                                        new File(plot_filename_prefix + "_VH_BCRBest.pdf"), 0.5, 1, true);
+                                final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov learner",
+                                        new File(plot_filename_prefix + "_HV_structuraldiffBest.pdf"), 0, 1, true);
+                                final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, HV", "BCR, EDSM-Markov learner",
+                                        new File(plot_filename_prefix + "_HV_BCRBest.pdf"), 0.5, 1, true);
                                 final WilcoxonPairedTest Wilcoxon_test_Structural = new WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_str.csv"));
                                 final WilcoxonPairedTest Wilcoxon_Test_BCR = new WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_bcr.csv"));
                                 final A_VarghaDelaney A12_test_Structural = new A_VarghaDelaney(new File(plot_filename_prefix + "_A12_str.csv"), 100);
@@ -556,7 +556,7 @@ public class E_MarkovCaseStudies {
                                 // Now select the best result from all those available
                                 final AtomicInteger diffReported = new AtomicInteger(0), bcrReported = new AtomicInteger(0);
                                 final AtomicInteger diffAverageMarkov100 = new AtomicInteger(0), bcrAverageMarkov100 = new AtomicInteger(0);
-                                final AtomicInteger diffAverageVH100 = new AtomicInteger(0), bcrAverageVH100 = new AtomicInteger(0);
+                                final AtomicInteger diffAverageHV100 = new AtomicInteger(0), bcrAverageHV100 = new AtomicInteger(0);
 
                                 FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(-1, -1,
                                         rowHeader -> rowHeader.traceQuantity == traces_lengthmult.firstElem && rowHeader.sample == entryForCaseStudy.getKey(),
@@ -568,28 +568,28 @@ public class E_MarkovCaseStudies {
                                 AtomicInteger bestDiffCounter = new AtomicInteger(0);
                                 Map<String, AtomicInteger> learnerToHowOftenBest = report.getResultForBestPerformingMarkovLearner(null, null,
                                         (pair) -> {
-                                            double markov = pair.firstElem, vh_score = pair.secondElem;
-                                            gr_StructuralDiffBest.add(vh_score, markov, null, null);
-                                            A12_test_Structural.add(vh_score, markov);
-                                            Wilcoxon_test_Structural.add(vh_score, markov);
+                                            double markov = pair.firstElem, hv_score = pair.secondElem;
+                                            gr_StructuralDiffBest.add(hv_score, markov, null, null);
+                                            A12_test_Structural.add(hv_score, markov);
+                                            Wilcoxon_test_Structural.add(hv_score, markov);
                                             ResultsXAxis xValue = new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, traces_lengthmult.firstElem, chunkSizeToEvaluate, useCentre);
                                             gr_PerformanceOfLearners.add(xValue.toString(), markov);
                                             diffReported.addAndGet(1);
                                             diffAverageMarkov100.addAndGet((int) Math.round(markov * 100));
-                                            diffAverageVH100.addAndGet((int) Math.round(vh_score * 100));
+                                            diffAverageHV100.addAndGet((int) Math.round(hv_score * 100));
 
                                             bestDiffSum.addAndGet((int) Math.round(markov * 100));
                                             bestDiffCounter.incrementAndGet();
                                         },
                                         (pair) -> {
-                                            double bcr = pair.firstElem, vh_bcr = pair.secondElem;
-                                            gr_BcrDiffBest.add(vh_bcr, bcr, null, null);
-                                            A12_test_BCR.add(vh_bcr, bcr);
-                                            Wilcoxon_Test_BCR.add(vh_bcr, bcr);
+                                            double bcr = pair.firstElem, hv_bcr = pair.secondElem;
+                                            gr_BcrDiffBest.add(hv_bcr, bcr, null, null);
+                                            A12_test_BCR.add(hv_bcr, bcr);
+                                            Wilcoxon_Test_BCR.add(hv_bcr, bcr);
 
                                             bcrReported.addAndGet(1);
                                             bcrAverageMarkov100.addAndGet((int) Math.round(bcr * 100));
-                                            bcrAverageVH100.addAndGet((int) Math.round(vh_bcr * 100));
+                                            bcrAverageHV100.addAndGet((int) Math.round(hv_bcr * 100));
                                         }
                                 );
                                 if (diffReported.get() > 0) {// if filtering did not remove everything.
@@ -624,8 +624,8 @@ public class E_MarkovCaseStudies {
                                     row.add(Integer.toString(diffAverageMarkov100.get() / diffReported.get()));
                                     row.add(Integer.toString(bcrAverageMarkov100.get() / bcrReported.get()));
 
-                                    row.add(Integer.toString(diffAverageVH100.get() / diffReported.get()));
-                                    row.add(Integer.toString(bcrAverageVH100.get() / bcrReported.get()));
+                                    row.add(Integer.toString(diffAverageHV100.get() / diffReported.get()));
+                                    row.add(Integer.toString(bcrAverageHV100.get() / bcrReported.get()));
 
                                     NumberFormat f_A12 = new DecimalFormat("0.00");
                                     NumberFormat f_Wilcoxon = new DecimalFormat("0.00E00");

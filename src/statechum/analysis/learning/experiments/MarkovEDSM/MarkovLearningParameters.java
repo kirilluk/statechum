@@ -242,7 +242,9 @@ public abstract class MarkovLearningParameters implements ThreadResultID
 
 		String [] learner_preset = elem[0].split("-");
 		// When parsing, we replace the @ sign with an underscore because underscore is reserved as a separator for key-value pairs.
-		LearningAlgorithms.ScoringToApply learner = LearningAlgorithms.ScoringToApply.valueOf("SCORING_"+learner_preset[0].replace('@','_'));
+		if (learner_preset[0].startsWith("VH")) learner_preset[0] = "HV";
+		String scoringPresetText = "SCORING_"+learner_preset[0].replace('@','_');
+		LearningAlgorithms.ScoringToApply learner = scoringPresetText.equals("VH")?ScoringToApply.SCORING_HV:LearningAlgorithms.ScoringToApply.valueOf(scoringPresetText);
 		int preset = Integer.parseInt(learner_preset[1]);
 
 		for(int i=1;i<elem.length;i+=2) {

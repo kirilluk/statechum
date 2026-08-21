@@ -3,7 +3,6 @@ package statechum.analysis.learning.experiments.MarkovEDSM;
 import statechum.Pair;
 import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
-import statechum.analysis.learning.experiments.PairSelection.PairQualityLearner;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator;
 
@@ -14,7 +13,6 @@ import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
-import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_TIMEOUT;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovAlphabet {
@@ -53,7 +51,7 @@ public class E_MarkovAlphabet {
                                             preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
                                                     new LearningAlgorithms.ScoringToApply[]{
                                                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-                                                            LearningAlgorithms.ScoringToApply.SCORING_VH
+                                                            LearningAlgorithms.ScoringToApply.SCORING_HV
                                                     } :
                                                     new LearningAlgorithms.ScoringToApply[]{
                                                             LearningAlgorithms.ScoringToApply.SCORING_MARKOV
@@ -110,8 +108,8 @@ public class E_MarkovAlphabet {
                         if (rowValues.alphabetMultiplier == alphabetMultiplier && rowValues.states == states) {
 
                             gr_StructuralDiffBestMap.computeIfAbsent(alphabetMultiplier, aDouble ->
-                                        new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov",
-                                                new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "alphabet_alphabetmult=" + alphabetMultiplier + "_VH_structuraldiffBest.pdf"), 0, 1, true)
+                                        new SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov",
+                                                new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "alphabet_alphabetmult=" + alphabetMultiplier + "_HV_structuraldiffBest.pdf"), 0, 1, true)
                                 );
 
                             getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
@@ -133,12 +131,12 @@ public class E_MarkovAlphabet {
 
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestMap.get(alphabetMultiplier), null,
                             (pair) -> {
-                                double markov = pair.firstElem, vh_score = pair.secondElem;
+                                double markov = pair.firstElem, hv_score = pair.secondElem;
                                 StringBuilder sb = new StringBuilder();
                                 Formatter formatter = new Formatter(sb, Locale.US);
                                 formatter.format(numberFormat, alphabetMultiplier);
                                 gr_BestStructuralForAlphabet.add("M\n"+sb, markov);
-                                gr_BestStructuralForAlphabet.add("VH\n"+sb, vh_score);
+                                gr_BestStructuralForAlphabet.add("HV\n"+sb, hv_score);
                             }, null);
                     learnerToHowOftenBestForAllMultipliers.computeIfAbsent(alphabetMultiplier, aDouble -> report);
                 }
@@ -149,7 +147,7 @@ public class E_MarkovAlphabet {
                     Formatter formatter = new Formatter(sb, Locale.US);
                     formatter.format(numberFormat, alphabetMultiplier);
                     ordering.add("M\n"+sb);
-                    ordering.add("VH\n"+sb);
+                    ordering.add("HV\n"+sb);
                 }
                 gr_BestStructuralForAlphabet.setOrderingOfLabels(ordering);
 

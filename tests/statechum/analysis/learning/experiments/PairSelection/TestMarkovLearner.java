@@ -3309,7 +3309,7 @@ public class TestMarkovLearner
 
 	@Test
 	public void testExtractOffset3() {
-		ColumnParseOutcome column = parseMarkovParametersColumnFromCSV("VH-0",null);
+		ColumnParseOutcome column = parseMarkovParametersColumnFromCSV("HV-0",null);
 		Assert.assertEquals(0, MarkovExperiment.RESULT_VALUES.getOffset(E_SUCCESS, column));
 		Assert.assertEquals(1, MarkovExperiment.RESULT_VALUES.getOffset(E_BCR, column));
 		Assert.assertEquals(2, MarkovExperiment.RESULT_VALUES.getOffset(E_DIFF, column));
@@ -3318,7 +3318,7 @@ public class TestMarkovLearner
 
 	@Test
 	public void testExtractOffset4() {
-		ColumnParseOutcome column = parseMarkovParametersColumnFromCSV("VH-0",null);
+		ColumnParseOutcome column = parseMarkovParametersColumnFromCSV("HV-0",null);
 		TestHelper.checkForCorrectException(() ->
 						MarkovExperiment.RESULT_VALUES.getOffset(E_INCONSISTENCY_AVERAGE,column),
 				IllegalArgumentException.class, "Requested markov value E_INCONSISTENCY_AVERAGE but column does not correspond");

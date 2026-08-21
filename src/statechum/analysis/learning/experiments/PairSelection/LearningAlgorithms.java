@@ -46,7 +46,7 @@ import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAborted
 import statechum.analysis.learning.rpnicore.AbstractLearnerGraph.StatesToConsider;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.AMEquivalenceClassMergingDetails;
 import statechum.analysis.learning.rpnicore.PairScoreComputation.RedNodeSelectionProcedure;
-import statechum.analysis.learning.rpnicore.PairScoreComputation.VHGeneralScoring;
+import statechum.analysis.learning.rpnicore.PairScoreComputation.HVGeneralScoring;
 import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.collections.ArrayMapWithSearch;
 import statechum.collections.MapWithSearch;
@@ -92,7 +92,7 @@ public class LearningAlgorithms
 				LearningSupportRoutines.makeEven(referenceGraph.getAcceptStateNumber()*referenceGraph.pathroutines.computeAlphabet().size()));
 	}
 	
-	/** VH heuristic intentionally undermerges, particularly in dense graphs. In order to easily evaluate whether a subsequent pass of SAT/SMT would
+	/** HV heuristic intentionally undermerges, particularly in dense graphs. In order to easily evaluate whether a subsequent pass of SAT/SMT would
 	 * yield the correct graph, we count the number of correct mergers, the number of missed mergers and the number of invalid mergers.
 	 */
 	public interface StateMergingStatistics
@@ -171,19 +171,19 @@ public class LearningAlgorithms
 			return validMergers;
 		}
 
-		public static ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown constructReducerIfUsingVHScoring(LearnerGraph reference, ScoringToApply scoringMethod) {
-			return constructReducerIfUsingVHScoring(reference, scoringMethod,0);
+		public static ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown constructReducerIfUsingHVScoring(LearnerGraph reference, ScoringToApply scoringMethod) {
+			return constructReducerIfUsingHVScoring(reference, scoringMethod,0);
 		}
-		public static ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown constructReducerIfUsingVHScoring(LearnerGraph reference, ScoringToApply scoringMethod, int depthThreshold)
+		public static ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown constructReducerIfUsingHVScoring(LearnerGraph reference, ScoringToApply scoringMethod, int depthThreshold)
 		{
 			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer;
 			switch(scoringMethod)
 			{
-			case SCORING_VH:
-			case SCORING_VH_NIS:
-			case SCORING_VH_PTA:
-			case SCORING_VH_PTARECURSIVE:
-			case SCORING_VH_RED:
+			case SCORING_HV:
+			case SCORING_HV_NIS:
+			case SCORING_HV_PTA:
+			case SCORING_HV_PTARECURSIVE:
+			case SCORING_HV_RED:
 				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, true,depthThreshold, true);
 				break;
 			default:
@@ -193,20 +193,20 @@ public class LearningAlgorithms
 			return redReducer;
 		}
 
-		public static StateMergingStatistics constructReducerIfUsingVHScoring(LearnerGraph reference, OverrideScoringToApply scoringToUse) {
-			return constructReducerIfUsingVHScoring(reference,scoringToUse,0);
+		public static StateMergingStatistics constructReducerIfUsingHVScoring(LearnerGraph reference, OverrideScoringToApply scoringToUse) {
+			return constructReducerIfUsingHVScoring(reference,scoringToUse,0);
 		}
 
-		public static StateMergingStatistics constructReducerIfUsingVHScoring(LearnerGraph reference, OverrideScoringToApply scoringToUse, int depthThreshold)
+		public static StateMergingStatistics constructReducerIfUsingHVScoring(LearnerGraph reference, OverrideScoringToApply scoringToUse, int depthThreshold)
 		{
 			ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown redReducer;
 			switch(scoringToUse)
 			{
-			case SCORING_VH:
-			case SCORING_VH_NIS:
-			case SCORING_VH_PTA:
-			case SCORING_VH_PTARECURSIVE:
-			case SCORING_VH_RED:
+			case SCORING_HV:
+			case SCORING_HV_NIS:
+			case SCORING_HV_PTA:
+			case SCORING_HV_PTARECURSIVE:
+			case SCORING_HV_RED:
 				redReducer = new ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown(reference, true,depthThreshold, true);
 				break;
 			default:
@@ -230,7 +230,7 @@ public class LearningAlgorithms
 		public int countRedsKnowingTheCorrectSolution() 
 		{
 			if (reportReducedReds)
-				return totalReds - missedMergersNearRoot - missedMergers;// VH heuristic creates a lot of red states, expecting them to be
+				return totalReds - missedMergersNearRoot - missedMergers;// HV heuristic creates a lot of red states, expecting them to be
 			// merged with SAT. This may cause learner to abort on L_REDS hence we 'forgive' mistakes created
 			// by such learner, at the expense of the time taken to learn (and a possibly inflated score computed
 			// by structural difference).
@@ -563,17 +563,17 @@ public class LearningAlgorithms
         SCORING_ORACLE_STATISTICS("ORACLE_STATISTICS", true),
         SCORING_EDSM("E0"), SCORING_EDSM_1("E1"), SCORING_EDSM_2("E2"), SCORING_EDSM_3("E3"), SCORING_EDSM_4("E4"), SCORING_EDSM_5("E5"),
 		SCORING_EDSM_6("E6"), SCORING_EDSM_7("E7"), SCORING_EDSM_8("E8"), SCORING_EDSM_9("E9"), SCORING_EDSM_10("E10"), SCORING_EDSM_11("E11"), SCORING_EDSM_12("E12"), 
-		SCORING_VH("VH"), SCORING_VH_3("VH_3"), SCORING_VH_PTA("VHPTA"), SCORING_VH_PTARECURSIVE("VHREC"), SCORING_VH_NIS("VHNIS"), SCORING_VH_RED("VHRED"),
+		SCORING_HV("HV"), SCORING_HV_3("HV_3"), SCORING_HV_PTA("HVPTA"), SCORING_HV_PTARECURSIVE("HVREC"), SCORING_HV_NIS("HVNIS"), SCORING_HV_RED("HVRED"),
 		SCORING_PTAK_1("KTPTA1"),SCORING_PTAK_2("KTPTA2"),SCORING_PTAK_3("KTPTA3"),SCORING_PTAK_4("KTPTA4"),
 		SCORING_PTAK_ALL_1("KTPTL1"),SCORING_PTAK_ALL_2("KTPTL2"),SCORING_PTAK_ALL_3("KTPTL3"),SCORING_PTAK_ALL_4("KTPTL4"),
 		SCORING_KT_1("TAIL1"), SCORING_KT_2("TAIL2"), SCORING_KT_3("TAIL3"), SCORING_KT_4("TAIL4"),
 		SCORING_LIMITEDSELFLOOPS_0("PROGRESS_0"),SCORING_LIMITEDSELFLOOPS_2("PROGRESS_2"),SCORING_LIMITEDSELFLOOPS_3("PROGRESS_3"),
 		SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_0("LFL_0"),SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_3("LFL_3"),
-		SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_VH_0("LFL_S_0"), SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_VH_3("LFL_S_3"),
+		SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_HV_0("LFL_S_0"), SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_HV_3("LFL_S_3"),
 		SCORING_LIMITEDLOOPS_0("LL_0"),SCORING_LIMITEDLOOPS_3("LL_3"),
-		SCORING_LIMITEDLOOPS_VH_0("LL_S_0"), SCORING_LIMITEDLOOPS_VH_3("LL_S_3"),
-		SCORING_LIMITEDSELFLOOPS_VH_0("PROGRESS+VH_0"), SCORING_LIMITEDSELFLOOPS_VH_2("PROGRESS+VH_2"),
-		SCORING_LIMITEDSELFLOOPS_VH_3("PROGRESS+VH_3"), SCORING_LIMITEDSELFLOOPS_VH_4("PROGRESS+VH_4");
+		SCORING_LIMITEDLOOPS_HV_0("LL_S_0"), SCORING_LIMITEDLOOPS_HV_3("LL_S_3"),
+		SCORING_LIMITEDSELFLOOPS_HV_0("PROGRESS+HV_0"), SCORING_LIMITEDSELFLOOPS_HV_2("PROGRESS+HV_2"),
+		SCORING_LIMITEDSELFLOOPS_HV_3("PROGRESS+HV_3"), SCORING_LIMITEDSELFLOOPS_HV_4("PROGRESS+HV_4");
 		
 		public final String name;
 		public final String reportedName;
@@ -585,7 +585,12 @@ public class LearningAlgorithms
 				throw new IllegalArgumentException("Name of enumeration reflecting learner kind should start with SCORING_");
 			// Here we replace the underscore with an @ sign to make it more practical to parse when encountered as part of a file name
 			// because underscore is reserved as a separator for key-value pairs..
-			reportedName = name().substring(name().indexOf("_")+1).replace('_','@');
+			String nameSuffix = name().substring(name().indexOf("_")+1);
+			String revisedName =  nameSuffix;
+			if (nameSuffix.startsWith("HV"))
+				// This is important: we are presently using a different abbreviation (VH) for the file names that are generated.
+				revisedName = "VH"+nameSuffix.substring(2);
+			reportedName = revisedName.replace('_','@');
 
 			name = nameText;scoringMarkov = false;
 		}
@@ -687,26 +692,26 @@ public class LearningAlgorithms
 			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 3, redReducer);break;
 		case SCORING_PTAK_ALL_4:
 			outcome = new EDSMReferenceLearner(evalCnf, initialPTA, Configuration.ScoreMode.KTAILS, 4, redReducer);break;
-		case SCORING_VH_PTA:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_VH_PTA,redReducer);break;
-		case SCORING_VH_PTARECURSIVE:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_VH_PTARECURSIVE,redReducer);break;
-		case SCORING_VH: {
+		case SCORING_HV_PTA:
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_HV_PTA,redReducer);break;
+		case SCORING_HV_PTARECURSIVE:
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_HV_PTARECURSIVE,redReducer);break;
+		case SCORING_HV: {
 			LearnerEvaluationConfiguration evalConfig = constructLearningConfiguration(evalCnf, scoringForEDSM);
 			evalConfig.config.setRejectPositivePairsWithScoresLessThan(0);
-			outcome = new ReferenceLearner(evalConfig, initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_VH, redReducer);
+			outcome = new ReferenceLearner(evalConfig, initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_HV, redReducer);
 			break;
 		}
-		case SCORING_VH_3: {
+		case SCORING_HV_3: {
 			LearnerEvaluationConfiguration evalConfig = constructLearningConfiguration(evalCnf, scoringForEDSM);
 			evalConfig.config.setRejectPositivePairsWithScoresLessThan(3);
-			outcome = new ReferenceLearner(evalConfig, initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_VH, redReducer);
+			outcome = new ReferenceLearner(evalConfig, initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_HV, redReducer);
 			break;
 		}
-		case SCORING_VH_NIS:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_VH_NIS,redReducer);break;
-		case SCORING_VH_RED:
-			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_VH_RED,redReducer);break;
+		case SCORING_HV_NIS:
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_HV_NIS,redReducer);break;
+		case SCORING_HV_RED:
+			outcome = new ReferenceLearner(constructLearningConfiguration(evalCnf, scoringForEDSM), initialPTA, ReferenceLearner.OverrideScoringToApply.SCORING_HV_RED,redReducer);break;
 		case SCORING_LIMITEDSELFLOOPS_0: {
 			LearnerEvaluationConfiguration evalConfig = constructLearningConfiguration(evalCnf, scoringForEDSM);
 			evalConfig.config.setRejectPositivePairsWithScoresLessThan(0);
@@ -737,16 +742,16 @@ public class LearningAlgorithms
 			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS, redReducer);
 			break;
 		}
-			case SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_VH_0: {
+			case SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_HV_0: {
 			LearnerEvaluationConfiguration evalConfig = constructLearningConfiguration(evalCnf, scoringForEDSM);
 			evalConfig.config.setRejectPositivePairsWithScoresLessThan(0);
-			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_VH, redReducer);
+			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_HV, redReducer);
 			break;
 		}
-			case SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_VH_3: {
+			case SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_HV_3: {
 			LearnerEvaluationConfiguration evalConfig = constructLearningConfiguration(evalCnf, scoringForEDSM);
 			evalConfig.config.setRejectPositivePairsWithScoresLessThan(3);
-			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_VH, redReducer);
+			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_HV, redReducer);
 			break;
 		}
 		case SCORING_LIMITEDLOOPS_0: {
@@ -761,40 +766,40 @@ public class LearningAlgorithms
 			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDLOOPS, redReducer);
 			break;
 		}
-		case SCORING_LIMITEDLOOPS_VH_0: {
+		case SCORING_LIMITEDLOOPS_HV_0: {
 			LearnerEvaluationConfiguration evalConfig = constructLearningConfiguration(evalCnf, scoringForEDSM);
 			evalConfig.config.setRejectPositivePairsWithScoresLessThan(0);
-			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDLOOPS_VH, redReducer);
+			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDLOOPS_HV, redReducer);
 			break;
 		}
-		case SCORING_LIMITEDLOOPS_VH_3: {
+		case SCORING_LIMITEDLOOPS_HV_3: {
 			LearnerEvaluationConfiguration evalConfig = constructLearningConfiguration(evalCnf, scoringForEDSM);
 			evalConfig.config.setRejectPositivePairsWithScoresLessThan(3);
-			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDLOOPS_VH, redReducer);
+			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDLOOPS_HV, redReducer);
 			break;
 		}
-		case SCORING_LIMITEDSELFLOOPS_VH_0: {
+		case SCORING_LIMITEDSELFLOOPS_HV_0: {
 			LearnerEvaluationConfiguration evalConfig = constructLearningConfiguration(evalCnf, scoringForEDSM);
 			evalConfig.config.setRejectPositivePairsWithScoresLessThan(0);
-			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDSELFLOOPS_VH, redReducer);
+			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDSELFLOOPS_HV, redReducer);
 			break;
 		}
-		case SCORING_LIMITEDSELFLOOPS_VH_2: {
+		case SCORING_LIMITEDSELFLOOPS_HV_2: {
 			LearnerEvaluationConfiguration evalConfig = constructLearningConfiguration(evalCnf, scoringForEDSM);
 			evalConfig.config.setRejectPositivePairsWithScoresLessThan(2);
-			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDSELFLOOPS_VH, redReducer);
+			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDSELFLOOPS_HV, redReducer);
 			break;
 		}
-		case SCORING_LIMITEDSELFLOOPS_VH_3: {
+		case SCORING_LIMITEDSELFLOOPS_HV_3: {
 			LearnerEvaluationConfiguration evalConfig = constructLearningConfiguration(evalCnf, scoringForEDSM);
 			evalConfig.config.setRejectPositivePairsWithScoresLessThan(3);
-			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDSELFLOOPS_VH, redReducer);
+			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDSELFLOOPS_HV, redReducer);
 			break;
 		}
-		case SCORING_LIMITEDSELFLOOPS_VH_4: {
+		case SCORING_LIMITEDSELFLOOPS_HV_4: {
 			LearnerEvaluationConfiguration evalConfig = constructLearningConfiguration(evalCnf, scoringForEDSM);
 			evalConfig.config.setRejectPositivePairsWithScoresLessThan(4);
-			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDSELFLOOPS_VH, redReducer);
+			outcome = new ReferenceLearner(evalConfig, initialPTA, OverrideScoringToApply.SCORING_LIMITEDSELFLOOPS_HV, redReducer);
 			break;
 		}
 		default:
@@ -805,18 +810,18 @@ public class LearningAlgorithms
 	}
 	
 	/** This one is a reference learner, delegating the computation to the actual learner and adding a series of different heuristics that are not present there. 
-	 * The primary purpose of this method is to add an additional check to pair score computation, either based on different heuristics such as VH heuristic, or mandatory merge constraints.
+	 * The primary purpose of this method is to add an additional check to pair score computation, either based on different heuristics such as HV heuristic, or mandatory merge constraints.
 	 * 
 	 *  The name reflects that apart from possibly minor changes to scoring, there are no significant manipulation of PTA taking place.
 	 */
 	public static class ReferenceLearner extends LearnerWithMandatoryMergeConstraints
 	{
-		// Where there is a unique transition out an initial state is always the first transition in the traces, VH merging rule will stop any mergers into the initial state because
+		// Where there is a unique transition out an initial state is always the first transition in the traces, HV merging rule will stop any mergers into the initial state because
 		// such mergers will always introduce new transitions (the unique transition from the initial state is only present from that state by graph construction). This is why we have
-		// the SCORING_VH_EXCEPT_FOR_THE_INITIAL_STATE which applies EDSM rule to the initial state and VH rule to all other states.
-		public enum OverrideScoringToApply { SCORING_NO_OVERRIDE, SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_VH, SCORING_VH_PTA, SCORING_VH_PTARECURSIVE, SCORING_VH_NIS, SCORING_VH_RED,
-			SCORING_LIMITEDSELFLOOPS,SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS, SCORING_LIMITEDSELFLOOPS_VH, SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_VH,
-			SCORING_LIMITEDLOOPS, SCORING_LIMITEDLOOPS_VH
+		// the SCORING_HV_EXCEPT_FOR_THE_INITIAL_STATE which applies EDSM rule to the initial state and HV rule to all other states.
+		public enum OverrideScoringToApply { SCORING_NO_OVERRIDE, SCORING_EDSM, SCORING_EDSM_1, SCORING_EDSM_2, SCORING_HV, SCORING_HV_PTA, SCORING_HV_PTARECURSIVE, SCORING_HV_NIS, SCORING_HV_RED,
+			SCORING_LIMITEDSELFLOOPS,SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS, SCORING_LIMITEDSELFLOOPS_HV, SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_HV,
+			SCORING_LIMITEDLOOPS, SCORING_LIMITEDLOOPS_HV
 		}
 		protected final OverrideScoringToApply scoringMethod;
 		protected StateMergingStatistics redReducer = null;
@@ -939,46 +944,46 @@ public class LearningAlgorithms
 					
 					switch(ReferenceLearner.this.scoringMethod)
 					{
-					case SCORING_VH_PTA:
+					case SCORING_HV_PTA:
 						/*
-						boolean negativeVHPTA = coregraph.pairscores.computeScoreVH(p, false) < 0;
+						boolean negativeHVPTA = coregraph.pairscores.computeScoreHV(p, false) < 0;
 						coregraph.pairscores.computePairCompatibilityScore_general(p, null, mergedVertices, false);
-						boolean negativeVH = coregraph.pairscores.computeVHRejectScoreGeneral(p, mergedVertices, VHGeneralScoring.S_ONEPAIR) < 0;
-						if (negativeVHPTA != negativeVH)
+						boolean negativeHV = coregraph.pairscores.computeHVRejectScoreGeneral(p, mergedVertices, HVGeneralScoring.S_ONEPAIR) < 0;
+						if (negativeHVPTA != negativeHV)
 						{
 							Visualiser.updateFrame(coregraph.transform.trimGraph(4, coregraph.getInit()), null);
-							coregraph.pairscores.computeScoreVH(p, false);
+							coregraph.pairscores.computeScoreHV(p, false);
 							System.out.println("outgoing: "+coregraph.transitionMatrix.get(coregraph.findVertex(VertexID.parseID("P1000")))+" "+coregraph.transitionMatrix.get(coregraph.findVertex(VertexID.parseID("P1893"))));
-							coregraph.pairscores.computeVHRejectScoreGeneral(p, mergedVertices, VHGeneralScoring.S_ONEPAIR);
+							coregraph.pairscores.computeHVRejectScoreGeneral(p, mergedVertices, HVGeneralScoring.S_ONEPAIR);
 						}*/
-						if (p.getScore() >= 0 && coregraph.pairscores.computeScoreVH(p, false) < 0)
+						if (p.getScore() >= 0 && coregraph.pairscores.computeScoreHV(p, false) < 0)
 							score = -1;
 						break;
-					case SCORING_VH_PTARECURSIVE:
-						if (p.getScore() >= 0 && coregraph.pairscores.computeScoreVH(p, true) < 0)
+					case SCORING_HV_PTARECURSIVE:
+						if (p.getScore() >= 0 && coregraph.pairscores.computeScoreHV(p, true) < 0)
 							score = -1;
 						break;
-					case SCORING_VH:
+					case SCORING_HV:
 						if (p.getScore() >= config.getRejectPositivePairsWithScoresLessThan())
 						{
 							coregraph.pairscores.computePairCompatibilityScore_general(p, null, mergedVertices, false);
-							if (coregraph.pairscores.computeVHRejectScoreGeneral_fastreturn(p, mergedVertices, VHGeneralScoring.S_ONEPAIR) < 0)
+							if (coregraph.pairscores.computeHVRejectScoreGeneral_fastreturn(p, mergedVertices, HVGeneralScoring.S_ONEPAIR) < 0)
 								score = -1;
 						}
 						break;
-					case SCORING_VH_NIS:
+					case SCORING_HV_NIS:
 						if (p.getScore() >= 0 && p.getQ() != coregraph.getInit() && p.getR() != coregraph.getInit())
 						{
 							coregraph.pairscores.computePairCompatibilityScore_general(p, null, mergedVertices, false);
-							if (coregraph.pairscores.computeVHRejectScoreGeneral_fastreturn(p, mergedVertices, VHGeneralScoring.S_ONEPAIR) < 0)
+							if (coregraph.pairscores.computeHVRejectScoreGeneral_fastreturn(p, mergedVertices, HVGeneralScoring.S_ONEPAIR) < 0)
 								score = -1;
 						}
 						break;
-					case SCORING_VH_RED:
+					case SCORING_HV_RED:
 						if (p.getScore() >= 0)
 						{
 							coregraph.pairscores.computePairCompatibilityScore_general(p, null, mergedVertices, false);
-							if (coregraph.pairscores.computeVHRejectScoreGeneral_fastreturn(p, mergedVertices, VHGeneralScoring.S_RED) < 0)
+							if (coregraph.pairscores.computeHVRejectScoreGeneral_fastreturn(p, mergedVertices, HVGeneralScoring.S_RED) < 0)
 								score = -1;
 						}
 						break;
@@ -1029,7 +1034,7 @@ public class LearningAlgorithms
 							score-=newSelfLoops;
 						}
 						break;
-						case SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_VH: {
+						case SCORING_LIMITEDSELFLOOPS_LIMITEDLOOPS_HV: {
 							if (coregraph.pairscores.computePairCompatibilityScore_general(p, null, mergedVertices, false) < 0)
 								throw new RuntimeException("last merge in the learning process was not possible");
 							int newSelfLoops = 0;
@@ -1041,7 +1046,7 @@ public class LearningAlgorithms
 							}
 							score-=newSelfLoops;
 							if (score >= config.getRejectPositivePairsWithScoresLessThan()) {
-								if (coregraph.pairscores.computeVHRejectScoreGeneral_fastreturn(p, mergedVertices, VHGeneralScoring.S_ONEPAIR) < 0)
+								if (coregraph.pairscores.computeHVRejectScoreGeneral_fastreturn(p, mergedVertices, HVGeneralScoring.S_ONEPAIR) < 0)
 									score = -1;
 								else {
 									LearnerGraph mergedAutomaton = MergeStates.mergeCollectionOfVertices(coregraph, null, mergedVertices, null, false);
@@ -1054,7 +1059,7 @@ public class LearningAlgorithms
 							}
 						}
 						break;
-						case SCORING_LIMITEDLOOPS_VH: {
+						case SCORING_LIMITEDLOOPS_HV: {
 							if (coregraph.pairscores.computePairCompatibilityScore_general(p, null, mergedVertices, false) < 0)
 								throw new RuntimeException("last merge in the learning process was not possible");
 							int newSelfLoops = 0;
@@ -1066,17 +1071,17 @@ public class LearningAlgorithms
 							}
 							score-=newSelfLoops;
 							if (score >= config.getRejectPositivePairsWithScoresLessThan()) {
-								if (coregraph.pairscores.computeVHRejectScoreGeneral_fastreturn(p, mergedVertices, VHGeneralScoring.S_ONEPAIR) < 0)
+								if (coregraph.pairscores.computeHVRejectScoreGeneral_fastreturn(p, mergedVertices, HVGeneralScoring.S_ONEPAIR) < 0)
 									score = -1;
 							}
 						}
 						break;
-						case SCORING_LIMITEDSELFLOOPS_VH:
+						case SCORING_LIMITEDSELFLOOPS_HV:
 						if (p.getScore() >= config.getRejectPositivePairsWithScoresLessThan())
 						{
 							if (coregraph.pairscores.computePairCompatibilityScore_general(p, null, mergedVertices, false) < 0)
 								throw new RuntimeException("last merge in the learning process was not possible");
-							if (coregraph.pairscores.computeVHRejectScoreGeneral_fastreturn(p, mergedVertices, VHGeneralScoring.S_ONEPAIR) < 0)
+							if (coregraph.pairscores.computeHVRejectScoreGeneral_fastreturn(p, mergedVertices, HVGeneralScoring.S_ONEPAIR) < 0)
 								score = -1;
 							else {
 								totalMergers++;
@@ -1328,22 +1333,22 @@ public class LearningAlgorithms
 	}
 	
 	/** Merges states using a routing relying on PTA, that faster and consumes less memory than the general one. In addition, it aborts learning if the outcome has too many red states. */
-	public static class ReferenceLearnerUsingVHScoring extends ReferenceLearner
+	public static class ReferenceLearnerUsingHVScoring extends ReferenceLearner
 	{
 
-		protected final boolean scoringVHRecursive;
+		protected final boolean scoringHVRecursive;
 		
-		public ReferenceLearnerUsingVHScoring(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean VHRecursive, StateMergingStatistics redReducer)
+		public ReferenceLearnerUsingHVScoring(LearnerEvaluationConfiguration evalCnf, final LearnerGraph argInitialPTA, boolean HVRecursive, StateMergingStatistics redReducer)
 		{
-			super(constructLearningConfiguration(evalCnf, Configuration.ScoreMode.COMPATIBILITY),argInitialPTA,VHRecursive? OverrideScoringToApply.SCORING_VH_PTARECURSIVE :OverrideScoringToApply.SCORING_VH_PTA,redReducer);
-			scoringVHRecursive = VHRecursive;
+			super(constructLearningConfiguration(evalCnf, Configuration.ScoreMode.COMPATIBILITY),argInitialPTA,HVRecursive? OverrideScoringToApply.SCORING_HV_PTARECURSIVE :OverrideScoringToApply.SCORING_HV_PTA,redReducer);
+			scoringHVRecursive = HVRecursive;
 		}
 
 		
 		@Override
 		public String toString()
 		{
-			return scoringVHRecursive ? "VH_R":"VH_N";
+			return scoringHVRecursive ? "HV_R":"HV_N";
 		}
 	}
 	

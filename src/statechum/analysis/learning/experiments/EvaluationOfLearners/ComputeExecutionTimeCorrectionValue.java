@@ -140,7 +140,7 @@ public class ComputeExecutionTimeCorrectionValue
 														new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_4),
 														new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_6),
 														new ScoringModeScore(Configuration.ScoreMode.GENERAL_PLUS_NOFULLMERGE,ScoringToApply.SCORING_EDSM_8),*/
-														new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_VH),
+														new ScoringModeScore(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_HV),
 												})
 												{
 													LearnerEvaluationConfiguration ev = new LearnerEvaluationConfiguration(eval);
@@ -178,7 +178,7 @@ public class ComputeExecutionTimeCorrectionValue
 		// Now we have all the spreadsheets, use them to compute correction.
 
 		// parameters below are dummy - they are needed to construct an instance but only values hardwired into EvaluationOfLearnersParameters are used.
-		EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_VH,LearningType.PREMERGE,false,Configuration.STATETREE.STATETREE_ARRAY);
+		EvaluationOfLearnersParameters par = new EvaluationOfLearnersParameters(Configuration.ScoreMode.GENERAL_NOFULLMERGE,ScoringToApply.SCORING_HV,LearningType.PREMERGE,false,Configuration.STATETREE.STATETREE_ARRAY);
 		TimeAndCorrection tc = DrawGraphs.computeTimeAndCorrection(csvOfExperiment.get(0), csvOfExperiment.get(1), par, 3600L*4L,10,1);
 		System.out.println("directory provided v.s. reference, correction: "+tc.average+", stDev: "+tc.stdev+" number of pairs: "+tc.count);
 		DrawGraphs.end();// this is necessary to ensure termination of the JVM runtime at the end of experiments.

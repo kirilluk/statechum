@@ -58,7 +58,7 @@ public class E_MarkovPrefixLen {
                                         preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-                                                        LearningAlgorithms.ScoringToApply.SCORING_VH
+                                                        LearningAlgorithms.ScoringToApply.SCORING_HV
                                                 } :
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
@@ -298,8 +298,8 @@ public class E_MarkovPrefixLen {
             Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
             for (int states : learningGroup.statesToUse)
                 for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumberPrefixLen(states)) {
-                    final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural Score, VH", "Structural Score, EDSM-Markov",
-                            new File(learningGroup.outPathPrefix + File.separator + description+"_"+states+"_bestprefixlen_and_mult_" + states + "_"+perStateSquaredDensity100+"_VH_structuraldiffBest.pdf"), 0, 1, true);
+                    final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural Score, HV", "Structural Score, EDSM-Markov",
+                            new File(learningGroup.outPathPrefix + File.separator + description+"_"+states+"_bestprefixlen_and_mult_" + states + "_"+perStateSquaredDensity100+"_HV_structuraldiffBest.pdf"), 0, 1, true);
                     final SquareBagPlot gr_StructuralDiffDefaultOrdering = new SquareBagPlot("Structural score, default order", "Structural Score, best order",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_"+states+"_bestprefixlen_and_mult_" + states + "_"+perStateSquaredDensity100+"_defaultorder_bestorder.pdf"), 0, 1, true);
                     // Now select the best result from all those available

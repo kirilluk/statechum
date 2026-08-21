@@ -1141,7 +1141,7 @@ public class ExperimentPaperUAS2
 			};
 
  			Label uniqueLabel = AbstractLearnerGraph.generateNewLabel("Waypoint_Selected", learnerInitConfiguration.config,learnerInitConfiguration.getLabelConverter());
- 			StateMergingStatistics redReducer = ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingVHScoring(referenceGraph,par.scoringMethod);
+ 			StateMergingStatistics redReducer = ComputeMergeStatisticsWhenTheCorrectSolutionIsKnown.constructReducerIfUsingHVScoring(referenceGraph,par.scoringMethod);
 			switch(par.learningType)
 			{
 			case CONVENTIONAL:
@@ -1229,7 +1229,7 @@ public class ExperimentPaperUAS2
     	// for each seed, each UAV for a subset of frames.
     	
     	// Variation on the experiment: 
-    	// EDSM/VH scoring
+    	// EDSM/HV scoring
     	// ifthen/ no ifthen (also no point)
     	// positive only or pos-neg (no point, except for ktails where we learn from positives only)
     	// EDSM/check constraints but merge EDSM-way/premerge on the transition of interest.
@@ -1548,7 +1548,7 @@ public class ExperimentPaperUAS2
 							if (scoring.startsWith("KTPTL"))
 								scoring = scoring.replaceAll("KTPTL", "KL");
 							else
-								if (scoring.equalsIgnoreCase(ScoringToApply.SCORING_VH.toString()))
+								if (scoring.equalsIgnoreCase(ScoringToApply.SCORING_HV.toString()))
 									scoring = "SV";
 						
 						String [] data = text.split(",", -2);

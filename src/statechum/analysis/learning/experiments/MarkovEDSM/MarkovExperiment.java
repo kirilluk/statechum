@@ -1244,7 +1244,7 @@ public class MarkovExperiment
 
 		/** Goes through all pairs matching regexp for columns X and Y.
 		 * The idea is that a spreadsheet with results has a lot of rows (for specific experiments). We are provided with selectors of those
-		 * experiments as regexp and we go through experiments, matching selectors (such as Markov v.s. VH). For numerous Markov experiments
+		 * experiments as regexp and we go through experiments, matching selectors (such as Markov v.s. HV). For numerous Markov experiments
 		 * using different parameter values we are therefore expected to pick a number of values.
 		 *
 		 * Everything is different where columnX and columnY are the same: it means we contrast values associated with each of the experiments.

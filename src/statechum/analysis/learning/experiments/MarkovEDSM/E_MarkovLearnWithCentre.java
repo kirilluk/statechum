@@ -55,7 +55,7 @@ public class E_MarkovLearnWithCentre {
                                         preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-                                                        LearningAlgorithms.ScoringToApply.SCORING_VH
+                                                        LearningAlgorithms.ScoringToApply.SCORING_HV
                                                 } :
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
@@ -107,8 +107,8 @@ public class E_MarkovLearnWithCentre {
                     gr_PresetPerformance.configureTextLabels(-0.42,90,0);
                     gr_PresetPerformance.setXLine(5);
                     gr_PresetPerformance.setMargins(6,3,0.2,0.2);
-                    final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, VH", "Structural Score, EDSM-Markov",
-                            new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_VH_structuraldiffBest.pdf"), 0, 1, true);
+                    final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov",
+                            new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_HV_structuraldiffBest.pdf"), 0, 1, true);
                     String[] presetDescription = new String[]{"Markov", "M_Both", "R_Forward", "R_Both", "M_Forward"};
 
                     // Now select the best result from all those available
@@ -151,21 +151,20 @@ public class E_MarkovLearnWithCentre {
                                         "(inconsistency "+bestLearningResultForThisRowAndAllPresets.get(preset_M_Both).inconsistency+" )");
                             }
 
-                            ColumnAndValue Y_VH = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_VH),validityOfCells);
-                            Double vh_score = Y_VH != null? obtainDoubleValueFromCell(Y_VH.value, E_DIFF,Y_VH.column): null;
-                            if (vh_score != null)
-                                gr_StructuralDiffBest.add(vh_score, bestLearningResultForThisRow.structural, null, null);
+                            ColumnAndValue Y_HV = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV),validityOfCells);
+                            Double hv_score = Y_HV != null? obtainDoubleValueFromCell(Y_HV.value, E_DIFF,Y_HV.column): null;
+                            if (hv_score != null)
+                                gr_StructuralDiffBest.add(hv_score, bestLearningResultForThisRow.structural, null, null);
                             else
-                                System.out.println("WARNING: missing VH-value for " + rowEntry.getKey());
-
+                                System.out.println("WARNING: missing HV-value for " + rowEntry.getKey());
 
                             StringBuilder sb = new StringBuilder();
                             Formatter formatter = new Formatter(sb, Locale.US);
                             formatter.format(numberFormat, traceQuantityToUse);
                             gr_BestStructuralForDifferentPreset.add("M\n"+sb, bestLearningResultForThisRowAndAllPresets.get(0).structural);
                             gr_BestStructuralForDifferentPreset.add("MC\n"+sb, bestLearningResultForThisRow.structural);
-                            if (vh_score!= null)
-                                gr_BestStructuralForDifferentPreset.add("VH\n"+sb, vh_score);
+                            if (hv_score!= null)
+                                gr_BestStructuralForDifferentPreset.add("HV\n"+sb, hv_score);
                             for (Map.Entry<Integer, MarkovExperiment.LearningReport> entry : bestLearningResultForThisRowAndAllPresets.entrySet())
                                 gr_PresetPerformance.add(presetDescription[entry.getKey()], entry.getValue().structural);
                             gr_PresetPerformance.add("Best", bestLearningResultForThisRow.structural);
@@ -182,7 +181,7 @@ public class E_MarkovLearnWithCentre {
                     formatter.format(numberFormat, traceQuantityToUse);
                     labelValuesForComparativeAnalysis.add("M\n"+sb);
                     labelValuesForComparativeAnalysis.add("MC\n"+sb);
-                    labelValuesForComparativeAnalysis.add("VH\n"+sb);
+                    labelValuesForComparativeAnalysis.add("HV\n"+sb);
                 }
                 gr_BestStructuralForDifferentPreset.setOrderingOfLabels(labelValuesForComparativeAnalysis);
                 gr_BestStructuralForDifferentPreset.reportResults(learningGroup.gr);

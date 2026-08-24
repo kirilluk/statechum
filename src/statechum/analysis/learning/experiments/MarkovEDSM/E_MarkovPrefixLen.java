@@ -104,7 +104,7 @@ public class E_MarkovPrefixLen {
             Set<RESULT_VALUES>  validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
             for (final int preset : learnerExperiment) {
                 String presetStr = "-" + preset;
-                String experimentName = learningGroup.outPathPrefix + File.separator + description+"_";
+                String experimentName = learningGroup.outPathPrefix + File.separator + File.separator + description+"_";
                 for (int states : learningGroup.statesToUse) {
                     final RBoxPlot<String> gr_StructuralVsChunkLenWeight = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
                             new File(experimentName + states + "_prefixLenInconsistencyWeight_structural.pdf"));

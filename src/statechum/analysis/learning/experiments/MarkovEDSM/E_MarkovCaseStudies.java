@@ -119,7 +119,7 @@ public class E_MarkovCaseStudies {
 //        whichCaseStudyToRun.add("SSH");
 //        whichCaseStudyToRun.add("MinePump");
 //        whichCaseStudyToRun.add(caseStudyFanTempMonitor);
-//        whichCaseStudyToRun.add(caseStudyFanTempMonitorSingleTrace);
+        whichCaseStudyToRun.add(caseStudyFanTempMonitorSingleTrace);
     }
 
     public static class MarkovLearningBaselineParameters extends MarkovLearningParameters {
@@ -246,6 +246,7 @@ public class E_MarkovCaseStudies {
         return value;
     }
 
+    /** Intended to format X-value labels for a box plot. */
     public static class ResultsXAxis implements Comparable<ResultsXAxis> {
         public final LearningAlgorithms.ScoringToApply learner;
         public final int traceNum;
@@ -463,23 +464,32 @@ public class E_MarkovCaseStudies {
                 }
 
                 final RBoxPlot<String> gr_PerformanceOfLearners = new RBoxPlot<>("", "Structural Score",
-                        new File(learningGroup.outPathPrefix + description + "_" + entryForCaseStudy.getValue().name + "_learner_structural.pdf"));
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_learner_structural.pdf"));
                 gr_PerformanceOfLearners.setupForTwoLineXLabels();
                 gr_PerformanceOfLearners.setMargins(3, 3, 0.2, 0.2);
 
                 final RBoxPlot<String> gr_RuntimeOfLearners = new RBoxPlot<>("", "Runtime",
-                        new File(learningGroup.outPathPrefix + description + "_" + entryForCaseStudy.getValue().name + "_learner_runtime.pdf"));
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_learner_runtime.pdf"));
                 gr_RuntimeOfLearners.setupForTwoLineXLabels();
                 gr_RuntimeOfLearners.setMargins(3, 3, 0.2, 0.2);
 
                 final RBoxPlot<String> gr_SuccessPercentage = new RBoxPlot<>("", "%% success",
-                        new File(learningGroup.outPathPrefix + description + "_" + entryForCaseStudy.getValue().name + "_learner_successpercentage.pdf"));
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_learner_successpercentage.pdf"));
                 gr_SuccessPercentage.setupForTwoLineXLabels();
                 gr_SuccessPercentage.setMargins(3, 3, 0.2, 0.2);
 
+                int stepCounter = 0;
+                for (final int chunkSizeToEvaluate : entryForCaseStudy.getValue().chunkSizesToEvaluate) {
+                    Pair<Integer, Integer>[] traces_and_lengths = entryForCaseStudy.getValue().traces_and_lengths;
 
-                ProgressIndicator progress = new ProgressIndicator(entryForCaseStudy.getValue().name,
-                        entryForCaseStudy.getValue().chunkSizesToEvaluate.length * entryForCaseStudy.getValue().traces_and_lengths.length * 2);// 2 is for the use of centre or not
+                    for (final boolean useCentre : new boolean[]{false, true})
+                        for (final Pair<Integer, Integer> traces_lengthmult : traces_and_lengths)
+                            // Do not process values from the extremely slow case of caseStudyFanTempMonitor
+                            if (!entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) || !useCentre || traces_lengthmult.firstElem < 600)
+                                ++stepCounter;
+                }
+                ProgressIndicator progress = new ProgressIndicator(entryForCaseStudy.getValue().name,stepCounter);
+
                 Map<ResultsXAxis, AtomicInteger> countsSuccess = new HashMap<>();
                 Map<ResultsXAxis, AtomicInteger> countsTotal = new HashMap<>();
                 for (final int chunkSizeToEvaluate : entryForCaseStudy.getValue().chunkSizesToEvaluate) {
@@ -539,10 +549,12 @@ public class E_MarkovCaseStudies {
 
                                 }
 
-                                for (Map.Entry<ResultsXAxis, AtomicInteger> entry : countsSuccess.entrySet())
-                                    gr_SuccessPercentage.add(entry.getKey().toString(), (double) Math.round(100. * (double) entry.getValue().get() / countsTotal.get(entry.getKey()).intValue()));
+                                for (Map.Entry<ResultsXAxis, AtomicInteger> entry : countsTotal.entrySet()) {
+                                    int value = countsSuccess.containsKey(entry.getKey()) ? countsSuccess.get(entry.getKey()).intValue() : 0;
+                                    gr_SuccessPercentage.add(entry.getKey().toString(), (double) Math.round(100. * (double) value / entry.getValue().intValue()));
+                                }
 
-                                String plot_filename_prefix = learningGroup.outPathPrefix + description + "_" + entryForCaseStudy.getValue().name + "_" + traces_lengthmult.firstElem + "_" +
+                                String plot_filename_prefix = learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_" + traces_lengthmult.firstElem + "_" +
                                         (useCentre ? "centre" : "no_cnt") + "_cl=" + chunkSizeToEvaluate;
 
                                 final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov learner",
@@ -566,49 +578,65 @@ public class E_MarkovCaseStudies {
 
                                 AtomicInteger bestDiffSum = new AtomicInteger(0);
                                 AtomicInteger bestDiffCounter = new AtomicInteger(0);
-                                Map<String, AtomicInteger> learnerToHowOftenBest = report.getResultForBestPerformingMarkovLearner(null, null,
+                                report.getResultForBestPerformingMarkovLearner(null, null,
                                         (pair) -> {
-                                            double markov = pair.firstElem, hv_score = pair.secondElem;
-                                            gr_StructuralDiffBest.add(hv_score, markov, null, null);
-                                            A12_test_Structural.add(hv_score, markov);
-                                            Wilcoxon_test_Structural.add(hv_score, markov);
-                                            ResultsXAxis xValue = new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, traces_lengthmult.firstElem, chunkSizeToEvaluate, useCentre);
-                                            gr_PerformanceOfLearners.add(xValue.toString(), markov);
                                             diffReported.addAndGet(1);
-                                            diffAverageMarkov100.addAndGet((int) Math.round(markov * 100));
-                                            diffAverageHV100.addAndGet((int) Math.round(hv_score * 100));
-
-                                            bestDiffSum.addAndGet((int) Math.round(markov * 100));
-                                            bestDiffCounter.incrementAndGet();
                                         },
                                         (pair) -> {
-                                            double bcr = pair.firstElem, hv_bcr = pair.secondElem;
-                                            gr_BcrDiffBest.add(hv_bcr, bcr, null, null);
-                                            A12_test_BCR.add(hv_bcr, bcr);
-                                            Wilcoxon_Test_BCR.add(hv_bcr, bcr);
-
                                             bcrReported.addAndGet(1);
-                                            bcrAverageMarkov100.addAndGet((int) Math.round(bcr * 100));
-                                            bcrAverageHV100.addAndGet((int) Math.round(hv_bcr * 100));
                                         }
                                 );
+
                                 if (diffReported.get() > 0) {// if filtering did not remove everything.
+                                    String colour = null;
+
                                     if (diffReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM) {
-                                        String errorMessage = "Diff value not reported: got " + diffReported.get() + " values, expected " + entryForCaseStudy.getValue().trainingSamplesPerFSM +
-                                                " for: " + traces_lengthmult.firstElem + " traces, chunklen: " + chunkSizeToEvaluate + " , useCentre=" + useCentre;
-                                        if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
-                                            throw new IllegalStateException(errorMessage);
-                                        System.out.println("WARNING: " + errorMessage);
+                                        if (!entryForCaseStudy.getValue().name.equals("MinePump") && !entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor)) {
+                                            String errorMessage = "Diff value not reported: got " + diffReported.get() + " values, expected " + entryForCaseStudy.getValue().trainingSamplesPerFSM +
+                                                    " for: " + traces_lengthmult.firstElem + " traces, chunklen: " + chunkSizeToEvaluate + " , useCentre=" + useCentre;
+                                            if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
+                                                throw new IllegalStateException(errorMessage);
+                                            System.out.println("WARNING: " + errorMessage);
+                                        }
+                                        colour = "red";
                                     }
                                     if (bcrReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM) {
-                                        String errorMessage = "BCR value not reported: got " + bcrReported.get() + " values, expected " + entryForCaseStudy.getValue().trainingSamplesPerFSM +
-                                                " for: " + traces_lengthmult.firstElem + " traces, chunklen: " + chunkSizeToEvaluate + " , useCentre=" + useCentre;
-                                        if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
-                                            throw new IllegalStateException(errorMessage);
-                                        System.out.println("WARNING: " + errorMessage);
+                                        if (!entryForCaseStudy.getValue().name.equals("MinePump") && !entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor)) {
+                                            String errorMessage = "BCR value not reported: got " + bcrReported.get() + " values, expected " + entryForCaseStudy.getValue().trainingSamplesPerFSM +
+                                                    " for: " + traces_lengthmult.firstElem + " traces, chunklen: " + chunkSizeToEvaluate + " , useCentre=" + useCentre;
+                                            if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
+                                                throw new IllegalStateException(errorMessage);
+                                            System.out.println("WARNING: " + errorMessage);
+                                        }
+                                        colour = "red";
                                     }
-                                    StatisticalTestResult a12_diff = A12_test_Structural.obtainResultFromR(learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
-                                    StatisticalTestResult wilcoxon_diff = Wilcoxon_test_Structural.obtainResultFromR(false);
+
+                                    final String colourToUse = colour;
+
+                                    report.getResultForBestPerformingMarkovLearner(null, null,
+                                            (pair) -> {
+                                                double markov = pair.firstElem, hv_score = pair.secondElem;
+                                                gr_StructuralDiffBest.add(hv_score, markov, null, null);
+                                                A12_test_Structural.add(hv_score, markov);
+                                                Wilcoxon_test_Structural.add(hv_score, markov);
+                                                ResultsXAxis xValue = new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, traces_lengthmult.firstElem, chunkSizeToEvaluate, useCentre);
+                                                gr_PerformanceOfLearners.add(xValue.toString(), markov, colourToUse, null);
+                                                diffAverageMarkov100.addAndGet((int) Math.round(markov * 100));
+                                                diffAverageHV100.addAndGet((int) Math.round(hv_score * 100));
+
+                                                bestDiffSum.addAndGet((int) Math.round(markov * 100));
+                                                bestDiffCounter.incrementAndGet();
+                                            },
+                                            (pair) -> {
+                                                double bcr = pair.firstElem, hv_bcr = pair.secondElem;
+                                                gr_BcrDiffBest.add(hv_bcr, bcr, colourToUse, null);
+                                                A12_test_BCR.add(hv_bcr, bcr);
+                                                Wilcoxon_Test_BCR.add(hv_bcr, bcr);
+
+                                                bcrAverageMarkov100.addAndGet((int) Math.round(bcr * 100));
+                                                bcrAverageHV100.addAndGet((int) Math.round(hv_bcr * 100));
+                                            }
+                                    );
 
                                     List<String> row = new ArrayList<>();
                                     row.add(entryForCaseStudy.getValue().name);
@@ -627,6 +655,12 @@ public class E_MarkovCaseStudies {
                                     row.add(Integer.toString(diffAverageHV100.get() / diffReported.get()));
                                     row.add(Integer.toString(bcrAverageHV100.get() / bcrReported.get()));
 
+                                    StatisticalTestResult a12_diff = A12_test_Structural.obtainResultFromR(
+                                            entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) ||
+                                                    entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) ||
+                                            learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
+                                    StatisticalTestResult wilcoxon_diff = Wilcoxon_test_Structural.obtainResultFromR(false);
+
                                     NumberFormat f_A12 = new DecimalFormat("0.00");
                                     NumberFormat f_Wilcoxon = new DecimalFormat("0.00E00");
 
@@ -637,7 +671,7 @@ public class E_MarkovCaseStudies {
                                         row.add(f_Wilcoxon.format(wilcoxon_diff.pvalue));
                                     } else
                                         for (int i = 0; i < 4; ++i)
-                                            row.add("UNK");
+                                            row.add("N/A");
 
                                     ResultsXAxis xValue = new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, traces_lengthmult.firstElem, chunkSizeToEvaluate, useCentre);
 
@@ -646,8 +680,14 @@ public class E_MarkovCaseStudies {
                                         outputStatistics.add(row);
                                     gr_StructuralDiffBest.reportResults(learningGroup.gr);
                                     gr_BcrDiffBest.reportResults(learningGroup.gr);
-                                    A12_test_Structural.reportResults(learningGroup.gr, learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
-                                    A12_test_BCR.reportResults(learningGroup.gr, learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
+                                    A12_test_Structural.reportResults(learningGroup.gr,
+                                            entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) ||
+                                                    entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) ||
+                                            learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
+                                    A12_test_BCR.reportResults(learningGroup.gr,
+                                            entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) ||
+                                                    entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) ||
+                                            learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
                                     Wilcoxon_test_Structural.reportResults(learningGroup.gr);
                                     Wilcoxon_Test_BCR.reportResults(learningGroup.gr);
 
@@ -668,14 +708,17 @@ public class E_MarkovCaseStudies {
                 ResultsXAxis[] xValues = countsTotal.keySet().toArray(new ResultsXAxis[0]);
                 Arrays.sort(xValues);
                 List<String> orderingXaxis = Arrays.stream(xValues).map(k -> k.toString()).collect(Collectors.toList());
-                gr_PerformanceOfLearners.setOrderingOfLabels(orderingXaxis);
+                List<String> orderingXaxisForSuccessfulLearners = Arrays.stream(xValues).
+                        filter(k->countsSuccess.containsKey(k) && countsSuccess.get(k).get() > 0).
+                        map(k -> k.toString()).collect(Collectors.toList());
+                gr_PerformanceOfLearners.setOrderingOfLabels(orderingXaxisForSuccessfulLearners);
                 gr_PerformanceOfLearners.reportResults(learningGroup.gr);
-                gr_RuntimeOfLearners.setOrderingOfLabels(orderingXaxis);
+                gr_RuntimeOfLearners.setOrderingOfLabels(orderingXaxisForSuccessfulLearners);
                 gr_RuntimeOfLearners.reportResults(learningGroup.gr);
                 gr_SuccessPercentage.setOrderingOfLabels(orderingXaxis);
                 gr_SuccessPercentage.reportResults(learningGroup.gr);
             }
-            writeTEX(new File(learningGroup.outPathPrefix + description+"_statistics.tex"), outputStatistics, true);
+            writeTEX(new File(learningGroup.outPathPrefix + File.separator + description+"_statistics.tex"), outputStatistics, true);
         }
     }
 

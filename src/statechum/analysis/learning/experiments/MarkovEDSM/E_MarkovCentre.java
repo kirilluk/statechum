@@ -152,7 +152,7 @@ public class E_MarkovCentre {
 
         public CentreSelectionResults(MarkovExperiment.LearningExperimentGroupParameters learningGroup, int states, int traceNum) {
             group = learningGroup;
-            String prefix = learningGroup.outPathPrefix + description + "_" + states + "_" + traceNum + "_";
+            String prefix = learningGroup.outPathPrefix + File.separator + description + "_" + states + "_" + traceNum + "_";
             gr_NumberOfCentreCorrect = new DrawGraphs.RBoxPlot<>("Centre Selection", "Number of correct selection",
                     new File(prefix + "centreselection_numbercorrect.pdf"));
             gr_NumberOfCentreCorrect.setupForOneLineXLabels();
@@ -186,7 +186,7 @@ public class E_MarkovCentre {
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         // IDENTIFICATION OF CENTRE VERTEX
-        final DrawGraphs.CSVExperimentResult centreCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + "centre.csv"), "results.csv");
+        final DrawGraphs.CSVExperimentResult centreCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + File.separator + "centre.csv"), "results.csv");
         MarkovExperiment.PreGeneratePTA tasks = new MarkovExperiment.PreGeneratePTA(learningGroup.phase, learningGroup.experimentRunner);
         boolean aveOrMax = true;// average divide by the divisor
         final int chunkSizeForCentreExperiments = 3;

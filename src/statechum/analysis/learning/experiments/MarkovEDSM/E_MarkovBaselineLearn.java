@@ -86,7 +86,7 @@ public class E_MarkovBaselineLearn {
             for (int states : learningGroup.statesToUse)
                 for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                     String presetStr = "";
-                    String experimentName = learningGroup.outPathPrefix + description+"_"+states+"_"+perStateSquaredDensity100+"_";
+                    String experimentName = learningGroup.outPathPrefix + File.separator + description+"_"+states+"_"+perStateSquaredDensity100+"_";
                     DataSelection source = new DataSelection(resultCSV,states,perStateSquaredDensity100,validityOfCells);
 
                     final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score", new File(experimentName + "inconsistency_structural.pdf"));
@@ -212,11 +212,11 @@ public class E_MarkovBaselineLearn {
                 for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                     FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states,perStateSquaredDensity100,resultCSV,validityOfCells);
                     final DrawGraphs.SquareBagPlot gr_StructuralDiffBest = new DrawGraphs.SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov",
-                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_HV_structuraldiffBest.pdf"), 0, 1, true);
+                            new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + perStateSquaredDensity100 + "_HV_structuraldiffBest.pdf"), 0, 1, true);
                     final RBoxPlot<String> gr_PerformanceOfLearners = new RBoxPlot<>("", "Structural Score",
-                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_structural.pdf"));
+                            new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_structural.pdf"));
                     final RBoxPlot<String> gr_RuntimeOfLearners = new RBoxPlot<>("", "Runtime, seconds",
-                            new File(learningGroup.outPathPrefix + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_runtime.pdf"));
+                            new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + perStateSquaredDensity100 + "_baseline_learner_runtime.pdf"));
                     gr_PerformanceOfLearners.setOtherOptions("las=2");
                     gr_RuntimeOfLearners.setupForTwoLineXLabels();
                     gr_RuntimeOfLearners.configureTextLabels(-3.5,1,0.5);

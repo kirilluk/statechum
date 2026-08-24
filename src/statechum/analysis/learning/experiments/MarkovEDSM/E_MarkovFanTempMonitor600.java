@@ -24,7 +24,7 @@ public class E_MarkovFanTempMonitor600 extends E_MarkovCaseStudies {
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0, 1};
-        final DrawGraphs.CSVExperimentResult resultCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + "casestudy_fantempmonitor600-results.csv"), "results.csv");
+        final DrawGraphs.CSVExperimentResult resultCSV = new DrawGraphs.CSVExperimentResult(new File(learningGroup.outPathPrefix + File.separator + "casestudy_fantempmonitor600-results.csv"), "results.csv");
         boolean aveOrMax = true;// average divide by the divisor
         boolean pathsOrSets = true, penaliseMissingPaths = true;
 //        String pathToCaseStudyFiles = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_CASESTUDIES);
@@ -110,16 +110,16 @@ public class E_MarkovFanTempMonitor600 extends E_MarkovCaseStudies {
                 }
 
                 final DrawGraphs.RBoxPlot<String> gr_AveForLargeNumberOfTraces = new DrawGraphs.RBoxPlot<String>("Diff, without centre", "Diff, using centre",
-                        new File(learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_structure_600_with_and_without_centre.pdf"));
+                        new File(learningGroup.outPathPrefix + File.separator + "casestudies_" + entryForCaseStudy.getValue().name + "_structure_600_with_and_without_centre.pdf"));
                 gr_AveForLargeNumberOfTraces.setupForTwoLineXLabels();
 
                 for (final int chunkSizeToEvaluate : entryForCaseStudy.getValue().chunkSizesToEvaluate) {
                     Pair<Integer, Integer>[] traces_and_lengths = entryForCaseStudy.getValue().traces_and_lengths;
 
                     final DrawGraphs.RBagPlot gr_RuntimeVsComparisonsSlow = new DrawGraphs.RBagPlot("Comparisons, log10", "Runtime, log10",
-                            new File(learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_chunklen=" + chunkSizeToEvaluate + ",runtime_vs_comparisons_SLOW.pdf"));
+                            new File(learningGroup.outPathPrefix + File.separator + "casestudies_" + entryForCaseStudy.getValue().name + "_chunklen=" + chunkSizeToEvaluate + ",runtime_vs_comparisons_SLOW.pdf"));
                     final DrawGraphs.RBagPlot gr_RuntimeVsComparisonsBefore600 = new DrawGraphs.RBagPlot("Comparisons, log10", "Runtime, log10",
-                            new File(learningGroup.outPathPrefix + "casestudies_" + entryForCaseStudy.getValue().name + "_chunklen=" + chunkSizeToEvaluate + ",runtime_vs_comparisons_Before600.pdf"));
+                            new File(learningGroup.outPathPrefix + File.separator + "casestudies_" + entryForCaseStudy.getValue().name + "_chunklen=" + chunkSizeToEvaluate + ",runtime_vs_comparisons_Before600.pdf"));
                     gr_RuntimeVsComparisonsSlow.setLabelsAuto(DrawGraphs.RGraph.PLOT_X_LABELS.XLABELS_R);
                     gr_RuntimeVsComparisonsSlow.setMargins(3, 4, 0.2, 0.2);
                     gr_RuntimeVsComparisonsSlow.setYLine(4);

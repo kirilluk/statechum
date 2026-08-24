@@ -217,7 +217,7 @@ public class MarkovExperiment
 						try {
 							System.out.println(filenameForPTA.fileName + " best coverage: "+bestCoverage);
 							statechum.analysis.learning.experiments.UASExperiment.mkDir(graphFileNameDir.dirToUse + File.separator + ptaPathName);
-							pta.storage.writeGraphML(filenameForPTA.toFileName()+bestCoverage);
+							pta.storage.writeGraphML(filenameForPTA.toFileName()+"_"+attemptCounter+"_"+bestCoverage);
 						} catch (IOException e) {
 							throw new RuntimeException("Failed to write generated PTA to " + filenameForPTA, e);
 						}
@@ -1562,24 +1562,24 @@ public class MarkovExperiment
 
 		try
 		{
-//			E_MarkovCaseStudies.runExperiment(learningGroup);
+			E_MarkovCaseStudies.runExperiment(learningGroup);
 //			E_MarkovTempFanMonitor600.runExperiment(learningGroup);
-//			E_MarkovBaselineLearn.runExperiment(learningGroup);
-//			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
+			E_MarkovBaselineLearn.runExperiment(learningGroup);
+			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovScoreVsInconsistency");
-//			E_MarkovCentre.runExperiment(learningGroup);
+			E_MarkovCentre.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovCentre");
-//			E_MarkovAlphabet.runExperiment(learningGroup);
+			E_MarkovAlphabet.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovAlphabet");
-//			E_MarkovTraceLenMult.runExperiment(learningGroup);
+			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceLenMult");
-//			E_MarkovTraceConstSize.runExperiment(learningGroup);
+			E_MarkovTraceConstSize.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceConstSize");
-//			E_MarkovPrefixLen.runExperiment(learningGroup);
+			E_MarkovPrefixLen.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovPrefixLen");
-			E_MarkovTraceNum.runExperiment(learningGroup);
-			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceNum");
-//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+//			E_MarkovTraceNum.runExperiment(learningGroup);
+//			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceNum");
+			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovLearnWithCentre");
 		}
 		catch(Exception ex)

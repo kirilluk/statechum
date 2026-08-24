@@ -1488,8 +1488,13 @@ public class GD<TARGET_A_TYPE,TARGET_B_TYPE,
 		forward = new GDLearnerGraph(grCombined,LearnerGraphND.ignoreNone,false);
 		inverse = new GDLearnerGraph(grCombined,LearnerGraphND.ignoreNone,true);
 
-		if (grCombined.config.getGdMaxNumberOfStatesInCrossProduct() == 0 ||
-					forward.getStateNumber() > grCombined.config.getGdMaxNumberOfStatesInCrossProduct())
+		// This one is checking three conditions,
+		// first, if the number of states is more than 32000, then the number of pairs will overflow an integer hence fallback is automatic
+		// second, if the total number of pairs exceeds getGdMaxNumberOfStatesInCrossProduct() then we have to fallback.
+		// finally, if the getGdMaxNumberOfStatesInCrossProduct() value is zero, fallback is forced.
+		if (forward.getStateNumber() > 32000
+				|| forward.getPairNumber() > grCombined.config.getGdMaxNumberOfStatesInCrossProduct()
+				|| grCombined.config.getGdMaxNumberOfStatesInCrossProduct() == 0)
 				fallbackToInitialPair = true;
 
 		Class<? extends DetermineDiagonalAndRightHandSideInterface> ddrh;

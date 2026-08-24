@@ -9,6 +9,9 @@ fi
 
 EMAIL=acp95keb@sheffield.ac.uk
 
+if [ -z "$R_HOME" ]; then
+	source run_env.sh
+fi
 source ./defaultjobparameters.sh
 
 [ -r data ] || mkdir data

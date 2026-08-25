@@ -54,7 +54,7 @@
  *
  * Installation of the above on MacOSX and Win32:
  *
- * install.packages(c("JavaGD","rJava","aplpack","ufs","speedglm"), method="wininet")
+ * install.packages(c("JavaGD","rJava","aplpack","ufs","speedglm","performance"), method="wininet")
  * On MacOS, tcltk is a special download which installs into /usr/local.
  *
  * Where R is install from Macports, I need to installed both as follows:
@@ -1390,8 +1390,6 @@ public class DrawGraphs {
 				outcome.add("title(ylab=\""+yAxis+"\""+(yLine >= 0?(",line="+yLine):"")+")");
 			}
 			outcome.add("par(mar=curMar)");
-//			System.out.println(file);
-//			System.out.println(outcome);
 			return outcome;
 		}
 		
@@ -1627,7 +1625,7 @@ public class DrawGraphs {
 			add(el,value);
 		}
 
-		protected static String variableName = "m";
+		protected static String variableName = "m", variableNameValidity="m_V";
 
 		@Override
 		public void reportResults(@SuppressWarnings("unused") DrawGraphs gr) {
@@ -1670,11 +1668,35 @@ public class DrawGraphs {
 					System.out.println("WARNING: ignoring empty plot that was supposed to be written into "+file);
 		}
 
+		public List<String> getCommandToEvaluateApplicability() {
+			return null;
+		}
+
+		public boolean checkApplicability(double p) {
+			return true;
+		}
+
 		/** Requests results of statistical analysis from R. */
 		public StatisticalTestResult obtainResultFromR(boolean ignoreException)
 		{
 			List<String> drawingCommands = new LinkedList<>();
 			drawingCommands.addAll(getDrawingCommand());drawingCommands.addAll(extraCommands);
+
+			List<String> checkValues = getCommandToEvaluateApplicability();
+			if (checkValues != null && !checkValues.isEmpty()) {
+				try {
+					for (String cmd : checkValues)
+						eval(cmd, "failed to run " + cmd);
+				} catch (RuntimeException e) {
+					if (ignoreException)
+						return new StatisticalTestResult();// return result marked as invalid
+					throw e;// if not ignore, re-throw
+				}
+				double p=valueAsDouble(engine.eval(variableNameValidity));
+				if (!checkApplicability(p))
+					return new StatisticalTestResult();// return invalid result
+			}
+
 			return StatisticalTestResult.performAnalysis(drawingCommands, variableName, getMethodNames(), ignoreException);
 		}
 
@@ -1887,6 +1909,24 @@ public class DrawGraphs {
 			writeEndl(writer);
 		    writeMainData(result, writer);
 			writeEndl(writer);
+		}
+
+		@Override
+		public List<String> getCommandToEvaluateApplicability() {
+			StringBuilder result = new StringBuilder();
+			result.append(variableNameValidity).append("=").append("check_symmetry(c(");
+			for(int i=0;i<valuesA.size();i++)
+			{
+				if (i > 0) result.append(",");
+				result.append(valuesA.get(i)-valuesB.get(i));
+			}
+			result.append("))[1]");// extracts p-value
+			return Arrays.asList("library(performance)",result.toString());
+		}
+
+		@Override
+		public boolean checkApplicability(double p) {
+			return p > 0.05;
 		}
 	}
 
@@ -2256,19 +2296,22 @@ public class DrawGraphs {
 			this.valueValid = true;
 		}
 
-		/** Using a supplied list of commands, obtains a result.
-		 * 
-		 * @param drawingCommands commands to run, the outcome of the last one is reported.
-		 * @param varName the variable used to assign the outcome in the commands executed.
-		 * @param expectedMethodNames When computing a result, R reports the name of the method used. We can use it to check that the right method was passed in the commands to compute the result, just in case.
-		 * @param ignoreException if true, will proceed, ignoring any exception (such as where there is not enough data to compute a statistic. The output will be marked invalid.
-		 * @return the results of the analysis, computed by running the supplied list of commands.
-		 */
-		public static StatisticalTestResult performAnalysis(List<String> drawingCommands,String varName, String [] expectedMethodNames, boolean ignoreException)
+		/**
+         * Using a supplied list of commands, obtains a result.
+         *
+         * @param drawingCommands     commands to run, the outcome of the last one is reported.
+         * @param varName             the variable used to assign the outcome in the commands executed.
+         * @param expectedMethodNames When computing a result, R reports the name of the method used. We can use it to check that the right method was passed in the commands to compute the result, just in case.
+         * @param ignoreException     if true, will proceed, ignoring any exception (such as where there is not enough data to compute a statistic. The output will be marked invalid.
+         * @return the results of the analysis, computed by running the supplied list of commands.
+         */
+		public static StatisticalTestResult performAnalysis(List<String> drawingCommands, String varName, String [] expectedMethodNames, boolean ignoreException)
 		{
 			if (drawingCommands.isEmpty())
 				throw new IllegalArgumentException("no command to perform statistical analysis");
+
 			StatisticalTestResult STR=new StatisticalTestResult();
+
 			try {
 				for (String cmd : drawingCommands)
 					eval(cmd, "failed to run " + cmd);

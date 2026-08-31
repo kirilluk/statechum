@@ -209,7 +209,7 @@ public class MarkovExperiment
 					// Loaded ok, now report which file was loaded and give a warning if this was a PTA with incomplete coverage of transitions.
 					// At this point, we need to construct a name that reflects the loaded PTA which is not necessarily the one we intended to load.
 					// The good news is that it is different only in the last component.
-					assert ptaPreGenerated.getAbsolutePath().startsWith(filenameForPTA.dirToUse + File.separator);
+					assert ptaPreGenerated.getAbsolutePath().startsWith(new File(filenameForPTA.dirToUse).getAbsolutePath() + File.separator): "The path "+ptaPreGenerated.getAbsolutePath()+" should start with "+(new File(filenameForPTA.dirToUse).getAbsolutePath()) + File.separator;
 					SGE_ExperimentRunner.FileNameToUse fileLoaded = new SGE_ExperimentRunner.FileNameToUse(
 							filenameForPTA.dirToUse, ptaPreGenerated.getAbsolutePath().substring(filenameForPTA.dirToUse.length()+1));
 					SGE_ExperimentRunner.handleDataPointBeingOpened(fileLoaded);// report using the PTA that was stored for this set of learners.

@@ -1110,9 +1110,14 @@ public class MarkovExperiment
 			super.addInternal(id, text, fileNameForDataPoint);
 			String Y = rowColumnText.get(id.getRowID()).get(id.getColumnID());
 			// We do not yet have knowledge which cells may be invalid when results are being populated. The only cell we want is coverage and it is definitely valid.
+			MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(id.getRowID());
 			MarkovLearningParameters.ColumnParseOutcome column = parseMarkovParametersColumnFromCSV(id.getColumnID(),null);
-			if (obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100)
+		//	if (obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100)
+			if (rowValues.states == 20 && rowValues.perStateSquaredDensityMultipliedBy100 == 20 && rowValues.alphabetMultiplier == 2.0 &&
+					rowValues.sample == 29 && rowValues.traceQuantity == 4 && rowValues.trainingSample == 1 && obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100) {
 				whatToMove.add(fileNameForDataPoint);
+				System.out.println("File to move: "+fileNameForDataPoint);
+			}
 		}
 
 		public void moveFiles() {

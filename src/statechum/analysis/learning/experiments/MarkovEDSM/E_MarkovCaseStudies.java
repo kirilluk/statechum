@@ -453,7 +453,7 @@ public class E_MarkovCaseStudies {
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
             List<List<String>> outputStatistics = new ArrayList<>();
-            outputStatistics.add(new ArrayList<>(Arrays.asList("Case study", "States", "Alphabet", "Traces", "T. Length", "Centre", "P.Len", "Diff, M", "BCR, M", "Diff, HV", "BCR, HV", "A12", "A12 lo", "A12 hi", "Wilcoxon")));
+            outputStatistics.add(new ArrayList<>(Arrays.asList("Case study", "States", "Alphabet", "Traces", "T. Length", "Centre", "P.Len", "Diff, M", "BCR, M", "Diff, HV", "BCR, HV", "A12", "A12 lo", "A12 hi", "Sign test")));
             for (Map.Entry<Integer, CaseStudyInformation> entryForCaseStudy : caseStudyInformationMap.entrySet()) {
 
                 // We need to compute the smallest runtime that was deemed to be a timeout. It is subsequently used as a cap
@@ -593,8 +593,8 @@ public class E_MarkovCaseStudies {
                                         new File(plot_filename_prefix + "_HV_structuraldiffBest.pdf"), 0, 1, true);
                                 final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, HV", "BCR, EDSM-Markov learner",
                                         new File(plot_filename_prefix + "_HV_BCRBest.pdf"), 0.5, 1, true);
-                                final WilcoxonPairedTest Wilcoxon_test_Structural = new WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_str.csv"));
-                                final WilcoxonPairedTest Wilcoxon_Test_BCR = new WilcoxonPairedTest(new File(plot_filename_prefix + "_Wilcoxon_t_bcr.csv"));
+                                final SignTest sign_test_Structural = new SignTest(new File(plot_filename_prefix + "_signtest_str.csv"));
+                                final SignTest sign_Test_BCR = new SignTest(new File(plot_filename_prefix + "_signtest_bcr.csv"));
                                 final A_VarghaDelaney A12_test_Structural = new A_VarghaDelaney(new File(plot_filename_prefix + "_A12_str.csv"), 100);
                                 final A_VarghaDelaney A12_test_BCR = new A_VarghaDelaney(new File(plot_filename_prefix + "_A12_bcr.csv"), 100);
                                 // Now select the best result from all those available
@@ -671,7 +671,7 @@ public class E_MarkovCaseStudies {
                                                 double markov = pair.firstElem, hv_score = pair.secondElem;
                                                 gr_StructuralDiffBest.add(hv_score, markov, null, null);
                                                 A12_test_Structural.add(hv_score, markov);
-                                                Wilcoxon_test_Structural.add(hv_score, markov);
+                                                sign_test_Structural.add(hv_score, markov);
                                                 ResultsXAxis xValue = new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, traces_lengthmult.firstElem, chunkSizeToEvaluate, useCentre);
                                                 gr_PerformanceOfLearners.add(xValue.toString(), markov, colourToUse, null);
                                                 diffAverageMarkov100.addAndGet((int) Math.round(markov * 100));
@@ -684,7 +684,7 @@ public class E_MarkovCaseStudies {
                                                 double bcr = pair.firstElem, hv_bcr = pair.secondElem;
                                                 gr_BcrDiffBest.add(hv_bcr, bcr, colourToUse, null);
                                                 A12_test_BCR.add(hv_bcr, bcr);
-                                                Wilcoxon_Test_BCR.add(hv_bcr, bcr);
+                                                sign_Test_BCR.add(hv_bcr, bcr);
 
                                                 bcrAverageMarkov100.addAndGet((int) Math.round(bcr * 100));
                                                 bcrAverageHV100.addAndGet((int) Math.round(hv_bcr * 100));
@@ -712,10 +712,10 @@ public class E_MarkovCaseStudies {
                                             entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) ||
                                                     entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) ||
                                             learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
-                                    StatisticalTestResult wilcoxon_diff = Wilcoxon_test_Structural.obtainResultFromR(false);
+                                    StatisticalTestResult signtest_diff = sign_test_Structural.obtainResultFromR(false);
 
                                     NumberFormat f_A12 = new DecimalFormat("0.00");
-                                    NumberFormat f_Wilcoxon = new DecimalFormat("0.00E00");
+                                    NumberFormat f_signtest = new DecimalFormat("0.00E00");
 
                                     if (a12_diff.valueValid) {
                                         row.add(f_A12.format(a12_diff.statistic));
@@ -725,8 +725,8 @@ public class E_MarkovCaseStudies {
                                         for (int i = 0; i < 3; ++i)
                                             row.add("N/A");
 
-                                    if (wilcoxon_diff.valueValid)
-                                        row.add(f_Wilcoxon.format(wilcoxon_diff.pvalue));
+                                    if (signtest_diff.valueValid)
+                                        row.add(f_signtest.format(signtest_diff.pvalue));
                                     else
                                         row.add("N/A");
 
@@ -745,8 +745,8 @@ public class E_MarkovCaseStudies {
                                             entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) ||
                                                     entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) ||
                                             learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
-                                    Wilcoxon_test_Structural.reportResults(learningGroup.gr);
-                                    Wilcoxon_Test_BCR.reportResults(learningGroup.gr);
+                                    sign_test_Structural.reportResults(learningGroup.gr);
+                                    sign_Test_BCR.reportResults(learningGroup.gr);
 
 
 //                            List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());

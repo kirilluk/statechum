@@ -21,6 +21,7 @@ import statechum.analysis.learning.rpnicore.Transform.ConvertALabel;
 import statechum.analysis.learning.rpnicore.WMethod.DifferentFSMException;
 import statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.ColumnParseOutcome;
 
+import java.io.File;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -3518,4 +3519,79 @@ public class TestMarkovLearner
 						checkSetOfStatesAgainstReference(pta,Arrays.asList(pta.generateNewCmpVertex(pta.nextID(true),config),pta.findVertex("C3")),fsm),
 				IllegalArgumentException.class, "was supplied with a collection of states some of which are not reachable");
 	}
+
+	@Test
+	public void testSelectBestPTA1() {
+		Pair<File,Long> outcome = MarkovExperiment.selectBestPTAFromIncomplete(new File("a/b/this_is_pta.xml"), new File[]{});
+		Assert.assertNull(outcome.firstElem);
+	}
+
+	@Test
+	public void testSelectBestPTA2() {
+		Pair<File,Long> outcome = MarkovExperiment.selectBestPTAFromIncomplete(new File("a/b/this_is_pta.xml"), new File[]{new File("a/b/this_is_pta.xml_45_78")});
+		Assert.assertEquals(new File("a/b/this_is_pta.xml_45_78"),outcome.firstElem);
+		Assert.assertEquals(45L,outcome.secondElem.longValue());
+	}
+
+	@Test
+	public void testSelectBestPTA3() {
+		Pair<File,Long> outcome = MarkovExperiment.selectBestPTAFromIncomplete(new File("a/b/this_is_pta.xml"), new File[]{new File("a/b/this_is_pta.xml_45_78"),
+				new File("a/b/this_is_pta.xml_75_78"),new File("a/b/this_is_pta.xml_45_23")});
+		Assert.assertEquals(new File("a/b/this_is_pta.xml_45_78"),outcome.firstElem);
+		Assert.assertEquals(45L,outcome.secondElem.longValue());
+	}
+
+	@Test
+	public void testSelectBestPTA4() {
+		Pair<File,Long> outcome = MarkovExperiment.selectBestPTAFromIncomplete(new File("a/b/this_is_pta.xml"), new File[]{new File("a/b/this_is_pta.xml_45_78"),
+				new File("a/b/this_is_pta.xml_75_78"),new File("a/b/this_is_pta.xml_125_83")});
+		Assert.assertEquals(new File("a/b/this_is_pta.xml_125_83"),outcome.firstElem);
+		Assert.assertEquals(125L,outcome.secondElem.longValue());
+	}
+
+	// here the first file is in the wrong directory
+	@Test
+	public void testSelectBestPTA5() {
+		Pair<File,Long> outcome = MarkovExperiment.selectBestPTAFromIncomplete(new File("a/b/this_is_pta.xml"), new File[]{
+				new File("c/b/this_is_pta.xml_845_78"),new File("a/b/this_is_pta.xml_845_78")});
+		Assert.assertEquals(new File("a/b/this_is_pta.xml_845_78"),outcome.firstElem);
+		Assert.assertEquals(845L,outcome.secondElem.longValue());
+	}
+
+	// Both files are in the wrong directory
+	@Test
+	public void testSelectBestPTA6() {
+		Pair<File,Long> outcome = MarkovExperiment.selectBestPTAFromIncomplete(new File("u/b/this_is_pta.xml"), new File[]{
+				new File("a/b/this_is_pta.xml_75_78"),new File("a/b/this_is_pta.xml_125_83")
+		});
+		Assert.assertNull(outcome.firstElem);
+	}
+
+	// Unmatched file name for one of the files
+	@Test
+	public void testSelectBestPTA7() {
+		Pair<File,Long> outcome = MarkovExperiment.selectBestPTAFromIncomplete(new File("a/b/this_is_pta.xml"), new File[]{new File("a/b/this_is_pta.xxml_45_78"),
+				new File("a/b/this_is_pta.xml_75_28"),new File("a/b/this_is_pta.xml_125_03")});
+		Assert.assertEquals(new File("a/b/this_is_pta.xml_75_28"),outcome.firstElem);
+		Assert.assertEquals(75L,outcome.secondElem.longValue());
+	}
+
+	// Invalid file name for one of the files
+	@Test
+	public void testSelectBestPTA8() {
+		Pair<File,Long> outcome = MarkovExperiment.selectBestPTAFromIncomplete(new File("a/b/this_is_pta.xml"), new File[]{new File("a/b/this_is_pta.xml_6_45_78"),
+				new File("a/b/this_is_pta.xml_75_28"),new File("a/b/this_is_pta.xml_125_03")});
+		Assert.assertEquals(new File("a/b/this_is_pta.xml_75_28"),outcome.firstElem);
+		Assert.assertEquals(75L,outcome.secondElem.longValue());
+	}
+
+	// Invalid file name for one of the files
+	@Test
+	public void testSelectBestPTA9() {
+		Pair<File,Long> outcome = MarkovExperiment.selectBestPTAFromIncomplete(new File("a/b/this_is_pta.xml"), new File[]{new File("a/b/this_is_pta.xmlP_45_78"),
+				new File("a/b/this_is_pta.xml_75_28"),new File("a/b/this_is_pta.xml_125_03")});
+		Assert.assertEquals(new File("a/b/this_is_pta.xml_75_28"),outcome.firstElem);
+		Assert.assertEquals(75L,outcome.secondElem.longValue());
+	}
+
 }

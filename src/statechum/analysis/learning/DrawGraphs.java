@@ -1930,6 +1930,53 @@ public class DrawGraphs {
 		}
 	}
 
+	public static class SignTest extends RStatisticalAnalysis
+	{
+		public SignTest(File name) {
+			super("binom.test",null, name);
+		}
+
+		@Override
+		public String [] getMethodNames()
+		{
+			return new String[] {"Sign test","Exact binomial test"};
+		}
+
+		@Override
+		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException
+		{
+			writeHeaderToFile(writer);
+			writeEndl(writer);
+			writeMainData(result, writer);
+			writeEndl(writer);
+		}
+
+		@Override
+		public List<String> getDrawingCommand()
+		{
+			if (valuesA.isEmpty() || valuesB.isEmpty()) throw new IllegalArgumentException("cannot compute statistics from no results at all");
+			if (valuesA.size() != valuesB.size()) throw new IllegalArgumentException(" 'x' and 'y' must have the same length");
+
+			StringBuilder result = new StringBuilder();
+			result.append(variableName).append("=").append(testName).append("(");
+
+			int countAboveOrEqual = 0;
+			for(int i=0;i < valuesA.size();i++)
+				if (valuesB.get(i) > valuesA.get(i))
+					countAboveOrEqual++;
+
+			result.append(countAboveOrEqual).append(",").append(valuesA.size()).append(",alternative=\"greater\"");
+
+			if (extraArg != null)
+			{
+				result.append(",");result.append(extraArg);
+			}
+
+			result.append(")");
+			return Collections.singletonList(result.toString());
+		}
+	}
+
 	public static class Mann_Whitney_U_Test extends RStatisticalAnalysis
 	{
 		public Mann_Whitney_U_Test(File name) {

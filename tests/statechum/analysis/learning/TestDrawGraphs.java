@@ -265,7 +265,78 @@ public class TestDrawGraphs {
 		Assert.assertTrue(result.valueValid);
 		Assert.assertEquals("Method,Statistic,P-value\nWilcoxon signed rank test,1.0,0.5000000000000001\n",s.toString());
 	}
-	
+
+	@Test
+	public void testSignTestToString1()
+	{
+		final DrawGraphs.SignTest w = new DrawGraphs.SignTest(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 3.);
+		Assert.assertEquals("[m=binom.test(2,3,alternative=\"greater\")]",
+				w.getDrawingCommand().toString());
+	}
+
+	@Test
+	public void testSignTestToString2()
+	{
+		final DrawGraphs.SignTest w = new DrawGraphs.SignTest(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 7.);
+		Assert.assertEquals("[m=binom.test(3,3,alternative=\"greater\")]",
+				w.getDrawingCommand().toString());
+	}
+
+	@Test
+	public void testSignTest() throws IOException
+	{
+		@SuppressWarnings("unused")
+		DrawGraphs gr = new DrawGraphs();// loads the R library
+		final DrawGraphs.SignTest w = new DrawGraphs.SignTest(new File("test"));
+		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
+
+		Random rnd = new Random(0);
+		for(int i=0;i<20;++i)
+			w.add(rnd.nextDouble(), rnd.nextDouble()+rnd.nextDouble());
+		StringWriter s=new StringWriter();
+		StatisticalTestResult result = w.obtainResultFromR(false);w.writetofile(result,s);
+		Assert.assertTrue(result.valueValid);
+		Assert.assertEquals("Method,Statistic,P-value\nSign test,17.0,0.017344832420349142\n",s.toString());
+	}
+	@Test
+	public void testSignTestToStringFail1()
+	{
+		checkForCorrectException(() -> new DrawGraphs.SignTest(new File("test")).getDrawingCommand(),IllegalArgumentException.class,"cannot compute statistics from no results at all");
+	}
+
+	// here we are only testing for lists valuesA and valuesB being empty because they cannot be null by construction due to being final and a non-null initialisation.
+
+	@Test
+	public void testSignTestToStringFail2()
+	{
+		final DrawGraphs.SignTest w = new DrawGraphs.SignTest(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 6.);
+		w.valuesB.clear();
+
+		checkForCorrectException(w::getDrawingCommand,IllegalArgumentException.class,"cannot compute statistics from no results at all");
+	}
+
+	@Test
+	public void testSignTestToStringFail3()
+	{
+		final DrawGraphs.SignTest w = new DrawGraphs.SignTest(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 6.);
+		w.valuesA.clear();
+
+		checkForCorrectException(w::getDrawingCommand,IllegalArgumentException.class,"cannot compute statistics from no results at all");
+	}
+
+	@Test
+	public void testSignTestToStringFail4()
+	{
+		final DrawGraphs.SignTest w = new DrawGraphs.SignTest(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 6.);w.valuesB.remove(2);
+
+		checkForCorrectException(w::getDrawingCommand,IllegalArgumentException.class," 'x' and 'y' must have the same length");
+	}
+
 	@Test
 	public void testMann_Whitney_U_TestToString()
 	{

@@ -1470,7 +1470,7 @@ public class TestDrawGraphs {
         g.setLabelsAuto(XLABELS_TEXT_MANUAL);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
 		Assert.assertEquals(
-				"[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0)), plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0), xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\"), abline(0,1), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\""+X+"\",line=1.8), title(ylab=\""+Y+"\",line=2.0), par(mar=curMar)]",
+				"[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0)), plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0), xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\",mar=c(3.0,3.0,0.2,0.2)), abline(0,1), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\""+X+"\",line=1.8), title(ylab=\""+Y+"\",line=2.0), par(mar=curMar)]",
 				g.getDrawingCommand().toString());
 	}
 	
@@ -1481,7 +1481,7 @@ public class TestDrawGraphs {
 		final SquareBagPlot g=new SquareBagPlot(X,Y, new File("someName"),2,40,false);
         g.setLabelsAuto(XLABELS_TEXT_MANUAL);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
-		Assert.assertEquals("[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0)), plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0), xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\"), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\""+X+"\",line=1.8), title(ylab=\""+Y+"\",line=2.0), par(mar=curMar)]",
+		Assert.assertEquals("[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0)), plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0), xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\",mar=c(3.0,3.0,0.2,0.2)), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\""+X+"\",line=1.8), title(ylab=\""+Y+"\",line=2.0), par(mar=curMar)]",
 				g.getDrawingCommand().toString());
 	}
 	
@@ -1493,7 +1493,7 @@ public class TestDrawGraphs {
         g.setLabelsAuto(XLABELS_TEXT_MANUAL);
 		g.setLimit(30000);
 		g.add(5.5,34.);g.add(5.7,32.);g.add(7.8,31.);
-		Assert.assertEquals("[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),approx.limit=30000), plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0), xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\"), abline(0,1), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\""+X+"\",line=1.8), title(ylab=\""+Y+"\",line=2.0), par(mar=curMar)]",
+		Assert.assertEquals("[curMar=par()$mar, par(mar=c(3.0,3.0,0.2,0.2)), bplot<-compute.bagplot(c(5.5,5.7,7.8),c(34.0,32.0,31.0),approx.limit=30000), plot(bplot,xlim=c(2.0,40.0), ylim=c(2.0,40.0), xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\",mar=c(3.0,3.0,0.2,0.2)), abline(0,1), axis(side=1,mgp=c(3.0,0.7,0.0),las=1), axis(side=2,mgp=c(3.0,0.7,0.0),las=1), title(xlab=\""+X+"\",line=1.8), title(ylab=\""+Y+"\",line=2.0), par(mar=curMar)]",
 				g.getDrawingCommand().toString());
 	}
 

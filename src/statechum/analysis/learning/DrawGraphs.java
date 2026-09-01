@@ -2275,7 +2275,9 @@ public class DrawGraphs {
 			return constructSequenceOfDrawingCommands(null, () -> {
 				List<String> result = new LinkedList<>();
 				result.add("bplot<-compute."+datasetToString(plotType,data, names,Collections.singletonList(formatApproxLimit())));
-				result.add("plot(bplot,xlim=c("+minValue+","+maxValue+"), ylim=c("+minValue+","+maxValue+"), xlab=\"\",ylab=\"\",xaxt=\"n\",yaxt=\"n\")");
+				result.add("plot(bplot,xlim=c("+minValue+","+maxValue+"), ylim=c("+minValue+","+maxValue+"), xlab=\"\",ylab=\"\""+
+						(labelsAuto == XLABELS_R?"":",xaxt=\"n\"")+
+						",yaxt=\"n\",mar=c("+mBot+","+mLeft+","+mTop+","+mRight+"))");
 				if (diag) result.add("abline(0,1)");
 				return result;
 			});

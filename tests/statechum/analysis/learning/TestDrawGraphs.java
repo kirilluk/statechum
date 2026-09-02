@@ -267,6 +267,29 @@ public class TestDrawGraphs {
 	}
 
 	@Test
+	public void testCorrelation1() throws IOException
+	{
+		final DrawGraphs.Correlation w = new DrawGraphs.Correlation(new File("test"));
+		w.add(4., 7.);w.add(5., 8.);w.add(5., 6.);
+		Assert.assertEquals("[m=cor(c(4.0,5.0,5.0),c(7.0,8.0,6.0))]",
+				w.getDrawingCommand().toString());
+	}
+
+	@Test
+	public void testCorrelation2() throws IOException
+	{
+		@SuppressWarnings("unused")
+		DrawGraphs gr = new DrawGraphs();// loads the R library
+		final DrawGraphs.Correlation w = new DrawGraphs.Correlation(new File("test"));
+		w.add(1., 7.);w.add(5., 8.);w.add(5., 3.);
+
+		StringWriter s=new StringWriter();
+		StatisticalTestResult result = w.obtainResultFromR(false);w.writetofile(result,s);
+		Assert.assertTrue(result.valueValid);
+		Assert.assertEquals("Method,Statistic,P-value\nCorrelation,-0.32732683535398854,0.0\n",s.toString());
+	}
+
+	@Test
 	public void testSignTestToString1()
 	{
 		final DrawGraphs.SignTest w = new DrawGraphs.SignTest(new File("test"));

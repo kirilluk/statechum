@@ -1925,6 +1925,49 @@ public class DrawGraphs {
 		}
 	}
 
+	public static class Correlation extends RStatisticalAnalysis {
+		public Correlation(File name) {
+			super("cor", null, name);
+		}
+
+		@Override
+		public String[] getMethodNames() {
+			return new String[]{"Correlation"};
+		}
+
+		@Override
+		public void writetofile(StatisticalTestResult result, Writer writer) throws IOException
+		{
+			writeHeaderToFile(writer);
+			writeEndl(writer);
+			writeMainData(result, writer);
+			writeEndl(writer);
+		}
+
+		@Override
+		public StatisticalTestResult obtainResultFromR(boolean ignoreException) {
+			List<String> drawingCommands = new LinkedList<>();
+			drawingCommands.addAll(getDrawingCommand());
+			drawingCommands.addAll(extraCommands);
+
+			StatisticalTestResult STR = new StatisticalTestResult();
+			try {
+				for (String cmd : drawingCommands)
+					eval(cmd, "failed to run " + cmd);
+			}
+			catch(RuntimeException e) {
+				if (!ignoreException)
+					throw e;
+				return STR;// return statistics marked as invalid.
+			}
+
+			STR.statistic = valueAsDouble(engine.eval(variableName));
+			STR.valueValid = true;
+
+			return STR;
+		}
+	}
+
 	public static class WilcoxonPairedTest extends RStatisticalAnalysis
 	{
 		public WilcoxonPairedTest(File name) {

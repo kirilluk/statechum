@@ -1437,7 +1437,8 @@ public class DrawGraphs {
 
 		protected Map<ELEM,String> relabellingOfLabels = new TreeMap<>();
 		protected List<ELEM> orderingOfLabels = null;
-		
+		protected Set<ELEM> labelBold = new  TreeSet<>();
+
 		/** Permits labels to be altered - currently these labels are based on enums and intended for internal use. 
 		 * For graphs these labels need to be modified. 
 		 */
@@ -1456,7 +1457,12 @@ public class DrawGraphs {
 			
 			orderingOfLabels.addAll(ordering);
 		}
-		
+
+		/** Makes label bold. Only respected by BoxPlot. */
+		public void makeLabelBold(ELEM label) {
+			labelBold.add(label);
+		}
+
 		/** Adds key-value pair, additionally permitting one to set both colour and a label for this 
 		 * column of data values.
 		 * @param el identifier for the column
@@ -1531,7 +1537,7 @@ public class DrawGraphs {
 		/** Returns a command to draw a graph in R. */
 		protected abstract List<String> getDrawingCommand();
 
-		protected List<String> constructSequenceOfDrawingCommands(List<String> names, Supplier<List<String>> lambda) {
+		protected List<String> constructSequenceOfDrawingCommands(List<String> names, Set<ELEM> boldNameElems, Supplier<List<String>> lambda) {
 			List<String> outcome = new LinkedList<>();
 			outcome.add("curMar=par()$mar");
 //			outcome.add("curMgp=par()$mgp");
@@ -1551,8 +1557,37 @@ public class DrawGraphs {
 			double textOffset = textXoffset;
 			if (labelsAuto == XLABELS_TEXT_AUTO)
 				textOffset = minYValue -0.15 * (maxYValue - minYValue);
-			if (names != null && labelsAuto != XLABELS_R)
-				outcome.add("text(x=1:"+names.size()+",y="+textOffset+",labels="+vectorToR(names, true)+",xpd=NA,srt="+textXsrt+",adj="+textXadj+")");
+			if (names != null && labelsAuto != XLABELS_R) {
+				if (boldNameElems == null || boldNameElems.isEmpty())
+					outcome.add("text(x=1:" + names.size() + ",y=" + textOffset + ",labels=" + vectorToR(names, true) + ",xpd=NA,srt=" + textXsrt + ",adj=" + textXadj + ")");
+				else
+				{// filter those that are not bold and then those that are
+					List<String> positionsNormal = new  ArrayList<>(), positionsBold = new ArrayList<>(),
+					labelsNormal = new ArrayList<>(), labelsBold = new ArrayList<>();
+					Set<String> boldNames = new TreeSet<>();
+					if (!relabellingOfLabels.isEmpty())
+						for(ELEM elem: boldNameElems)
+							boldNames.add(relabellingOfLabels.get(elem));
+					else
+						for(ELEM elem: boldNameElems)
+							boldNames.add(elem.toString());
+
+					for(int i=0;i<names.size();i++) {
+						if (boldNames.contains(names.get(i))) {
+							positionsBold.add(Integer.toString(i+1));labelsBold.add(names.get(i));
+						}
+						else
+						{
+							positionsNormal.add(Integer.toString(i+1));labelsNormal.add(names.get(i));
+						}
+					}
+
+					if (!positionsNormal.isEmpty())
+						outcome.add("text(x=" + vectorToR(positionsNormal, false) + ",y=" + textOffset + ",labels=" + vectorToR(labelsNormal, true) + ",xpd=NA,srt=" + textXsrt + ",adj=" + textXadj + ")");
+					if (!positionsBold.isEmpty())
+						outcome.add("text(x=" + vectorToR(positionsBold, false) + ",y=" + textOffset + ",labels=" + vectorToR(labelsBold, true) + ",font = 2,xpd=NA,srt=" + textXsrt + ",adj=" + textXadj + ")");
+				}
+			}
 			if (!xAxis.isEmpty()) {
 				outcome.add("title(xlab=\""+xAxis+"\""+(xLine >= 0?(",line="+xLine):"")+")");
 			}
@@ -1830,7 +1865,7 @@ public class DrawGraphs {
 				colours.add(colour);
 			}
 			List<String> namesToUse = names.size()==1?null:names;
-			return constructSequenceOfDrawingCommands(namesToUse, () -> Collections.singletonList(boxPlotToString(data, namesToUse,labelsAuto,colours,
+			return constructSequenceOfDrawingCommands(namesToUse, labelBold, () -> Collections.singletonList(boxPlotToString(data, namesToUse,labelsAuto,colours,
 					Arrays.asList("mar=c("+mBot+","+mLeft+","+mTop+","+mRight+")",otherOptions))));
 		}
 
@@ -1879,7 +1914,7 @@ public class DrawGraphs {
 			}
 
 			List<String> namesToUse = names.size()==1?null:names;
-			return constructSequenceOfDrawingCommands(namesToUse, () ->Collections.singletonList(boxPlotToString(data, namesToUse,labelsAuto,colours,Arrays.asList("las=2","mar=c("+mBot+","+mLeft+","+mTop+","+mRight+")", otherOptions))));
+			return constructSequenceOfDrawingCommands(namesToUse, labelBold, () ->Collections.singletonList(boxPlotToString(data, namesToUse,labelsAuto,colours,Arrays.asList("las=2","mar=c("+mBot+","+mLeft+","+mTop+","+mRight+")", otherOptions))));
 		}
 
 		@Override
@@ -2177,7 +2212,7 @@ public class DrawGraphs {
 		{
 			computeDataSet();
 			// thanks to http://stackoverflow.com/questions/1154242/getting-rid-of-axis-values-in-r-plot for the way to remove axes.
-			return constructSequenceOfDrawingCommands(null, ()->Collections.singletonList(datasetToString(plotType,data, names,
+			return constructSequenceOfDrawingCommands(null, null, ()->Collections.singletonList(datasetToString(plotType,data, names,
 					Arrays.asList("xlab=\"\",ylab=\"\""+(labelsAuto == XLABELS_R?"":",xaxt=\"n\""),
 							"yaxt=\"n\"","mar=c("+mBot+","+mLeft+","+mTop+","+mRight+")",otherOptions()))));
 		}
@@ -2272,7 +2307,7 @@ public class DrawGraphs {
 		public List<String> getDrawingCommand()
 		{
 			computeDataSet();
-			return constructSequenceOfDrawingCommands(null, () -> {
+			return constructSequenceOfDrawingCommands(null, null, () -> {
 				List<String> result = new LinkedList<>();
 				result.add("bplot<-compute."+datasetToString(plotType,data, names,Collections.singletonList(formatApproxLimit())));
 				result.add("plot(bplot,xlim=c("+minValue+","+maxValue+"), ylim=c("+minValue+","+maxValue+"), xlab=\"\",ylab=\"\""+

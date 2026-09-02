@@ -89,6 +89,7 @@ public class E_MarkovBaselineLearn {
                 String experimentNameForAllDensities = learningGroup.outPathPrefix + File.separator + description + "_" + states+"_";
                 final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score", new File(experimentNameForAllDensities + "inconsistency_structural.pdf"));
                 final DrawGraphs.RBagPlot gr_BCR_vs_structural = new DrawGraphs.RBagPlot("BCR", "Structural Score", new File(experimentNameForAllDensities + "bcr_structural.pdf"));
+                final DrawGraphs.Correlation correlation_BCR_vs_structural = new DrawGraphs.Correlation(new File(experimentNameForAllDensities + "correlation_bcr_structural.csv"));
                 final DrawGraphs.RBagPlot gr_BCRVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "BCR Score, EM", new File(experimentNameForAllDensities + "inconsistency_bcr.pdf"));
 
                 final DrawGraphs.RBagPlot gr_MarkovTransitionPrecisionStructuralDiff = new DrawGraphs.RBagPlot("Transition precision Markov", "Structural Score, EM", new File(experimentNameForAllDensities + "markovtransitionprecision_structuraldiff.pdf"));
@@ -164,6 +165,7 @@ public class E_MarkovBaselineLearn {
                                 correlation_inconsistency_diff.add((double)obtainIntValueFromCell(Y,E_INCONSISTENCY_LEARNT,column),value);
                                 correlation_inconsistency_bcr.add((double)obtainIntValueFromCell(Y,E_INCONSISTENCY_LEARNT,column),obtainDoubleValueFromCell(Y, E_BCR, column));
                                 sign_test_Structural.add(obtainDoubleValueFromCell(Y_HV.value, E_DIFF, Y_HV.column),value);
+                                correlation_BCR_vs_structural.add(obtainDoubleValueFromCell(Y, E_BCR, column),value);
                             });
                     }
 
@@ -195,6 +197,7 @@ public class E_MarkovBaselineLearn {
                 StatisticalTestResult signtest_diff = sign_test_Structural.obtainResultFromR(false);
                 StatisticalTestResult correlation_inconsistencydiff = correlation_inconsistency_diff.obtainResultFromR(false);
                 StatisticalTestResult correlation_inconsistencybcr = correlation_inconsistency_bcr.obtainResultFromR(false);
+                StatisticalTestResult correlation_BCRvsstructural = correlation_BCR_vs_structural.obtainResultFromR(false);
                 if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS){
                     if (!signtest_diff.valueValid)
                         throw new IllegalArgumentException("Invalid statistic signtest_diff");
@@ -202,12 +205,15 @@ public class E_MarkovBaselineLearn {
                         throw new IllegalArgumentException("Invalid statistic correlation_inconsistency_diff");
                     if (!correlation_inconsistencybcr.valueValid)
                         throw new IllegalArgumentException("Invalid statistic correlation_inconsistency_bcr");
+                    if (!correlation_BCRvsstructural.valueValid)
+                        throw new IllegalArgumentException("Invalid statistic correlation_BCR_vs_structural");
                 }
                 NumberFormat f_signtest = new DecimalFormat("0.00E00");
                 NumberFormat f_corr = new DecimalFormat("0.00");
                 System.out.println("States: "+states+" signtest: "+f_signtest.format(signtest_diff.pvalue)+
                         " correlation between inconsistency and DIFF: "+f_corr.format(correlation_inconsistencydiff.statistic)+
-                        " correlation between inconsistency and BCR: "+f_corr.format(correlation_inconsistencybcr.statistic)
+                        " correlation between inconsistency and BCR: "+f_corr.format(correlation_inconsistencybcr.statistic)+
+                        " correlation between BCR and DIFF: "+f_corr.format(correlation_BCRvsstructural.statistic)
                 );
             }
         }

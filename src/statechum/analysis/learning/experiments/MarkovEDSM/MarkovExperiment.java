@@ -1629,7 +1629,8 @@ public class MarkovExperiment
 		{
 //			E_MarkovCaseStudies.runExperiment(learningGroup);
 //			E_MarkovTempFanMonitor600.runExperiment(learningGroup);
-			E_MarkovBaselineLearn.runExperiment(learningGroup);
+//			E_MarkovBaselineLearn.runExperiment(learningGroup);
+			E_MarkovBaselineMergeStatistics.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovScoreVsInconsistency");
 //			E_MarkovCentre.runExperiment(learningGroup);

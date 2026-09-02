@@ -7,6 +7,8 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator;
 
 import java.io.File;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.*;
 
 import static statechum.analysis.learning.DrawGraphs.*;
@@ -93,8 +95,11 @@ public class E_MarkovBaselineLearn {
                 final DrawGraphs.RBagPlot gr_MarkovHoleRecallStructuralDiff = new DrawGraphs.RBagPlot("Hole recall Markov", "Structural Score, EM", new File(experimentNameForAllDensities + "markovholerecall_structuraldiff.pdf"));
                 final DrawGraphs.RBagPlot gr_Inconsistencies_and_SD = new DrawGraphs.RBagPlot("Inconsistency, average", "Inconsistency, SD", new File(experimentNameForAllDensities + "inconsistencies_sd.pdf"));
                 final DrawGraphs.RBoxPlot<String> gr_PosnegNegativeInconsistencies_Structural = new DrawGraphs.RBoxPlot<>("Inconsistency always positive", "Structural difference", new File(experimentNameForAllDensities + "posneginconsistencies_structuraldiff.pdf"));
-                final DrawGraphs.RBagPlot gr_TotalMergers_Structural = new RBagPlot("Mergers done", "Structural difference", new File(experimentNameForAllDensities + "totalmergers_structuraldiff.pdf"));
                 final DrawGraphs.SquareBagPlot gr_BCR = new DrawGraphs.SquareBagPlot("BCR, HV", "BCR, EM", new File(experimentNameForAllDensities + "trace_bcr.pdf"), 0.5, 1, true);
+
+                final SignTest sign_test_Structural = new SignTest(new File(experimentNameForAllDensities + "signtest_str.csv"));
+                final DrawGraphs.Correlation correlation_inconsistency_diff = new DrawGraphs.Correlation(new File(experimentNameForAllDensities + "correlation_inconsistency_diff.csv"));
+                final DrawGraphs.Correlation correlation_inconsistency_bcr = new DrawGraphs.Correlation(new File(experimentNameForAllDensities + "correlation_inconsistency_bcr.csv"));
 
                 for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                     String experimentName = learningGroup.outPathPrefix + File.separator + description + "_" + states + "_" + perStateSquaredDensity100 + "_";
@@ -137,8 +142,6 @@ public class E_MarkovBaselineLearn {
                             new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
                     spreadsheetToBagPlot(gr_MarkovHoleRecallStructuralDiff, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_MARKOV_HOLE_RECALL,
                             new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
-                    spreadsheetToBagPlot(gr_TotalMergers_Structural, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_VALIDMERGERS,
-                            new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
 
                     spreadsheetToBagPlot(gr_Inconsistencies_and_SD, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_INCONSISTENCY_AVERAGE,
                             new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_INCONSISTENCY_SD, null, null);
@@ -147,7 +150,8 @@ public class E_MarkovBaselineLearn {
                         MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
 
                         if (rowValues.perStateSquaredDensityMultipliedBy100 == perStateSquaredDensity100 && rowValues.states == states)
-                            getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells, (column, columnText, Y) -> {
+                            getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
+                                    (column, columnText, Y) -> {
                                 boolean alwaysPositive = obtainBooleanValueFromCell(Y, E_INCONSISTENCY_ALWAYSPOSITIVE, column);
                                 double value = obtainDoubleValueFromCell(Y, E_DIFF, column);
 
@@ -157,6 +161,9 @@ public class E_MarkovBaselineLearn {
                                             obtainDoubleValueFromCell(Y_HV.value, E_DIFF, Y_HV.column),
                                             obtainDoubleValueFromCell(Y, E_DIFF, column), null, null);
                                 gr_PosnegNegativeInconsistencies_Structural.add(Boolean.toString(alwaysPositive), value, null, null);
+                                correlation_inconsistency_diff.add((double)obtainIntValueFromCell(Y,E_INCONSISTENCY_LEARNT,column),value);
+                                correlation_inconsistency_bcr.add((double)obtainIntValueFromCell(Y,E_INCONSISTENCY_LEARNT,column),obtainDoubleValueFromCell(Y, E_BCR, column));
+                                sign_test_Structural.add(obtainDoubleValueFromCell(Y_HV.value, E_DIFF, Y_HV.column),value);
                             });
                     }
 
@@ -174,7 +181,7 @@ public class E_MarkovBaselineLearn {
 //                    spreadsheetAsDouble(Kruskal_Wallis_Test_Structural, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV), E_DIFF);
 
                     for (@SuppressWarnings("rawtypes") DrawGraphs.RExperimentResult result : new DrawGraphs.RExperimentResult[]{gr_StructuralVsInconsistency, gr_BCRVsInconsistency,
-                            gr_MarkovTransitionPrecisionStructuralDiff, gr_MarkovHoleRecallStructuralDiff, gr_StructuralDiff, gr_BCR_vs_structural,gr_TotalMergers_Structural,
+                            gr_MarkovTransitionPrecisionStructuralDiff, gr_MarkovHoleRecallStructuralDiff, gr_StructuralDiff, gr_BCR_vs_structural,
                             gr_Inconsistencies_and_SD, gr_PosnegNegativeInconsistencies_Structural,
                             gr_BCR, gr_DiffAgainstKtails1, gr_DiffAgainstKtails2, gr_DiffAgainstEDSM_1, gr_DiffAgainstEDSM_2,
                             Wilcoxon_Test_BCR, Wilcoxon_test_Structural
@@ -185,6 +192,23 @@ public class E_MarkovBaselineLearn {
                     if (gr_StructuralDiffLowDensity != null)
                         gr_StructuralDiffLowDensity.reportResults(learningGroup.gr);
                 }
+                StatisticalTestResult signtest_diff = sign_test_Structural.obtainResultFromR(false);
+                StatisticalTestResult correlation_inconsistencydiff = correlation_inconsistency_diff.obtainResultFromR(false);
+                StatisticalTestResult correlation_inconsistencybcr = correlation_inconsistency_bcr.obtainResultFromR(false);
+                if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS){
+                    if (!signtest_diff.valueValid)
+                        throw new IllegalArgumentException("Invalid statistic signtest_diff");
+                    if (!correlation_inconsistencydiff.valueValid)
+                        throw new IllegalArgumentException("Invalid statistic correlation_inconsistency_diff");
+                    if (!correlation_inconsistencybcr.valueValid)
+                        throw new IllegalArgumentException("Invalid statistic correlation_inconsistency_bcr");
+                }
+                NumberFormat f_signtest = new DecimalFormat("0.00E00");
+                NumberFormat f_corr = new DecimalFormat("0.00");
+                System.out.println("States: "+states+" signtest: "+f_signtest.format(signtest_diff.pvalue)+
+                        " correlation between inconsistency and DIFF: "+f_corr.format(correlation_inconsistencydiff.statistic)+
+                        " correlation between inconsistency and BCR: "+f_corr.format(correlation_inconsistencybcr.statistic)
+                );
             }
         }
 

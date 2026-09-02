@@ -81,7 +81,7 @@ public class E_MarkovTraceNum {
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
             for (int states : learningGroup.statesToUse) {
-                final RBoxPlot<String> gr_BestStructuralForTraceNumber = new RBoxPlot<>("Trace number", "Structural Score, EDSM-Markov",
+                final RBoxPlot<String> gr_BestStructuralForTraceNumber = new RBoxPlot<>("Trace number", "Structural Score, EM",
                         new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_tracenum_structural.pdf"));
                 gr_BestStructuralForTraceNumber.setupForTwoLineXLabels();
 
@@ -96,7 +96,7 @@ public class E_MarkovTraceNum {
                         if (rowValues.traceQuantity == traceQuantityToUse) {
                             final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
                             gr_StructuralDiffBestMap.computeIfAbsent(traceQuantityToUse, aDouble ->
-                                    new SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov",
+                                    new SquareBagPlot("Structural score, HV", "Structural Score, EM",
                                             new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_tracenum_num=" + traceQuantityToUse + "_HV_structuraldiffBest.pdf"), 0, 1, true));
                         }
                     }

@@ -86,7 +86,7 @@ public class E_MarkovAlphabet {
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
             for (int states : learningGroup.statesToUse) {
-                final RBoxPlot<String> gr_BestStructuralForAlphabet = new RBoxPlot<>("Alphabet multiplier and learner", "Structural Score, EDSM-Markov",
+                final RBoxPlot<String> gr_BestStructuralForAlphabet = new RBoxPlot<>("Alphabet multiplier and learner", "Structural Score, EM",
                         new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_alphabetmult_structural.pdf"));
 //                gr_BestStructuralForAlphabet.setOtherOptions("las=1");
                 gr_BestStructuralForAlphabet.setXLine(3);
@@ -108,7 +108,7 @@ public class E_MarkovAlphabet {
                         if (rowValues.alphabetMultiplier == alphabetMultiplier && rowValues.states == states) {
 
                             gr_StructuralDiffBestMap.computeIfAbsent(alphabetMultiplier, aDouble ->
-                                        new SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov",
+                                        new SquareBagPlot("Structural score, HV", "Structural Score, EM",
                                                 new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "alphabet_alphabetmult=" + alphabetMultiplier + "_HV_structuraldiffBest.pdf"), 0, 1, true)
                                 );
 

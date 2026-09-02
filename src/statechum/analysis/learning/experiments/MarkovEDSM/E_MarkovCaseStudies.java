@@ -589,9 +589,9 @@ public class E_MarkovCaseStudies {
                                 String plot_filename_prefix = learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_" + traces_lengthmult.firstElem + "_" +
                                         (useCentre ? "centre" : "no_cnt") + "_cl=" + chunkSizeToEvaluate;
 
-                                final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov learner",
+                                final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, HV", "Structural Score, EM",
                                         new File(plot_filename_prefix + "_HV_structuraldiffBest.pdf"), 0, 1, true);
-                                final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, HV", "BCR, EDSM-Markov learner",
+                                final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, HV", "BCR, EM",
                                         new File(plot_filename_prefix + "_HV_BCRBest.pdf"), 0.5, 1, true);
                                 final SignTest sign_test_Structural = new SignTest(new File(plot_filename_prefix + "_signtest_str.csv"));
                                 final SignTest sign_Test_BCR = new SignTest(new File(plot_filename_prefix + "_signtest_bcr.csv"));

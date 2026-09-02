@@ -91,7 +91,7 @@ public class E_MarkovLearnWithCentre {
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
             for (int states : learningGroup.statesToUse) {
-                final RBoxPlot<String> gr_BestStructuralForDifferentPreset = new RBoxPlot<>("Trace length number and learner", "Structural Score, EDSM-Markov",
+                final RBoxPlot<String> gr_BestStructuralForDifferentPreset = new RBoxPlot<>("Trace length number and learner", "Structural Score, EM",
                         new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_structural.pdf"));
                 gr_BestStructuralForDifferentPreset.setupForTwoLineXLabels();
 
@@ -100,14 +100,14 @@ public class E_MarkovLearnWithCentre {
                         new Pair(1, MarkovExperiment.LearningExperimentGroupParameters.datasetSize*learningGroup.getScalingFactor(states))}) {
 
                     int traceQuantityToUse = traces_lengthmult.firstElem;
-                    final RBoxPlot<String> gr_PresetPerformance = new RBoxPlot<>("Number of traces and learner", "Structural Score, EDSM-Markov",
+                    final RBoxPlot<String> gr_PresetPerformance = new RBoxPlot<>("Number of traces and learner", "Structural Score, EM",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_structural.pdf"));
                     gr_PresetPerformance.setupForTwoLineXLabels();
                     gr_PresetPerformance.setOrderingOfLabels(Arrays.asList("Best", "Markov", "M_Both", "M_Forward", "R_Forward", "R_Both"));
                     gr_PresetPerformance.configureTextLabels(-0.42,90,0);
                     gr_PresetPerformance.setXLine(5);
                     gr_PresetPerformance.setMargins(6,3,0.2,0.2);
-                    final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov",
+                    final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, HV", "Structural Score, EM",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_HV_structuraldiffBest.pdf"), 0, 1, true);
                     String[] presetDescription = new String[]{"Markov", "M_Both", "R_Forward", "R_Both", "M_Forward"};
 

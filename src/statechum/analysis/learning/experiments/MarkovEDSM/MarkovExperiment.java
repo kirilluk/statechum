@@ -290,6 +290,16 @@ public class MarkovExperiment
 
 		long startTime = 0;
 
+		public void reportWSetSize() {
+			int wsetInputs = 0;
+			for(List<Label> seq:WMethod.computeWSet_reducedmemory(referenceGraph))
+				wsetInputs+=seq.size();
+			int testInputs = 0;
+			for(List<Label> seq:referenceGraph.wmethod.computeNewTestSet(0))
+				testInputs+=seq.size();
+			System.out.println(filenameForAutomaton.toFileName()+","+wsetInputs+","+testInputs);
+		}
+
 		/** Checks that the saved automaton matches the generated one. If current automaton was not saved, saves it. */
 		public void saveAndCheckGeneratedAutomaton() {
 			if (referenceGraph == null)
@@ -1065,6 +1075,7 @@ public class MarkovExperiment
                         invalidCellValues.add(E_ERR_INVALID_FARFROMROOT);
                         invalidCellValues.add(E_ERR_MISSED_NEARROOT);
                         invalidCellValues.add(E_ERR_MISSED_FARFROMROOT);
+                        invalidCellValues.add(E_VALIDMERGERS);
                     }
                 }
             });
@@ -1526,8 +1537,16 @@ public class MarkovExperiment
 
 		protected List<MarkovExperiment.MarkovLearnerRunner> allExperiments = new ArrayList<>();
 
+		Set<String> automataNames = new HashSet<>();
+
 		public void submitTask(MarkovExperiment.MarkovLearnerRunner experiment) {
 			allExperiments.add(experiment);
+//			if (!automataNames.contains(experiment.getFilenameForAutomaton().toFileName())) {
+//				automataNames.add(experiment.getFilenameForAutomaton().toFileName());
+//				experiment.generateReferenceFSM();
+//				experiment.reportWSetSize();
+//			}
+
 			if (!new File(experiment.getFilenameForAutomaton().toFileName()).canRead())
 				automatonToExperiment.computeIfAbsent(experiment.getFilenameForAutomaton(), p -> experiment);
 			if (!new File(experiment.getFilenameForPTA().toFileName()).canRead())
@@ -1610,7 +1629,7 @@ public class MarkovExperiment
 		{
 //			E_MarkovCaseStudies.runExperiment(learningGroup);
 //			E_MarkovTempFanMonitor600.runExperiment(learningGroup);
-//			E_MarkovBaselineLearn.runExperiment(learningGroup);
+			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovScoreVsInconsistency");
 //			E_MarkovCentre.runExperiment(learningGroup);
@@ -1623,9 +1642,9 @@ public class MarkovExperiment
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceConstSize");
 //			E_MarkovPrefixLen.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovPrefixLen");
-			E_MarkovLearnWithCentre.runExperiment(learningGroup);
-			E_MarkovTraceNum.runExperiment(learningGroup);
+//			E_MarkovTraceNum.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceNum");
+//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovLearnWithCentre");
 		}
 		catch(Exception ex)

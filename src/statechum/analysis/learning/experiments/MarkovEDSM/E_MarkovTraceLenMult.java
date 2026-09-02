@@ -84,7 +84,7 @@ public class E_MarkovTraceLenMult {
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
             for (int states : learningGroup.statesToUse) {
-                final RBoxPlot<String> gr_BestStructuralForLengthMultiplier = new RBoxPlot<>("Trace length multiplier", "Structural Score, EDSM-Markov",
+                final RBoxPlot<String> gr_BestStructuralForLengthMultiplier = new RBoxPlot<>("Trace length multiplier", "Structural Score, EM",
                         new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_lengthmult_structural.pdf"));
                 gr_BestStructuralForLengthMultiplier.setupForTwoLineXLabels();
 
@@ -98,7 +98,7 @@ public class E_MarkovTraceLenMult {
                         MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
                         if (rowValues.traceLengthMultiplier == traceLenMult) {
                             gr_StructuralDiffBestMap.computeIfAbsent(traceLenMult, aDouble ->
-                                    new SquareBagPlot("Structural score, HV", "Structural Score, EDSM-Markov",
+                                    new SquareBagPlot("Structural score, HV", "Structural Score, EM",
                                             new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_tracemult_tracelen=" + traceLenMult + "_HV_structuraldiffBest.pdf"), 0, 1, true));
                             gr_StructuralDiffBestMap.get(traceLenMult).setOtherOptions("las=2");
                         }

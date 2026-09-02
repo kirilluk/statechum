@@ -579,7 +579,14 @@ public class LearningAlgorithms
 		public final String reportedName;
 		public final boolean scoringMarkov;
 
+		public final String nameForPDF;
+
 		ScoringToApply(String nameText)
+		{
+			this(nameText,false);
+		}
+
+		ScoringToApply(String nameText, boolean markov)
 		{
 			if (!name().startsWith("SCORING_"))
 				throw new IllegalArgumentException("Name of enumeration reflecting learner kind should start with SCORING_");
@@ -587,20 +594,17 @@ public class LearningAlgorithms
 			// because underscore is reserved as a separator for key-value pairs..
 			String nameSuffix = name().substring(name().indexOf("_")+1);
 			String revisedName =  nameSuffix;
-			if (nameSuffix.startsWith("HV"))
+			if (nameSuffix.startsWith("HV")) {
 				// This is important: we are presently using a different abbreviation (VH) for the file names that are generated.
-				revisedName = "VH"+nameSuffix.substring(2);
+				revisedName = "VH" + nameSuffix.substring(2);
+				nameForPDF = nameSuffix;
+			}
+			else
+				if (revisedName.startsWith("MARKOV")) // the '6' below reflects the length of 'MARKOV' which we replace with 'EM'.
+					nameForPDF = "EM"+revisedName.substring(6).replace('_',' ');
+				else
+					nameForPDF = revisedName.replace('_',' ');
 			reportedName = revisedName.replace('_','@');
-
-			name = nameText;scoringMarkov = false;
-		}
-		ScoringToApply(String nameText, boolean markov)
-		{
-			if (!name().startsWith("SCORING_"))
-				throw new IllegalArgumentException("Name of enumeration reflecting learner kind should start with SCORING_");
-			// Here we replace the underscore with an @ sign to make it more practical to parse when encountered as part of a file name
-			// because underscore is reserved as a separator for key-value pairs..
-			reportedName = name().substring(name().indexOf("_")+1).replace('_','@');
 
 			name = nameText;scoringMarkov = markov;
 		}

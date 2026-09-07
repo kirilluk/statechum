@@ -142,12 +142,17 @@ public class E_MarkovScoreVsInconsistency {
             chunkLenToWeights.put(2,new double[]{1.0,2.0,3.0});
             chunkLenToWeights.put(3,new double[]{0.5,1.0,2.0});
             chunkLenToWeights.put(4,new double[]{0.25,0.5,1.0});
-            Map<Pair<Integer,Double>,DrawGraphs.SquareBagPlot> multToBCR = new  TreeMap<>();
-            for(int chunkLen: chunkSizeValues)
-                for(double weight:chunkLenToWeights.get(chunkLen))
-                    multToBCR.put(new Pair<>(chunkLen,weight),new DrawGraphs.SquareBagPlot("BCR, logistic regression", "BCR, "+weight,
-                        new File(learningGroup.outPathPrefix + File.separator + description + "bcr_logistic_ch="+chunkLen+"_vs_mult+"+weight+".pdf"), 0.5, 1, true));
-
+            Map<Integer,Map<Pair<Integer,Double>,DrawGraphs.SquareBagPlot>> statesToMultToBCR = new  TreeMap<>();
+            for (int states : learningGroup.statesToUse) {
+                Map<Pair<Integer,Double>,DrawGraphs.SquareBagPlot> multToBCR = statesToMultToBCR.computeIfAbsent(states, k -> new TreeMap<>());
+                for (int chunkLen : chunkSizeValues)
+                    for (double weight : chunkLenToWeights.get(chunkLen)) {
+                        DrawGraphs.SquareBagPlot plot = new DrawGraphs.SquareBagPlot("BCR of mergers for logistic regression using R", "BCR of mergers, inconsistency times " + weight,
+                                new File(learningGroup.outPathPrefix + File.separator + description + "states_"+states+"_bcr_logistic_ch=" + chunkLen + "_vs_mult+" + weight + ".pdf"), 0.5, 1, true);
+                        multToBCR.put(new Pair<>(chunkLen, weight), plot);
+                        plot.setLabelsAuto(RGraph.PLOT_X_LABELS.XLABELS_R);
+                    }
+            }
             int numberOfPoints = 0;
             for (int states_C : learningGroup.statesToUse)
                 for (int ignoredA : MarkovExperiment.densityFromStateNumber(states_C))
@@ -158,109 +163,113 @@ public class E_MarkovScoreVsInconsistency {
                                     for (final boolean ignoredD:penaliseMissingPathsValues)
                                         ++numberOfPoints;
 
-            Map<Pair<Integer,Double>,Map<BEST_WORST_BCR,BCRAndValues>> bcrKindForChunkLenAndWeight = new HashMap<>();
+            Map<Integer,Map<Pair<Integer,Double>,Map<BEST_WORST_BCR,BCRAndValues>>> stateToBcrKindForChunkLenAndWeight = new HashMap<>();
 
             ProgressIndicator progress = new ProgressIndicator("Reporting results",numberOfPoints);
-            for (int states : learningGroup.statesToUse)
+            for (int states : learningGroup.statesToUse) {
+                Map<Pair<Integer,Double>,Map<BEST_WORST_BCR,BCRAndValues>> bcrKindForChunkLenAndWeight = stateToBcrKindForChunkLenAndWeight.computeIfAbsent(states, k -> new HashMap<>());
                 for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                     for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample) {
                         for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{learningGroup.getTracesLengthmultBaseline(states)}) {
                             int traceQuantityToUse = traces_lengthmult.firstElem;
                             for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample)
                                 for (final int chunkSizeToEvaluate : chunkSizeValues)
-                                for (final boolean penaliseMissingPaths:penaliseMissingPathsValues)
-                                {
-                                    LearningAlgorithms.ScoringToApply learnerKind = LearningAlgorithms.ScoringToApply.SCORING_ORACLE_STATISTICS;
-                                    double weightOfInconsistencies = 1.0;
-                                    ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
-                                    ev.config = learningGroup.eval.config.copy();
-                                    ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
+                                    for (final boolean penaliseMissingPaths : penaliseMissingPathsValues) {
+                                        LearningAlgorithms.ScoringToApply learnerKind = LearningAlgorithms.ScoringToApply.SCORING_ORACLE_STATISTICS;
+                                        double weightOfInconsistencies = 1.0;
+                                        ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
+                                        ev.config = learningGroup.eval.config.copy();
+                                        ev.config.setOverride_maximalNumberOfStates(states * LearningAlgorithms.maxStateNumberMultiplier);
 
-                                    MarkovLearningStatisticsParameters parameters = new MarkovLearningStatisticsParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample);
-                                    parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
-                                    parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
-                                    parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets,
-                                            new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, 0, 0, 0);
-                                    parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-                                    SGE_ExperimentRunner.FileNameToUse statisticsFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(
-                                            new SGE_ExperimentRunner.FileNameToUse(learningGroup.outPathPrefix, directoryExperimentStatistics),learnStatistics,parameters);
-                                    String fileContents = null;
-                                    try (BufferedReader statisticsFile = new BufferedReader(new FileReader(statisticsFileName.toFileName()))) {
-                                        fileContents = statisticsFile.readLine();
-                                    } catch (IOException e) {
-                                        if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE)
-                                            throw new IllegalArgumentException("Failed to read file "+statisticsFileName.toFileName());
-                                        // ignore error, we'll know that file was not read because fileContents will be null.
-                                    }
-                                    if (fileContents != null) {
-                                        SGE_ExperimentRunner.handleDataPointBeingOpened(statisticsFileName);
-
-                                        List<PairQualityLearner.PairScoreValue> values = new ArrayList<>();
-                                        OtpErlangObject listOfPairsAsObject = ErlangLabel.parseText(fileContents);
-                                        if (!(listOfPairsAsObject instanceof OtpErlangList))
-                                            throw new IllegalArgumentException(statisticsFileName + " is not a list of type OtpErlangLists, got " + listOfPairsAsObject.getClass().getName());
-                                        OtpErlangList listOfPairs = (OtpErlangList) listOfPairsAsObject;
-                                        for (int i = 0; i < listOfPairs.arity(); ++i) {
-                                            OtpErlangTuple pair = (OtpErlangTuple) listOfPairs.elementAt(i);
-                                            boolean validMerge = ((OtpErlangBoolean) pair.elementAt(0)).booleanValue();
-                                            long score = ((OtpErlangLong) pair.elementAt(1)).longValue();
-                                            long inconsistency = ((OtpErlangLong) pair.elementAt(2)).longValue();
-                                            values.add(new PairQualityLearner.PairScoreValue(validMerge, score, inconsistency));
+                                        MarkovLearningStatisticsParameters parameters = new MarkovLearningStatisticsParameters(learnerKind, states, alphabetMultiplier, perStateSquaredDensity100, sample, trainingSample);
+                                        parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
+                                        parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, alphabetMultiplier);
+                                        parameters.markovParameters.setMarkovParameters(0, chunkSizeToEvaluate, pathsOrSets,
+                                                new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, 0, 0, 0);
+                                        parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
+                                        SGE_ExperimentRunner.FileNameToUse statisticsFileName = SGE_ExperimentRunner.RunSubExperiment.constructFileName(
+                                                new SGE_ExperimentRunner.FileNameToUse(learningGroup.outPathPrefix, directoryExperimentStatistics), learnStatistics, parameters);
+                                        String fileContents = null;
+                                        try (BufferedReader statisticsFile = new BufferedReader(new FileReader(statisticsFileName.toFileName()))) {
+                                            fileContents = statisticsFile.readLine();
+                                        } catch (IOException e) {
+                                            if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE)
+                                                throw new IllegalArgumentException("Failed to read file " + statisticsFileName.toFileName());
+                                            // ignore error, we'll know that file was not read because fileContents will be null.
                                         }
+                                        if (fileContents != null) {
+                                            SGE_ExperimentRunner.handleDataPointBeingOpened(statisticsFileName);
 
-                                        DrawGraphs.LogisticRegression regression = new DrawGraphs.LogisticRegression(values,"fit","pairvalues");
+                                            List<PairQualityLearner.PairScoreValue> values = new ArrayList<>();
+                                            OtpErlangObject listOfPairsAsObject = ErlangLabel.parseText(fileContents);
+                                            if (!(listOfPairsAsObject instanceof OtpErlangList))
+                                                throw new IllegalArgumentException(statisticsFileName + " is not a list of type OtpErlangLists, got " + listOfPairsAsObject.getClass().getName());
+                                            OtpErlangList listOfPairs = (OtpErlangList) listOfPairsAsObject;
+                                            for (int i = 0; i < listOfPairs.arity(); ++i) {
+                                                OtpErlangTuple pair = (OtpErlangTuple) listOfPairs.elementAt(i);
+                                                boolean validMerge = ((OtpErlangBoolean) pair.elementAt(0)).booleanValue();
+                                                long score = ((OtpErlangLong) pair.elementAt(1)).longValue();
+                                                long inconsistency = ((OtpErlangLong) pair.elementAt(2)).longValue();
+                                                values.add(new PairQualityLearner.PairScoreValue(validMerge, score, inconsistency));
+                                            }
+
+                                            DrawGraphs.LogisticRegression regression = new DrawGraphs.LogisticRegression(values, "fit", "pairvalues");
 //                                        System.out.println(pathName+" , "+ states + "_" + perStateSquaredDensity100 + "_" + chunkSizeToEvaluate + "_"+penaliseMissingPaths+" : "+regression.reportNormalisedCoefficients());
-                                        ConfusionMatrix confUsingLogisticRegression = regression.computeConfusionMatrix(values);
+                                            ConfusionMatrix confUsingLogisticRegression = regression.computeConfusionMatrix(values);
 //                                        System.out.println("Logistic regression: "+confUsingLogisticRegression+" F1="+confUsingLogisticRegression.fMeasure()+", BCR="+confUsingLogisticRegression.BCR());
 
 
-                                        // Now go through the plots to populate and only add to the plot with the right parameters.
-                                        for(Map.Entry<Pair<Integer,Double>,SquareBagPlot> mult_and_plot:multToBCR.entrySet())
-                                            if (mult_and_plot.getKey().firstElem == chunkSizeToEvaluate) {
-                                                ConfusionMatrix confGivenWeight = LogisticRegression.computeConfusionMatrixGivenWeightOfInconsistencies(values,mult_and_plot.getKey().secondElem,0.0);
-                                                mult_and_plot.getValue().add(confUsingLogisticRegression.BCR(), confGivenWeight.BCR());
-                                                Map<BEST_WORST_BCR,BCRAndValues> valuesForBCRKind = bcrKindForChunkLenAndWeight.computeIfAbsent(new Pair<>(chunkSizeToEvaluate,mult_and_plot.getKey().secondElem),
-                                                        p->new TreeMap<>());
-                                                valuesForBCRKind.computeIfAbsent(BEST_WORST_BCR.RESULT_LOGISTIC_BEST, k -> new BCRAndValues(0)).
-                                                        assignIfBetter(confUsingLogisticRegression.BCR(),values,regression.reportCoefficients());
-                                                valuesForBCRKind.computeIfAbsent(BEST_WORST_BCR.RESULT_LOGISTIC_WORST, k -> new BCRAndValues(2.0)).
-                                                        assignIfWorse(confUsingLogisticRegression.BCR(),values,regression.reportCoefficients());
-                                                valuesForBCRKind.computeIfAbsent(BEST_WORST_BCR.RESULT_MARKOV_BEST, k -> new BCRAndValues(0)).
-                                                        assignIfBetter(confGivenWeight.BCR(),values,regression.reportCoefficients());
-                                                valuesForBCRKind.computeIfAbsent(BEST_WORST_BCR.RESULT_MARKOV_WORST, k -> new BCRAndValues(2.0)).
-                                                        assignIfWorse(confGivenWeight.BCR(),values,regression.reportCoefficients());
-                                            }
+                                            // Now go through the plots to populate and only add to the plot with the right parameters.
+                                            for (Map.Entry<Pair<Integer, Double>, SquareBagPlot> mult_and_plot : statesToMultToBCR.get(states).entrySet())
+                                                if (mult_and_plot.getKey().firstElem == chunkSizeToEvaluate) {
+                                                    ConfusionMatrix confGivenWeight = LogisticRegression.computeConfusionMatrixGivenWeightOfInconsistencies(values, mult_and_plot.getKey().secondElem, 0.0);
+                                                    mult_and_plot.getValue().add(confUsingLogisticRegression.BCR(), confGivenWeight.BCR());
+                                                    Map<BEST_WORST_BCR, BCRAndValues> valuesForBCRKind = bcrKindForChunkLenAndWeight.computeIfAbsent(new Pair<>(chunkSizeToEvaluate, mult_and_plot.getKey().secondElem),
+                                                            p -> new TreeMap<>());
+                                                    valuesForBCRKind.computeIfAbsent(BEST_WORST_BCR.RESULT_LOGISTIC_BEST, k -> new BCRAndValues(0)).
+                                                            assignIfBetter(confUsingLogisticRegression.BCR(), values, regression.reportCoefficients());
+                                                    valuesForBCRKind.computeIfAbsent(BEST_WORST_BCR.RESULT_LOGISTIC_WORST, k -> new BCRAndValues(2.0)).
+                                                            assignIfWorse(confUsingLogisticRegression.BCR(), values, regression.reportCoefficients());
+                                                    valuesForBCRKind.computeIfAbsent(BEST_WORST_BCR.RESULT_MARKOV_BEST, k -> new BCRAndValues(0)).
+                                                            assignIfBetter(confGivenWeight.BCR(), values, regression.reportCoefficients());
+                                                    valuesForBCRKind.computeIfAbsent(BEST_WORST_BCR.RESULT_MARKOV_WORST, k -> new BCRAndValues(2.0)).
+                                                            assignIfWorse(confGivenWeight.BCR(), values, regression.reportCoefficients());
+                                                }
+                                        }
+                                        progress.next();
                                     }
-                                    progress.next();
-                                }
                         }
                     }
                 }
-            for(SquareBagPlot plot:multToBCR.values())
-                plot.reportResults(learningGroup.gr);
+            }
+
+            for (int states : learningGroup.statesToUse)
+                for(SquareBagPlot plot:statesToMultToBCR.get(states).values())
+                    plot.reportResults(learningGroup.gr);
 
             final String pchValid = "1";
-            for(Map.Entry<Pair<Integer,Double>,Map<BEST_WORST_BCR,BCRAndValues>> valuesForBCRKindEntry:bcrKindForChunkLenAndWeight.entrySet()) {
-                for(Map.Entry<BEST_WORST_BCR,BCRAndValues> kindOfBcr_Values:valuesForBCRKindEntry.getValue().entrySet()) {
-                    String suffix = description +
-                            "bcr_logistic_ch=" + valuesForBCRKindEntry.getKey().firstElem + "_vs_mult+" +
-                            valuesForBCRKindEntry.getKey().secondElem + "_"+kindOfBcr_Values.getKey()+"(bcr="+kindOfBcr_Values.getValue().bcr+","+kindOfBcr_Values.getValue().description+").pdf";
-                    ScatterPlot gr_ScoreVsInconsistencyEachLearn = new ScatterPlot("Inconsistency", "Score",
-                            new File(learningGroup.outPathPrefix + File.separator + suffix));
-                    gr_ScoreVsInconsistencyEachLearn.setMargins(3,3,0.5,0.2);
-                    gr_ScoreVsInconsistencyEachLearn.setXLine(2);
-                    gr_ScoreVsInconsistencyEachLearn.setYLine(2);
-                    gr_ScoreVsInconsistencyEachLearn.interpretColourAsPch(pch->pch.equals(pchValid)?"blue":"red");
-                    for(PairQualityLearner.PairScoreValue pairScores:kindOfBcr_Values.getValue().values) {
-                        long score = pairScores.score, inconsistency = pairScores.inconsistency;
+            for(Map.Entry<Integer,Map<Pair<Integer,Double>,Map<BEST_WORST_BCR,BCRAndValues>>> stateToValuesEntry:stateToBcrKindForChunkLenAndWeight.entrySet() )
+                for(Map.Entry<Pair<Integer,Double>,Map<BEST_WORST_BCR,BCRAndValues>> valuesForBCRKindEntry:stateToValuesEntry.getValue().entrySet()) {
+                    for(Map.Entry<BEST_WORST_BCR,BCRAndValues> kindOfBcr_Values:valuesForBCRKindEntry.getValue().entrySet()) {
+                        String suffix = description + "states_"+stateToValuesEntry.getKey()+
+                                "_bcr_logistic_ch=" + valuesForBCRKindEntry.getKey().firstElem + "_vs_mult+" +
+                                valuesForBCRKindEntry.getKey().secondElem + "_"+kindOfBcr_Values.getKey()+"(bcr="+kindOfBcr_Values.getValue().bcr+","+kindOfBcr_Values.getValue().description+").pdf";
+                        ScatterPlot gr_ScoreVsInconsistencyEachLearn = new ScatterPlot("Inconsistency", "EDSM score",
+                                new File(learningGroup.outPathPrefix + File.separator + suffix));
+                        gr_ScoreVsInconsistencyEachLearn.setMargins(3,3,0.5,0.2);
+                        gr_ScoreVsInconsistencyEachLearn.setXLine(2);
+                        gr_ScoreVsInconsistencyEachLearn.setYLine(2);
+                        gr_ScoreVsInconsistencyEachLearn.interpretColourAsPch(pch->pch.equals(pchValid)?"blue":"red");
+                        for(PairQualityLearner.PairScoreValue pairScores:kindOfBcr_Values.getValue().values) {
+                            long score = pairScores.score, inconsistency = pairScores.inconsistency;
 
-                        if (score < 100 && inconsistency < 1000)
-                            gr_ScoreVsInconsistencyEachLearn.add((double) inconsistency, (double) score, pairScores.validMerge ? pchValid : "4", null);
+                            if (score < 100 && inconsistency < 1000)
+                                gr_ScoreVsInconsistencyEachLearn.add((double) inconsistency, (double) score, pairScores.validMerge ? pchValid : "4", null);
+                        }
+
+                        gr_ScoreVsInconsistencyEachLearn.reportResults(learningGroup.gr);
                     }
-
-                    gr_ScoreVsInconsistencyEachLearn.reportResults(learningGroup.gr);
                 }
-            }
         }
         return resultCSV;
     }

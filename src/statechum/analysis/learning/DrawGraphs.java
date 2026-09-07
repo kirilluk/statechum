@@ -1110,6 +1110,10 @@ public class DrawGraphs {
 			return size;
 		}
 
+		public boolean isEmpty() {
+			return size == 0;
+		}
+
 		// Default values of the margins for the graph, thanks to https://stackoverflow.com/questions/5506046/how-do-i-put-more-space-between-the-axis-labels-and-axis-title-in-an-r-boxplot
 		protected double mBot=5,mLeft=4,mTop=4,mRight=2;
 

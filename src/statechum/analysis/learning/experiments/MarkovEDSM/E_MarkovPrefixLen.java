@@ -120,6 +120,8 @@ public class E_MarkovPrefixLen {
                     final DrawGraphs.RBagPlot gr_StructuralVsLearntDensity_gooddensity = new DrawGraphs.RBagPlot("Density of Learnt", "Structural Score",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_(gooddensity)_density_learnt_structural.pdf"));
                     gr_StructuralVsChunkLenWeight_gooddensity.setupForTwoLineXLabels();
+
+
 //                    gr_StructuralVsChunkLenWeight.setXLine(4);
 //                    gr_StructuralVsChunkLenWeight.setMargins(5,4,0,0);
                     final Map<Integer,RBoxPlot<String>> gr_StructuralVsChunkLenWeightForDensity = new TreeMap();
@@ -132,6 +134,9 @@ public class E_MarkovPrefixLen {
                         DataSelection source = new DataSelection(resultCSV,states,perStateSquaredDensity100,validityOfCells);
                         final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score",
                                 new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + perStateSquaredDensity100 + "_inconsistency_structural.pdf"));
+                        final SquareBagPlot gr_StructuralDiffEMvsHV = new SquareBagPlot("Structural score, EM", "Structural Score, HV",
+                                new File(learningGroup.outPathPrefix + File.separator + description+"_"+states+ "_" + perStateSquaredDensity100 + "_EM_vs_HV.pdf"), 0, 1, true);
+
                         spreadsheetToBagPlotNoZeroYValues(gr_StructuralVsInconsistency, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_INCONSISTENCY_LEARNT,
                                 new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
                         final boolean goodDensity = perStateSquaredDensity100 != MarkovExperiment.densityFromStateNumberPrefixLen(states)[densityFromStateNumberPrefixLen(states).length-1];
@@ -157,12 +162,24 @@ public class E_MarkovPrefixLen {
                         for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                             MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
                             if (rowValues.perStateSquaredDensityMultipliedBy100 == perStateSquaredDensity100 && rowValues.states == states)
-                                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,(column, columnText, Y) -> {
+                                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),
+                                        validityOfCells,(column, columnText, Y) -> {
                                     double value = obtainDoubleValueFromCell(Y, E_DIFF,column);
                                     boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
 
                                     String prefixLenAndWeight = column.parameters.chunkLen - 1 + "\n" + column.parameters.weightOfInconsistencies.weight;// + "_" + column.parameters.weightOfInconsistencies.offset;
                                     gr_StructuralVsChunkLenWeight.add(prefixLenAndWeight, value);
+
+                                    ColumnAndValue Y_HV = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV), validityOfCells);
+                                    if (column.parameters.chunkLen == 3 && column.parameters.weightOfInconsistencies.weight == 0.5)
+                                    {
+                                        if (Y_HV != null) {
+                                            double hv_score = obtainDoubleValueFromCell(Y_HV.value, E_DIFF, Y_HV.column);
+                                            gr_StructuralDiffEMvsHV.add(hv_score, value);
+                                        }
+                                        else
+                                            System.out.println("WARNING: missing HV-value for " + rowEntry.getKey());
+                                    }
                                     if (goodDensity)
                                         gr_StructuralVsChunkLenWeight_gooddensity.add(prefixLenAndWeight, value);
                                     gr_StructuralVsChunkLenWeightForDensity.get(rowValues.perStateSquaredDensityMultipliedBy100).add(prefixLenAndWeight, value);
@@ -267,6 +284,7 @@ public class E_MarkovPrefixLen {
                         }
 
                         gr_StructuralVsChunkLenWeight.reportResults(learningGroup.gr);
+                        gr_StructuralDiffEMvsHV.reportResults(learningGroup.gr);
                         if (!gr_StructuralVsChunkLenWeight_gooddensity.isEmpty())
                             gr_StructuralVsChunkLenWeight_gooddensity.reportResults(learningGroup.gr);
 //                        for(DrawGraphs.RBagPlot gr_StructuralVsLearntRelativeInconsistency:map_StructuralVsLearntRelativeInconsistency.values())
@@ -308,21 +326,61 @@ public class E_MarkovPrefixLen {
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
-            for (int states : learningGroup.statesToUse)
+
+            for (int states : learningGroup.statesToUse) {
+                FilterCollectionOfResultsForBestPerformingLearner.FixedPrefixLengthAndWeight fixedPrefixLengthAndWeight =
+                        new FilterCollectionOfResultsForBestPerformingLearner.FixedPrefixLengthAndWeight(3,0.5);// baseline values
+                final SquareBagPlot gr_StructuralDiffBestGoodDensity = new SquareBagPlot("Structural Score, HV", "Structural Score, EM",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_bestprefixlen_and_mult_(gooddensity)_HV_structuraldiffBest.pdf"), 0, 1, true);
+                final SquareBagPlot gr_StructuralDiffDefaultOrderingGoodDensity = new SquareBagPlot("Structural score, default order", "Structural Score, best order",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_bestprefixlen_and_mult_(gooddensity)_defaultorder_bestorder.pdf"), 0, 1, true);
+
                 for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumberPrefixLen(states)) {
                     final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural Score, HV", "Structural Score, EM",
-                            new File(learningGroup.outPathPrefix + File.separator + description+"_"+states+"_bestprefixlen_and_mult_" + states + "_"+perStateSquaredDensity100+"_HV_structuraldiffBest.pdf"), 0, 1, true);
+                            new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_bestprefixlen_and_mult_" + perStateSquaredDensity100 + "_HV_structuraldiffBest.pdf"), 0, 1, true);
                     final SquareBagPlot gr_StructuralDiffDefaultOrdering = new SquareBagPlot("Structural score, default order", "Structural Score, best order",
-                            new File(learningGroup.outPathPrefix + File.separator + description+"_"+states+"_bestprefixlen_and_mult_" + states + "_"+perStateSquaredDensity100+"_defaultorder_bestorder.pdf"), 0, 1, true);
+                            new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_bestprefixlen_and_mult_" + perStateSquaredDensity100 + "_defaultorder_bestorder.pdf"), 0, 1, true);
                     // Now select the best result from all those available
-                    FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, perStateSquaredDensity100, resultCSV,validityOfCells);
+                    FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, perStateSquaredDensity100, resultCSV, validityOfCells);
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBest, gr_StructuralDiffDefaultOrdering, null, null);
 //                    System.out.println("Values for "+states+" and "+perStateSquaredDensity100+" : "+report.getExperimentResults().size());
+                    final boolean goodDensity = states >= 40 || perStateSquaredDensity100 != MarkovExperiment.densityFromStateNumberPrefixLen(states)[densityFromStateNumberPrefixLen(states).length-1];
+                    if (goodDensity) {
+                        FilterCollectionOfResultsForBestPerformingLearner reportGoodDensity = new FilterCollectionOfResultsForBestPerformingLearner(states, perStateSquaredDensity100, resultCSV, validityOfCells);
+                        reportGoodDensity.setFixedPrefixLengthAndWeight(fixedPrefixLengthAndWeight);
+                        reportGoodDensity.getResultForBestPerformingMarkovLearner(gr_StructuralDiffBestGoodDensity, gr_StructuralDiffDefaultOrderingGoodDensity, null, null);
+                    }
                     gr_StructuralDiffBest.reportResults(learningGroup.gr);
                     gr_StructuralDiffDefaultOrdering.reportResults(learningGroup.gr);
 //                    report.reportResults();
                 }
 
+                final SquareBagPlot gr_StructuralDiffDefaultOrderingImprovementGoodDensity = new SquareBagPlot("Structural score, baseline", "Structural Score, best for default order",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity)_bestprefixlen_and_mult_defaultorder_diff.pdf"), 0, 1, true);
+                final RBagPlot gr_RuntimeDefaultOrderingImprovementGoodDensity = new RBagPlot("RunTime, baseline", "RunTime, best for default order",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity)_bestprefixlen_and_mult_defaultorder_runtime.pdf"));
+                final SquareBagPlot gr_StructuralDiffImprovementGoodDensity = new SquareBagPlot("Structural score, baseline", "Structural Score, best order",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity)_bestprefixlen_and_mult_and_order_diff.pdf"), 0, 1, true);
+                final RBagPlot gr_RuntimeImprovementGoodDensity = new RBagPlot("RunTime, baseline", "RunTime, best order",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity)_bestprefixlen_and_mult_and_order_runtime.pdf"));
+
+                for(Map.Entry<String,FilterCollectionOfResultsForBestPerformingLearner.BestVsFixed> resultEntry:fixedPrefixLengthAndWeight.experimentResults.entrySet()) {
+                    gr_StructuralDiffDefaultOrderingImprovementGoodDensity.add(resultEntry.getValue().scoreFixed, resultEntry.getValue().bestLearningResultForDefaultOrdering.structural);
+                    if (resultEntry.getValue().scoreFixed > resultEntry.getValue().bestLearningResultForDefaultOrdering.structural)
+                        System.out.println("[RR] "+resultEntry.getKey()+ " "+resultEntry.getValue().scoreFixed +" vs "+resultEntry.getValue().bestLearningResultForDefaultOrdering.structural);
+                    gr_RuntimeDefaultOrderingImprovementGoodDensity.add((double)resultEntry.getValue().timeUsedFixed, (double)resultEntry.getValue().timeUsedDefaultOrderingBest);
+                    gr_StructuralDiffImprovementGoodDensity.add(resultEntry.getValue().scoreFixed, resultEntry.getValue().bestLearningResult.structural);
+                    gr_RuntimeImprovementGoodDensity.add((double)resultEntry.getValue().timeUsedFixed, (double)resultEntry.getValue().timeUsedBest);
+                }
+                gr_StructuralDiffDefaultOrderingImprovementGoodDensity.reportResults(learningGroup.gr);
+                gr_RuntimeDefaultOrderingImprovementGoodDensity.reportResults(learningGroup.gr);
+                gr_StructuralDiffImprovementGoodDensity.reportResults(learningGroup.gr);
+                gr_RuntimeImprovementGoodDensity.reportResults(learningGroup.gr);
+
+                gr_StructuralDiffBestGoodDensity.reportResults(learningGroup.gr);
+                gr_StructuralDiffDefaultOrderingGoodDensity.reportResults(learningGroup.gr);
+
+            }
 //            resultCSV.moveFiles();
         }
     }

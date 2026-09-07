@@ -68,6 +68,31 @@ class FilterCollectionOfResultsForBestPerformingLearner {
         return resultPerChunkLen;
     }
 
+    public static class BestVsFixed {
+        double scoreFixed = 0;
+        int timeUsedFixed = 0, timeUsedDefaultOrderingBest = 0, timeUsedBest = 0;
+        int inconsistencyFixed = 0;
+
+        MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport(),bestLearningResultForDefaultOrdering = new MarkovExperiment.LearningReport();
+    }
+
+    public static class FixedPrefixLengthAndWeight {
+        final public int chunkLen;
+        final public double weight;
+
+        public final Map<String,BestVsFixed> experimentResults = new TreeMap<>();
+
+        public FixedPrefixLengthAndWeight(int chunkLen, double weight) {
+            this.chunkLen = chunkLen;
+            this.weight = weight;
+        }
+    }
+
+    protected FixedPrefixLengthAndWeight fixedPrefixLengthAndWeight = null;
+
+    public void setFixedPrefixLengthAndWeight(FixedPrefixLengthAndWeight fixedPrefixLengthAndWeight) {
+        this.fixedPrefixLengthAndWeight = fixedPrefixLengthAndWeight;
+    }
     /**
      * Given a results obtained by Markov learners using different parameters, uses inconsistency values to identify the best performing learner and report its results.
      *
@@ -83,31 +108,68 @@ class FilterCollectionOfResultsForBestPerformingLearner {
         for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
             MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
 
-            if ((perStateSquaredDensity100 < 0 || rowValues.perStateSquaredDensityMultipliedBy100 == perStateSquaredDensity100) &&
-                    (states < 0 || rowValues.states == states) &&
-                selectorRow.apply(rowValues)) {
+            if (
+                (perStateSquaredDensity100 < 0 || rowValues.perStateSquaredDensityMultipliedBy100 == perStateSquaredDensity100) &&
+                (states < 0 || rowValues.states == states) &&
+                selectorRow.apply(rowValues))
+            {
                 final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport(),bestLearningResultForDefaultOrdering = new MarkovExperiment.LearningReport();
                 final Map<Integer,MarkovExperiment.LearningReport> resultForChunkLen = new TreeMap<>();
+                final BestVsFixed bestVsFixed = (fixedPrefixLengthAndWeight != null)?
+                        (fixedPrefixLengthAndWeight.experimentResults.computeIfAbsent(rowEntry.getKey(), k -> new BestVsFixed())):null;
+
                 getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),invalidCellValues,
-                        (column, columnText, Y) -> {
-                            boolean learntOK = obtainStringValueFromCell(Y, MarkovExperiment.RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
-                            boolean alwaysPositive = obtainBooleanValueFromCell(Y, E_INCONSISTENCY_ALWAYSPOSITIVE,column);
-                            double bcr = obtainDoubleValueFromCell(Y, E_BCR,column);
-                            double structural = obtainDoubleValueFromCell(Y, E_DIFF,column);
-                            long inconsistency = obtainLongValueFromCell(Y, E_INCONSISTENCY_LEARNT,column);
+                (column, columnText, Y) -> {
+                    boolean learntOK = obtainStringValueFromCell(Y, MarkovExperiment.RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
+                    boolean alwaysPositive = obtainBooleanValueFromCell(Y, E_INCONSISTENCY_ALWAYSPOSITIVE,column);
+                    double bcr = obtainDoubleValueFromCell(Y, E_BCR,column);
+                    double structural = obtainDoubleValueFromCell(Y, E_DIFF,column);
+                    long inconsistency = obtainLongValueFromCell(Y, E_INCONSISTENCY_LEARNT,column);
+                    if (fixedPrefixLengthAndWeight != null) {
+                        // Here we compare a fixed chunkLen/weight against the best value, making sure to also report the time spent
+                        if (column.parameters.chunkLen == fixedPrefixLengthAndWeight.chunkLen &&
+                                column.parameters.weightOfInconsistencies.weight == fixedPrefixLengthAndWeight.weight &&
+                                column.parameters.seedToShuffleSurroundingStates == 0) {// default ordering and specified chunkLen and weight.
+                            bestVsFixed.scoreFixed = structural;
+                            bestVsFixed.timeUsedFixed = obtainIntValueFromCell(Y, E_RUNTIME, column);
+                            bestVsFixed.inconsistencyFixed = obtainIntValueFromCell(Y, E_INCONSISTENCY_LEARNT, column);
+                        }
+                    }
 
-                            if (learntOK && selectorCol.apply(column)) {
-                                MarkovExperiment.LearningReport currentOutcome = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText, Y, column);
-                                if (column.parameters.seedToShuffleSurroundingStates == 0)
-                                    bestLearningResultForDefaultOrdering.updateIfValueBetter(currentOutcome);
-                                else
-                                    multipleOrderingsOfStates.set(true);
-                                bestLearningResult.updateIfValueBetter(currentOutcome);
+                    if (bestVsFixed != null && selectorCol.apply(column) && column.parameters.chunkLen == fixedPrefixLengthAndWeight.chunkLen) {// here we deliberately try to avoid depending on the whether learning was successful
+                        bestVsFixed.timeUsedBest += obtainIntValueFromCell(Y, E_RUNTIME, column);
+                        if (column.parameters.seedToShuffleSurroundingStates == 0) {
+                            bestVsFixed.timeUsedDefaultOrderingBest += obtainIntValueFromCell(Y, E_RUNTIME, column);
+                        }
+                    }
+                    if (learntOK && selectorCol.apply(column)) {
+                        MarkovExperiment.LearningReport currentOutcome = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText, Y, column);
+                        if (column.parameters.seedToShuffleSurroundingStates == 0)
+                            bestLearningResultForDefaultOrdering.updateIfValueBetter(currentOutcome);
+                        else
+                            multipleOrderingsOfStates.set(true);
+                        bestLearningResult.updateIfValueBetter(currentOutcome);
 
-                                resultForChunkLen.computeIfAbsent(column.parameters.chunkLen, k->new MarkovExperiment.LearningReport()).updateIfValueBetter(currentOutcome);
-                            }
-                        });
+                        if (bestVsFixed != null && column.parameters.chunkLen == fixedPrefixLengthAndWeight.chunkLen) {
+                            if (column.parameters.seedToShuffleSurroundingStates == 0)
+                                bestVsFixed.bestLearningResultForDefaultOrdering.updateIfValueBetter(currentOutcome);
+                            bestVsFixed.bestLearningResult.updateIfValueBetter(currentOutcome);
+                        }
+
+                        resultForChunkLen.computeIfAbsent(column.parameters.chunkLen, k->new MarkovExperiment.LearningReport()).updateIfValueBetter(currentOutcome);
+                    }
+                });
                 if (bestLearningResult.column != null) {// if any result was obtained as opposed to everything either missing or eliminated by filters
+                    if (bestVsFixed != null) {
+                        if (bestVsFixed.bestLearningResultForDefaultOrdering.structural < bestVsFixed.scoreFixed &&
+                                bestVsFixed.bestLearningResultForDefaultOrdering.inconsistency < bestVsFixed.inconsistencyFixed)
+                            System.out.println("Row: "+rowEntry.getKey()+", inconsistency "+
+                                            bestVsFixed.bestLearningResultForDefaultOrdering.inconsistency+" < "+ bestVsFixed.inconsistencyFixed +
+                                            " , diff score: " + bestVsFixed.bestLearningResultForDefaultOrdering.structural+" < "+ bestVsFixed.scoreFixed +
+                                    " weight chosen: "+bestVsFixed.bestLearningResultForDefaultOrdering.column.parameters.weightOfInconsistencies.weight + " weight fixed: "+fixedPrefixLengthAndWeight.weight
+                                    );
+                    }
+
                     experimentResults.add(bestLearningResult);
                     learnerToHowOftenBest.computeIfAbsent(bestLearningResult.columnText, s -> new AtomicInteger(0));
                     learnerToHowOftenBest.get(bestLearningResult.columnText).addAndGet(1);

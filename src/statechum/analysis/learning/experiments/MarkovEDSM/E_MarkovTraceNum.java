@@ -79,7 +79,7 @@ public class E_MarkovTraceNum {
 
         final String numberFormat = "%3d";
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(description, resultCSV, validityOfCells);
             for (int states : learningGroup.statesToUse) {
                 final RBoxPlot<String> gr_BestStructuralForTraceNumber = new RBoxPlot<>("Trace number", "Structural Score, EM",
                         new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_tracenum_structural.pdf"));
@@ -111,7 +111,11 @@ public class E_MarkovTraceNum {
                                 StringBuilder sb = new StringBuilder();
                                 Formatter formatter = new Formatter(sb, Locale.US);
                                 formatter.format(numberFormat, traceQuantityToUse);
-                                gr_BestStructuralForTraceNumber.add("M\n"+sb, markov);
+                                if (traceQuantityToUse == learningGroup.getTracesLengthmultBaseline(states).firstElem) {
+                                    gr_BestStructuralForTraceNumber.makeLabelBold("EM\n" + sb);
+                                    gr_BestStructuralForTraceNumber.makeLabelBold("HV\n" + sb);
+                                }
+                                gr_BestStructuralForTraceNumber.add("EM\n"+sb, markov);
                                 gr_BestStructuralForTraceNumber.add("HV\n"+sb, hv_score);
                             }, null);
                     learnerToHowOftenBestForAllTraceLength.computeIfAbsent(traceQuantityToUse,aInteger -> report);
@@ -123,7 +127,7 @@ public class E_MarkovTraceNum {
                     StringBuilder sb = new StringBuilder();
                     Formatter formatter = new Formatter(sb, Locale.US);
                     formatter.format(numberFormat, traceQuantityToUse);
-                    ordering.add("M\n"+sb);
+                    ordering.add("EM\n"+sb);
                     ordering.add("HV\n"+sb);
                 }
                 gr_BestStructuralForTraceNumber.setOrderingOfLabels(ordering);

@@ -83,9 +83,9 @@ public class E_MarkovTraceConstSize {
 
         final String numberFormat = "%3d";
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(description, resultCSV, validityOfCells);
             for (int states : learningGroup.statesToUse) {
-                final RBoxPlot<String> gr_BestStructuralForLengthMultiplier = new RBoxPlot<>("Trace length multiplier", "Structural Score",
+                final RBoxPlot<String> gr_BestStructuralForLengthMultiplier = new RBoxPlot<>("Learner, trace number, trace length", "Structural Score",
                         new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_constsize_mult_structural.pdf"));
                 gr_BestStructuralForLengthMultiplier.setupForTwoLineXLabels();
 
@@ -100,7 +100,7 @@ public class E_MarkovTraceConstSize {
                         if (rowValues.traceLengthMultiplier == traceLenMult) {
                             final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport();
                             gr_StructuralDiffBestMap.computeIfAbsent(traceLenMult, aDouble ->
-                                    new SquareBagPlot("Structural score, HV", "Structural Score",
+                                    new SquareBagPlot("Structural score, HV", "Structural Score, EM",
                                             new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_constant_size_tracelen=" + traceLenMult + "_constsize_HV_structuraldiffBest.pdf"), 0, 1, true));
                         }
                     }
@@ -114,20 +114,31 @@ public class E_MarkovTraceConstSize {
                                 double markov = pair.firstElem, hv_score = pair.secondElem;
                                 StringBuilder sb = new StringBuilder();
                                 Formatter formatter = new Formatter(sb, Locale.US);
-                                formatter.format(numberFormat, traceLenMult);
-                                gr_BestStructuralForLengthMultiplier.add("M\n"+sb, markov);
+                                int traceQuantityToUse = MarkovExperiment.LearningExperimentGroupParameters.datasetSize * learningGroup.getScalingFactor(states)/ traceLenMult;
+
+                                formatter.format(numberFormat+","+numberFormat, traceQuantityToUse,traceLenMult * states);
+
+                                if (traceQuantityToUse == learningGroup.getTracesLengthmultBaseline(states).firstElem &&
+                                        traceLenMult ==  learningGroup.getTracesLengthmultBaseline(states).secondElem
+                                ) {
+                                    gr_BestStructuralForLengthMultiplier.makeLabelBold("EM\n" + sb);
+                                    gr_BestStructuralForLengthMultiplier.makeLabelBold("HV\n" + sb);
+                                }
+
+                                gr_BestStructuralForLengthMultiplier.add("EM\n"+sb, markov);
                                 gr_BestStructuralForLengthMultiplier.add("HV\n"+sb, hv_score);
                             }, null);
                     learnerToHowOftenBestForAllMultipliers.computeIfAbsent(traceLenMult, aDouble -> report);
                 }
 
                 List<String> ordering = new LinkedList<>();
-                for (final int traceLenMultValue : traceLenMultValues) {
-                    int traceLenMult = traceLenMultValue * learningGroup.getScalingFactor(states);
+                for (final int traceLenMultValueV : traceLenMultValues) {
+                    int traceLenMult = traceLenMultValueV * learningGroup.getScalingFactor(states);
+                    int traceQuantityToUse = MarkovExperiment.LearningExperimentGroupParameters.datasetSize * learningGroup.getScalingFactor(states)/ traceLenMult;
                     StringBuilder sb = new StringBuilder();
                     Formatter formatter = new Formatter(sb, Locale.US);
-                    formatter.format(numberFormat, traceLenMult);
-                    ordering.add("M\n"+sb);
+                    formatter.format(numberFormat+","+numberFormat, traceQuantityToUse,traceLenMult * states);
+                    ordering.add("EM\n"+sb);
                     ordering.add("HV\n"+sb);
                 }
 

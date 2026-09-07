@@ -1152,16 +1152,16 @@ public class MarkovExperiment
 	}
 
 
-	public static void checkFullTransitionCoverageAttained(DrawGraphs.CSVExperimentResult resultCSV, Set<RESULT_VALUES>  validityOfCells) {
+	public static void checkFullTransitionCoverageAttained(String experimentName, DrawGraphs.CSVExperimentResult resultCSV, Set<RESULT_VALUES>  validityOfCells) {
 		Map<String,String> experimentToWarning = new TreeMap<>();
 		for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
 				getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
 						(column, columnText, Y) -> {
 							if (obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100) {
-								String warningMessage = "Experiment " + rowEntry.getKey() + " transition coverage is " + obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED, column) + ", it preferrably should be 100";
+								String warningMessage = "["+experimentName+"] Experiment " + rowEntry.getKey() + " transition coverage is " + obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED, column) + ", it preferrably should be 100.";
 								if (experimentToWarning.containsKey(rowEntry.getKey())) {
 									if (!experimentToWarning.get(rowEntry.getKey()).equals(warningMessage))
-										throw new IllegalArgumentException("Experiment " + rowEntry.getKey() + " has different error message values recorded,\n" + experimentToWarning.get(rowEntry.getKey()) + "\nand\n" + warningMessage);
+										throw new IllegalArgumentException("["+experimentName+"] Experiment " + rowEntry.getKey() + " has different error message values recorded,\n" + experimentToWarning.get(rowEntry.getKey()) + "\nand\n" + warningMessage);
 								}
 								else
 									experimentToWarning.put(rowEntry.getKey(), warningMessage);
@@ -1637,13 +1637,13 @@ public class MarkovExperiment
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovCentre");
 //			E_MarkovAlphabet.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovAlphabet");
-//			E_MarkovTraceLenMult.runExperiment(learningGroup);
+			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceLenMult");
-//			E_MarkovTraceConstSize.runExperiment(learningGroup);
+			E_MarkovTraceConstSize.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceConstSize");
-			E_MarkovPrefixLen.runExperiment(learningGroup);
+//			E_MarkovPrefixLen.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovPrefixLen");
-//			E_MarkovTraceNum.runExperiment(learningGroup);
+			E_MarkovTraceNum.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceNum");
 //			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovLearnWithCentre");

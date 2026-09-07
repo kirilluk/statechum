@@ -82,9 +82,9 @@ public class E_MarkovTraceLenMult {
 
         final String numberFormat = "%3d";
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(resultCSV, validityOfCells);
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(description, resultCSV, validityOfCells);
             for (int states : learningGroup.statesToUse) {
-                final RBoxPlot<String> gr_BestStructuralForLengthMultiplier = new RBoxPlot<>("Trace length multiplier", "Structural Score, EM",
+                final RBoxPlot<String> gr_BestStructuralForLengthMultiplier = new RBoxPlot<>("Learner and trace length", "Structural Score, EM",
                         new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_lengthmult_structural.pdf"));
                 gr_BestStructuralForLengthMultiplier.setupForTwoLineXLabels();
 
@@ -113,8 +113,12 @@ public class E_MarkovTraceLenMult {
                                 double markov = pair.firstElem, hv_score = pair.secondElem;
                                 StringBuilder sb = new StringBuilder();
                                 Formatter formatter = new Formatter(sb, Locale.US);
-                                formatter.format(numberFormat, traceLenMult);
-                                gr_BestStructuralForLengthMultiplier.add("M\n"+sb, markov);
+                                formatter.format(numberFormat, traceLenMult * states);
+                                if (traceLenMult == learningGroup.getTracesLengthmultBaseline(states).secondElem) {
+                                    gr_BestStructuralForLengthMultiplier.makeLabelBold("EM\n" + sb);
+                                    gr_BestStructuralForLengthMultiplier.makeLabelBold("HV\n" + sb);
+                                }
+                                gr_BestStructuralForLengthMultiplier.add("EM\n"+sb, markov);
                                 gr_BestStructuralForLengthMultiplier.add("HV\n"+sb, hv_score);
                             }, null);
                     learnerToHowOftenBestForAllMultipliers.computeIfAbsent(traceLenMult, aDouble -> report);
@@ -125,8 +129,8 @@ public class E_MarkovTraceLenMult {
                     int traceLenMult = traceLenMultValue * learningGroup.getScalingFactor(states);
                     StringBuilder sb = new StringBuilder();
                     Formatter formatter = new Formatter(sb, Locale.US);
-                    formatter.format(numberFormat, traceLenMult);
-                    ordering.add("M\n"+sb);
+                    formatter.format(numberFormat, traceLenMult * states);
+                    ordering.add("EM\n"+sb);
                     ordering.add("HV\n"+sb);
                 }
                 gr_BestStructuralForLengthMultiplier.setOrderingOfLabels(ordering);

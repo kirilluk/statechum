@@ -190,6 +190,7 @@ public class E_MarkovCentre {
         MarkovExperiment.PreGeneratePTA tasks = new MarkovExperiment.PreGeneratePTA(learningGroup.phase, learningGroup.experimentRunner);
         boolean aveOrMax = true;// average divide by the divisor
         final int chunkSizeForCentreExperiments = 3;
+        final double weightOfInconsistencies = 0.5;
         int alphabetMultiplier = 2;
         boolean penaliseMissingPaths = true;
         boolean pathsOrSets = true;
@@ -204,7 +205,6 @@ public class E_MarkovCentre {
                         for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{learningGroup.getTracesLengthmultBaseline(states),
                                 new Pair(1, MarkovExperiment.LearningExperimentGroupParameters.datasetSize * learningGroup.getScalingFactor(states))})
 //                            for (double weightOfInconsistencies : new double[]{2.0})// this is a good value for 10 states
-                            for (double weightOfInconsistencies : new double[]{0.5})// good value for 20 states
                                 for (int wlen : wlen_values)
                                     for (int divisor : divisor_values) {
                                         ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);

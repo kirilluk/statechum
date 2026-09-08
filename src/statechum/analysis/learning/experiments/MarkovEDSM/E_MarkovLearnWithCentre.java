@@ -40,6 +40,7 @@ public class E_MarkovLearnWithCentre {
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
         final int chunkSizeToEvaluate = 3;
+        final double weightOfInconsistencies = 0.5;
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample)
@@ -60,7 +61,6 @@ public class E_MarkovLearnWithCentre {
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
                                                 })
-                                for (double weightOfInconsistencies : learnerKind.isMarkov() ? new double[]{0.5, 1.0, 2.0} : new double[]{1.0})
                                 {
                                     for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 4)} : new Pair[]{new Pair(1, 8), new Pair(2, 8)}) {
                                         int wlen = wlen_divisor.firstElem, divisor = wlen_divisor.secondElem;

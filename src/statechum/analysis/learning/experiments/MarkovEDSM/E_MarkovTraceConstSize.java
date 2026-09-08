@@ -41,6 +41,7 @@ public class E_MarkovTraceConstSize {
         List<Integer> traceLenMultValues = getTraceLenMultValues();
         double alphabetMultiplier = 2;
         final int chunkSizeToEvaluate = 3;
+        final double weightOfInconsistencies = 0.5;
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                 for (int sample = 0; sample < learningGroup.fsmSamplesPerStateNumber; ++sample)
@@ -58,7 +59,6 @@ public class E_MarkovTraceConstSize {
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
                                                 })
-                                        for (double weightOfInconsistencies : learnerKind.isMarkov() ? new double[]{0.5, 1.0, 2.0} : new double[]{1.0})
                                             for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} : new Pair[]{new Pair(1, 1), new Pair(1, 2), new Pair(2, 4)}) {
                                                 int wlen = wlen_divisor.firstElem, divisor = wlen_divisor.secondElem;
                                                 ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);

@@ -136,7 +136,8 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                         }
                     }
 
-                    if (bestVsFixed != null && selectorCol.apply(column) && column.parameters.chunkLen == fixedPrefixLengthAndWeight.chunkLen) {// here we deliberately try to avoid depending on the whether learning was successful
+                    if (bestVsFixed != null && selectorCol.apply(column) && (column.parameters.chunkLen == fixedPrefixLengthAndWeight.chunkLen &&
+                            column.parameters.weightOfInconsistencies.weight <= fixedPrefixLengthAndWeight.weight)) {// here we deliberately try to avoid depending on the whether learning was successful
                         bestVsFixed.timeUsedBest += obtainIntValueFromCell(Y, E_RUNTIME, column);
                         if (column.parameters.seedToShuffleSurroundingStates == 0) {
                             bestVsFixed.timeUsedDefaultOrderingBest += obtainIntValueFromCell(Y, E_RUNTIME, column);
@@ -150,7 +151,8 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                             multipleOrderingsOfStates.set(true);
                         bestLearningResult.updateIfValueBetter(currentOutcome);
 
-                        if (bestVsFixed != null && column.parameters.chunkLen == fixedPrefixLengthAndWeight.chunkLen) {
+                        if (bestVsFixed != null && (column.parameters.chunkLen == fixedPrefixLengthAndWeight.chunkLen &&
+                                column.parameters.weightOfInconsistencies.weight <= fixedPrefixLengthAndWeight.weight)) {
                             if (column.parameters.seedToShuffleSurroundingStates == 0)
                                 bestVsFixed.bestLearningResultForDefaultOrdering.updateIfValueBetter(currentOutcome);
                             bestVsFixed.bestLearningResult.updateIfValueBetter(currentOutcome);

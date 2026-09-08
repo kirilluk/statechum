@@ -7,10 +7,7 @@ import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
 import statechum.analysis.learning.observers.ProgressDecorator;
 
 import java.io.File;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
@@ -35,6 +32,9 @@ public class E_MarkovPrefixLen {
         }
     }
 
+    public static double capTo(int value,int cap) {
+        return (value > cap)?cap:value;
+    }
 
     public static void runExperiment(MarkovExperiment.LearningExperimentGroupParameters learningGroup) {
         int[] learnerExperiment = new int[]{0};//0,1,2,3
@@ -378,6 +378,24 @@ public class E_MarkovPrefixLen {
                 final SquareBagPlot gr_StructuralDiffImprovementGoodDensityOverConstChlen = new SquareBagPlot("Structural score, baseline", "Structural Score, best order",
                         new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity,ch=2,3 over ch=3)_bestprefixlen_and_mult_and_order_diff.pdf"), 0.3, 1, true);
 
+                final int runtimeCap = states > 20? 500:300;
+
+                final RBoxPlot<String> gr_StructuralVsRangeOfExperiments = new RBoxPlot<>("Range of experiments", "Structural Score",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity)_experiments_diff.pdf"));
+                gr_StructuralVsRangeOfExperiments.setupForTwoLineXLabels();
+                if (states > 20) {
+                    gr_StructuralVsRangeOfExperiments.setYLine(2.4);
+                    gr_StructuralVsRangeOfExperiments.setMargins(4, 3.4, 0.2, 0.2);
+                }
+                final RBoxPlot<String> gr_RuntimeVsRangeOfExperiments = new RBoxPlot<>("Range of experiments", "Runtime, sec (capped to "+runtimeCap+" sec)",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity)_experiments_runtime.pdf"));
+                gr_RuntimeVsRangeOfExperiments.setupForTwoLineXLabels();
+                gr_RuntimeVsRangeOfExperiments.setYLine(2.4);
+                gr_RuntimeVsRangeOfExperiments.setMargins(4, 3.4, 0.2, 0.2);
+
+                List<String> ordering = new ArrayList<>();
+                boolean orderingFilledIn = false;
+
                 for(Map.Entry<String,FilterCollectionOfResultsForBestPerformingLearner.BestVsFixed> resultEntry:fixedPrefixLengthAndWeight.experimentResults.entrySet()) {
                     gr_StructuralDiffDefaultOrderingImprovementGoodDensity.add(resultEntry.getValue().scoreFixed, resultEntry.getValue().bestLearningResultForDefaultOrdering.structural);
                     gr_RuntimeDefaultOrderingImprovementGoodDensity.add((double)resultEntry.getValue().timeUsedFixed, (double)resultEntry.getValue().timeUsedDefaultOrderingBest);
@@ -391,6 +409,53 @@ public class E_MarkovPrefixLen {
 
                     gr_StructuralDiffDefaultOrderingImprovementGoodDensityOverConstChlen.add(resultEntry.getValue().bestLearningConstChlenResultForDefaultOrdering.structural, resultEntry.getValue().bestLearningResultForDefaultOrdering.structural);
                     gr_StructuralDiffImprovementGoodDensityOverConstChlen.add(resultEntry.getValue().bestLearningConstChlenResult.structural, resultEntry.getValue().bestLearningResult.structural);
+
+                    {
+                        String rangeValue = "Base";
+                        gr_StructuralVsRangeOfExperiments.add(rangeValue, resultEntry.getValue().scoreFixed);
+                        gr_RuntimeVsRangeOfExperiments.add(rangeValue, (double) resultEntry.getValue().timeUsedFixed);
+
+                        if (!orderingFilledIn)
+                            ordering.add(rangeValue);
+                    }
+
+                    {
+                        String rangeValue = "2\n1";
+                        gr_StructuralVsRangeOfExperiments.add(rangeValue, resultEntry.getValue().bestLearningConstChlenResultForDefaultOrdering.structural);
+                        gr_RuntimeVsRangeOfExperiments.add(rangeValue, capTo(resultEntry.getValue().timeUsedConstChlenDefaultOrderingBest,runtimeCap));
+
+                        if (!orderingFilledIn)
+                            ordering.add(rangeValue);
+                    }
+
+                    {
+                        String rangeValue = "2\n4";
+                        gr_StructuralVsRangeOfExperiments.add(rangeValue, resultEntry.getValue().bestLearningConstChlenResult.structural);
+                        gr_RuntimeVsRangeOfExperiments.add(rangeValue, capTo(resultEntry.getValue().timeUsedConstChlenBest,runtimeCap));
+
+                        if (!orderingFilledIn)
+                            ordering.add(rangeValue);
+                    }
+
+                    {
+                        String rangeValue = "1,2\n1";
+                        gr_StructuralVsRangeOfExperiments.add(rangeValue, resultEntry.getValue().bestLearningResultForDefaultOrdering.structural);
+                        gr_RuntimeVsRangeOfExperiments.add(rangeValue, capTo(resultEntry.getValue().timeUsedDefaultOrderingBest,runtimeCap));
+
+                        if (!orderingFilledIn)
+                            ordering.add(rangeValue);
+                    }
+
+                    {
+                        String rangeValue = "1,2\n4";
+                        gr_StructuralVsRangeOfExperiments.add(rangeValue, resultEntry.getValue().bestLearningResult.structural);
+                        gr_RuntimeVsRangeOfExperiments.add(rangeValue, capTo(resultEntry.getValue().timeUsedBest,runtimeCap));
+
+                        if (!orderingFilledIn)
+                            ordering.add(rangeValue);
+                    }
+
+                    orderingFilledIn = true;
                 }
                 gr_StructuralDiffDefaultOrderingImprovementGoodDensity.reportResults(learningGroup.gr);
                 gr_RuntimeDefaultOrderingImprovementGoodDensity.reportResults(learningGroup.gr);
@@ -403,6 +468,9 @@ public class E_MarkovPrefixLen {
                 gr_RuntimeImprovementConstChlenGoodDensity.reportResults(learningGroup.gr);
                 gr_StructuralDiffDefaultOrderingImprovementGoodDensityOverConstChlen.reportResults(learningGroup.gr);
                 gr_StructuralDiffImprovementGoodDensityOverConstChlen.reportResults(learningGroup.gr);
+
+                gr_StructuralVsRangeOfExperiments.setOrderingOfLabels(ordering);gr_StructuralVsRangeOfExperiments.reportResults(learningGroup.gr);
+                gr_RuntimeVsRangeOfExperiments.setOrderingOfLabels(ordering);gr_RuntimeVsRangeOfExperiments.reportResults(learningGroup.gr);
 
                 gr_StructuralDiffBestGoodDensity.reportResults(learningGroup.gr);
                 gr_StructuralDiffDefaultOrderingGoodDensity.reportResults(learningGroup.gr);

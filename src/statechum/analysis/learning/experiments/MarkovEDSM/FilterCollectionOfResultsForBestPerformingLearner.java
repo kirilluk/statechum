@@ -197,24 +197,24 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                     }
                 });
                 if (bestLearningResult.column != null) {// if any result was obtained as opposed to everything either missing or eliminated by filters
-                    if (bestVsFixed != null) {
-                        if (bestVsFixed.bestLearningResultForDefaultOrdering.structural < bestVsFixed.scoreFixed &&
-                                bestVsFixed.bestLearningResultForDefaultOrdering.inconsistency < bestVsFixed.inconsistencyFixed)
-                            System.out.println("[A]Row: "+rowEntry.getKey()+", inconsistency "+
-                                            bestVsFixed.bestLearningResultForDefaultOrdering.inconsistency+" < "+ bestVsFixed.inconsistencyFixed +
-                                            " , diff score: " + bestVsFixed.bestLearningResultForDefaultOrdering.structural+" < "+ bestVsFixed.scoreFixed +
-                                    " chunk len : " + bestVsFixed.bestLearningResultForDefaultOrdering.column.parameters.chunkLen + " chunkLen fixed: "+fixedPrefixLengthAndWeight.chunkLen +
-                                    " weight chosen: "+bestVsFixed.bestLearningResultForDefaultOrdering.column.parameters.weightOfInconsistencies.weight + " weight fixed: "+fixedPrefixLengthAndWeight.weight
-                                    );
-                        if (bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.structural < bestVsFixed.scoreFixed &&
-                                bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.inconsistency < bestVsFixed.inconsistencyFixed)
-                            System.out.println("[B]Row: "+rowEntry.getKey()+", inconsistency "+
-                                            bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.inconsistency+" < "+ bestVsFixed.inconsistencyFixed +
-                                            " , diff score: " + bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.structural+" < "+ bestVsFixed.scoreFixed +
-                                    " chunk len : " + bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.column.parameters.chunkLen + " chunkLen fixed: "+fixedPrefixLengthAndWeight.chunkLen +
-                                    " weight chosen: "+bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.column.parameters.weightOfInconsistencies.weight + " weight fixed: "+fixedPrefixLengthAndWeight.weight
-                                    );
-                    }
+//                    if (bestVsFixed != null) {
+//                        if (bestVsFixed.bestLearningResultForDefaultOrdering.structural < bestVsFixed.scoreFixed &&
+//                                bestVsFixed.bestLearningResultForDefaultOrdering.inconsistency < bestVsFixed.inconsistencyFixed)
+//                            System.out.println("[A]Row: "+rowEntry.getKey()+", inconsistency "+
+//                                            bestVsFixed.bestLearningResultForDefaultOrdering.inconsistency+" < "+ bestVsFixed.inconsistencyFixed +
+//                                            " , diff score: " + bestVsFixed.bestLearningResultForDefaultOrdering.structural+" < "+ bestVsFixed.scoreFixed +
+//                                    " chunk len : " + bestVsFixed.bestLearningResultForDefaultOrdering.column.parameters.chunkLen + " chunkLen fixed: "+fixedPrefixLengthAndWeight.chunkLen +
+//                                    " weight chosen: "+bestVsFixed.bestLearningResultForDefaultOrdering.column.parameters.weightOfInconsistencies.weight + " weight fixed: "+fixedPrefixLengthAndWeight.weight
+//                                    );
+//                        if (bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.structural < bestVsFixed.scoreFixed &&
+//                                bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.inconsistency < bestVsFixed.inconsistencyFixed)
+//                            System.out.println("[B]Row: "+rowEntry.getKey()+", inconsistency "+
+//                                            bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.inconsistency+" < "+ bestVsFixed.inconsistencyFixed +
+//                                            " , diff score: " + bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.structural+" < "+ bestVsFixed.scoreFixed +
+//                                    " chunk len : " + bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.column.parameters.chunkLen + " chunkLen fixed: "+fixedPrefixLengthAndWeight.chunkLen +
+//                                    " weight chosen: "+bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.column.parameters.weightOfInconsistencies.weight + " weight fixed: "+fixedPrefixLengthAndWeight.weight
+//                                    );
+//                    }
 
                     experimentResults.add(bestLearningResult);
                     learnerToHowOftenBest.computeIfAbsent(bestLearningResult.columnText, s -> new AtomicInteger(0));

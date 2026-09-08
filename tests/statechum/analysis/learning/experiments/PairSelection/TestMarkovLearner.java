@@ -3342,7 +3342,7 @@ public class TestMarkovLearner
 		Assert.assertEquals(27,MarkovExperiment.RESULT_VALUES.getOffset(E_DENSITY_LEARNT,column));
 	}
 
-	// results.csv|prefixlen|tQ=16_tMM=16.0_aMM=2.0_S=20_m=2.0_d=30_sa=24_tS=1_tM=32.0|MARKOV-0_cl=2_wW=1.0_wO=0.0_m=true_sh=0|["MARKOV","0","2","0.0","1.0","true","0"]|["Success","BCR","Diff","Invalid R","Missed R","Invalid Far","Missed Far","Valid mergers","States","I_Ref","I_Lnt","dI_Ave","dI_SD","alwaysPos","fracS","marTPre","marTRec","marHPre","marHRec","accRef","relIncLrnt","accLrnt","Comparisons","alphabet","densityRef","densityLrnt","%transitions","Time"]
+	// results.csv|prefixlen|tQ=16_tMM=16.0_aMM=2.0_S=20_m=2.0_d=30_sa=24_tS=1_tM=32.0|MARKOV-0_cl=2_wW=1.0_wO=0.0_m=true_sh=0|["MARKOV","0","2","0.0","1.0","true","0"]|["Success","BCR","Diff","Invalid R","Missed R","Invalid Far","Missed Far","Valid mergers","States","I_Ref","I_Lnt","dI_Ave","dI_SD","alwaysPos","fracS","marTPre","marTRec","marHPre","marHRec","accRef","I_LntC","accLrnt","Comparisons","alphabet","densityRef","densityLrnt","%transitions","Time"]
 	// L_OK,0.5447368421052632,0.1343091697645601,113,1,109,56,793,42.0,1,2567,2.529064039408867,2.9402745441393274,true,20,19,100,100,19,551.0,0.39145717531912294,1285.0,549782,38,0.3,0.27991675338189387,100,143
 	@Test
 	public void testParseCSVRow1() {

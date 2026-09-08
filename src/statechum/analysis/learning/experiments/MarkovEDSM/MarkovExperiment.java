@@ -58,6 +58,7 @@ import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperimen
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersColumnFromCSV;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms.constructLearner;
+import static statechum.analysis.learning.experiments.PairSelection.PairQualityLearner.ScoresForGraph.constChunkLen;
 import static statechum.analysis.learning.experiments.SGE_ExperimentRunner.PhaseEnum.COUNT_TASKS_PARALLELPTA;
 import static statechum.analysis.learning.experiments.SGE_ExperimentRunner.RunSubExperiment.sanitiseFileName;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
@@ -504,11 +505,21 @@ public class MarkovExperiment
 					dataSample.actualLearner.inconsistencySD = Math.sqrt(square_diff/redReducer.getInconsistencyValues().size());
 
                 }
-                {
+                {// Evaluate inconsistency of reference.
                     final MarkovModel markovModelFromReference = new MarkovModel(par.markovParameters.chunkLen, true, true, true, false);
                     dataSample.predictionAccuracyForReferenceGraph = markovModelFromReference.computeSelfInconsistencyFromAutomaton(referenceGraph);
                 }
-                dataSample.actualLearner.relativeInconsistency = -1;//MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(actualAutomaton,learnerInitConfiguration.getLabelConverter(),markovModel,checker,20);
+
+				{// Now compute inconsistency of learnt graph using fixed chunklen
+					final MarkovModel markovModelFixedChunkLen = new MarkovModel(constChunkLen,true,true,true,false);
+					markovModelFixedChunkLen.createMarkovFromPositiveDataAndGenerateInversePredictions(new ArrayList<>(),true);// use the new 'positive' version of fanout inconsistency computation.
+					new MarkovClassifierLG(markovModelFixedChunkLen, pta,null).updateMarkov(false);
+					final ConsistencyChecker checkerFixed = par.markovParameters.penaliseMissingPaths?
+							new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklistingIncludeMissingPrefixes() :
+							new MarkovClassifier.DifferentPredictionsInconsistencyNoBlacklisting();
+					dataSample.actualLearner.inconsistencyUsingConstChunklen = MarkovClassifier.computeInconsistency(learntGraph, null, markovModelFixedChunkLen, checkerFixed,false);
+				}
+                //MarkovClassifier.evaluateSignificanceOfObtainedInconsistency(actualAutomaton,learnerInitConfiguration.getLabelConverter(),markovModel,checker,20);
                 dataSample.actualLearner.predictionAccuracy = -1;
                 if (dataSample.actualLearner.whetherLearningSuccessfulOrAborted == AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK)
                 {
@@ -829,7 +840,7 @@ public class MarkovExperiment
 		E_MARKOV_HOLE_PRECISION(SECTION_MARKOV, 6),
 		E_MARKOV_HOLE_RECALL(SECTION_MARKOV, 7),
 		E_MARKOV_PREDICTIONACCURACY_REFERENCE(SECTION_MARKOV, 8),
-		E_RELATIVEINCONSISTENCY_LEARNT(SECTION_MARKOV, 9),
+		E_INCONSISTENCY_CONSTCHUNKLEN(SECTION_MARKOV, 9),
 		E_MARKOV_PREDICTIONACCURACY_LEARNT(SECTION_MARKOV, 10),
 		E_MARKOV_COMPARISONSPERFORMED(SECTION_MARKOV, 11),
 		E_SECTION_MARKOV_END(SECTION_MARKOV, 12),
@@ -1054,14 +1065,14 @@ public class MarkovExperiment
 		}
 	}
 
-    public static Set<RESULT_VALUES> obtainValidityOfCellValues(DrawGraphs.CSVExperimentResult resultCSV) {
+    public static Set<RESULT_VALUES> obtainValidityOfCellValues(String experimentName, DrawGraphs.CSVExperimentResult resultCSV) {
         Set<RESULT_VALUES> invalidCellValues = new TreeSet<>();
         for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
             getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), null, (column, columnText, Y) -> {
                 boolean learntOK = obtainStringValueFromCell(Y, E_SUCCESS,column).equals(LEARNING_OK.name);
 
-                if (obtainDoubleValueFromCell(Y, E_RELATIVEINCONSISTENCY_LEARNT,column) < 0.0)
-                    invalidCellValues.add(E_RELATIVEINCONSISTENCY_LEARNT);// negative value of relative inconsistency means we chose not to compute it.
+                if (obtainDoubleValueFromCell(Y, E_INCONSISTENCY_CONSTCHUNKLEN,column) < 0.0 || !experimentName.equals("prefixlen"))
+                    invalidCellValues.add(E_INCONSISTENCY_CONSTCHUNKLEN);// negative value of inconsistency for const chunklen means we chose not to compute it.
                 if (learntOK && (obtainDoubleValueFromCell(Y, E_DIFF, column) < 1.0 || obtainDoubleValueFromCell(Y, E_BCR, column) < 1.0)) {
                     // This is the case where we did not learn an exact automaton.
                     // If in this case values of mistakes near or far from root are all zeroes, it means
@@ -1429,7 +1440,7 @@ public class MarkovExperiment
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovHolePrecision);// 17
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.markovHoleRecall);// 18
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.predictionAccuracyForReferenceGraph);// 19
-					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.relativeInconsistency);// 20
+					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.inconsistencyUsingConstChunklen);// 20
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(data.predictionAccuracy);// 21
 					DrawGraphs.CSVExperimentResult.addSeparator(csvLine);csvLine.append(sm.comparisonsPerformed);// 22
 				}

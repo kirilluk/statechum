@@ -101,7 +101,7 @@ public class E_MarkovPrefixLen {
         learningGroup.experimentRunner.collectOutcomeOfExperiments(constructResultsCollector(resultCSV));
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
-            Set<RESULT_VALUES>  validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(description, resultCSV, validityOfCells);
+            Set<RESULT_VALUES>  validityOfCells = obtainValidityOfCellValues(description,resultCSV);checkFullTransitionCoverageAttained(description, resultCSV, validityOfCells);
             for (final int preset : learnerExperiment) {
                 String presetStr = "-" + preset;
                 String experimentName = learningGroup.outPathPrefix + File.separator + File.separator + description+"_";
@@ -325,7 +325,7 @@ public class E_MarkovPrefixLen {
         }
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(description,resultCSV);
 
             for (int states : learningGroup.statesToUse) {
                 FilterCollectionOfResultsForBestPerformingLearner.FixedPrefixLengthAndWeight fixedPrefixLengthAndWeight =

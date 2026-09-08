@@ -84,7 +84,7 @@ public class E_MarkovBaselineLearn {
         learningGroup.experimentRunner.collectOutcomeOfExperiments(constructResultsCollector(resultCSV));
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
-            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(description, resultCSV, validityOfCells);
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(description,resultCSV);checkFullTransitionCoverageAttained(description, resultCSV, validityOfCells);
             for (int states : learningGroup.statesToUse) {
                 String experimentNameForAllDensities = learningGroup.outPathPrefix + File.separator + description + "_" + states+"_";
                 final DrawGraphs.RBagPlot gr_StructuralVsInconsistency = new DrawGraphs.RBagPlot("Inconsistency Learnt", "Structural Score", new File(experimentNameForAllDensities + "inconsistency_structural.pdf"));
@@ -219,7 +219,7 @@ public class E_MarkovBaselineLearn {
         }
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(description,resultCSV);
             for (int states : learningGroup.statesToUse) {
                 final RBoxPlot<String> gr_PerformanceOfLearnersAllDensities = new RBoxPlot<>("", "Structural Score",
                         new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_baseline_learner_structural.pdf"));

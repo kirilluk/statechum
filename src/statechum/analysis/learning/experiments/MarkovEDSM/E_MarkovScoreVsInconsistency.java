@@ -136,7 +136,7 @@ public class E_MarkovScoreVsInconsistency {
         });
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {// by the time we are here, experiments for the current number of states have completed, hence record the outcomes.
-            Set<MarkovExperiment.RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(resultCSV);checkFullTransitionCoverageAttained(description, resultCSV, validityOfCells);
+            Set<MarkovExperiment.RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(description,resultCSV);checkFullTransitionCoverageAttained(description, resultCSV, validityOfCells);
 
             Map<Integer,double []> chunkLenToWeights = new TreeMap<>();
             chunkLenToWeights.put(2,new double[]{1.0,2.0,3.0});

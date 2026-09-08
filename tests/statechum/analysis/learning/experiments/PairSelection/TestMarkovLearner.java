@@ -3293,7 +3293,7 @@ public class TestMarkovLearner
 		Assert.assertEquals(11,MarkovExperiment.RESULT_VALUES.getOffset(E_INCONSISTENCY_AVERAGE,column));
 
 		Assert.assertEquals(19,MarkovExperiment.RESULT_VALUES.getOffset(E_MARKOV_PREDICTIONACCURACY_REFERENCE,column));
-		Assert.assertEquals(20,MarkovExperiment.RESULT_VALUES.getOffset(E_RELATIVEINCONSISTENCY_LEARNT,column));
+		Assert.assertEquals(20,MarkovExperiment.RESULT_VALUES.getOffset(E_INCONSISTENCY_CONSTCHUNKLEN,column));
 		Assert.assertEquals(21,MarkovExperiment.RESULT_VALUES.getOffset(E_MARKOV_PREDICTIONACCURACY_LEARNT,column));
 		Assert.assertEquals(23,MarkovExperiment.RESULT_VALUES.getOffset(E_ALPHABET_SIZE,column));
 		Assert.assertEquals(24,MarkovExperiment.RESULT_VALUES.getOffset(E_DENSITY_REFERENCE,column));
@@ -3332,7 +3332,7 @@ public class TestMarkovLearner
 		Assert.assertEquals(2,MarkovExperiment.RESULT_VALUES.getOffset(E_DIFF,column));
 		Assert.assertEquals(10,MarkovExperiment.RESULT_VALUES.getOffset(E_INCONSISTENCY_LEARNT,column));
 		Assert.assertEquals(19,MarkovExperiment.RESULT_VALUES.getOffset(E_MARKOV_PREDICTIONACCURACY_REFERENCE,column));
-		Assert.assertEquals(20,MarkovExperiment.RESULT_VALUES.getOffset(E_RELATIVEINCONSISTENCY_LEARNT,column));
+		Assert.assertEquals(20,MarkovExperiment.RESULT_VALUES.getOffset(E_INCONSISTENCY_CONSTCHUNKLEN,column));
 		Assert.assertEquals(21,MarkovExperiment.RESULT_VALUES.getOffset(E_MARKOV_PREDICTIONACCURACY_LEARNT,column));
 
 		Assert.assertEquals(23,MarkovExperiment.RESULT_VALUES.getOffset(E_CENTRE_CORRECT,column));
@@ -3393,7 +3393,7 @@ public class TestMarkovLearner
         DrawGraphs.CSVExperimentResult resultCSV = new DrawGraphs.CSVExperimentResult(null,"resultfile.csv");
         Map<String,String> columnToValue = new TreeMap<>();columnToValue.put("MARKOV-0_cl=3_wW=0.5_wO=0.0_m=true_sh=0","L_OK,1.0,0.8422131147540983,0,0,0,0,0,2.0,38,107,1.8771929824561404,3.184778355440782,true,61,60,100,100,92,54.0,-1.0,50.0,11580,33,0.1882716049382716,0.19,100,2");
         resultCSV.rowColumnText.put("tQ=16_tMM=16.0_aMM=2.0_S=20_m=2.0_d=0_sa=5_tS=0_tM=32.0",columnToValue);
-        Set<MarkovExperiment.RESULT_VALUES> invalidCellValues = MarkovExperiment.obtainValidityOfCellValues(resultCSV);
+        Set<MarkovExperiment.RESULT_VALUES> invalidCellValues = MarkovExperiment.obtainValidityOfCellValues("some_description",resultCSV);
         ColumnParseOutcome outcome = parseMarkovParametersColumnFromCSV("MARKOV-0_cl=3_wW=0.5_wO=0.0_m=true_sh=0",invalidCellValues);
         Assert.assertEquals(LearningAlgorithms.ScoringToApply.SCORING_MARKOV,outcome.learner);
         Assert.assertEquals(0,outcome.parameters.preset);
@@ -3403,7 +3403,7 @@ public class TestMarkovLearner
                 boolean learntOK = obtainStringValueFromCell(Y, E_SUCCESS,column).equals(LEARNING_OK.name);
                 Assert.assertTrue(learntOK);
                 TestHelper.checkForCorrectException(() ->
-                                obtainDoubleValueFromCell(Y,E_RELATIVEINCONSISTENCY_LEARNT,column),
+                                obtainDoubleValueFromCell(Y,E_INCONSISTENCY_CONSTCHUNKLEN,column),
                         IllegalArgumentException.class, "was not computed by this experiment");
             });
         }
@@ -3422,7 +3422,7 @@ public class TestMarkovLearner
             columnToValue.put("MARKOV-0_cl=3_wW=0.5_wO=0.0_m=true_sh=0", "L_OK,1.0,1.0,0,0,0,0,0,2.0,38,107,1.8771929824561404,3.184778355440782,true,61,60,100,100,92,54.0,-1.0,50.0,11580,33,0.1882716049382716,0.19,100,2");
             resultCSV.rowColumnText.put("tQ=16_tMM=16.0_aMM=2.0_S=20_m=2.0_d=0_sa=34_tS=0_tM=32.0", columnToValue);
         }
-        Set<MarkovExperiment.RESULT_VALUES> invalidCellValues = MarkovExperiment.obtainValidityOfCellValues(resultCSV);
+        Set<MarkovExperiment.RESULT_VALUES> invalidCellValues = MarkovExperiment.obtainValidityOfCellValues("some description", resultCSV);
         ColumnParseOutcome outcome = parseMarkovParametersColumnFromCSV("MARKOV-0_cl=3_wW=0.5_wO=0.0_m=true_sh=0",invalidCellValues);
         Assert.assertEquals(LearningAlgorithms.ScoringToApply.SCORING_MARKOV,outcome.learner);
         Assert.assertEquals(0,outcome.parameters.preset);
@@ -3443,7 +3443,7 @@ public class TestMarkovLearner
         DrawGraphs.CSVExperimentResult resultCSV = new DrawGraphs.CSVExperimentResult(null,"resultfile.csv");
         Map<String,String> columnToValue = new TreeMap<>();columnToValue.put("MARKOV-0_cl=3_wW=0.5_wO=0.0_m=true_sh=0","L_OK,1.0,0.8422131147540983,1,0,2,78,0,2.0,38,107,1.8771929824561404,3.184778355440782,true,61,60,100,100,92,54.0,-1.0,50.0,11580,33,0.1882716049382716,0.19,100,2");
         resultCSV.rowColumnText.put("tQ=16_tMM=16.0_aMM=2.0_S=20_m=2.0_d=0_sa=5_tS=0_tM=32.0",columnToValue);
-        Set<MarkovExperiment.RESULT_VALUES> invalidCellValues = MarkovExperiment.obtainValidityOfCellValues(resultCSV);
+        Set<MarkovExperiment.RESULT_VALUES> invalidCellValues = MarkovExperiment.obtainValidityOfCellValues("some description",resultCSV);
         ColumnParseOutcome outcome = parseMarkovParametersColumnFromCSV("MARKOV-0_cl=3_wW=0.5_wO=0.0_m=true_sh=0",invalidCellValues);
         Assert.assertEquals(LearningAlgorithms.ScoringToApply.SCORING_MARKOV,outcome.learner);
         Assert.assertEquals(0,outcome.parameters.preset);

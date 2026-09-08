@@ -1698,12 +1698,11 @@ public class PairQualityLearner
 		public long ptaTotalNodes = 0;
 		/** How many tail nodes there was in the original PTA. */
 		public long ptaTailNodes = 0;
-		/** Compares inconsistency of the obtained solution to inconsistencies of random graphs using similar characteristics
-		 * (density, number of states and alphabet size) with the intention to check whether the obtained value of inconsistency (with
-		 * Markov model obtained from PTA) is indicative of a good-quality model or not: if random automata have broadly similar
-		 * inconsistencies, the outcome is decidedly poor.
+		/** This is an attempt to choose best results across multiple values of inconsistencies. Since absolute values are very much
+		 * chunklen-dependent, we use a fixed chunklen to evaluate them.
 		 */
-		public double relativeInconsistency;
+		public double inconsistencyUsingConstChunklen;
+		public static final int constChunkLen = 3;
 
         /** How effective our heuristic is for predicting transitions. */
         public double predictionAccuracy;

@@ -356,26 +356,53 @@ public class E_MarkovPrefixLen {
                 }
 
                 final SquareBagPlot gr_StructuralDiffDefaultOrderingImprovementGoodDensity = new SquareBagPlot("Structural score, baseline", "Structural Score, best for default order",
-                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity)_bestprefixlen_and_mult_defaultorder_diff.pdf"), 0, 1, true);
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity,ch=2,3)_bestprefixlen_and_mult_defaultorder_diff.pdf"), 0.3, 1, true);
                 final RBagPlot gr_RuntimeDefaultOrderingImprovementGoodDensity = new RBagPlot("RunTime, baseline", "RunTime, best for default order",
-                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity)_bestprefixlen_and_mult_defaultorder_runtime.pdf"));
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity,ch=2,3)_bestprefixlen_and_mult_defaultorder_runtime.pdf"));
                 final SquareBagPlot gr_StructuralDiffImprovementGoodDensity = new SquareBagPlot("Structural score, baseline", "Structural Score, best order",
-                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity)_bestprefixlen_and_mult_and_order_diff.pdf"), 0, 1, true);
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity,ch=2,3)_bestprefixlen_and_mult_and_order_diff.pdf"), 0.3, 1, true);
                 final RBagPlot gr_RuntimeImprovementGoodDensity = new RBagPlot("RunTime, baseline", "RunTime, best order",
-                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity)_bestprefixlen_and_mult_and_order_runtime.pdf"));
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity,ch=2,3)_bestprefixlen_and_mult_and_order_runtime.pdf"));
+
+                final SquareBagPlot gr_StructuralDiffConstChlenDefaultOrderingImprovementGoodDensity = new SquareBagPlot("Structural score, baseline", "Structural Score, best for default order",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity,ch=3)_bestprefixlen_and_mult_defaultorder_diff.pdf"), 0.3, 1, true);
+                final RBagPlot gr_RuntimeDefaultOrderingConstChlenImprovementGoodDensity = new RBagPlot("RunTime, baseline", "RunTime, best for default order",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity,ch=3)_bestprefixlen_and_mult_defaultorder_runtime.pdf"));
+                final SquareBagPlot gr_StructuralDiffConstChlenImprovementGoodDensity = new SquareBagPlot("Structural score, baseline", "Structural Score, best order",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity,ch=3)_bestprefixlen_and_mult_and_order_diff.pdf"), 0.3, 1, true);
+                final RBagPlot gr_RuntimeImprovementConstChlenGoodDensity = new RBagPlot("RunTime, baseline", "RunTime, best order",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity,ch=3)_bestprefixlen_and_mult_and_order_runtime.pdf"));
+
+                final SquareBagPlot gr_StructuralDiffDefaultOrderingImprovementGoodDensityOverConstChlen = new SquareBagPlot("Structural score, baseline", "Structural Score, best for default order",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity,ch=2,3 over ch=3)_bestprefixlen_and_mult_defaultorder_diff.pdf"), 0.3, 1, true);
+                final SquareBagPlot gr_StructuralDiffImprovementGoodDensityOverConstChlen = new SquareBagPlot("Structural score, baseline", "Structural Score, best order",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_(gooddensity,ch=2,3 over ch=3)_bestprefixlen_and_mult_and_order_diff.pdf"), 0.3, 1, true);
 
                 for(Map.Entry<String,FilterCollectionOfResultsForBestPerformingLearner.BestVsFixed> resultEntry:fixedPrefixLengthAndWeight.experimentResults.entrySet()) {
                     gr_StructuralDiffDefaultOrderingImprovementGoodDensity.add(resultEntry.getValue().scoreFixed, resultEntry.getValue().bestLearningResultForDefaultOrdering.structural);
-                    if (resultEntry.getValue().scoreFixed > resultEntry.getValue().bestLearningResultForDefaultOrdering.structural)
-                        System.out.println("[RR] "+resultEntry.getKey()+ " "+resultEntry.getValue().scoreFixed +" vs "+resultEntry.getValue().bestLearningResultForDefaultOrdering.structural);
                     gr_RuntimeDefaultOrderingImprovementGoodDensity.add((double)resultEntry.getValue().timeUsedFixed, (double)resultEntry.getValue().timeUsedDefaultOrderingBest);
                     gr_StructuralDiffImprovementGoodDensity.add(resultEntry.getValue().scoreFixed, resultEntry.getValue().bestLearningResult.structural);
                     gr_RuntimeImprovementGoodDensity.add((double)resultEntry.getValue().timeUsedFixed, (double)resultEntry.getValue().timeUsedBest);
+
+                    gr_StructuralDiffConstChlenDefaultOrderingImprovementGoodDensity.add(resultEntry.getValue().scoreFixed, resultEntry.getValue().bestLearningConstChlenResultForDefaultOrdering.structural);
+                    gr_RuntimeDefaultOrderingConstChlenImprovementGoodDensity.add((double)resultEntry.getValue().timeUsedFixed, (double)resultEntry.getValue().timeUsedConstChlenDefaultOrderingBest);
+                    gr_StructuralDiffConstChlenImprovementGoodDensity.add(resultEntry.getValue().scoreFixed, resultEntry.getValue().bestLearningConstChlenResult.structural);
+                    gr_RuntimeImprovementConstChlenGoodDensity.add((double)resultEntry.getValue().timeUsedFixed, (double)resultEntry.getValue().timeUsedConstChlenBest);
+
+                    gr_StructuralDiffDefaultOrderingImprovementGoodDensityOverConstChlen.add(resultEntry.getValue().bestLearningConstChlenResultForDefaultOrdering.structural, resultEntry.getValue().bestLearningResultForDefaultOrdering.structural);
+                    gr_StructuralDiffImprovementGoodDensityOverConstChlen.add(resultEntry.getValue().bestLearningConstChlenResult.structural, resultEntry.getValue().bestLearningResult.structural);
                 }
                 gr_StructuralDiffDefaultOrderingImprovementGoodDensity.reportResults(learningGroup.gr);
                 gr_RuntimeDefaultOrderingImprovementGoodDensity.reportResults(learningGroup.gr);
                 gr_StructuralDiffImprovementGoodDensity.reportResults(learningGroup.gr);
                 gr_RuntimeImprovementGoodDensity.reportResults(learningGroup.gr);
+
+                gr_StructuralDiffConstChlenDefaultOrderingImprovementGoodDensity.reportResults(learningGroup.gr);
+                gr_RuntimeDefaultOrderingConstChlenImprovementGoodDensity.reportResults(learningGroup.gr);
+                gr_StructuralDiffConstChlenImprovementGoodDensity.reportResults(learningGroup.gr);
+                gr_RuntimeImprovementConstChlenGoodDensity.reportResults(learningGroup.gr);
+                gr_StructuralDiffDefaultOrderingImprovementGoodDensityOverConstChlen.reportResults(learningGroup.gr);
+                gr_StructuralDiffImprovementGoodDensityOverConstChlen.reportResults(learningGroup.gr);
 
                 gr_StructuralDiffBestGoodDensity.reportResults(learningGroup.gr);
                 gr_StructuralDiffDefaultOrderingGoodDensity.reportResults(learningGroup.gr);

@@ -70,10 +70,13 @@ class FilterCollectionOfResultsForBestPerformingLearner {
 
     public static class BestVsFixed {
         double scoreFixed = 0;
-        int timeUsedFixed = 0, timeUsedDefaultOrderingBest = 0, timeUsedBest = 0;
+        int timeUsedFixed = 0;
+        int timeUsedDefaultOrderingBest = 0, timeUsedBest = 0;
+        int timeUsedConstChlenDefaultOrderingBest = 0, timeUsedConstChlenBest = 0;
         int inconsistencyFixed = 0;
 
         MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport(),bestLearningResultForDefaultOrdering = new MarkovExperiment.LearningReport();
+        MarkovExperiment.LearningReport bestLearningConstChlenResult = new MarkovExperiment.LearningReport(),bestLearningConstChlenResultForDefaultOrdering = new MarkovExperiment.LearningReport();
     }
 
     public static class FixedPrefixLengthAndWeight {
@@ -136,13 +139,52 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                         }
                     }
 
-                    if (bestVsFixed != null && selectorCol.apply(column) && (column.parameters.chunkLen == fixedPrefixLengthAndWeight.chunkLen &&
-                            column.parameters.weightOfInconsistencies.weight <= fixedPrefixLengthAndWeight.weight)) {// here we deliberately try to avoid depending on the whether learning was successful
+                    // Update best value, fixed and lower chunkLen
+                    if (bestVsFixed != null && selectorCol.apply(column) && (column.parameters.chunkLen < fixedPrefixLengthAndWeight.chunkLen ||
+                            (column.parameters.chunkLen == fixedPrefixLengthAndWeight.chunkLen && column.parameters.weightOfInconsistencies.weight <= fixedPrefixLengthAndWeight.weight))) {// here we deliberately try to avoid depending on whether learning was successful
+
+                        // Update runtime
                         bestVsFixed.timeUsedBest += obtainIntValueFromCell(Y, E_RUNTIME, column);
-                        if (column.parameters.seedToShuffleSurroundingStates == 0) {
+                        if (column.parameters.seedToShuffleSurroundingStates == 0)
                             bestVsFixed.timeUsedDefaultOrderingBest += obtainIntValueFromCell(Y, E_RUNTIME, column);
+
+                        if (learntOK) {
+                            // Successfully learnt, update values
+
+                            // Here we use inconsistency computed with a reference to a specific value of chunklen, permitting comparison
+                            // of results learnt across different values of chunkLen
+                            long evaluationValueOfInconsistency = inconsistency;
+                            if (column.parameters.chunkLen < fixedPrefixLengthAndWeight.chunkLen)
+                                evaluationValueOfInconsistency = (long)obtainDoubleValueFromCell(Y, E_INCONSISTENCY_CONSTCHUNKLEN, column);
+                            MarkovExperiment.LearningReport learningOutcome = new MarkovExperiment.LearningReport(bcr, structural,
+                                    evaluationValueOfInconsistency, alwaysPositive, columnText, Y, column);
+                            if (column.parameters.seedToShuffleSurroundingStates == 0)
+                                bestVsFixed.bestLearningResultForDefaultOrdering.updateIfValueBetter(learningOutcome);
+                            bestVsFixed.bestLearningResult.updateIfValueBetter(learningOutcome);
                         }
+
                     }
+
+                    // Update best value, fixed chunkLen
+                    if (bestVsFixed != null && selectorCol.apply(column) && column.parameters.chunkLen == fixedPrefixLengthAndWeight.chunkLen
+                            && column.parameters.weightOfInconsistencies.weight <= fixedPrefixLengthAndWeight.weight) {// here we deliberately try to avoid depending on whether learning was successful
+
+                        // Update runtime
+                        bestVsFixed.timeUsedConstChlenBest += obtainIntValueFromCell(Y, E_RUNTIME, column);
+                        if (column.parameters.seedToShuffleSurroundingStates == 0)
+                            bestVsFixed.timeUsedConstChlenDefaultOrderingBest += obtainIntValueFromCell(Y, E_RUNTIME, column);
+
+                        if (learntOK) {
+                            // Successfully learnt, update values
+                            MarkovExperiment.LearningReport learningOutcome = new MarkovExperiment.LearningReport(bcr, structural,
+                                    inconsistency, alwaysPositive, columnText, Y, column);
+                            if (column.parameters.seedToShuffleSurroundingStates == 0)
+                                bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.updateIfValueBetter(learningOutcome);
+                            bestVsFixed.bestLearningConstChlenResult.updateIfValueBetter(learningOutcome);
+                        }
+
+                    }
+
                     if (learntOK && selectorCol.apply(column)) {
                         MarkovExperiment.LearningReport currentOutcome = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText, Y, column);
                         if (column.parameters.seedToShuffleSurroundingStates == 0)
@@ -151,13 +193,6 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                             multipleOrderingsOfStates.set(true);
                         bestLearningResult.updateIfValueBetter(currentOutcome);
 
-                        if (bestVsFixed != null && (column.parameters.chunkLen == fixedPrefixLengthAndWeight.chunkLen &&
-                                column.parameters.weightOfInconsistencies.weight <= fixedPrefixLengthAndWeight.weight)) {
-                            if (column.parameters.seedToShuffleSurroundingStates == 0)
-                                bestVsFixed.bestLearningResultForDefaultOrdering.updateIfValueBetter(currentOutcome);
-                            bestVsFixed.bestLearningResult.updateIfValueBetter(currentOutcome);
-                        }
-
                         resultForChunkLen.computeIfAbsent(column.parameters.chunkLen, k->new MarkovExperiment.LearningReport()).updateIfValueBetter(currentOutcome);
                     }
                 });
@@ -165,10 +200,19 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                     if (bestVsFixed != null) {
                         if (bestVsFixed.bestLearningResultForDefaultOrdering.structural < bestVsFixed.scoreFixed &&
                                 bestVsFixed.bestLearningResultForDefaultOrdering.inconsistency < bestVsFixed.inconsistencyFixed)
-                            System.out.println("Row: "+rowEntry.getKey()+", inconsistency "+
+                            System.out.println("[A]Row: "+rowEntry.getKey()+", inconsistency "+
                                             bestVsFixed.bestLearningResultForDefaultOrdering.inconsistency+" < "+ bestVsFixed.inconsistencyFixed +
                                             " , diff score: " + bestVsFixed.bestLearningResultForDefaultOrdering.structural+" < "+ bestVsFixed.scoreFixed +
+                                    " chunk len : " + bestVsFixed.bestLearningResultForDefaultOrdering.column.parameters.chunkLen + " chunkLen fixed: "+fixedPrefixLengthAndWeight.chunkLen +
                                     " weight chosen: "+bestVsFixed.bestLearningResultForDefaultOrdering.column.parameters.weightOfInconsistencies.weight + " weight fixed: "+fixedPrefixLengthAndWeight.weight
+                                    );
+                        if (bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.structural < bestVsFixed.scoreFixed &&
+                                bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.inconsistency < bestVsFixed.inconsistencyFixed)
+                            System.out.println("[B]Row: "+rowEntry.getKey()+", inconsistency "+
+                                            bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.inconsistency+" < "+ bestVsFixed.inconsistencyFixed +
+                                            " , diff score: " + bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.structural+" < "+ bestVsFixed.scoreFixed +
+                                    " chunk len : " + bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.column.parameters.chunkLen + " chunkLen fixed: "+fixedPrefixLengthAndWeight.chunkLen +
+                                    " weight chosen: "+bestVsFixed.bestLearningConstChlenResultForDefaultOrdering.column.parameters.weightOfInconsistencies.weight + " weight fixed: "+fixedPrefixLengthAndWeight.weight
                                     );
                     }
 

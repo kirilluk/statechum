@@ -1071,7 +1071,8 @@ public class MarkovExperiment
             getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), null, (column, columnText, Y) -> {
                 boolean learntOK = obtainStringValueFromCell(Y, E_SUCCESS,column).equals(LEARNING_OK.name);
 
-                if (obtainDoubleValueFromCell(Y, E_INCONSISTENCY_CONSTCHUNKLEN,column) < 0.0 || !experimentName.equals("prefixlen"))
+				// obtainDoubleValueFromCell(Y, E_INCONSISTENCY_CONSTCHUNKLEN,column) < 0.0 ||
+                if (!experimentName.equals("prefixlen"))
                     invalidCellValues.add(E_INCONSISTENCY_CONSTCHUNKLEN);// negative value of inconsistency for const chunklen means we chose not to compute it.
                 if (learntOK && (obtainDoubleValueFromCell(Y, E_DIFF, column) < 1.0 || obtainDoubleValueFromCell(Y, E_BCR, column) < 1.0)) {
                     // This is the case where we did not learn an exact automaton.

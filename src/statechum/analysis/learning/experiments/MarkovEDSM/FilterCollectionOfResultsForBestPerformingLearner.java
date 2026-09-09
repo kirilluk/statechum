@@ -63,9 +63,9 @@ class FilterCollectionOfResultsForBestPerformingLearner {
         return experimentResults;
     }
 
-    protected Map<Integer,List<MarkovExperiment.LearningReport>> resultPerChunkLen = new TreeMap<>();
-    public Map<Integer,List<MarkovExperiment.LearningReport>> getExperimentsResultsPerChunkLen() {
-        return resultPerChunkLen;
+    protected Map<Integer,List<MarkovExperiment.LearningReport>> learntokResultPerChunkLen = new TreeMap<>();
+    public Map<Integer,List<MarkovExperiment.LearningReport>> getLearntOkExperimentsResultsPerChunkLen() {
+        return learntokResultPerChunkLen;
     }
 
     public static class BestVsFixed {
@@ -117,7 +117,7 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                 selectorRow.apply(rowValues))
             {
                 final MarkovExperiment.LearningReport bestLearningResult = new MarkovExperiment.LearningReport(),bestLearningResultForDefaultOrdering = new MarkovExperiment.LearningReport();
-                final Map<Integer,MarkovExperiment.LearningReport> resultForChunkLen = new TreeMap<>();
+                final Map<Integer,MarkovExperiment.LearningReport> learntOkResultForChunkLen = new TreeMap<>();
                 final BestVsFixed bestVsFixed = (fixedPrefixLengthAndWeight != null)?
                         (fixedPrefixLengthAndWeight.experimentResults.computeIfAbsent(rowEntry.getKey(), k -> new BestVsFixed())):null;
 
@@ -185,18 +185,19 @@ class FilterCollectionOfResultsForBestPerformingLearner {
 
                     }
 
-                    if (learntOK && selectorCol.apply(column)) {
+                    if (selectorCol.apply(column)) {
                         MarkovExperiment.LearningReport currentOutcome = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText, Y, column);
                         if (column.parameters.seedToShuffleSurroundingStates == 0)
-                            bestLearningResultForDefaultOrdering.updateIfValueBetter(currentOutcome);
+                            bestLearningResultForDefaultOrdering.updateIfValueBetterIfSuccessfulAndRecordSeen(learntOK,currentOutcome);
                         else
                             multipleOrderingsOfStates.set(true);
-                        bestLearningResult.updateIfValueBetter(currentOutcome);
+                        bestLearningResult.updateIfValueBetterIfSuccessfulAndRecordSeen(learntOK,currentOutcome);
 
-                        resultForChunkLen.computeIfAbsent(column.parameters.chunkLen, k->new MarkovExperiment.LearningReport()).updateIfValueBetter(currentOutcome);
+                        if (learntOK)
+                            learntOkResultForChunkLen.computeIfAbsent(column.parameters.chunkLen, k -> new MarkovExperiment.LearningReport()).updateIfValueBetterIfSuccessfulAndRecordSeen(learntOK,currentOutcome);
                     }
                 });
-                if (bestLearningResult.column != null) {// if any result was obtained as opposed to everything either missing or eliminated by filters
+                if (bestLearningResult.valueSeen()) {// if any result was obtained as opposed to everything either missing or eliminated by filters
 //                    if (bestVsFixed != null) {
 //                        if (bestVsFixed.bestLearningResultForDefaultOrdering.structural < bestVsFixed.scoreFixed &&
 //                                bestVsFixed.bestLearningResultForDefaultOrdering.inconsistency < bestVsFixed.inconsistencyFixed)
@@ -222,8 +223,8 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                     learnerToHowOftenDefaultOrdering.computeIfAbsent(bestLearningResultForDefaultOrdering.columnText, s -> new AtomicInteger(0));
                     learnerToHowOftenDefaultOrdering.get(bestLearningResultForDefaultOrdering.columnText).addAndGet(1);
 
-                    for (Map.Entry<Integer, MarkovExperiment.LearningReport> result : resultForChunkLen.entrySet())
-                        resultPerChunkLen.computeIfAbsent(result.getKey(), k -> new ArrayList<>()).add(result.getValue());
+                    for (Map.Entry<Integer, MarkovExperiment.LearningReport> result : learntOkResultForChunkLen.entrySet())
+                        learntokResultPerChunkLen.computeIfAbsent(result.getKey(), k -> new ArrayList<>()).add(result.getValue());
 
                     ColumnAndValue Y_HV = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV), invalidCellValues);
                     if (Y_HV != null) {

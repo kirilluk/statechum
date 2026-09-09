@@ -138,15 +138,15 @@ public class MarkovParameters {
 	{
 		switch(value)
 		{
-			case 0:// learning by not doing pre-merging, starting from root
+			case 0:// learning by not doing pre-merging, starting from root, Called EM
 				setlearningParameters(false, false, false, false,  false);break;
-			case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs.
+			case 1:// learning by doing pre-merging, starting from most connected vertex. This evaluates numerous pairs. Called M_BOTH
 				setlearningParameters(true, false, false, true,  true);break;
-			case 2:// learning by doing pre-merging but starting from root.
+			case 2:// learning by doing pre-merging but starting from root. Called R_FORWARD
 				setlearningParameters(true, false, false,  false,  false);break;
-			case 3:// learning by doing pre-merging but starting from root and looking for blue states in both directions.
+			case 3:// learning by doing pre-merging but starting from root and looking for blue states in both directions. Called R_BOTH
 				setlearningParameters(true, false, false,  false,  true);break;
-            case 4:// learning by doing pre-merging and starting from the most connected vertex, but only looking for blue states forward rather than in both directions.
+            case 4:// learning by doing pre-merging and starting from the most connected vertex, but only looking for blue states forward rather than in both directions. Called M_FORWARD
                 setlearningParameters(true, false, false,  true,  false);break;
 			// alternatives are: learning by not doing pre-merging, starting from root and using a heuristic around root
 			// or learning by not doing pre-merging, starting from root and not ranking the top IScore candidates with the fanout metric.

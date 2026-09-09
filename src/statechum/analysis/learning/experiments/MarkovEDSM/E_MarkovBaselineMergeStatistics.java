@@ -90,6 +90,7 @@ public class E_MarkovBaselineMergeStatistics {
             for (int states : learningGroup.statesToUse) {
                 String experimentNameForAllDensities = learningGroup.outPathPrefix + File.separator + description + "_" + states+"_";
                 final RBagPlot gr_TotalMergers_Structural = new RBagPlot("Mergers done", "Structural difference", new File(experimentNameForAllDensities + "totalmergers_structuraldiff.pdf"));
+                gr_TotalMergers_Structural.setMargins(3,3,0.2,0.6);
                 final DrawGraphs.Correlation correlation_mergers_diff = new DrawGraphs.Correlation(new File(experimentNameForAllDensities + "correlation_mergers_diff.csv"));
 
                 for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {

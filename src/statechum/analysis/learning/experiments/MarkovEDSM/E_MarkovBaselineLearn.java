@@ -94,6 +94,7 @@ public class E_MarkovBaselineLearn {
 
                 final DrawGraphs.RBagPlot gr_MarkovTransitionPrecisionStructuralDiff = new DrawGraphs.RBagPlot("Transition precision Markov", "Structural Score, EM", new File(experimentNameForAllDensities + "markovtransitionprecision_structuraldiff.pdf"));
                 final DrawGraphs.RBagPlot gr_MarkovHoleRecallStructuralDiff = new DrawGraphs.RBagPlot("Hole recall Markov", "Structural Score, EM", new File(experimentNameForAllDensities + "markovholerecall_structuraldiff.pdf"));
+                gr_MarkovHoleRecallStructuralDiff.setMargins(3,3,0.2,0.6);
                 final DrawGraphs.RBagPlot gr_Inconsistencies_and_SD = new DrawGraphs.RBagPlot("Inconsistency, average", "Inconsistency, SD", new File(experimentNameForAllDensities + "inconsistencies_sd.pdf"));
                 final DrawGraphs.RBoxPlot<String> gr_PosnegNegativeInconsistencies_Structural = new DrawGraphs.RBoxPlot<>("Inconsistency always positive", "Structural difference", new File(experimentNameForAllDensities + "posneginconsistencies_structuraldiff.pdf"));
                 final DrawGraphs.SquareBagPlot gr_BCR = new DrawGraphs.SquareBagPlot("BCR, HV", "BCR, EM", new File(experimentNameForAllDensities + "trace_bcr.pdf"), 0.5, 1, true);

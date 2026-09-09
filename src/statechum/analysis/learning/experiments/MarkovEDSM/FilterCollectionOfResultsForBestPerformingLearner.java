@@ -193,7 +193,7 @@ class FilterCollectionOfResultsForBestPerformingLearner {
                             multipleOrderingsOfStates.set(true);
                         bestLearningResult.updateIfValueBetterIfSuccessfulAndRecordSeen(learntOK,currentOutcome);
 
-                        if (learntOK)
+                        if (learntOK) // results obtained from learntOkResultForChunkLen rely on values only computed on successful runs hence only report those for successful runs.
                             learntOkResultForChunkLen.computeIfAbsent(column.parameters.chunkLen, k -> new MarkovExperiment.LearningReport()).updateIfValueBetterIfSuccessfulAndRecordSeen(learntOK,currentOutcome);
                     }
                 });

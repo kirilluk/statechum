@@ -7,6 +7,8 @@ import statechum.analysis.learning.observers.ProgressDecorator;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static statechum.analysis.learning.DrawGraphs.*;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperiment.*;
@@ -14,6 +16,7 @@ import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovExperimen
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersColumnFromCSV;
 import static statechum.analysis.learning.experiments.MarkovEDSM.MarkovLearningParameters.parseMarkovParametersRowFromCSV;
 import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_OK;
+import static statechum.analysis.learning.rpnicore.AbstractLearnerGraph.LearningAbortedReason.LEARNING_TIMEOUT;
 
 // EXPERIMENT WITH ACTUAL LEARNERS
 public class E_MarkovLearnWithCentre {
@@ -91,6 +94,21 @@ public class E_MarkovLearnWithCentre {
         final String numberFormat = "%1d";
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(description,resultCSV);checkFullTransitionCoverageAttained(description, resultCSV, validityOfCells);
+
+            // Obtain the smallest timeout value used anywhere (used as a cap on reported time).
+            AtomicInteger timeoutValueObtained = new AtomicInteger(Integer.MAX_VALUE);
+            for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet())
+                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
+                        (column, columnText, Y) -> {
+                            boolean learntTimeout = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_TIMEOUT.name);
+                            if (learntTimeout) {
+                                int runtime = (int) Math.round(obtainDoubleValueFromCell(Y, E_RUNTIME, column));
+                                timeoutValueObtained.accumulateAndGet(runtime, (a, b) -> Math.min(a, b));
+                            }
+                        });
+
+            final int timeCapForFasterLearning = 20;// 20 sec
+
             for (int states : learningGroup.statesToUse) {
                 final RBoxPlot<String> gr_BestStructuralForDifferentPreset = new RBoxPlot<>("Trace length number and learner", "Structural Score, EM",
                         new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_structural.pdf"));
@@ -106,8 +124,29 @@ public class E_MarkovLearnWithCentre {
                     final RBoxPlot<String> gr_PresetPerformanceBest = new RBoxPlot<>("Number of traces and learner", "Structural Score, EM",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_tracelength="+traceLength+"_structural.pdf"));
                     gr_PresetPerformanceBest.setupForTwoLineXLabels();
-//                    gr_PresetPerformanceBest.setOrderingOfLabels(Arrays.asList("Best", "Markov", "M_Both", "M_Forward", "R_Forward", "R_Both"));
                     gr_PresetPerformanceBest.setOrderingOfLabels(Arrays.asList("EM", "M\nB", "M\nF", "R\nF", "R\nB"));
+                    final RBoxPlot<String> gr_PresetTimeCappedPerformanceBest = new RBoxPlot<>("Number of traces and learner", "Structural Score, EM",
+                            new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_tracelength="+traceLength+"_timecapped_structural.pdf"));
+                    gr_PresetTimeCappedPerformanceBest.setupForTwoLineXLabels();
+                    gr_PresetTimeCappedPerformanceBest.setOrderingOfLabels(Arrays.asList("EM", "M\nB", "M\nF", "R\nF", "R\nB"));
+                    final RBoxPlot<String> gr_PresetRuntimeBest = new RBoxPlot<>("Number of traces and learner", "Runtime, sec",
+                            new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_tracelength="+traceLength+"_runtime.pdf"));
+                    gr_PresetRuntimeBest.setupForTwoLineXLabels();
+                    gr_PresetRuntimeBest.setOrderingOfLabels(Arrays.asList("EM", "M\nB", "M\nF", "R\nF", "R\nB"));
+                    gr_PresetRuntimeBest.setYLine(3);
+                    gr_PresetRuntimeBest.setMargins(4,4,0.2,0.2);
+                    final RBoxPlot<String> gr_PresetTimeCappedRuntimeBest = new RBoxPlot<>("Number of traces and learner", "Runtime, sec",
+                            new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_tracelength="+traceLength+"_timecapped_runtime.pdf"));
+                    gr_PresetTimeCappedRuntimeBest.setupForTwoLineXLabels();
+                    gr_PresetTimeCappedRuntimeBest.setOrderingOfLabels(Arrays.asList("EM", "M\nB", "M\nF", "R\nF", "R\nB"));
+                    gr_PresetTimeCappedRuntimeBest.setYLine(3);
+                    gr_PresetTimeCappedRuntimeBest.setMargins(4,4,0.2,0.2);
+                    final RBoxPlot<String> gr_PresetRuntimeBestCapped = new RBoxPlot<>("Number of traces and learner", "Runtime, sec",
+                            new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_tracelength="+traceLength+"_runtime_capped.pdf"));
+                    gr_PresetRuntimeBestCapped.setupForTwoLineXLabels();
+                    gr_PresetRuntimeBestCapped.setOrderingOfLabels(Arrays.asList("EM", "M\nB", "M\nF", "R\nF", "R\nB"));
+                    gr_PresetRuntimeBestCapped.setYLine(3);
+                    gr_PresetRuntimeBestCapped.setMargins(4,4,0.2,0.2);
 //                    gr_PresetPerformanceBest.configureTextLabels(-0.42,0,0);
 //                    gr_PresetPerformanceBest.setLabelsAuto(RGraph.PLOT_X_LABELS.XLABELS_TEXT_MANUAL);
 //                    gr_PresetPerformanceBest.setXLine(5);
@@ -122,10 +161,16 @@ public class E_MarkovLearnWithCentre {
                         MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
                         if (rowValues.traceQuantity == traceQuantityToUse && rowValues.states == states) {
                             // we are looking at specific rows
-                            final Map<Integer, MarkovExperiment.LearningReport> bestLearningResultForThisRowAndAllPresets = new TreeMap<>();
+                            final Map<Integer, MarkovExperiment.LearningReport> bestLearningResultForThisRowAndAllPresets = new TreeMap<>(),
+                                    bestTimeCappedLearningResultForThisRowAndAllPresets = new TreeMap<>();
+                            final Map<Integer, AtomicInteger> runtimeBestLearningResultForThisRowAndAllPresets = new TreeMap<>(),
+                                    runtimeBestCappedLearningResultForThisRowAndAllPresets = new TreeMap<>(),
+                                    attemptsForThisRowAndAllPresets = new TreeMap<>();
                             final Map<Double,Map<Integer, MarkovExperiment.LearningReport>> learningResultForThisRowAndAllWeightsAndPresets = new TreeMap<>();
                             for (final int preset : learnerExperiment) {
                                 MarkovExperiment.LearningReport bestLearningResultForThisRowAndPreset = bestLearningResultForThisRowAndAllPresets
+                                        .computeIfAbsent(preset, integer -> new MarkovExperiment.LearningReport());
+                                MarkovExperiment.LearningReport bestTimeCappedLearningResultForThisRowAndPreset = bestTimeCappedLearningResultForThisRowAndAllPresets
                                         .computeIfAbsent(preset, integer -> new MarkovExperiment.LearningReport());
 
                                 getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),validityOfCells,
@@ -142,10 +187,24 @@ public class E_MarkovLearnWithCentre {
                                             if (columnValues.learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV && columnValues.parameters.preset == preset) {
                                                 // Now at the columns of interest (specific preset but different parameter of Markov)
                                                 MarkovExperiment.LearningReport report = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText,Y, column);
+                                                int experimentRuntime = (int)E_MarkovCaseStudies.capToTimeout(
+                                                        obtainDoubleValueFromCell(Y, E_RUNTIME,column),timeoutValueObtained);
                                                 if (learntOK)
                                                     bestLearningResultForThisRowAndPreset.updateIfValueBetter(report);
+                                                // update runtime regardless of success
+                                                runtimeBestLearningResultForThisRowAndAllPresets.computeIfAbsent(preset, integer -> new AtomicInteger(0)).
+                                                        addAndGet(experimentRuntime);
                                                 learningResultForThisRowAndAllWeightsAndPresets.computeIfAbsent(columnValues.parameters.weightOfInconsistencies.weight, w -> new HashMap<>())
                                                         .computeIfAbsent(preset, p -> new MarkovExperiment.LearningReport()).updateIfValueBetter(report);
+
+                                                // Now evaluate a hypothetical timecapped learner.
+                                                if (learntOK && experimentRuntime < timeCapForFasterLearning)
+                                                    bestTimeCappedLearningResultForThisRowAndPreset.updateIfValueBetter(report);
+                                                runtimeBestCappedLearningResultForThisRowAndAllPresets.computeIfAbsent(preset, integer -> new AtomicInteger(0)).
+                                                        addAndGet(Math.min(timeCapForFasterLearning,experimentRuntime));
+
+                                                attemptsForThisRowAndAllPresets.computeIfAbsent(preset, integer -> new AtomicInteger(0)).
+                                                        incrementAndGet();
                                             }
                                         });
                             }
@@ -159,6 +218,12 @@ public class E_MarkovLearnWithCentre {
 //                                        "(inconsistency "+bestLearningResultForThisRowAndAllPresets.get(preset_M_Both).inconsistency+" )");
 //                            }
 
+                            for(Map.Entry<Integer,AtomicInteger> entry:attemptsForThisRowAndAllPresets.entrySet())
+                                if (entry.getKey() == 0) // EM
+                                    assert entry.getValue().get() == 2:"unexpected number of attempts for EM";
+                                else
+                                    assert entry.getValue().get() == 4:"unexpected number of attempts for preset "+presetDescription[entry.getKey()];
+
                             ColumnAndValue Y_HV = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV),validityOfCells);
                             Double hv_score = Y_HV != null? obtainDoubleValueFromCell(Y_HV.value, E_DIFF,Y_HV.column): null;
 
@@ -169,8 +234,15 @@ public class E_MarkovLearnWithCentre {
                             gr_BestStructuralForDifferentPreset.add("EMC\n"+sb, bestLearningResultForThisRowAndAllPresets.get(1).structural);// M_BOTH
                             if (hv_score!= null)
                                 gr_BestStructuralForDifferentPreset.add("HV\n"+sb, hv_score);
-                            for (Map.Entry<Integer, MarkovExperiment.LearningReport> entry : bestLearningResultForThisRowAndAllPresets.entrySet())
+                            for (Map.Entry<Integer, MarkovExperiment.LearningReport> entry : bestLearningResultForThisRowAndAllPresets.entrySet()) {
                                 gr_PresetPerformanceBest.add(presetDescription[entry.getKey()], entry.getValue().structural);
+                                gr_PresetRuntimeBest.add(presetDescription[entry.getKey()], (double) runtimeBestLearningResultForThisRowAndAllPresets.get(entry.getKey()).get());
+                                gr_PresetRuntimeBestCapped.add(presetDescription[entry.getKey()], (double) Math.min(runtimeBestLearningResultForThisRowAndAllPresets.get(entry.getKey()).get(), 3600));
+                            }
+                            for (Map.Entry<Integer, MarkovExperiment.LearningReport> entry : bestTimeCappedLearningResultForThisRowAndAllPresets.entrySet()) {
+                                gr_PresetTimeCappedPerformanceBest.add(presetDescription[entry.getKey()], entry.getValue().structural);
+                                gr_PresetTimeCappedRuntimeBest.add(presetDescription[entry.getKey()], (double)runtimeBestCappedLearningResultForThisRowAndAllPresets.get(entry.getKey()).get());
+                            }
 //                            gr_PresetPerformanceBest.add("Best", bestLearningResultForThisRow.structural);
 
                             // For a given weight, weightToPresetToValues maps preset to outcome.
@@ -198,6 +270,11 @@ public class E_MarkovLearnWithCentre {
                         }
                     }
                     gr_PresetPerformanceBest.reportResults(learningGroup.gr);
+                    gr_PresetRuntimeBest.reportResults(learningGroup.gr);
+                    gr_PresetRuntimeBestCapped.reportResults(learningGroup.gr);
+
+                    gr_PresetTimeCappedPerformanceBest.reportResults(learningGroup.gr);
+                    gr_PresetTimeCappedRuntimeBest.reportResults(learningGroup.gr);
                     for(Map.Entry<Double,RBoxPlot<String>> entry:weightToResults.entrySet())
                         entry.getValue().reportResults(learningGroup.gr);
                 }

@@ -983,20 +983,23 @@ public class MarkovExperiment
 		public final LearningAlgorithms.ScoringToApply scorer;
 		public final int preset, divisor, wlen;
 		public final boolean averageOrMax;
+		public final double weightOfInconsistencies;
 
-		public ColLearnerPresetAvemaxDivisorWlen(LearningAlgorithms.ScoringToApply scorer, int preset, boolean averageOrMax, int divisor, int wlen) {
+		public ColLearnerPresetAvemaxDivisorWlen(LearningAlgorithms.ScoringToApply scorer, int preset, boolean averageOrMax, int divisor, int wlen, double weightOfInconsistencies) {
 			this.scorer = scorer;
 			this.preset = preset;
 			this.averageOrMax = averageOrMax;
 			this.divisor = divisor;
 			this.wlen = wlen;
+			this.weightOfInconsistencies = weightOfInconsistencies;
 		}
 
 		@Override
 		public boolean check(MarkovLearningParameters.ColumnParseOutcome column) {
 			return column.learner.equals(scorer) && column.parameters.preset == preset &&
 					column.parameters.useAverageOrMax == averageOrMax &&
-					column.parameters.divisorForPathCount == divisor && column.parameters.expectedWLen == wlen;
+					column.parameters.divisorForPathCount == divisor && column.parameters.expectedWLen == wlen &&
+					column.parameters.weightOfInconsistencies.weight == weightOfInconsistencies;
 		}
 
 		@Override
@@ -1004,12 +1007,13 @@ public class MarkovExperiment
 			if (!(o instanceof ColLearnerPresetAvemaxDivisorWlen)) return false;
 			ColLearnerPresetAvemaxDivisorWlen that = (ColLearnerPresetAvemaxDivisorWlen) o;
 			return preset == that.preset && divisor == that.divisor && wlen == that.wlen &&
-					averageOrMax == that.averageOrMax && scorer == that.scorer;
+					averageOrMax == that.averageOrMax && scorer == that.scorer &&
+					weightOfInconsistencies == that.weightOfInconsistencies;
 		}
 
 		@Override
 		public int hashCode() {
-			return Objects.hash(scorer, preset, divisor, wlen, averageOrMax);
+			return Objects.hash(scorer, preset, divisor, wlen, averageOrMax,  weightOfInconsistencies);
 		}
 	}
 
@@ -1645,8 +1649,6 @@ public class MarkovExperiment
 //			E_MarkovBaselineMergeStatistics.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovScoreVsInconsistency");
-//			E_MarkovCentre.runExperiment(learningGroup);
-//			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovCentre");
 //			E_MarkovAlphabet.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovAlphabet");
 //			E_MarkovTraceLenMult.runExperiment(learningGroup);
@@ -1657,6 +1659,8 @@ public class MarkovExperiment
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovPrefixLen");
 //			E_MarkovTraceNum.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceNum");
+			E_MarkovCentre.runExperiment(learningGroup);
+//			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovCentre");
 			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovLearnWithCentre");
 		}

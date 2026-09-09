@@ -150,9 +150,9 @@ public class E_MarkovCentre {
         /* total number of values, both right and wrong */
         final Map<String, AtomicInteger> total = new TreeMap<>();
 
-        public CentreSelectionResults(MarkovExperiment.LearningExperimentGroupParameters learningGroup, int states, int traceNum) {
+        public CentreSelectionResults(MarkovExperiment.LearningExperimentGroupParameters learningGroup, int states, int traceNum, double weightOfInconsistencies) {
             group = learningGroup;
-            String prefix = learningGroup.outPathPrefix + File.separator + description + "_" + states + "_" + traceNum + "_";
+            String prefix = learningGroup.outPathPrefix + File.separator + description + "_states=" + states + "_traceNum=" + traceNum + "_weightOfInconsistencies="+weightOfInconsistencies+"_";
             gr_NumberOfCentreCorrect = new DrawGraphs.RBoxPlot<>("Centre Selection", "Number of correct selection",
                     new File(prefix + "centreselection_numbercorrect.pdf"));
             gr_NumberOfCentreCorrect.setupForOneLineXLabels();
@@ -190,7 +190,8 @@ public class E_MarkovCentre {
         MarkovExperiment.PreGeneratePTA tasks = new MarkovExperiment.PreGeneratePTA(learningGroup.phase, learningGroup.experimentRunner);
         boolean aveOrMax = true;// average divide by the divisor
         final int chunkSizeForCentreExperiments = 3;
-        final double weightOfInconsistencies = 0.5;
+//        final double weightOfInconsistencies = 0.5;
+        final double [] weightsOfInconsistenciesToAttempt = new double[]{0.25,0.5,1.0,2.0};
         int alphabetMultiplier = 2;
         boolean penaliseMissingPaths = true;
         boolean pathsOrSets = true;
@@ -204,7 +205,7 @@ public class E_MarkovCentre {
                     for (int trainingSample = 0; trainingSample < learningGroup.trainingSamplesPerFSM; ++trainingSample) {
                         for (final Pair<Integer, Integer> traces_lengthmult : new Pair[]{learningGroup.getTracesLengthmultBaseline(states),
                                 new Pair(1, MarkovExperiment.LearningExperimentGroupParameters.datasetSize * learningGroup.getScalingFactor(states))})
-//                            for (double weightOfInconsistencies : new double[]{2.0})// this is a good value for 10 states
+                            for (double weightOfInconsistencies : weightsOfInconsistenciesToAttempt)// 0.5 is a good value for 20 states
                                 for (int wlen : wlen_values)
                                     for (int divisor : divisor_values) {
                                         ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
@@ -257,21 +258,23 @@ public class E_MarkovCentre {
             Set<MarkovExperiment.RESULT_VALUES> invalidCellValues = null;// all values are valid here
             for (int states : learningGroup.statesToUse) {
 
-                Map<Integer, CentreSelectionResults> results = new TreeMap<>();
+                Map<Integer, Map<Double,CentreSelectionResults>> results = new TreeMap<>();
 
                 for (Map.Entry<String, Map<String, String>> rowEntry : centreCSV.rowColumnText.entrySet()) {
                     MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
                     if (rowValues.states == states) {
-                        for (int traceQuantityToUse : new int[]{1, learningGroup.getTracesLengthmultBaseline(states).firstElem}) {
-                            results.computeIfAbsent(traceQuantityToUse, integer -> new CentreSelectionResults(learningGroup, states, traceQuantityToUse));
-                            CentreSelectionResults resultsToUpdate = results.get(traceQuantityToUse);
-//                        String[] rowValues = rowEntry.getKey().split("[_=]");
+                        for (int traceQuantityToUse : new int[]{1, learningGroup.getTracesLengthmultBaseline(states).firstElem})
+                            for (double weightOfInconsistencies : weightsOfInconsistenciesToAttempt)
+                        {
+                            Map<Double,CentreSelectionResults> weightToResults = results.computeIfAbsent(traceQuantityToUse, w -> new TreeMap<>());
+                            CentreSelectionResults resultsToUpdate = weightToResults.computeIfAbsent(weightOfInconsistencies,
+                                    integer -> new CentreSelectionResults(learningGroup, states, traceQuantityToUse,weightOfInconsistencies));
                             if (rowValues.traceQuantity == traceQuantityToUse) {
 
                                 for (int wlen : wlen_values)
                                     for (int d : divisor_values) {
                                         MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen centreStrategy =
-                                                new MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, 1, true, d, wlen);
+                                                new MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, 1, true, d, wlen,weightOfInconsistencies);
                                         MarkovExperiment.ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(), centreStrategy,invalidCellValues);
                                         if (Y != null) {
                                             boolean centreCorrect = Boolean.parseBoolean(obtainValueFromCell(Y.value, 0));
@@ -302,8 +305,10 @@ public class E_MarkovCentre {
                         }
                     }
                 }
-                for (Map.Entry<Integer, CentreSelectionResults> resultsEntry : results.entrySet()) {
-                    CentreSelectionResults centreResults = resultsEntry.getValue();
+                for (Map.Entry<Integer, Map<Double,CentreSelectionResults>> traceQuantityWeightToResultsEntry : results.entrySet())
+                for(Map.Entry<Double,CentreSelectionResults> weightToResultsEntry:traceQuantityWeightToResultsEntry.getValue().entrySet())
+                {
+                    CentreSelectionResults centreResults = weightToResultsEntry.getValue();
                     for (Map.Entry<String, AtomicInteger> entry : centreResults.count.entrySet()) {
                         centreResults.gr_NumberOfCentreCorrect.add(entry.getKey(), (double) entry.getValue().get(), null, null);
                         centreResults.gr_PercentageOfCentreCorrect.add(entry.getKey(), 100. * entry.getValue().get() / centreResults.total.get(entry.getKey()).get(), null, null);

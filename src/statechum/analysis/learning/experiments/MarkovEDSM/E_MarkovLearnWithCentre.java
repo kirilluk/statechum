@@ -105,12 +105,12 @@ public class E_MarkovLearnWithCentre {
                             new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_structural.pdf"));
                     gr_PresetPerformance.setupForTwoLineXLabels();
 //                    gr_PresetPerformance.setOrderingOfLabels(Arrays.asList("Best", "Markov", "M_Both", "M_Forward", "R_Forward", "R_Both"));
-                    gr_PresetPerformance.setOrderingOfLabels(Arrays.asList("EM", "M_Both", "M_Forward", "R_Forward", "R_Both"));
-                    gr_PresetPerformance.configureTextLabels(-0.42,90,0);
-                    gr_PresetPerformance.setLabelsAuto(RGraph.PLOT_X_LABELS.XLABELS_TEXT_MANUAL);
-                    gr_PresetPerformance.setXLine(5);
-                    gr_PresetPerformance.setMargins(6,3,0.2,0.2);
-                    String[] presetDescription = new String[]{"EM", "M_Both", "R_Forward", "R_Both", "M_Forward"};
+                    gr_PresetPerformance.setOrderingOfLabels(Arrays.asList("EM", "M\nB", "M\nF", "R\nF", "R\nB"));
+//                    gr_PresetPerformance.configureTextLabels(-0.42,0,0);
+//                    gr_PresetPerformance.setLabelsAuto(RGraph.PLOT_X_LABELS.XLABELS_TEXT_MANUAL);
+//                    gr_PresetPerformance.setXLine(5);
+//                    gr_PresetPerformance.setMargins(6,3,0.2,0.2);
+                    String[] presetDescription = new String[]{"EM", "M\nB", "M\nF", "R\nF", "R\nB"};
 
                     // Now select the best result from all those available
                     for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {

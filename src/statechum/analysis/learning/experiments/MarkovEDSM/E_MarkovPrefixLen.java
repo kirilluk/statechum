@@ -161,7 +161,8 @@ public class E_MarkovPrefixLen {
                                 map_StructuralVsReferenceInconsistencyAccuracy=new TreeMap(),
                                 map_StructuralVsLearntInconsistencyAccuracy = new TreeMap(),
                                 map_StructuralVsInconsistencyForChunkLen = new TreeMap<>();
-
+                        Map<Integer,DrawGraphs.Correlation>
+                                map_StructuralVsInconsistencyCorrelation=new TreeMap<>();
                         for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
                             MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
                             if (rowValues.perStateSquaredDensityMultipliedBy100 == perStateSquaredDensity100 && rowValues.states == states)
@@ -215,6 +216,10 @@ public class E_MarkovPrefixLen {
                                         }
                                         return plot;
                                     });
+                            DrawGraphs.Correlation correlation_gr_StructuralVsReferenceInconsistencyAccuracy = map_StructuralVsInconsistencyCorrelation.
+                                computeIfAbsent(chunkLen, k-> new DrawGraphs.Correlation(new File(
+                                        learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + perStateSquaredDensity100 + "_" + k + "correlation_diff_reference_inconsistency.csv")));
+
 
 //                            DrawGraphs.RBagPlot gr_StructuralVsLearntRelativeInconsistency = map_StructuralVsLearntRelativeInconsistency.
 //                                    computeIfAbsent(chunkLen, k->
@@ -268,6 +273,8 @@ public class E_MarkovPrefixLen {
                                         value, null, null);
                                 gr_StructuralVsReferenceAccuracyAllDensities.add(markovReferenceInconsistencyAccuracy,
                                         value, null, null);
+                                correlation_gr_StructuralVsReferenceInconsistencyAccuracy.add(markovReferenceInconsistencyAccuracy,
+                                        value, null, null);
                                 gr_StructuralVsInconsistencyPerChunkLen.add(Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 10)),learningReport.structural);
 
                                 gr_StructuralVsReferenceDensity.add(Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 24)),value);
@@ -288,6 +295,10 @@ public class E_MarkovPrefixLen {
                             gr_StructuralVsChunkLenWeight_gooddensity.reportResults(learningGroup.gr);
                         for(DrawGraphs.RBagPlot gr_StructuralVsReferenceInconsistencyAccuracy:map_StructuralVsReferenceInconsistencyAccuracy.values())
                             gr_StructuralVsReferenceInconsistencyAccuracy.reportResults(learningGroup.gr);
+                        for(Map.Entry<Integer,DrawGraphs.Correlation> chunklen_correlation:map_StructuralVsInconsistencyCorrelation.entrySet()) {
+                            StatisticalTestResult correlation = chunklen_correlation.getValue().obtainResultFromR(false);
+                            System.out.println("States: "+states+" , density: "+perStateSquaredDensity100+ " chunklen: "+chunklen_correlation.getKey()+ " correlation: "+correlation.statistic);
+                        }
                         for(DrawGraphs.RBagPlot gr_StructuralVsLearntInconsistencyAccuracy:map_StructuralVsLearntInconsistencyAccuracy.values())
                             gr_StructuralVsLearntInconsistencyAccuracy.reportResults(learningGroup.gr);
                         for(DrawGraphs.RBagPlot gr_StructuralVsInconsistencyPerChunkLen:map_StructuralVsInconsistencyForChunkLen.values())

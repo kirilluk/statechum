@@ -94,6 +94,12 @@ public class E_MarkovAlphabet {
                 gr_BestStructuralForAlphabet.setMgpLabelX(0);
                 gr_BestStructuralForAlphabet.setMgpLabelY(0.7);
                 gr_BestStructuralForAlphabet.configureTextLabels(-0.15,1,0.5);
+
+                final RBoxPlot<String> gr_InconsistencyForAlphabet = new RBoxPlot<>("Alphabet multiplier", "Inconsistency",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_alphabetmult_inconsistency.pdf"));
+                gr_InconsistencyForAlphabet.setupForOneLineXLabels();
+                gr_InconsistencyForAlphabet.setYLine(2.8);
+                gr_InconsistencyForAlphabet.setMargins(3,3.7,0.2,0.2);
                 final Map<Double, SquareBagPlot> gr_StructuralDiffBestMap = new TreeMap<>();
                 Map<Double, FilterCollectionOfResultsForBestPerformingLearner> learnerToHowOftenBestForAllMultipliers = new TreeMap<>();
 
@@ -114,9 +120,14 @@ public class E_MarkovAlphabet {
                             getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
                                     (column, columnText, Y) -> {
                                         boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
-                                        if (learntOK)
-                                            gr_StructuralVsInconsistency.add(obtainDoubleValueFromCell(Y,RESULT_VALUES.E_INCONSISTENCY_LEARNT,column),
-                                                    obtainDoubleValueFromCell(Y,RESULT_VALUES.E_DIFF,column));
+                                        if (learntOK) {
+                                            gr_StructuralVsInconsistency.add(obtainDoubleValueFromCell(Y, RESULT_VALUES.E_INCONSISTENCY_LEARNT, column),
+                                                    obtainDoubleValueFromCell(Y, RESULT_VALUES.E_DIFF, column));
+                                            StringBuilder sb = new StringBuilder();
+                                            Formatter formatter = new Formatter(sb, Locale.US);
+                                            formatter.format(numberFormat, alphabetMultiplier);
+                                            gr_InconsistencyForAlphabet.add(sb.toString(), obtainDoubleValueFromCell(Y, RESULT_VALUES.E_INCONSISTENCY_LEARNT, column));
+                                        }
                                     });
                         }
                     }
@@ -154,6 +165,7 @@ public class E_MarkovAlphabet {
                     gr_StructuralDiffBestMap.get(alphabetMultiplier).reportResults(learningGroup.gr);
 
                 gr_BestStructuralForAlphabet.reportResults(learningGroup.gr);
+                gr_InconsistencyForAlphabet.reportResults(learningGroup.gr);
             }
 
 //            resultCSV.moveFiles();

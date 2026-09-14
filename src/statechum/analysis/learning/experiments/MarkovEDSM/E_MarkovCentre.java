@@ -265,56 +265,56 @@ public class E_MarkovCentre {
                     if (rowValues.states == states) {
                         for (int traceQuantityToUse : new int[]{1, learningGroup.getTracesLengthmultBaseline(states).firstElem})
                             for (double weightOfInconsistencies : weightsOfInconsistenciesToAttempt)
-                        {
-                            Map<Double,CentreSelectionResults> weightToResults = results.computeIfAbsent(traceQuantityToUse, w -> new TreeMap<>());
-                            CentreSelectionResults resultsToUpdate = weightToResults.computeIfAbsent(weightOfInconsistencies,
-                                    integer -> new CentreSelectionResults(learningGroup, states, traceQuantityToUse,weightOfInconsistencies));
-                            if (rowValues.traceQuantity == traceQuantityToUse) {
+                            {
+                                Map<Double,CentreSelectionResults> weightToResults = results.computeIfAbsent(traceQuantityToUse, w -> new TreeMap<>());
+                                CentreSelectionResults resultsToUpdate = weightToResults.computeIfAbsent(weightOfInconsistencies,
+                                        integer -> new CentreSelectionResults(learningGroup, states, traceQuantityToUse,weightOfInconsistencies));
+                                if (rowValues.traceQuantity == traceQuantityToUse) {
 
-                                for (int wlen : wlen_values)
-                                    for (int d : divisor_values) {
-                                        MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen centreStrategy =
-                                                new MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, 1, true, d, wlen,weightOfInconsistencies);
-                                        MarkovExperiment.ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(), centreStrategy,invalidCellValues);
-                                        if (Y != null) {
-                                            boolean centreCorrect = Boolean.parseBoolean(obtainValueFromCell(Y.value, 0));
-                                            int pathsCount = Integer.parseInt(obtainValueFromCell(Y.value, 1));
+                                    for (int wlen : wlen_values)
+                                        for (int d : divisor_values) {
+                                            MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen centreStrategy =
+                                                    new MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, 1, true, d, wlen,weightOfInconsistencies);
+                                            MarkovExperiment.ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(), centreStrategy,invalidCellValues);
+                                            if (Y != null) {
+                                                boolean centreCorrect = Boolean.parseBoolean(obtainValueFromCell(Y.value, 0));
+                                                int pathsCount = Integer.parseInt(obtainValueFromCell(Y.value, 1));
 
-                                            if (pathsCount > 0) {
-                                                int inconsistency = Integer.parseInt(obtainValueFromCell(Y.value, 2));
-                                                if (inconsistency > inconsistencyClamp)
-                                                    inconsistency = inconsistencyClamp;
+                                                if (pathsCount > 0) {
+                                                    int inconsistency = Integer.parseInt(obtainValueFromCell(Y.value, 2));
+                                                    if (inconsistency > inconsistencyClamp)
+                                                        inconsistency = inconsistencyClamp;
 
-                                                String parametersAsString = wlen + "_" + d;
-                                                resultsToUpdate.total.computeIfAbsent(parametersAsString, k -> new AtomicInteger(0));
-                                                resultsToUpdate.total.get(parametersAsString).incrementAndGet();
-                                                resultsToUpdate.count.computeIfAbsent(parametersAsString, k -> new AtomicInteger(0));
-                                                if (centreCorrect)
-                                                    resultsToUpdate.count.get(parametersAsString).incrementAndGet();
+                                                    String parametersAsString = wlen + "_" + d;
+                                                    resultsToUpdate.total.computeIfAbsent(parametersAsString, k -> new AtomicInteger(0));
+                                                    resultsToUpdate.total.get(parametersAsString).incrementAndGet();
+                                                    resultsToUpdate.count.computeIfAbsent(parametersAsString, k -> new AtomicInteger(0));
+                                                    if (centreCorrect)
+                                                        resultsToUpdate.count.get(parametersAsString).incrementAndGet();
 
-                                                resultsToUpdate.gr_InconsistenciesForCentres.add(parametersAsString + "_" + (centreCorrect ? "T" : "F"), (double) inconsistency, centreCorrect ? null : "red", null);
-                                                resultsToUpdate.gr_CorrectVsInconsistency.add(Boolean.toString(centreCorrect), (double) inconsistency, null, null);
-                                                long inconsistencyWithPractice = Integer.parseInt(obtainValueFromCell(Y.value, 3));
-                                                if (inconsistencyWithPractice > inconsistencyClamp)
-                                                    inconsistencyWithPractice = inconsistencyClamp;
-                                                resultsToUpdate.gr_CorrectVsInconsistencyWithPracticeLearn.add(Boolean.toString(centreCorrect), (double) inconsistencyWithPractice, null, null);
+                                                    resultsToUpdate.gr_InconsistenciesForCentres.add(parametersAsString + "_" + (centreCorrect ? "T" : "F"), (double) inconsistency, centreCorrect ? null : "red", null);
+                                                    resultsToUpdate.gr_CorrectVsInconsistency.add(centreCorrect?"True":"False", (double) inconsistency, null, null);
+                                                    long inconsistencyWithPractice = Integer.parseInt(obtainValueFromCell(Y.value, 3));
+                                                    if (inconsistencyWithPractice > inconsistencyClamp)
+                                                        inconsistencyWithPractice = inconsistencyClamp;
+                                                    resultsToUpdate.gr_CorrectVsInconsistencyWithPracticeLearn.add(Boolean.toString(centreCorrect), (double) inconsistencyWithPractice, null, null);
+                                                }
                                             }
                                         }
-                                    }
+                                }
                             }
-                        }
                     }
                 }
                 for (Map.Entry<Integer, Map<Double,CentreSelectionResults>> traceQuantityWeightToResultsEntry : results.entrySet())
-                for(Map.Entry<Double,CentreSelectionResults> weightToResultsEntry:traceQuantityWeightToResultsEntry.getValue().entrySet())
-                {
-                    CentreSelectionResults centreResults = weightToResultsEntry.getValue();
-                    for (Map.Entry<String, AtomicInteger> entry : centreResults.count.entrySet()) {
-                        centreResults.gr_NumberOfCentreCorrect.add(entry.getKey(), (double) entry.getValue().get(), null, null);
-                        centreResults.gr_PercentageOfCentreCorrect.add(entry.getKey(), 100. * entry.getValue().get() / centreResults.total.get(entry.getKey()).get(), null, null);
+                    for(Map.Entry<Double,CentreSelectionResults> weightToResultsEntry:traceQuantityWeightToResultsEntry.getValue().entrySet())
+                    {
+                        CentreSelectionResults centreResults = weightToResultsEntry.getValue();
+                        for (Map.Entry<String, AtomicInteger> entry : centreResults.count.entrySet()) {
+                            centreResults.gr_NumberOfCentreCorrect.add(entry.getKey(), (double) entry.getValue().get(), null, null);
+                            centreResults.gr_PercentageOfCentreCorrect.add(entry.getKey(), 100. * entry.getValue().get() / centreResults.total.get(entry.getKey()).get(), null, null);
+                        }
+                        centreResults.report();
                     }
-                    centreResults.report();
-                }
             }
         }
     }

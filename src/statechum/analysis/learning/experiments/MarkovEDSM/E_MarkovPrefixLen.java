@@ -139,7 +139,7 @@ public class E_MarkovPrefixLen {
                                 new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + perStateSquaredDensity100 + "_inconsistency_structural.pdf"));
                         final SquareBagPlot gr_StructuralDiffEMvsHV = new SquareBagPlot("Structural score, EM", "Structural Score, HV",
                                 new File(learningGroup.outPathPrefix + File.separator + description+"_"+states+ "_" + perStateSquaredDensity100 + "_EM_vs_HV.pdf"), 0, 1, true);
-
+                        gr_StructuralVsInconsistency.setYLine(2.2);
                         spreadsheetToBagPlotNoZeroYValues(gr_StructuralVsInconsistency, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_INCONSISTENCY_LEARNT,
                                 new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
                         final boolean goodDensity = perStateSquaredDensity100 != MarkovExperiment.densityFromStateNumberPrefixLen(states)[densityFromStateNumberPrefixLen(states).length-1];
@@ -203,12 +203,12 @@ public class E_MarkovPrefixLen {
                             int chunkLen = resultEntry.getKey();
                             DrawGraphs.RBagPlot gr_StructuralVsReferenceAccuracyAllDensities = map_StructuralVsReferenceAccuracyAllDensities.
                                     computeIfAbsent(chunkLen, k->
-                                            new DrawGraphs.RBagPlot("inconsistency inaccuracy, reference", "Structural Score",
+                                            new DrawGraphs.RBagPlot("Self-inconsistency, reference", "Structural Score",
                                                     new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + k + "_difference_vs_reference_relativeinconsistency.pdf")));
 
                             DrawGraphs.RBagPlot gr_StructuralVsReferenceInconsistencyAccuracy = map_StructuralVsReferenceInconsistencyAccuracy.
                                     computeIfAbsent(chunkLen, k->{
-                                        DrawGraphs.RBagPlot plot = new DrawGraphs.RBagPlot("Inconsistency inaccuracy, reference", "Structural Score",
+                                        DrawGraphs.RBagPlot plot = new DrawGraphs.RBagPlot("Self-inconsistency, reference", "Structural Score",
                                             new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + perStateSquaredDensity100 + "_" + k +"_difference_vs_reference_inconsistencyaccuracy.pdf"));
                                         if (states >= 40) {
                                             plot.setMargins(3, 3.5, 0.2, 0.2);
@@ -240,7 +240,7 @@ public class E_MarkovPrefixLen {
                             DrawGraphs.RBagPlot gr_StructuralVsLearntInconsistencyAccuracy =  map_StructuralVsLearntInconsistencyAccuracy.
                                     computeIfAbsent(chunkLen, k->{
                                         DrawGraphs.RBagPlot plot =
-                                                        new DrawGraphs.RBagPlot("Inconsistency inaccuracy, learnt", "Structural Score",
+                                                        new DrawGraphs.RBagPlot("Self-inconsistency, learnt", "Structural Score",
                                             new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + perStateSquaredDensity100 + "_" + k +"_difference_vs_learnt_inconsistencyaccuracy.pdf"));
                                         if (states >= 40) {
                                             plot.setMargins(3, 3.5, 0.2, 0.2);
@@ -250,7 +250,7 @@ public class E_MarkovPrefixLen {
                                     });
                             DrawGraphs.RBagPlot gr_StructuralVsLearntInconsistencyAccuracyAllDensities =  map_StructuralVsLearntInconsistencyAccuracyAllDensities.
                                     computeIfAbsent(chunkLen, k->
-                                            new DrawGraphs.RBagPlot("Inconsistency inaccuracy, learnt", "Structural Score",
+                                            new DrawGraphs.RBagPlot("Self-inconsistency, learnt", "Structural Score",
                                     new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + k +"_difference_vs_learnt_inconsistencyaccuracy.pdf")));
 
                             DrawGraphs.RBagPlot gr_StructuralVsInconsistencyPerChunkLen = map_StructuralVsInconsistencyForChunkLen.

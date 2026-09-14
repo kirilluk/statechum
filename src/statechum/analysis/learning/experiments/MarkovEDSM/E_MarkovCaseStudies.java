@@ -119,7 +119,7 @@ public class E_MarkovCaseStudies {
 //        whichCaseStudyToRun.add("SSH");
 //        whichCaseStudyToRun.add("MinePump");
 //        whichCaseStudyToRun.add(caseStudyFanTempMonitor);
-//        whichCaseStudyToRun.add(caseStudyFanTempMonitorSingleTrace);
+        whichCaseStudyToRun.add(caseStudyFanTempMonitorSingleTrace);
     }
 
     public static class MarkovLearningBaselineParameters extends MarkovLearningParameters {

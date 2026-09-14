@@ -248,7 +248,7 @@ public class E_MarkovLearnWithCentre {
                             // For a given weight, weightToPresetToValues maps preset to outcome.
                             for(Map.Entry<Double,Map<Integer, MarkovExperiment.LearningReport>> weightToPresetToValues:learningResultForThisRowAndAllWeightsAndPresets.entrySet()){
                                 RBoxPlot<String> gr_PresetForWeight = structuralForWeightAndPreset.computeIfAbsent(weightToPresetToValues.getKey(), w-> {
-                                    RBoxPlot<String> gr_PresetPerformance = new RBoxPlot<>("Number of traces and learner", "Structural Score, EM",
+                                    RBoxPlot<String> gr_PresetPerformance = new RBoxPlot<>("Learning strategy", "Structural Score, EM",
                                             new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_weight="+weightToPresetToValues.getKey()+"_structural.pdf"));
                                     gr_PresetPerformance.setupForTwoLineXLabels();
                                     return gr_PresetPerformance;

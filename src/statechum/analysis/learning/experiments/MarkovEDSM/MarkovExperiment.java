@@ -1680,9 +1680,9 @@ public class MarkovExperiment
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovPrefixLen");
 //			E_MarkovTraceNum.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceNum");
-//			E_MarkovCentre.runExperiment(learningGroup);
+			E_MarkovCentre.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovCentre");
-			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovLearnWithCentre");
 		}
 		catch(Exception ex)

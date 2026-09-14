@@ -2643,7 +2643,7 @@ public class DrawGraphs {
 						firstItem = false;
 					else
 						sb.append(" & ");
-					sb.append(elem);
+					sb.append(elem.replace("_","\\_"));
 				}
 				sb.append("\\\\\\hline\\hline");
 			}

@@ -764,6 +764,13 @@ public class MarkovExperiment
 		String Yvalues = null;
 		MarkovLearningParameters.ColumnParseOutcome column;
 
+		/** Will be set to true if any value has been seen, even if learning failed. */
+		protected boolean valueObserved = false;
+
+		public boolean valueSeen() {
+			return valueObserved;
+		}
+
 		public LearningReport() {
 		}
 
@@ -789,8 +796,22 @@ public class MarkovExperiment
 			return Objects.hash(bcr, structural, columnText, inconsistency, alwaysPositive, Yvalues, column);
 		}
 
+		/** Updates value to the better one using inconsistencies if the outcome of learning is successful. Regardless of the outcome,
+		 * updates that a value has been seen (that is, not filtered out) and records a column out of any learning report (even if failed).
+		 * @param learntOK whether learning succeeded or not
+		 * @param report learning report
+		 */
+		public void updateIfValueBetterIfSuccessfulAndRecordSeen(boolean learntOK, LearningReport report) {
+			valueObserved = true;
+			if (learntOK)
+				updateIfValueBetter(report);
+			else
+				if (column == null)
+					column = report.column;
+		}
 		public void updateIfValueBetter(LearningReport report) {
 			if ((inconsistency < 0 && report.inconsistency >= 0) || inconsistency > report.inconsistency || (!alwaysPositive && report.alwaysPositive)) {
+				valueObserved = true;
 				bcr = report.bcr;
 				structural = report.structural;
 				inconsistency = report.inconsistency;
@@ -1659,7 +1680,7 @@ public class MarkovExperiment
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovPrefixLen");
 //			E_MarkovTraceNum.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceNum");
-			E_MarkovCentre.runExperiment(learningGroup);
+//			E_MarkovCentre.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovCentre");
 			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovLearnWithCentre");

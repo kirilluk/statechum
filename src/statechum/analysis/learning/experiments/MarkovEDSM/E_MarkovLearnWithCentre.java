@@ -43,6 +43,10 @@ public class E_MarkovLearnWithCentre {
         int alphabetMultiplier = 2;
         boolean pathsOrSets = true;
         final int chunkSizeToEvaluate = 3;
+
+        double [] weightsOfInconsistenciesToRun = new double[]{0.25,0.5,1.0};
+        Set<Double> weightsOfInconsistenciesToPickBestFrom = new TreeSet<>();weightsOfInconsistenciesToPickBestFrom.addAll(Arrays.asList(0.25,0.5,1.0));
+
 //        final double weightOfInconsistencies = 0.5;
         for (int states : learningGroup.statesToUse)
             for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
@@ -64,7 +68,7 @@ public class E_MarkovLearnWithCentre {
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
                                                 })
-                                for (double weightOfInconsistencies : learnerKind.isMarkov() ? new double[]{0.25,0.5,1.0}: new double[]{1.0})
+                                for (double weightOfInconsistencies : learnerKind.isMarkov() ? weightsOfInconsistenciesToRun: new double[]{1.0})
                                 {
                                     for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 4)} : new Pair[]{new Pair(1, 8), new Pair(2, 8)}) {
                                         int wlen = wlen_divisor.firstElem, divisor = wlen_divisor.secondElem;
@@ -121,30 +125,31 @@ public class E_MarkovLearnWithCentre {
 
                     int traceQuantityToUse = traces_lengthmult.firstElem;
                     int traceLength =  traces_lengthmult.secondElem * states;
-                    final RBoxPlot<String> gr_PresetPerformanceBest = new RBoxPlot<>("Number of traces and learner", "Structural Score, EM",
+                    final RBoxPlot<String> gr_PresetPerformanceBest = new RBoxPlot<>("Learning strategy", "Structural Score, EM",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_tracelength="+traceLength+"_structural.pdf"));
                     gr_PresetPerformanceBest.setupForTwoLineXLabels();
-                    gr_PresetPerformanceBest.setOrderingOfLabels(Arrays.asList("EM", "M\nB", "M\nF", "R\nF", "R\nB"));
-                    final RBoxPlot<String> gr_PresetTimeCappedPerformanceBest = new RBoxPlot<>("Number of traces and learner", "Structural Score, EM",
+                    List<String> columntOrdering = Arrays.asList("EM", "M\nB", "M\nF", "R\nF", "R\nB");
+                    gr_PresetPerformanceBest.setOrderingOfLabels(columntOrdering);
+                    final RBoxPlot<String> gr_PresetTimeCappedPerformanceBest = new RBoxPlot<>("Learning strategy", "Structural Score, EM",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_tracelength="+traceLength+"_timecapped_structural.pdf"));
                     gr_PresetTimeCappedPerformanceBest.setupForTwoLineXLabels();
-                    gr_PresetTimeCappedPerformanceBest.setOrderingOfLabels(Arrays.asList("EM", "M\nB", "M\nF", "R\nF", "R\nB"));
-                    final RBoxPlot<String> gr_PresetRuntimeBest = new RBoxPlot<>("Number of traces and learner", "Runtime, sec",
+                    gr_PresetTimeCappedPerformanceBest.setOrderingOfLabels(columntOrdering);
+                    final RBoxPlot<String> gr_PresetRuntimeBest = new RBoxPlot<>("Learning strategy", "Runtime, sec",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_tracelength="+traceLength+"_runtime.pdf"));
                     gr_PresetRuntimeBest.setupForTwoLineXLabels();
-                    gr_PresetRuntimeBest.setOrderingOfLabels(Arrays.asList("EM", "M\nB", "M\nF", "R\nF", "R\nB"));
+                    gr_PresetRuntimeBest.setOrderingOfLabels(columntOrdering);
                     gr_PresetRuntimeBest.setYLine(3);
                     gr_PresetRuntimeBest.setMargins(4,4,0.2,0.2);
-                    final RBoxPlot<String> gr_PresetTimeCappedRuntimeBest = new RBoxPlot<>("Number of traces and learner", "Runtime, sec",
+                    final RBoxPlot<String> gr_PresetTimeCappedRuntimeBest = new RBoxPlot<>("Learning strategy", "Runtime, sec",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_tracelength="+traceLength+"_timecapped_runtime.pdf"));
                     gr_PresetTimeCappedRuntimeBest.setupForTwoLineXLabels();
-                    gr_PresetTimeCappedRuntimeBest.setOrderingOfLabels(Arrays.asList("EM", "M\nB", "M\nF", "R\nF", "R\nB"));
+                    gr_PresetTimeCappedRuntimeBest.setOrderingOfLabels(columntOrdering);
                     gr_PresetTimeCappedRuntimeBest.setYLine(3);
                     gr_PresetTimeCappedRuntimeBest.setMargins(4,4,0.2,0.2);
-                    final RBoxPlot<String> gr_PresetRuntimeBestCapped = new RBoxPlot<>("Number of traces and learner", "Runtime, sec",
+                    final RBoxPlot<String> gr_PresetRuntimeBestCapped = new RBoxPlot<>("Learning strategy", "Runtime, sec",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_"+states + "_centre-learner_tracenum=" + traceQuantityToUse + "_tracelength="+traceLength+"_runtime_capped.pdf"));
                     gr_PresetRuntimeBestCapped.setupForTwoLineXLabels();
-                    gr_PresetRuntimeBestCapped.setOrderingOfLabels(Arrays.asList("EM", "M\nB", "M\nF", "R\nF", "R\nB"));
+                    gr_PresetRuntimeBestCapped.setOrderingOfLabels(columntOrdering);
                     gr_PresetRuntimeBestCapped.setYLine(3);
                     gr_PresetRuntimeBestCapped.setMargins(4,4,0.2,0.2);
 //                    gr_PresetPerformanceBest.configureTextLabels(-0.42,0,0);
@@ -154,6 +159,7 @@ public class E_MarkovLearnWithCentre {
 
                     final Map<Double,RBoxPlot<String>> weightToResults = new HashMap<>();
 
+                    // This maps preset values in experiments (0 .. 4) to their names in the plots.
                     String[] presetDescription = new String[]{"EM", "M\nB", "R\nF", "R\nB", "M\nF"};
 
                     // Now select the best result from all those available
@@ -173,6 +179,25 @@ public class E_MarkovLearnWithCentre {
                                 MarkovExperiment.LearningReport bestTimeCappedLearningResultForThisRowAndPreset = bestTimeCappedLearningResultForThisRowAndAllPresets
                                         .computeIfAbsent(preset, integer -> new MarkovExperiment.LearningReport());
 
+                                // This part computes per-weight values
+                                getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),validityOfCells,
+                                        (column, columnText, Y) -> {
+                                            MarkovLearningParameters.ColumnParseOutcome columnValues=parseMarkovParametersColumnFromCSV(columnText,validityOfCells);
+
+                                            if (columnValues.learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV && columnValues.parameters.preset == preset) {
+                                                // Now at the columns of interest (specific preset but different parameter of Markov)
+                                                boolean alwaysPositive = obtainBooleanValueFromCell(Y, E_INCONSISTENCY_ALWAYSPOSITIVE,column);
+                                                double bcr = obtainDoubleValueFromCell(Y, E_BCR,column);
+                                                double structural = obtainDoubleValueFromCell(Y, E_DIFF,column);
+                                                long inconsistency = obtainLongValueFromCell(Y, E_INCONSISTENCY_LEARNT,column);
+
+                                                MarkovExperiment.LearningReport report = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText,Y, column);
+                                                learningResultForThisRowAndAllWeightsAndPresets.computeIfAbsent(columnValues.parameters.weightOfInconsistencies.weight, w -> new HashMap<>())
+                                                        .computeIfAbsent(preset, p -> new MarkovExperiment.LearningReport()).updateIfValueBetter(report);
+                                            }
+                                        });
+
+                                // This part picks best result across all densities we are interested in.
                                 getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV),validityOfCells,
                                         (column, columnText, Y) -> {
                                             // Here columnText is the description of the learner used, Y is the values reported by processSubResult above.
@@ -184,7 +209,8 @@ public class E_MarkovLearnWithCentre {
 
                                             MarkovLearningParameters.ColumnParseOutcome columnValues=parseMarkovParametersColumnFromCSV(columnText,validityOfCells);
 
-                                            if (columnValues.learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV && columnValues.parameters.preset == preset) {
+                                            if (columnValues.learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV && columnValues.parameters.preset == preset &&
+                                                    weightsOfInconsistenciesToPickBestFrom.contains(columnValues.parameters.weightOfInconsistencies.weight)) {// only pick best results from a subset of weights
                                                 // Now at the columns of interest (specific preset but different parameter of Markov)
                                                 MarkovExperiment.LearningReport report = new MarkovExperiment.LearningReport(bcr, structural, inconsistency, alwaysPositive, columnText,Y, column);
                                                 int experimentRuntime = (int)E_MarkovCaseStudies.capToTimeout(
@@ -194,8 +220,6 @@ public class E_MarkovLearnWithCentre {
                                                 // update runtime regardless of success
                                                 runtimeBestLearningResultForThisRowAndAllPresets.computeIfAbsent(preset, integer -> new AtomicInteger(0)).
                                                         addAndGet(experimentRuntime);
-                                                learningResultForThisRowAndAllWeightsAndPresets.computeIfAbsent(columnValues.parameters.weightOfInconsistencies.weight, w -> new HashMap<>())
-                                                        .computeIfAbsent(preset, p -> new MarkovExperiment.LearningReport()).updateIfValueBetter(report);
 
                                                 // Now evaluate a hypothetical timecapped learner.
                                                 if (learntOK && experimentRuntime < timeCapForFasterLearning)
@@ -220,9 +244,9 @@ public class E_MarkovLearnWithCentre {
 
                             for(Map.Entry<Integer,AtomicInteger> entry:attemptsForThisRowAndAllPresets.entrySet())
                                 if (entry.getKey() == 0) // EM
-                                    assert entry.getValue().get() == 2:"unexpected number of attempts for EM";
+                                    assert entry.getValue().get() == weightsOfInconsistenciesToPickBestFrom.size():"unexpected number of attempts for EM, got "+entry.getValue().get();
                                 else
-                                    assert entry.getValue().get() == 4:"unexpected number of attempts for preset "+presetDescription[entry.getKey()];
+                                    assert entry.getValue().get() == 2*weightsOfInconsistenciesToPickBestFrom.size():"unexpected number of attempts for preset "+presetDescription[entry.getKey()];
 
                             ColumnAndValue Y_HV = getValueFromMapGivenSelector(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_HV),validityOfCells);
                             Double hv_score = Y_HV != null? obtainDoubleValueFromCell(Y_HV.value, E_DIFF,Y_HV.column): null;

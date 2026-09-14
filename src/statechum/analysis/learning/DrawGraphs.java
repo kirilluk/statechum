@@ -308,7 +308,15 @@ public class DrawGraphs {
 		return result.toString();
 	}
 
-	public static final String defaultColour = "green";
+	public static String defaultColour = "green";
+
+	public static void setDefaultCol(String col) {
+		defaultColour = col;
+	}
+
+	public static String getDefaultCol() {
+		return defaultColour;
+	}
 
 	/**
 	 * Formats a box plotting command to R.
@@ -1495,6 +1503,11 @@ public class DrawGraphs {
 			if (colour != null) collectionOfResults.get(el).colour=colour;
 			if (label != null) collectionOfResults.get(el).label=label;
 			++size;
+		}
+
+		/** Reports whether a particular key is part of the dataset. */
+		public boolean hasKey(ELEM el) {
+			return collectionOfResults.containsKey(el);
 		}
 
 		@Override

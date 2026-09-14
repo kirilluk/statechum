@@ -1,6 +1,7 @@
 package statechum.analysis.learning.experiments.MarkovEDSM;
 
 import statechum.*;
+import statechum.analysis.learning.DrawGraphs;
 import statechum.analysis.learning.experiments.PairSelection.LearningAlgorithms;
 import statechum.analysis.learning.experiments.PairSelection.LearningSupportRoutines;
 import statechum.analysis.learning.experiments.SGE_ExperimentRunner;
@@ -481,7 +482,7 @@ public class E_MarkovCaseStudies {
                 gr_PerformanceOfLearners.setupForTwoLineXLabels();
                 gr_PerformanceOfLearners.setMargins(3, 3, 0.2, 0.2);
 
-                final RBoxPlot<String> gr_RuntimeOfLearners = new RBoxPlot<>("", "Runtime",
+                final RBoxPlot<String> gr_RuntimeOfLearners = new RBoxPlot<>("", "Runtime, log10 of seconds",
                         new File(learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_learner_runtime.pdf"));
                 gr_RuntimeOfLearners.setupForTwoLineXLabels();
                 gr_RuntimeOfLearners.setMargins(3, 3, 0.2, 0.2);
@@ -558,8 +559,8 @@ public class E_MarkovCaseStudies {
                                                         if (runtime >= 1.0)
                                                             runtime = Math.log10(runtime);
 
+                                                        gr_RuntimeOfLearners.add(xValue.toString(), runtime);
                                                         if (learntOK) {
-                                                            gr_RuntimeOfLearners.add(xValue.toString(), runtime);
                                                             countsSuccess.computeIfAbsent(xValue, k -> new AtomicInteger(0)).incrementAndGet();
                                                         }
                                                         if (useCentre) {
@@ -621,7 +622,7 @@ public class E_MarkovCaseStudies {
 
                                 if (diffReported.get() > 0) {// if filtering did not remove everything.
 //                                    String colour = "lightskyblue";
-                                    String colour = "skyblue";
+                                    String colour = DrawGraphs.getDefaultCol();
 
                                     if (diffReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM) {
                                         // For these case studies, the failure rate (L_RED or L_TM) could be so high that even with multiple values
@@ -766,7 +767,9 @@ public class E_MarkovCaseStudies {
                 Arrays.sort(xValues);
                 List<String> orderingXaxis = Arrays.stream(xValues).map(k -> k.toString()).collect(Collectors.toList());
                 List<String> orderingXaxisForSuccessfulLearners = Arrays.stream(xValues).
-                        filter(k->countsSuccess.containsKey(k) && countsSuccess.get(k).get() > 0).
+                        filter(k->gr_PerformanceOfLearners.hasKey(k.toString())).// it is important to directly ask
+                        // gr_PerformanceOfLearners here because if all attempts to learn failed, there will be a zero in gr_PerformanceOfLearners
+                        // but no corresponding entry in the ordering array. If all learners failed, countsSuccess might have no entry.
                         map(k -> k.toString()).collect(Collectors.toList());
                 gr_PerformanceOfLearners.setOrderingOfLabels(orderingXaxisForSuccessfulLearners);
                 gr_PerformanceOfLearners.reportResults(learningGroup.gr);

@@ -1662,10 +1662,12 @@ public class MarkovExperiment
 
 		//final double alphabetMultiplier=2;
 
+		DrawGraphs.setDefaultCol("skyblue");
+
 		try
 		{
-//			E_MarkovCaseStudies.runExperiment(learningGroup);
-			E_MarkovFanTempMonitor600.runExperiment(learningGroup);
+			E_MarkovCaseStudies.runExperiment(learningGroup);
+//			E_MarkovFanTempMonitor600.runExperiment(learningGroup);
 //			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovBaselineMergeStatistics.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
@@ -1680,7 +1682,7 @@ public class MarkovExperiment
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovPrefixLen");
 //			E_MarkovTraceNum.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceNum");
-			E_MarkovCentre.runExperiment(learningGroup);
+//			E_MarkovCentre.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovCentre");
 //			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovLearnWithCentre");

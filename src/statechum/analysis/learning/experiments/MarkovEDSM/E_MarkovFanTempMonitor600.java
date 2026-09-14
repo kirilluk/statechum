@@ -33,7 +33,7 @@ public class E_MarkovFanTempMonitor600 extends E_MarkovCaseStudies {
 //        if (!Files.exists(Paths.get(pathToCaseStudyFiles)))
 //            throw new RuntimeException("Cannot load any case studies: path to case studies does not exist "+pathToCaseStudyFiles);
 
-        long timeout = 1800000L * 9L;// // for case studies, set timeout to 4.5 hours - the one that runs that long is centre-based computations for FanTempMonitor with 676 traces that do not produce brilliant results anyway (comparable to learning without centre since the PTA is dense enough for normal learning).
+        long timeout = 1800000L * 2L;// // for case studies, set timeout to 1 hour - the one that runs that long is centre-based computations for FanTempMonitor with 676 traces that do not produce brilliant results anyway (comparable to learning without centre since the PTA is dense enough for normal learning).
 
         E_MarkovCaseStudies.fillInCaseStudyExperimentParameters(learningGroup);
 

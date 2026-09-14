@@ -61,7 +61,7 @@ public class E_MarkovLearnWithCentre {
                                                 new LearningAlgorithms.ScoringToApply[]{
                                                         LearningAlgorithms.ScoringToApply.SCORING_MARKOV
                                                 })
-                                for (double weightOfInconsistencies : learnerKind.isMarkov() ? new double[]{0.5}: new double[]{1.0})
+                                for (double weightOfInconsistencies : learnerKind.isMarkov() ? new double[]{0.25,0.5}: new double[]{1.0})
                                 {
                                     for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 4)} : new Pair[]{new Pair(1, 8), new Pair(2, 8)}) {
                                         int wlen = wlen_divisor.firstElem, divisor = wlen_divisor.secondElem;

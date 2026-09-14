@@ -168,11 +168,18 @@ public class E_MarkovCentre {
             gr_CorrectVsInconsistency = new DrawGraphs.RBoxPlot<>("Centre correctly predicted", "Inconsistency (clamped to " + inconsistencyClamp + ")",
                     new File(prefix + "centrecorrect_inconsistency.pdf"));
             gr_CorrectVsInconsistency.setupForOneLineXLabels();
-            gr_CorrectVsInconsistency.configureTextLabels(-5,1,0.5);
+            gr_CorrectVsInconsistency.configureTextLabels(-5.4,1,0.5);
+            gr_CorrectVsInconsistency.setMargins(3.0,3,0.2,0.2);
+            gr_CorrectVsInconsistency.setXLine(1.8);
+            gr_CorrectVsInconsistency.setLabelsAuto(DrawGraphs.RGraph.PLOT_X_LABELS.XLABELS_TEXT_MANUAL);
+
             gr_CorrectVsInconsistencyWithPracticeLearn = new DrawGraphs.RBoxPlot<>("Centre correctly predicted", "Inconsistency with practice (clamped to " + inconsistencyClamp + ")",
                     new File(prefix + "centrecorrect_inconsistency_P.pdf"));
             gr_CorrectVsInconsistencyWithPracticeLearn.setupForOneLineXLabels();
-            gr_CorrectVsInconsistencyWithPracticeLearn.configureTextLabels(-6,1,0.5);
+            gr_CorrectVsInconsistencyWithPracticeLearn.configureTextLabels(-5.4,1,0.5);
+            gr_CorrectVsInconsistencyWithPracticeLearn.setMargins(3.0,3,0.2,0.2);
+            gr_CorrectVsInconsistencyWithPracticeLearn.setXLine(1.8);
+            gr_CorrectVsInconsistencyWithPracticeLearn.setLabelsAuto(DrawGraphs.RGraph.PLOT_X_LABELS.XLABELS_TEXT_MANUAL);
         }
 
         public void report() {
@@ -191,7 +198,7 @@ public class E_MarkovCentre {
         boolean aveOrMax = true;// average divide by the divisor
         final int chunkSizeForCentreExperiments = 3;
 //        final double weightOfInconsistencies = 0.5;
-        final double [] weightsOfInconsistenciesToAttempt = new double[]{0.25,0.5,1.0,2.0};
+        final double [] weightsOfInconsistenciesToAttempt = new double[]{0.5}; // results here do not depend on the weight since weight is only a criterion when combined with EDSM scores.
         int alphabetMultiplier = 2;
         boolean penaliseMissingPaths = true;
         boolean pathsOrSets = true;
@@ -258,15 +265,16 @@ public class E_MarkovCentre {
             Set<MarkovExperiment.RESULT_VALUES> invalidCellValues = null;// all values are valid here
             for (int states : learningGroup.statesToUse) {
 
-                Map<Integer, Map<Double,CentreSelectionResults>> results = new TreeMap<>();
+                Map<Integer,Map<Integer, Map<Double,CentreSelectionResults>>> resultsStateToTraceNumToWeight = new TreeMap<>();
 
                 for (Map.Entry<String, Map<String, String>> rowEntry : centreCSV.rowColumnText.entrySet()) {
                     MarkovLearningParameters rowValues = parseMarkovParametersRowFromCSV(rowEntry.getKey());
                     if (rowValues.states == states) {
+                        Map<Integer, Map<Double,CentreSelectionResults>> resultsTraceNumToWeight = resultsStateToTraceNumToWeight.computeIfAbsent(states, k -> new TreeMap<>());
                         for (int traceQuantityToUse : new int[]{1, learningGroup.getTracesLengthmultBaseline(states).firstElem})
                             for (double weightOfInconsistencies : weightsOfInconsistenciesToAttempt)
                             {
-                                Map<Double,CentreSelectionResults> weightToResults = results.computeIfAbsent(traceQuantityToUse, w -> new TreeMap<>());
+                                Map<Double,CentreSelectionResults> weightToResults = resultsTraceNumToWeight.computeIfAbsent(traceQuantityToUse, w -> new TreeMap<>());
                                 CentreSelectionResults resultsToUpdate = weightToResults.computeIfAbsent(weightOfInconsistencies,
                                         integer -> new CentreSelectionResults(learningGroup, states, traceQuantityToUse,weightOfInconsistencies));
                                 if (rowValues.traceQuantity == traceQuantityToUse) {
@@ -277,6 +285,7 @@ public class E_MarkovCentre {
                                                     new MarkovExperiment.ColLearnerPresetAvemaxDivisorWlen(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, 1, true, d, wlen,weightOfInconsistencies);
                                             MarkovExperiment.ColumnAndValue Y = getValueFromMapGivenSelector(rowEntry.getValue(), centreStrategy,invalidCellValues);
                                             if (Y != null) {
+                                                assert Y.column.parameters.weightOfInconsistencies.weight == weightOfInconsistencies;
                                                 boolean centreCorrect = Boolean.parseBoolean(obtainValueFromCell(Y.value, 0));
                                                 int pathsCount = Integer.parseInt(obtainValueFromCell(Y.value, 1));
 
@@ -297,7 +306,7 @@ public class E_MarkovCentre {
                                                     long inconsistencyWithPractice = Integer.parseInt(obtainValueFromCell(Y.value, 3));
                                                     if (inconsistencyWithPractice > inconsistencyClamp)
                                                         inconsistencyWithPractice = inconsistencyClamp;
-                                                    resultsToUpdate.gr_CorrectVsInconsistencyWithPracticeLearn.add(Boolean.toString(centreCorrect), (double) inconsistencyWithPractice, null, null);
+                                                    resultsToUpdate.gr_CorrectVsInconsistencyWithPracticeLearn.add(centreCorrect?"True":"False", (double) inconsistencyWithPractice, null, null);
                                                 }
                                             }
                                         }
@@ -305,16 +314,17 @@ public class E_MarkovCentre {
                             }
                     }
                 }
-                for (Map.Entry<Integer, Map<Double,CentreSelectionResults>> traceQuantityWeightToResultsEntry : results.entrySet())
-                    for(Map.Entry<Double,CentreSelectionResults> weightToResultsEntry:traceQuantityWeightToResultsEntry.getValue().entrySet())
-                    {
-                        CentreSelectionResults centreResults = weightToResultsEntry.getValue();
-                        for (Map.Entry<String, AtomicInteger> entry : centreResults.count.entrySet()) {
-                            centreResults.gr_NumberOfCentreCorrect.add(entry.getKey(), (double) entry.getValue().get(), null, null);
-                            centreResults.gr_PercentageOfCentreCorrect.add(entry.getKey(), 100. * entry.getValue().get() / centreResults.total.get(entry.getKey()).get(), null, null);
+                for (Map<Integer, Map<Double,CentreSelectionResults>> stateToTraceQuantityWeightToResultsEntry : resultsStateToTraceNumToWeight.values())
+                    for (Map.Entry<Integer, Map<Double,CentreSelectionResults>> traceQuantityWeightToResultsEntry : stateToTraceQuantityWeightToResultsEntry.entrySet())
+                        for(Map.Entry<Double,CentreSelectionResults> weightToResultsEntry:traceQuantityWeightToResultsEntry.getValue().entrySet())
+                        {
+                            CentreSelectionResults centreResults = weightToResultsEntry.getValue();
+                            for (Map.Entry<String, AtomicInteger> entry : centreResults.count.entrySet()) {
+                                centreResults.gr_NumberOfCentreCorrect.add(entry.getKey(), (double) entry.getValue().get(), null, null);
+                                centreResults.gr_PercentageOfCentreCorrect.add(entry.getKey(), 100. * entry.getValue().get() / centreResults.total.get(entry.getKey()).get(), null, null);
+                            }
+                            centreResults.report();
                         }
-                        centreResults.report();
-                    }
             }
         }
     }

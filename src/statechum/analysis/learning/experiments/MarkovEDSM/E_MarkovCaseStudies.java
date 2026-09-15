@@ -16,6 +16,8 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static statechum.analysis.learning.DrawGraphs.*;
@@ -120,7 +122,7 @@ public class E_MarkovCaseStudies {
 //        whichCaseStudyToRun.add("SSH");
 //        whichCaseStudyToRun.add("MinePump");
 //        whichCaseStudyToRun.add(caseStudyFanTempMonitor);
-        whichCaseStudyToRun.add(caseStudyFanTempMonitorSingleTrace);
+//        whichCaseStudyToRun.add(caseStudyFanTempMonitorSingleTrace);
     }
 
     public static class MarkovLearningBaselineParameters extends MarkovLearningParameters {
@@ -247,6 +249,563 @@ public class E_MarkovCaseStudies {
         return value;
     }
 
+    public static final int multiplierScore = 100;
+
+    public static String divideSumByCount(AtomicInteger sum, AtomicInteger count) {
+        StringBuilder sb = new StringBuilder();
+        Formatter formatter = new Formatter(sb, Locale.US);
+        formatter.format("%2.2f",sum.get()/((double)multiplierScore*count.get()));
+        return sb.toString();
+    }
+
+    public static class CaseStudyTableRowOrdering implements  Comparable<CaseStudyTableRowOrdering> {
+        public final String caseStudy;
+        public final int traces;
+        public final int prefixLength;
+        public final boolean centre;
+
+        public CaseStudyTableRowOrdering(String caseStudy, int traces, int prefixLength, boolean centre) {
+            this.caseStudy = caseStudy;
+            this.traces = traces;
+            this.prefixLength = prefixLength;
+            this.centre = centre;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof CaseStudyTableRowOrdering)) return false;
+            CaseStudyTableRowOrdering that = (CaseStudyTableRowOrdering) o;
+            return traces == that.traces && prefixLength == that.prefixLength && centre == that.centre && Objects.equals(caseStudy, that.caseStudy);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(caseStudy, traces, prefixLength, centre);
+        }
+
+        public static Map<String,Integer> nameToPosition = new TreeMap<>();
+        static {
+            nameToPosition.put("CVS", 0);
+            nameToPosition.put("SSH", 1);
+            nameToPosition.put("MinePump", 2);
+            nameToPosition.put("ATM", 3);
+            nameToPosition.put("SmallTrain", 4);
+            nameToPosition.put(caseStudyFanTempMonitor, 5);
+            nameToPosition.put(caseStudyFanTempMonitorSingleTrace,6);
+        }
+
+        @Override
+        public int compareTo(CaseStudyTableRowOrdering o) {
+            int valueCaseStudyName = nameToPosition.get(caseStudy) -  nameToPosition.get(o.caseStudy);
+            if (valueCaseStudyName != 0) return valueCaseStudyName;
+            int valueTraceNumber = traces - o.traces;
+            if (valueTraceNumber != 0) return valueTraceNumber;
+            int valueCentre = Boolean.compare(centre, o.centre);
+            if (valueCentre != 0) return valueCentre;
+            return prefixLength - o.prefixLength;
+        }
+    }
+
+    public static void runExperiment(LearningExperimentGroupParameters learningGroup) {
+        int[] learnerExperiment = new int[]{0, 1};
+        final DatapointsCollection resultCSV = new DatapointsCollection(learningGroup.outPathPrefix, learningGroup.copyToPrefix, learningGroup.moveToPrefix, description, true);
+        boolean aveOrMax = true;// average divide by the divisor
+        boolean pathsOrSets = true, penaliseMissingPaths = true;
+//        String pathToCaseStudyFiles = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_CASESTUDIES);
+//        if (null == pathToCaseStudyFiles ||  pathToCaseStudyFiles.isEmpty())
+//            throw new RuntimeException("Cannot load any case studies: path to case studies is not defined");
+//        if (!Files.exists(Paths.get(pathToCaseStudyFiles)))
+//            throw new RuntimeException("Cannot load any case studies: path to case studies does not exist "+pathToCaseStudyFiles);
+
+        long timeout = 1800000L * 9L;// // for case studies, set timeout to 4.5 hours - the one that runs that long is centre-based computations for FanTempMonitor with 676 traces that do not produce brilliant results anyway (comparable to learning without centre since the PTA is dense enough for normal learning).
+
+        fillInCaseStudyExperimentParameters(learningGroup);
+
+        for (int casestudy = 0; casestudy < caseStudies.length; casestudy++)
+            if (whichCaseStudyToRun == null || whichCaseStudyToRun.isEmpty() || whichCaseStudyToRun.contains(caseStudies[casestudy])) {
+
+                for (final int preset : learnerExperiment)
+                    for (final Pair<Integer, Integer> traces_lengthmult : caseStudyInformationMap.get(casestudy).traces_and_lengths) {
+                        int states = caseStudyInformationMap.get(casestudy).referenceGraph.getStateNumber();
+                        int traceQuantityToUse = traces_lengthmult.firstElem;
+                        for (int trainingSample = 0; trainingSample < caseStudyInformationMap.get(casestudy).trainingSamplesPerFSM; ++trainingSample)
+                            for (LearningAlgorithms.ScoringToApply learnerKind :
+                                    preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
+                                            new LearningAlgorithms.ScoringToApply[]{
+                                                    LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
+                                                    LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
+                                                    LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
+                                                    LearningAlgorithms.ScoringToApply.SCORING_HV
+                                            } :
+                                            new LearningAlgorithms.ScoringToApply[]{
+                                                    LearningAlgorithms.ScoringToApply.SCORING_MARKOV
+                                            })
+                                for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? caseStudyInformationMap.get(casestudy).chunkSizesToEvaluate : new int[]{2})
+                                    for (double weightOfInconsistencies : learnerKind.isMarkov() ?
+                                            caseStudyInformationMap.get(casestudy).chunkLenToWeights.get(chunkSizeToEvaluate)
+                                            //new double[]{0.25,0.5,1.0, 2.0, 3.0, 4.0, 6.0, 8.0}
+                                            : new double[]{1.0})
+                                        for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} :
+                                                new Pair[]{new Pair(1, 2), new Pair(1, 4), new Pair(2, 4), new Pair(2, 8)}) {
+                                            ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
+                                            ev.config = learningGroup.eval.config.copy();
+                                            ev.config.setOverride_maximalNumberOfStates(states * 2);//LearningAlgorithms.maxStateNumberMultiplier);
+                                            if (learnerKind.isMarkov())
+                                                ev.config.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
+                                            // For some case studies (FanTempController_T) there is a large amount of data - need Array-based data structures
+                                            ev.config.setTransitionMatrixImplType(caseStudyInformationMap.get(casestudy).transitionMatrixImplType);
+                                            ev.config.setTimeOut(timeout);
+                                            MarkovLearningBaselineParameters parameters = new MarkovLearningBaselineParameters(learnerKind, states, 0, 0, casestudy, trainingSample);
+                                            parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
+                                            parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, 0);
+                                            parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets,
+                                                    new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, wlen_divisor.secondElem, 0, wlen_divisor.firstElem);
+                                            parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
+                                            parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
+//                                            parameters.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP,0.6, 10);
+                                            MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(learningGroup.outPathPrefix, parameters, ev);
+                                            learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
+
+                                            // Important: this is the special case intended to avoid running experiments that do not deliver particularly good results
+                                            // but take forever (many of them running longer than the 4.5 hours timeout). This happens because we attempt to use centre on a large graph
+                                            // that causes a large number of red-blue comparions to be made (in the range of 100k - 1M), each of which is not very fast because we
+                                            // have to compute inconsistency. Experiments taking points excluded below have been migrated to E_MarkovFanTempMonitor600.java
+                                            if (!caseStudyInformationMap.get(casestudy).name.equals(caseStudyFanTempMonitor) || preset == 0 || traceQuantityToUse < 600)
+                                                learningGroup.experimentRunner.submitTask(learnerRunner);
+                                        }
+                    }
+            }
+
+        learningGroup.experimentRunner.collectOutcomeOfExperiments(constructResultsCollector(resultCSV));
+
+        if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
+            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(description,resultCSV);
+            Map<CaseStudyTableRowOrdering,List<String>> outputStatistics = new TreeMap<>();
+            List<String> outputTableHeader = new ArrayList<>(Arrays.asList("Case study", "Traces", "Length", "C", "P.Len", "Diff,M", "BCR,M", "Diff,HV", "BCR,HV", "$\\hat{A}_{12}$", "$\\hat{A}_{12}$lo", "$\\hat{A}_{12}$hi", "Sign test", "Time"));
+            for (Map.Entry<Integer, CaseStudyInformation> entryForCaseStudy : caseStudyInformationMap.entrySet()) {
+
+                // We need to compute the smallest runtime that was deemed to be a timeout. It is subsequently used as a cap
+                // on the timeout values because in different experiments different timeouts were used (and time was also measured less precisely
+                // in that some timeouts were only detected long past their timeout values).
+                AtomicInteger timeoutValueObtained = new AtomicInteger(Integer.MAX_VALUE);
+                for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+                    MarkovLearningParameters rowHeader = parseMarkovParametersRowFromCSV(rowEntry.getKey());
+                    if (rowHeader.sample == entryForCaseStudy.getKey()) {
+                        getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
+                                (column, columnText, Y) -> {
+                                    boolean learntTimeout = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_TIMEOUT.name);
+                                    if (learntTimeout) {
+                                        int runtime = (int) Math.round(obtainDoubleValueFromCell(Y, E_RUNTIME, column));
+                                        timeoutValueObtained.accumulateAndGet(runtime, (a, b) -> Math.min(a, b));
+                                    }
+                                    if (obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100)
+                                        throw new IllegalArgumentException("Case study "+entryForCaseStudy.getValue().name+", experiment "+rowEntry.getKey()+" transition coverage is "+obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column)+", it preferrably should be 100");
+                                });
+                    }
+                }
+
+                final RBoxPlot<String> gr_PerformanceOfLearners = new RBoxPlot<>("", "Structural Score",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_learner_structural.pdf"));
+                gr_PerformanceOfLearners.setupForTwoLineXLabels();
+                gr_PerformanceOfLearners.setMargins(3, 3, 0.2, 0.2);
+
+                final RBoxPlot<String> gr_RuntimeOfLearners = new RBoxPlot<>("", "Runtime, log10 of seconds",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_learner_runtime.pdf"));
+                gr_RuntimeOfLearners.setupForTwoLineXLabels();
+                gr_RuntimeOfLearners.setMargins(3, 3, 0.2, 0.2);
+
+                final RBoxPlot<String> gr_SuccessPercentage = new RBoxPlot<>("", "%% success",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_learner_successpercentage.pdf"));
+                gr_SuccessPercentage.setupForTwoLineXLabels();
+                gr_SuccessPercentage.setMargins(3, 3, 0.2, 0.2);
+
+                final RBoxPlot<String> gr_CentreCorrectPercentage = new RBoxPlot<>("", "%% success of centre identification",
+                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_learner_centrecorrect.pdf"));
+                gr_CentreCorrectPercentage.setupForTwoLineXLabels();
+                gr_CentreCorrectPercentage.setMargins(4, 3, 0.2, 0.2);
+
+                int stepCounter = 0;
+                for (final int chunkSizeToEvaluate : entryForCaseStudy.getValue().chunkSizesToEvaluate) {
+                    Pair<Integer, Integer>[] traces_and_lengths = entryForCaseStudy.getValue().traces_and_lengths;
+
+                    for (final boolean useCentre : new boolean[]{false, true})
+                        for (final Pair<Integer, Integer> traces_lengthmult : traces_and_lengths)
+                            // Do not process values from the extremely slow case of caseStudyFanTempMonitor
+                            if (!entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) || !useCentre || traces_lengthmult.firstElem < 600)
+                                ++stepCounter;
+                }
+                ProgressIndicator progress = new ProgressIndicator(entryForCaseStudy.getValue().name,stepCounter);
+
+                Map<ResultsXAxis, AtomicInteger> countsSuccess = new HashMap<>();
+                Map<ResultsXAxis, AtomicInteger> countsTotal = new HashMap<>();
+                Map<ResultsXAxis, AtomicInteger> centreCorrect = new HashMap<>();
+                Map<ResultsXAxis, AtomicInteger> countsCentre = new HashMap<>();
+                for (final int chunkSizeToEvaluate : entryForCaseStudy.getValue().chunkSizesToEvaluate) {
+                    Pair<Integer, Integer>[] traces_and_lengths = entryForCaseStudy.getValue().traces_and_lengths;
+
+                    for (final boolean useCentre : new boolean[]{false, true})
+                        for (final Pair<Integer, Integer> traces_lengthmult : traces_and_lengths)
+                            // Do not process values from the extremely slow case of caseStudyFanTempMonitor
+                            if (!entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) || !useCentre || traces_lengthmult.firstElem < 600) {
+                                // Now select the non-Markov result from all those available
+                                AtomicLong runtimeForThisDatapoint = new AtomicLong(), entriesForThisDatapoint = new AtomicLong();
+
+                                for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+                                    MarkovLearningParameters rowHeader = parseMarkovParametersRowFromCSV(rowEntry.getKey());
+                                    if (rowHeader.traceQuantity == traces_lengthmult.firstElem && rowHeader.sample == entryForCaseStudy.getKey()) {
+                                        // First, evaluate non-Markov learners
+                                        getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColOtherLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
+                                                (column, columnText, Y) -> {
+                                                    boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
+                                                    double structural = obtainDoubleValueFromCell(Y, E_DIFF, column);
+                                                    ResultsXAxis xValue = new ResultsXAxis(column.learner, rowHeader.traceQuantity, 0, false);
+                                                    if (xValue.filter(entryForCaseStudy.getValue().name)) {
+                                                        double runtime = capToTimeout(obtainDoubleValueFromCell(Y, E_RUNTIME, column), timeoutValueObtained);// cap runtime to timeout, esp since earlier experimental runs could run longer than 4.5 hours (esp because they were not as frequently checking for a timeout).
+
+                                                        if (runtime >= 1.0)
+                                                            runtime = Math.log10(runtime);
+                                                        gr_RuntimeOfLearners.add(xValue.toString(), runtime);
+                                                        gr_PerformanceOfLearners.add(xValue.toString(), structural);
+                                                        if (learntOK)
+                                                            countsSuccess.computeIfAbsent(xValue, k -> new AtomicInteger(0)).incrementAndGet();
+
+                                                        countsTotal.computeIfAbsent(xValue, k -> new AtomicInteger(0)).incrementAndGet();
+                                                    }
+                                                });
+
+                                        AtomicReference<ResultsXAxis> xValue = new AtomicReference<>(null);
+
+                                        // This accumulates runtime across multiple attempts to learn using a
+                                        // range of weights and a range of wlen_divisor values.
+                                        AtomicLong runtimeForAttempt = new AtomicLong(0);
+                                        // Second, evaluate Markov learning
+                                        getAllValuesFromMapGivenRegexp(rowEntry.getValue(),
+                                                column ->
+                                                        (column.parameters.preset > 0) == useCentre &&
+                                                                column.parameters.chunkLen == chunkSizeToEvaluate &&
+                                                                column.learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
+                                                validityOfCells,
+                                                (column, columnText, Y) -> {
+                                                    double runtime = capToTimeout(obtainDoubleValueFromCell(Y, E_RUNTIME, column), timeoutValueObtained);// cap runtime to timeout, esp since earlier experimental runs could run longer than 4.5 hours (esp because they were not as frequently checking for a timeout).
+                                                    boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
+                                                    xValue.getAndSet(new ResultsXAxis(column.learner, rowHeader.traceQuantity, chunkSizeToEvaluate, useCentre));
+                                                    if (xValue.get().filter(entryForCaseStudy.getValue().name)) {
+                                                        runtimeForAttempt.addAndGet(Math.round(runtime));
+
+                                                        if (learntOK)
+                                                            countsSuccess.computeIfAbsent(xValue.get(), k -> new AtomicInteger(0)).incrementAndGet();
+
+                                                        if (useCentre) {
+                                                            ResultsXAxis xValueCentre = new ResultsXAxis(column.learner, rowHeader.traceQuantity, chunkSizeToEvaluate, useCentre,column.parameters.expectedWLen+" "+column.parameters.divisorForPathCount);
+                                                            boolean centreCorrectValue = obtainBooleanValueFromCell(Y, E_CENTRE_CORRECT, column);
+                                                            countsCentre.computeIfAbsent(xValueCentre, k -> new AtomicInteger(0)).incrementAndGet();
+                                                            if (centreCorrectValue)
+                                                                centreCorrect.computeIfAbsent(xValueCentre, k -> new AtomicInteger(0)).incrementAndGet();
+                                                        }
+                                                        countsTotal.computeIfAbsent(xValue.get(), k -> new AtomicInteger(0)).incrementAndGet();
+                                                    }
+                                                });
+
+                                        if (xValue.get() != null && xValue.get().filter(entryForCaseStudy.getValue().name)) {
+                                            double runtime = runtimeForAttempt.get();
+
+                                            if (runtime >= 1.0)
+                                                runtime = Math.log10(runtime);
+                                            gr_RuntimeOfLearners.add(xValue.get().toString(), runtime);
+                                            runtimeForThisDatapoint.addAndGet(runtimeForAttempt.get());entriesForThisDatapoint.incrementAndGet();
+                                        }
+                                    }
+
+                                }
+
+                                for (Map.Entry<ResultsXAxis, AtomicInteger> entry : countsTotal.entrySet()) {
+                                    int value = countsSuccess.containsKey(entry.getKey()) ? countsSuccess.get(entry.getKey()).intValue() : 0;
+                                    gr_SuccessPercentage.add(entry.getKey().toString(), (double) Math.round(100. * (double) value / entry.getValue().intValue()));
+                                }
+                                for (Map.Entry<ResultsXAxis, AtomicInteger> entry : countsCentre.entrySet())
+                                {
+                                    int value = centreCorrect.containsKey(entry.getKey())? centreCorrect.get(entry.getKey()).get():0;
+                                    gr_CentreCorrectPercentage.add(entry.getKey().toString(), (double) Math.round(100. * (double) value / entry.getValue().intValue()));
+                                }
+
+                                String plot_filename_prefix = learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_" + traces_lengthmult.firstElem + "_" +
+                                        (useCentre ? "centre" : "no_cnt") + "_cl=" + chunkSizeToEvaluate;
+
+                                final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, HV", "Structural Score, EM",
+                                        new File(plot_filename_prefix + "_HV_structuraldiffBest.pdf"), 0, 1, true);
+                                final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, HV", "BCR, EM",
+                                        new File(plot_filename_prefix + "_HV_BCRBest.pdf"), 0.5, 1, true);
+                                final SignTest sign_test_Structural = new SignTest(new File(plot_filename_prefix + "_signtest_str.csv"));
+                                final SignTest sign_Test_BCR = new SignTest(new File(plot_filename_prefix + "_signtest_bcr.csv"));
+                                final A_VarghaDelaney A12_test_Structural = new A_VarghaDelaney(new File(plot_filename_prefix + "_A12_str.csv"), 100);
+                                final A_VarghaDelaney A12_test_BCR = new A_VarghaDelaney(new File(plot_filename_prefix + "_A12_bcr.csv"), 100);
+                                // Now select the best result from all those available
+                                final AtomicInteger diffReported = new AtomicInteger(0), bcrReported = new AtomicInteger(0);
+                                final AtomicInteger diffSumMarkov100 = new AtomicInteger(0), bcrSumMarkov100 = new AtomicInteger(0);
+                                final AtomicInteger diffSumHV100 = new AtomicInteger(0), bcrSumHV100 = new AtomicInteger(0);
+
+                                FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(-1, -1,
+                                        rowHeader -> rowHeader.traceQuantity == traces_lengthmult.firstElem && rowHeader.sample == entryForCaseStudy.getKey(),
+                                        columnParse -> (columnParse.parameters.preset > 0) == useCentre && columnParse.parameters.chunkLen == chunkSizeToEvaluate &&
+                                                new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, traces_lengthmult.firstElem, chunkSizeToEvaluate, useCentre).filter(entryForCaseStudy.getValue().name),
+                                        resultCSV, validityOfCells);
+
+                                report.getResultForBestPerformingMarkovLearner(null, null,
+                                        (pair) -> {
+                                            diffReported.addAndGet(1);
+                                        },
+                                        (pair) -> {
+                                            bcrReported.addAndGet(1);
+                                        }
+                                );
+
+                                if (diffReported.get() > 0) {// if filtering did not remove everything.
+//                                    String colour = "lightskyblue";
+                                    String colour = DrawGraphs.getDefaultCol();
+
+                                    if (diffReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM) {
+                                        // For these case studies, the failure rate (L_RED or L_TM) could be so high that even with multiple values
+                                        // of multipliers we might not get a single successful learn for a particular training PTA and chunk len.
+                                        if (!entryForCaseStudy.getValue().name.equals("MinePump") && !entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor)) {
+                                            String errorMessage = "Diff value not reported: got " + diffReported.get() + " values, expected " + entryForCaseStudy.getValue().trainingSamplesPerFSM +
+                                                    " for: " + traces_lengthmult.firstElem + " traces, chunklen: " + chunkSizeToEvaluate + " , useCentre=" + useCentre;
+                                            if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
+                                                throw new IllegalStateException(errorMessage);
+                                            System.out.println("WARNING: " + errorMessage);
+                                        }
+                                        colour = "red";
+                                    }
+                                    if (bcrReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM) {
+                                        // For these case studies, the failure rate (L_RED or L_TM) could be so high that even with multiple values
+                                        // of multipliers we might not get a single successful learn for a particular training PTA and chunk len.
+                                        if (!entryForCaseStudy.getValue().name.equals("MinePump") && !entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor)) {
+                                            String errorMessage = "BCR value not reported: got " + bcrReported.get() + " values, expected " + entryForCaseStudy.getValue().trainingSamplesPerFSM +
+                                                    " for: " + traces_lengthmult.firstElem + " traces, chunklen: " + chunkSizeToEvaluate + " , useCentre=" + useCentre;
+                                            if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
+                                                throw new IllegalStateException(errorMessage);
+                                            System.out.println("WARNING: " + errorMessage);
+                                        }
+                                        colour = "red";
+                                    }
+
+                                    final String colourToUse = colour;
+                                    // This repeats what was computed before in order to be able to add values using correct colours, starting with a non-Markov learner
+                                    for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
+                                        MarkovLearningParameters rowHeader = parseMarkovParametersRowFromCSV(rowEntry.getKey());
+                                        if (rowHeader.traceQuantity == traces_lengthmult.firstElem && rowHeader.sample == entryForCaseStudy.getKey()) {
+                                            getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColOtherLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
+                                                    (column, columnText, Y) -> {
+                                                        boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
+                                                        double structural = obtainDoubleValueFromCell(Y, E_DIFF, column);
+                                                        ResultsXAxis xValue = new ResultsXAxis(column.learner, rowHeader.traceQuantity, 0, false);
+                                                        if (xValue.filter(entryForCaseStudy.getValue().name)) {
+                                                            if (learntOK)
+                                                                gr_PerformanceOfLearners.add(xValue.toString(), structural,colourToUse,null);
+                                                        }
+                                                    });
+                                        }
+                                    }
+                                    // This repeats what was computed before in order to be able to add values using correct colours, now picking best results from the Markov learner
+                                    report.getResultForBestPerformingMarkovLearner(null, null,
+                                            (pair) -> {
+                                                double markov = pair.firstElem, hv_score = pair.secondElem;
+                                                gr_StructuralDiffBest.add(hv_score, markov, null, null);
+                                                A12_test_Structural.add(hv_score, markov);
+                                                sign_test_Structural.add(hv_score, markov);
+                                                ResultsXAxis xValue = new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, traces_lengthmult.firstElem, chunkSizeToEvaluate, useCentre);
+                                                gr_PerformanceOfLearners.add(xValue.toString(), markov, colourToUse, null);
+                                                diffSumMarkov100.addAndGet((int) Math.round(markov * multiplierScore));
+                                                diffSumHV100.addAndGet((int) Math.round(hv_score * multiplierScore));
+                                            },
+                                            (pair) -> {
+                                                double bcr = pair.firstElem, hv_bcr = pair.secondElem;
+                                                gr_BcrDiffBest.add(hv_bcr, bcr, colourToUse, null);
+                                                A12_test_BCR.add(hv_bcr, bcr);
+                                                sign_Test_BCR.add(hv_bcr, bcr);
+
+                                                bcrSumMarkov100.addAndGet((int) Math.round(bcr * multiplierScore));
+                                                bcrSumHV100.addAndGet((int) Math.round(hv_bcr * multiplierScore));
+                                            }
+                                    );
+
+                                    List<String> row = new ArrayList<>();
+                                    row.add(entryForCaseStudy.getValue().name);
+//                                    row.add(Integer.toString(entryForCaseStudy.getValue().referenceGraph.getStateNumber()));
+//                                    row.add(Integer.toString(entryForCaseStudy.getValue().alphabetSize));
+                                    row.add(Integer.toString(traces_lengthmult.firstElem));
+                                    int traceLength = entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) ?
+                                            entryForCaseStudy.getValue().actualLength :
+                                            (traces_lengthmult.secondElem * entryForCaseStudy.getValue().referenceGraph.getStateNumber());
+                                    row.add(Integer.toString(traceLength));
+                                    row.add(useCentre ? "Y" : "");
+                                    row.add(Integer.toString(chunkSizeToEvaluate - 1));
+
+                                    row.add(divideSumByCount(diffSumMarkov100,diffReported));
+                                    row.add(divideSumByCount(bcrSumMarkov100, bcrReported));
+
+                                    row.add(divideSumByCount(diffSumHV100, diffReported));
+                                    row.add(divideSumByCount(bcrSumHV100, bcrReported));
+
+                                    StatisticalTestResult a12_diff = A12_test_Structural.obtainResultFromR(
+                                            entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) ||
+                                                    entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) ||
+                                            learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
+                                    StatisticalTestResult signtest_diff = sign_test_Structural.obtainResultFromR(false);
+
+                                    NumberFormat f_A12 = new DecimalFormat("0.00");
+                                    NumberFormat f_signtest = new DecimalFormat("0.00E00");
+
+                                    if (a12_diff.valueValid) {
+                                        row.add(f_A12.format(a12_diff.statistic));
+                                        row.add(f_A12.format(a12_diff.confidence_lo));
+                                        row.add(f_A12.format(a12_diff.confidence_hi));
+                                    } else
+                                        for (int i = 0; i < 3; ++i)
+                                            row.add("N/A");
+
+                                    if (a12_diff.valueValid && signtest_diff.valueValid) // this one only adds sign test if A12 has a valid value, in order to account for cases where there is a single trace and hence no meaningful comparison can be made.
+                                        row.add(f_signtest.format(signtest_diff.pvalue));
+                                    else
+                                        row.add("N/A");
+
+                                    row.add(Integer.toString((int)Math.round(runtimeForThisDatapoint.get()/(double)entriesForThisDatapoint.get())));
+
+                                    ResultsXAxis xValue = new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, traces_lengthmult.firstElem, chunkSizeToEvaluate, useCentre);
+
+                                    // We are here for different values of chunklen
+                                    if (xValue.addToSpreadsheet(entryForCaseStudy.getValue().name))
+                                        outputStatistics.put(new CaseStudyTableRowOrdering(entryForCaseStudy.getValue().name,traces_lengthmult.firstElem,chunkSizeToEvaluate - 1,useCentre),row);
+                                    gr_StructuralDiffBest.reportResults(learningGroup.gr);
+                                    gr_BcrDiffBest.reportResults(learningGroup.gr);
+                                    A12_test_Structural.reportResults(learningGroup.gr,
+                                            entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) ||
+                                                    entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) ||
+                                            learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
+                                    A12_test_BCR.reportResults(learningGroup.gr,
+                                            entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) ||
+                                                    entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) ||
+                                            learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
+                                    sign_test_Structural.reportResults(learningGroup.gr);
+                                    sign_Test_BCR.reportResults(learningGroup.gr);
+
+
+//                            List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
+//                            learners.sort((o1, o2) ->
+//                                    learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());
+//                            int average = bestDiffCounter.get() > 0 ? bestDiffSum.get() / bestDiffCounter.get() : 0;
+//                            System.out.println("CASE STUDY: " + entryForCaseStudy.getValue().name + " centre: " + useCentre + " chunkLen: " + chunkSizeToEvaluate +
+//                                    " with: " + traces_lengthmult.firstElem + ", " + traceLength + " , Best diff: " + average);
+//
+//                            for (String l : learners)
+//                                System.out.println(l + " -> " + learnerToHowOftenBest.get(l).get());
+                                }
+                                progress.next();
+                            }
+                }
+                ResultsXAxis[] xValues = countsTotal.keySet().toArray(new ResultsXAxis[0]);
+                Arrays.sort(xValues);
+                List<String> orderingXaxis = Arrays.stream(xValues).map(k -> k.toString()).collect(Collectors.toList());
+                List<String> orderingXaxisForSuccessfulLearners = Arrays.stream(xValues).
+                        filter(k->gr_PerformanceOfLearners.hasKey(k.toString())).// it is important to directly ask
+                        // gr_PerformanceOfLearners here because if all attempts to learn failed, there will be a zero in gr_PerformanceOfLearners
+                        // but no corresponding entry in the ordering array. If all learners failed, countsSuccess might have no entry.
+                        map(k -> k.toString()).collect(Collectors.toList());
+                gr_PerformanceOfLearners.setOrderingOfLabels(orderingXaxisForSuccessfulLearners);
+                gr_PerformanceOfLearners.reportResults(learningGroup.gr);
+                gr_RuntimeOfLearners.setOrderingOfLabels(orderingXaxisForSuccessfulLearners);
+                gr_RuntimeOfLearners.reportResults(learningGroup.gr);
+                gr_SuccessPercentage.setOrderingOfLabels(orderingXaxis);
+                gr_SuccessPercentage.reportResults(learningGroup.gr);
+
+                ResultsXAxis[] centreXValues = countsCentre.keySet().toArray(new ResultsXAxis[0]);
+                Arrays.sort(centreXValues);
+                List<String> orderingCentreXaxis = Arrays.stream(centreXValues).map(k -> k.toString()).collect(Collectors.toList());
+                gr_CentreCorrectPercentage.setOrderingOfLabels(orderingCentreXaxis);
+                gr_CentreCorrectPercentage.reportResults(learningGroup.gr);
+            }
+            List<List<String>> resultTable = new  ArrayList<>();
+            resultTable.add(outputTableHeader);
+            for(List<String> outputRow:outputStatistics.values())
+                resultTable.add(outputRow);
+            writeTEX(new File(learningGroup.outPathPrefix + File.separator + description+"_statistics.tex"), resultTable, true);
+        }
+    }
+
+    public static void fillInCaseStudyExperimentParameters(LearningExperimentGroupParameters learningGroup) {
+        if (caseStudyInformationMap.isEmpty())
+            for (int casestudy = 0; casestudy < caseStudies.length; casestudy++)
+                if (whichCaseStudyToRun == null || whichCaseStudyToRun.isEmpty() || whichCaseStudyToRun.contains(caseStudies[casestudy])) {
+                    if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
+                        System.out.print("Loading " + caseStudies[casestudy] + " ...");
+                    Configuration dotConfig = learningGroup.eval.config.copy();
+                    dotConfig.setLabelKind(Configuration.LABELKIND.LABEL_STRING);
+                    LearnerGraph reference = constructAutomatonForCaseStudy(caseStudies[casestudy], dotConfig, new Transform.InternStringLabel());
+                    try {
+                        WMethod.computeWSet_reducedmemory(reference);
+                    } catch (WMethod.EquivalentStatesException ex) {
+                        System.out.println("Equivalent states:");
+                        for (EquivalenceClass<DeterministicDirectedSparseGraph.CmpVertex, LearnerGraphCachedData> eqClass : ex.getEquivalentStates())
+                            System.out.println(eqClass.toString());
+                        throw new IllegalArgumentException(ex);
+                    }
+
+                    double density = (double) reference.pathroutines.countEdges() / (reference.getStateNumber() * reference.getStateNumber());
+                    int states = reference.getStateNumber();
+                    if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
+                        System.out.println("States: " + states + " , Alphabet: " + reference.getCache().getAlphabet().size() + " , Density: " + density + " done.");
+                    Pair<Integer, Integer>[] traces_and_lengths = new Pair[]{
+                            new Pair(1, reference.getCache().getAlphabet().size() * states),
+                            new Pair(states, reference.getCache().getAlphabet().size()),
+                            new Pair(states * states, reference.getCache().getAlphabet().size())
+                    };
+                    caseStudyInformationMap.put(casestudy, new CaseStudyInformation(caseStudies[casestudy], casestudy, reference, reference.pathroutines.computeAlphabet().size(), traces_and_lengths));
+                    Map<Integer, double[]> chunkSizesToWeightsMinePump = new TreeMap<>();
+                    chunkSizesToWeightsMinePump.put(3, new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                    chunkSizesToWeightsMinePump.put(4, new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 12.0, 16.0});
+                    chunkSizesToWeightsMinePump.put(5, new double[]{0.25, 0.5, 1.0});
+                    chunkSizesToWeightsMinePump.put(6, new double[]{0.05, 0.1, 0.25});
+
+                    Map<Integer, double[]> chunkSizesToWeightsFanTempMonitor = new TreeMap<>();
+                    chunkSizesToWeightsFanTempMonitor.put(3, new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                    chunkSizesToWeightsFanTempMonitor.put(4, new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
+                    chunkSizesToWeightsFanTempMonitor.put(5, new double[]{0.5, 1.0, 2.0, 4.0, 8.0});
+                    chunkSizesToWeightsFanTempMonitor.put(6, new double[]{0.5, 1.0, 2.0, 4.0, 8.0});
+                    chunkSizesToWeightsFanTempMonitor.put(7, new double[]{0.5, 1.0, 2.0, 4.0, 8.0});
+                    switch (caseStudies[casestudy]) {
+                        case "SmallTrain":
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
+                            break;
+                        case "SSH":
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistencies(new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 12.0, 16.0});
+                            break;
+                        case "CVS":
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistencies(new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 12.0, 16.0});
+                            break;
+                        case "MinePump":
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsMinePump);
+                            break;
+                        case caseStudyFanTempMonitor:
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{4, 5, 6, 7});
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsFanTempMonitor);
+                            break;
+                        case caseStudyFanTempMonitorSingleTrace:
+                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4, 5, 6, 7});
+                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsFanTempMonitor);
+                            caseStudyInformationMap.get(casestudy).setTransitionMatrixImplType(Configuration.STATETREE.STATETREE_ARRAY);// large PTA, use array. PTA is loaded by constructPTA of caseStudyInformation on request when needed.
+                            caseStudyInformationMap.get(casestudy).traces_and_lengths = new Pair[]{
+                                    new Pair(1, 797676 / states)};// bit of a cludge but 797676 is the actual length of the log however it is expressed here in proportion to the number of states.
+                            caseStudyInformationMap.get(casestudy).trainingSamplesPerFSM = 1;// we only have one PTA here
+                            caseStudyInformationMap.get(casestudy).actualLength = 797676;
+                            break;
+                        default:
+                            break;// use default values
+                    }
+                }
+    }
+
     /** Intended to format X-value labels for a box plot. */
     public static class ResultsXAxis implements Comparable<ResultsXAxis> {
         public final LearningAlgorithms.ScoringToApply learner;
@@ -329,7 +888,7 @@ public class E_MarkovCaseStudies {
                     if (learner == LearningAlgorithms.ScoringToApply.SCORING_HV)
                         return true;
                     if (learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV)
-                        return chunkSize >= 3 && chunkSize <= 4 && useCentre;
+                        return chunkSize >= 3 && chunkSize <= 4;// && useCentre;
                     return false;
                 case "ATM":
                     if (learner == LearningAlgorithms.ScoringToApply.SCORING_HV || learner == LearningAlgorithms.ScoringToApply.SCORING_EDSM_4 || learner == LearningAlgorithms.ScoringToApply.SCORING_PTAK_2)
@@ -341,7 +900,7 @@ public class E_MarkovCaseStudies {
                     if (learner == LearningAlgorithms.ScoringToApply.SCORING_HV || learner == LearningAlgorithms.ScoringToApply.SCORING_EDSM_4)
                         return true;
                     if (learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV)
-                        return chunkSize >= 3 && chunkSize <= 3 && useCentre == true;
+                        return chunkSize >= 3 && chunkSize <= 3;// && useCentre == true;
                     return false;
                 case "MinePump":
                     if (learner == LearningAlgorithms.ScoringToApply.SCORING_HV)
@@ -379,487 +938,4 @@ public class E_MarkovCaseStudies {
         }
     }
 
-    public static void runExperiment(LearningExperimentGroupParameters learningGroup) {
-        int[] learnerExperiment = new int[]{0, 1};
-        final DatapointsCollection resultCSV = new DatapointsCollection(learningGroup.outPathPrefix, learningGroup.copyToPrefix, learningGroup.moveToPrefix, description, true);
-        boolean aveOrMax = true;// average divide by the divisor
-        boolean pathsOrSets = true, penaliseMissingPaths = true;
-//        String pathToCaseStudyFiles = GlobalConfiguration.getConfiguration().getProperty(GlobalConfiguration.G_PROPERTIES.PATH_CASESTUDIES);
-//        if (null == pathToCaseStudyFiles ||  pathToCaseStudyFiles.isEmpty())
-//            throw new RuntimeException("Cannot load any case studies: path to case studies is not defined");
-//        if (!Files.exists(Paths.get(pathToCaseStudyFiles)))
-//            throw new RuntimeException("Cannot load any case studies: path to case studies does not exist "+pathToCaseStudyFiles);
-
-        long timeout = 1800000L * 9L;// // for case studies, set timeout to 4.5 hours - the one that runs that long is centre-based computations for FanTempMonitor with 676 traces that do not produce brilliant results anyway (comparable to learning without centre since the PTA is dense enough for normal learning).
-
-        fillInCaseStudyExperimentParameters(learningGroup);
-
-        for (int casestudy = 0; casestudy < caseStudies.length; casestudy++)
-            if (whichCaseStudyToRun == null || whichCaseStudyToRun.isEmpty() || whichCaseStudyToRun.contains(caseStudies[casestudy])) {
-
-                for (final int preset : learnerExperiment)
-                    for (final Pair<Integer, Integer> traces_lengthmult : caseStudyInformationMap.get(casestudy).traces_and_lengths) {
-                        int states = caseStudyInformationMap.get(casestudy).referenceGraph.getStateNumber();
-                        int traceQuantityToUse = traces_lengthmult.firstElem;
-                        for (int trainingSample = 0; trainingSample < caseStudyInformationMap.get(casestudy).trainingSamplesPerFSM; ++trainingSample)
-                            for (LearningAlgorithms.ScoringToApply learnerKind :
-                                    preset == 0 ?// this is the only case where we can apply PTA-based merging algorithms, two other presets handle merging vertices in a connected graph
-                                            new LearningAlgorithms.ScoringToApply[]{
-                                                    LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-                                                    LearningAlgorithms.ScoringToApply.SCORING_EDSM_1, LearningAlgorithms.ScoringToApply.SCORING_EDSM_2, LearningAlgorithms.ScoringToApply.SCORING_EDSM_4,
-                                                    LearningAlgorithms.ScoringToApply.SCORING_PTAK_1, LearningAlgorithms.ScoringToApply.SCORING_PTAK_2,
-                                                    LearningAlgorithms.ScoringToApply.SCORING_HV
-                                            } :
-                                            new LearningAlgorithms.ScoringToApply[]{
-                                                    LearningAlgorithms.ScoringToApply.SCORING_MARKOV
-                                            })
-                                for (final int chunkSizeToEvaluate : learnerKind.isMarkov() ? caseStudyInformationMap.get(casestudy).chunkSizesToEvaluate : new int[]{2})
-                                    for (double weightOfInconsistencies : learnerKind.isMarkov() ?
-                                            caseStudyInformationMap.get(casestudy).chunkLenToWeights.get(chunkSizeToEvaluate)
-                                            //new double[]{0.25,0.5,1.0, 2.0, 3.0, 4.0, 6.0, 8.0}
-                                            : new double[]{1.0})
-                                        for (Pair<Integer, Integer> wlen_divisor : preset == 0 ? new Pair[]{new Pair(1, 1)} :
-                                                new Pair[]{new Pair(1, 2), new Pair(1, 4), new Pair(2, 4), new Pair(2, 8)}) {
-                                            ProgressDecorator.LearnerEvaluationConfiguration ev = new ProgressDecorator.LearnerEvaluationConfiguration(learningGroup.eval);
-                                            ev.config = learningGroup.eval.config.copy();
-                                            ev.config.setOverride_maximalNumberOfStates(states * 2);//LearningAlgorithms.maxStateNumberMultiplier);
-                                            if (learnerKind.isMarkov())
-                                                ev.config.setLearnerScoreMode(Configuration.ScoreMode.ONLYOVERRIDE);
-                                            // For some case studies (FanTempController_T) there is a large amount of data - need Array-based data structures
-                                            ev.config.setTransitionMatrixImplType(caseStudyInformationMap.get(casestudy).transitionMatrixImplType);
-                                            ev.config.setTimeOut(timeout);
-                                            MarkovLearningBaselineParameters parameters = new MarkovLearningBaselineParameters(learnerKind, states, 0, 0, casestudy, trainingSample);
-                                            parameters.setTraceLengthMultiplier(traces_lengthmult.secondElem);
-                                            parameters.setExperimentID(traceQuantityToUse, learningGroup.traceLengthMultiplierMax, 0);
-                                            parameters.markovParameters.setMarkovParameters(preset, chunkSizeToEvaluate, pathsOrSets,
-                                                    new MarkovParameters.WeightAndOffsetOfInconsistencies(weightOfInconsistencies, 0), penaliseMissingPaths, aveOrMax, wlen_divisor.secondElem, 0, wlen_divisor.firstElem);
-                                            parameters.setUsePrintf(learningGroup.experimentRunner.isInteractive());
-                                            parameters.disableReportMergeStatisticsWhenSolutionIsKnown();
-//                                            parameters.setWalkType(RandomPathGenerator.WALKTYPE.WALKTYPE_AIMFORTRANSITIONCOVER_PREFERNONLOOP,0.6, 10);
-                                            MarkovLearnerRunner learnerRunner = new MarkovLearnerRunnerForCaseStudies(learningGroup.outPathPrefix, parameters, ev);
-                                            learnerRunner.setAlwaysRunExperiment(true);// ensure that experiments that have no results are re-run rather than just re-evaluated (and hence post no execution time).
-
-                                            // Important: this is the special case intended to avoid running experiments that do not deliver particularly good results
-                                            // but take forever (many of them running longer than the 4.5 hours timeout). This happens because we attempt to use centre on a large graph
-                                            // that causes a large number of red-blue comparions to be made (in the range of 100k - 1M), each of which is not very fast because we
-                                            // have to compute inconsistency. Experiments taking points excluded below have been migrated to E_MarkovFanTempMonitor600.java
-                                            if (!caseStudyInformationMap.get(casestudy).name.equals(caseStudyFanTempMonitor) || preset == 0 || traceQuantityToUse < 600)
-                                                learningGroup.experimentRunner.submitTask(learnerRunner);
-                                        }
-                    }
-            }
-
-        learningGroup.experimentRunner.collectOutcomeOfExperiments(constructResultsCollector(resultCSV));
-
-        if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
-            Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(description,resultCSV);
-            List<List<String>> outputStatistics = new ArrayList<>();
-            outputStatistics.add(new ArrayList<>(Arrays.asList("Case study", "States", "Alphabet", "Traces", "T. Length", "Centre", "P.Len", "Diff, M", "BCR, M", "Diff, HV", "BCR, HV", "A12", "A12 lo", "A12 hi", "Sign test")));
-            for (Map.Entry<Integer, CaseStudyInformation> entryForCaseStudy : caseStudyInformationMap.entrySet()) {
-
-                // We need to compute the smallest runtime that was deemed to be a timeout. It is subsequently used as a cap
-                // on the timeout values because in different experiments different timeouts were used (and time was also measured less precisely
-                // in that some timeouts were only detected long past their timeout values).
-                AtomicInteger timeoutValueObtained = new AtomicInteger(Integer.MAX_VALUE);
-                for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-                    MarkovLearningParameters rowHeader = parseMarkovParametersRowFromCSV(rowEntry.getKey());
-                    if (rowHeader.sample == entryForCaseStudy.getKey()) {
-                        getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
-                                (column, columnText, Y) -> {
-                                    boolean learntTimeout = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_TIMEOUT.name);
-                                    if (learntTimeout) {
-                                        int runtime = (int) Math.round(obtainDoubleValueFromCell(Y, E_RUNTIME, column));
-                                        timeoutValueObtained.accumulateAndGet(runtime, (a, b) -> Math.min(a, b));
-                                    }
-                                    if (obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100)
-                                        throw new IllegalArgumentException("Case study "+entryForCaseStudy.getValue().name+", experiment "+rowEntry.getKey()+" transition coverage is "+obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column)+", it preferrably should be 100");
-                                });
-                    }
-                }
-
-                final RBoxPlot<String> gr_PerformanceOfLearners = new RBoxPlot<>("", "Structural Score",
-                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_learner_structural.pdf"));
-                gr_PerformanceOfLearners.setupForTwoLineXLabels();
-                gr_PerformanceOfLearners.setMargins(3, 3, 0.2, 0.2);
-
-                final RBoxPlot<String> gr_RuntimeOfLearners = new RBoxPlot<>("", "Runtime, log10 of seconds",
-                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_learner_runtime.pdf"));
-                gr_RuntimeOfLearners.setupForTwoLineXLabels();
-                gr_RuntimeOfLearners.setMargins(3, 3, 0.2, 0.2);
-
-                final RBoxPlot<String> gr_SuccessPercentage = new RBoxPlot<>("", "%% success",
-                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_learner_successpercentage.pdf"));
-                gr_SuccessPercentage.setupForTwoLineXLabels();
-                gr_SuccessPercentage.setMargins(3, 3, 0.2, 0.2);
-
-                final RBoxPlot<String> gr_CentreCorrectPercentage = new RBoxPlot<>("", "%% success of centre identification",
-                        new File(learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_learner_centrecorrect.pdf"));
-                gr_CentreCorrectPercentage.setupForTwoLineXLabels();
-                gr_CentreCorrectPercentage.setMargins(4, 3, 0.2, 0.2);
-
-                int stepCounter = 0;
-                for (final int chunkSizeToEvaluate : entryForCaseStudy.getValue().chunkSizesToEvaluate) {
-                    Pair<Integer, Integer>[] traces_and_lengths = entryForCaseStudy.getValue().traces_and_lengths;
-
-                    for (final boolean useCentre : new boolean[]{false, true})
-                        for (final Pair<Integer, Integer> traces_lengthmult : traces_and_lengths)
-                            // Do not process values from the extremely slow case of caseStudyFanTempMonitor
-                            if (!entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) || !useCentre || traces_lengthmult.firstElem < 600)
-                                ++stepCounter;
-                }
-                ProgressIndicator progress = new ProgressIndicator(entryForCaseStudy.getValue().name,stepCounter);
-
-                Map<ResultsXAxis, AtomicInteger> countsSuccess = new HashMap<>();
-                Map<ResultsXAxis, AtomicInteger> countsTotal = new HashMap<>();
-                Map<ResultsXAxis, AtomicInteger> centreCorrect = new HashMap<>();
-                Map<ResultsXAxis, AtomicInteger> countsCentre = new HashMap<>();
-                for (final int chunkSizeToEvaluate : entryForCaseStudy.getValue().chunkSizesToEvaluate) {
-                    Pair<Integer, Integer>[] traces_and_lengths = entryForCaseStudy.getValue().traces_and_lengths;
-
-                    for (final boolean useCentre : new boolean[]{false, true})
-                        for (final Pair<Integer, Integer> traces_lengthmult : traces_and_lengths)
-                            // Do not process values from the extremely slow case of caseStudyFanTempMonitor
-                            if (!entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) || !useCentre || traces_lengthmult.firstElem < 600) {
-                                // Now select the non-Markov result from all those available
-                                for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-                                    MarkovLearningParameters rowHeader = parseMarkovParametersRowFromCSV(rowEntry.getKey());
-                                    if (rowHeader.traceQuantity == traces_lengthmult.firstElem && rowHeader.sample == entryForCaseStudy.getKey()) {
-                                        // First, evaluate non-Markov learners
-                                        getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColOtherLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
-                                                (column, columnText, Y) -> {
-                                                    boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
-                                                    double structural = obtainDoubleValueFromCell(Y, E_DIFF, column);
-                                                    ResultsXAxis xValue = new ResultsXAxis(column.learner, rowHeader.traceQuantity, 0, false);
-                                                    if (xValue.filter(entryForCaseStudy.getValue().name)) {
-                                                        if (learntOK) {
-                                                            gr_PerformanceOfLearners.add(xValue.toString(), structural);
-                                                            double runtime = capToTimeout(obtainDoubleValueFromCell(Y, E_RUNTIME, column), timeoutValueObtained);// cap runtime to timeout, esp since earlier experimental runs could run longer than 4.5 hours (esp because they were not as frequently checking for a timeout).
-
-                                                            if (runtime >= 1.0)
-                                                                runtime = Math.log10(runtime);
-                                                            gr_RuntimeOfLearners.add(xValue.toString(), runtime);
-                                                            countsSuccess.computeIfAbsent(xValue, k -> new AtomicInteger(0)).incrementAndGet();
-                                                        }
-                                                        countsTotal.computeIfAbsent(xValue, k -> new AtomicInteger(0)).incrementAndGet();
-                                                    }
-                                                });
-
-                                        // Second, evaluate Markov learning
-                                        getAllValuesFromMapGivenRegexp(rowEntry.getValue(),
-                                                column ->
-                                                        (column.parameters.preset > 0) == useCentre &&
-                                                                column.parameters.chunkLen == chunkSizeToEvaluate &&
-                                                                column.learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV,
-                                                validityOfCells,
-                                                (column, columnText, Y) -> {
-                                                    double runtime = capToTimeout(obtainDoubleValueFromCell(Y, E_RUNTIME, column), timeoutValueObtained);// cap runtime to timeout, esp since earlier experimental runs could run longer than 4.5 hours (esp because they were not as frequently checking for a timeout).
-                                                    boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
-                                                    ResultsXAxis xValue = new ResultsXAxis(column.learner, rowHeader.traceQuantity, chunkSizeToEvaluate, useCentre);
-                                                    if (xValue.filter(entryForCaseStudy.getValue().name)) {
-                                                        if (runtime >= 1.0)
-                                                            runtime = Math.log10(runtime);
-
-                                                        gr_RuntimeOfLearners.add(xValue.toString(), runtime);
-                                                        if (learntOK) {
-                                                            countsSuccess.computeIfAbsent(xValue, k -> new AtomicInteger(0)).incrementAndGet();
-                                                        }
-                                                        if (useCentre) {
-                                                            ResultsXAxis xValueCentre = new ResultsXAxis(column.learner, rowHeader.traceQuantity, chunkSizeToEvaluate, useCentre,column.parameters.expectedWLen+" "+column.parameters.divisorForPathCount);
-                                                            boolean centreCorrectValue = obtainBooleanValueFromCell(Y, E_CENTRE_CORRECT, column);
-                                                            countsCentre.computeIfAbsent(xValueCentre, k -> new AtomicInteger(0)).incrementAndGet();
-                                                            if (centreCorrectValue)
-                                                                centreCorrect.computeIfAbsent(xValueCentre, k -> new AtomicInteger(0)).incrementAndGet();
-                                                        }
-                                                        countsTotal.computeIfAbsent(xValue, k -> new AtomicInteger(0)).incrementAndGet();
-                                                    }
-                                                });
-                                    }
-
-                                }
-
-                                for (Map.Entry<ResultsXAxis, AtomicInteger> entry : countsTotal.entrySet()) {
-                                    int value = countsSuccess.containsKey(entry.getKey()) ? countsSuccess.get(entry.getKey()).intValue() : 0;
-                                    gr_SuccessPercentage.add(entry.getKey().toString(), (double) Math.round(100. * (double) value / entry.getValue().intValue()));
-                                }
-                                for (Map.Entry<ResultsXAxis, AtomicInteger> entry : countsCentre.entrySet())
-                                {
-                                    int value = centreCorrect.containsKey(entry.getKey())? centreCorrect.get(entry.getKey()).get():0;
-                                    gr_CentreCorrectPercentage.add(entry.getKey().toString(), (double) Math.round(100. * (double) value / entry.getValue().intValue()));
-                                }
-
-                                String plot_filename_prefix = learningGroup.outPathPrefix + File.separator + description + "_" + entryForCaseStudy.getValue().name + "_" + traces_lengthmult.firstElem + "_" +
-                                        (useCentre ? "centre" : "no_cnt") + "_cl=" + chunkSizeToEvaluate;
-
-                                final SquareBagPlot gr_StructuralDiffBest = new SquareBagPlot("Structural score, HV", "Structural Score, EM",
-                                        new File(plot_filename_prefix + "_HV_structuraldiffBest.pdf"), 0, 1, true);
-                                final SquareBagPlot gr_BcrDiffBest = new SquareBagPlot("BCR, HV", "BCR, EM",
-                                        new File(plot_filename_prefix + "_HV_BCRBest.pdf"), 0.5, 1, true);
-                                final SignTest sign_test_Structural = new SignTest(new File(plot_filename_prefix + "_signtest_str.csv"));
-                                final SignTest sign_Test_BCR = new SignTest(new File(plot_filename_prefix + "_signtest_bcr.csv"));
-                                final A_VarghaDelaney A12_test_Structural = new A_VarghaDelaney(new File(plot_filename_prefix + "_A12_str.csv"), 100);
-                                final A_VarghaDelaney A12_test_BCR = new A_VarghaDelaney(new File(plot_filename_prefix + "_A12_bcr.csv"), 100);
-                                // Now select the best result from all those available
-                                final AtomicInteger diffReported = new AtomicInteger(0), bcrReported = new AtomicInteger(0);
-                                final AtomicInteger diffAverageMarkov100 = new AtomicInteger(0), bcrAverageMarkov100 = new AtomicInteger(0);
-                                final AtomicInteger diffAverageHV100 = new AtomicInteger(0), bcrAverageHV100 = new AtomicInteger(0);
-
-                                FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(-1, -1,
-                                        rowHeader -> rowHeader.traceQuantity == traces_lengthmult.firstElem && rowHeader.sample == entryForCaseStudy.getKey(),
-                                        columnParse -> (columnParse.parameters.preset > 0) == useCentre && columnParse.parameters.chunkLen == chunkSizeToEvaluate &&
-                                                new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, traces_lengthmult.firstElem, chunkSizeToEvaluate, useCentre).filter(entryForCaseStudy.getValue().name),
-                                        resultCSV, validityOfCells);
-
-                                AtomicInteger bestDiffSum = new AtomicInteger(0);
-                                AtomicInteger bestDiffCounter = new AtomicInteger(0);
-                                report.getResultForBestPerformingMarkovLearner(null, null,
-                                        (pair) -> {
-                                            diffReported.addAndGet(1);
-                                        },
-                                        (pair) -> {
-                                            bcrReported.addAndGet(1);
-                                        }
-                                );
-
-                                if (diffReported.get() > 0) {// if filtering did not remove everything.
-//                                    String colour = "lightskyblue";
-                                    String colour = DrawGraphs.getDefaultCol();
-
-                                    if (diffReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM) {
-                                        // For these case studies, the failure rate (L_RED or L_TM) could be so high that even with multiple values
-                                        // of multipliers we might not get a single successful learn for a particular training PTA and chunk len.
-                                        if (!entryForCaseStudy.getValue().name.equals("MinePump") && !entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor)) {
-                                            String errorMessage = "Diff value not reported: got " + diffReported.get() + " values, expected " + entryForCaseStudy.getValue().trainingSamplesPerFSM +
-                                                    " for: " + traces_lengthmult.firstElem + " traces, chunklen: " + chunkSizeToEvaluate + " , useCentre=" + useCentre;
-                                            if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
-                                                throw new IllegalStateException(errorMessage);
-                                            System.out.println("WARNING: " + errorMessage);
-                                        }
-                                        colour = "red";
-                                    }
-                                    if (bcrReported.get() != entryForCaseStudy.getValue().trainingSamplesPerFSM) {
-                                        // For these case studies, the failure rate (L_RED or L_TM) could be so high that even with multiple values
-                                        // of multipliers we might not get a single successful learn for a particular training PTA and chunk len.
-                                        if (!entryForCaseStudy.getValue().name.equals("MinePump") && !entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor)) {
-                                            String errorMessage = "BCR value not reported: got " + bcrReported.get() + " values, expected " + entryForCaseStudy.getValue().trainingSamplesPerFSM +
-                                                    " for: " + traces_lengthmult.firstElem + " traces, chunklen: " + chunkSizeToEvaluate + " , useCentre=" + useCentre;
-                                            if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
-                                                throw new IllegalStateException(errorMessage);
-                                            System.out.println("WARNING: " + errorMessage);
-                                        }
-                                        colour = "red";
-                                    }
-
-                                    final String colourToUse = colour;
-                                    // This repeats what was computed before in order to be able to add values using correct colours
-                                    for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
-                                        MarkovLearningParameters rowHeader = parseMarkovParametersRowFromCSV(rowEntry.getKey());
-                                        if (rowHeader.traceQuantity == traces_lengthmult.firstElem && rowHeader.sample == entryForCaseStudy.getKey()) {
-                                            getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColOtherLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
-                                                    (column, columnText, Y) -> {
-                                                        boolean learntOK = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_OK.name);
-                                                        double structural = obtainDoubleValueFromCell(Y, E_DIFF, column);
-                                                        ResultsXAxis xValue = new ResultsXAxis(column.learner, rowHeader.traceQuantity, 0, false);
-                                                        if (xValue.filter(entryForCaseStudy.getValue().name)) {
-                                                            if (learntOK)
-                                                                gr_PerformanceOfLearners.add(xValue.toString(), structural,colourToUse,null);
-                                                        }
-                                                    });
-                                        }
-                                    }
-
-                                    report.getResultForBestPerformingMarkovLearner(null, null,
-                                            (pair) -> {
-                                                double markov = pair.firstElem, hv_score = pair.secondElem;
-                                                gr_StructuralDiffBest.add(hv_score, markov, null, null);
-                                                A12_test_Structural.add(hv_score, markov);
-                                                sign_test_Structural.add(hv_score, markov);
-                                                ResultsXAxis xValue = new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, traces_lengthmult.firstElem, chunkSizeToEvaluate, useCentre);
-                                                gr_PerformanceOfLearners.add(xValue.toString(), markov, colourToUse, null);
-                                                diffAverageMarkov100.addAndGet((int) Math.round(markov * 100));
-                                                diffAverageHV100.addAndGet((int) Math.round(hv_score * 100));
-
-                                                bestDiffSum.addAndGet((int) Math.round(markov * 100));
-                                                bestDiffCounter.incrementAndGet();
-                                            },
-                                            (pair) -> {
-                                                double bcr = pair.firstElem, hv_bcr = pair.secondElem;
-                                                gr_BcrDiffBest.add(hv_bcr, bcr, colourToUse, null);
-                                                A12_test_BCR.add(hv_bcr, bcr);
-                                                sign_Test_BCR.add(hv_bcr, bcr);
-
-                                                bcrAverageMarkov100.addAndGet((int) Math.round(bcr * 100));
-                                                bcrAverageHV100.addAndGet((int) Math.round(hv_bcr * 100));
-                                            }
-                                    );
-
-                                    List<String> row = new ArrayList<>();
-                                    row.add(entryForCaseStudy.getValue().name);
-                                    row.add(Integer.toString(entryForCaseStudy.getValue().referenceGraph.getStateNumber()));
-                                    row.add(Integer.toString(entryForCaseStudy.getValue().alphabetSize));
-                                    row.add(Integer.toString(traces_lengthmult.firstElem));
-                                    int traceLength = entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) ?
-                                            entryForCaseStudy.getValue().actualLength :
-                                            (traces_lengthmult.secondElem * entryForCaseStudy.getValue().referenceGraph.getStateNumber());
-                                    row.add(Integer.toString(traceLength));
-                                    row.add(useCentre ? "Y" : "");
-                                    row.add(Integer.toString(chunkSizeToEvaluate - 1));
-                                    row.add(Integer.toString(diffAverageMarkov100.get() / diffReported.get()));
-                                    row.add(Integer.toString(bcrAverageMarkov100.get() / bcrReported.get()));
-
-                                    row.add(Integer.toString(diffAverageHV100.get() / diffReported.get()));
-                                    row.add(Integer.toString(bcrAverageHV100.get() / bcrReported.get()));
-
-                                    StatisticalTestResult a12_diff = A12_test_Structural.obtainResultFromR(
-                                            entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) ||
-                                                    entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) ||
-                                            learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
-                                    StatisticalTestResult signtest_diff = sign_test_Structural.obtainResultFromR(false);
-
-                                    NumberFormat f_A12 = new DecimalFormat("0.00");
-                                    NumberFormat f_signtest = new DecimalFormat("0.00E00");
-
-                                    if (a12_diff.valueValid) {
-                                        row.add(f_A12.format(a12_diff.statistic));
-                                        row.add(f_A12.format(a12_diff.confidence_lo));
-                                        row.add(f_A12.format(a12_diff.confidence_hi));
-                                    } else
-                                        for (int i = 0; i < 3; ++i)
-                                            row.add("N/A");
-
-                                    if (signtest_diff.valueValid)
-                                        row.add(f_signtest.format(signtest_diff.pvalue));
-                                    else
-                                        row.add("N/A");
-
-                                    ResultsXAxis xValue = new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, traces_lengthmult.firstElem, chunkSizeToEvaluate, useCentre);
-
-                                    // We are here for different values of chunklen
-                                    if (xValue.addToSpreadsheet(entryForCaseStudy.getValue().name))
-                                        outputStatistics.add(row);
-                                    gr_StructuralDiffBest.reportResults(learningGroup.gr);
-                                    gr_BcrDiffBest.reportResults(learningGroup.gr);
-                                    A12_test_Structural.reportResults(learningGroup.gr,
-                                            entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) ||
-                                                    entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) ||
-                                            learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
-                                    A12_test_BCR.reportResults(learningGroup.gr,
-                                            entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) ||
-                                                    entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) ||
-                                            learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE);
-                                    sign_test_Structural.reportResults(learningGroup.gr);
-                                    sign_Test_BCR.reportResults(learningGroup.gr);
-
-
-//                            List<String> learners = new ArrayList<>(learnerToHowOftenBest.keySet());
-//                            learners.sort((o1, o2) ->
-//                                    learnerToHowOftenBest.get(o2).get() - learnerToHowOftenBest.get(o1).get());
-//                            int average = bestDiffCounter.get() > 0 ? bestDiffSum.get() / bestDiffCounter.get() : 0;
-//                            System.out.println("CASE STUDY: " + entryForCaseStudy.getValue().name + " centre: " + useCentre + " chunkLen: " + chunkSizeToEvaluate +
-//                                    " with: " + traces_lengthmult.firstElem + ", " + traceLength + " , Best diff: " + average);
-//
-//                            for (String l : learners)
-//                                System.out.println(l + " -> " + learnerToHowOftenBest.get(l).get());
-                                }
-                                progress.next();
-                            }
-                }
-                ResultsXAxis[] xValues = countsTotal.keySet().toArray(new ResultsXAxis[0]);
-                Arrays.sort(xValues);
-                List<String> orderingXaxis = Arrays.stream(xValues).map(k -> k.toString()).collect(Collectors.toList());
-                List<String> orderingXaxisForSuccessfulLearners = Arrays.stream(xValues).
-                        filter(k->gr_PerformanceOfLearners.hasKey(k.toString())).// it is important to directly ask
-                        // gr_PerformanceOfLearners here because if all attempts to learn failed, there will be a zero in gr_PerformanceOfLearners
-                        // but no corresponding entry in the ordering array. If all learners failed, countsSuccess might have no entry.
-                        map(k -> k.toString()).collect(Collectors.toList());
-                gr_PerformanceOfLearners.setOrderingOfLabels(orderingXaxisForSuccessfulLearners);
-                gr_PerformanceOfLearners.reportResults(learningGroup.gr);
-                gr_RuntimeOfLearners.setOrderingOfLabels(orderingXaxisForSuccessfulLearners);
-                gr_RuntimeOfLearners.reportResults(learningGroup.gr);
-                gr_SuccessPercentage.setOrderingOfLabels(orderingXaxis);
-                gr_SuccessPercentage.reportResults(learningGroup.gr);
-
-                ResultsXAxis[] centreXValues = countsCentre.keySet().toArray(new ResultsXAxis[0]);
-                Arrays.sort(centreXValues);
-                List<String> orderingCentreXaxis = Arrays.stream(centreXValues).map(k -> k.toString()).collect(Collectors.toList());
-                gr_CentreCorrectPercentage.setOrderingOfLabels(orderingCentreXaxis);
-                gr_CentreCorrectPercentage.reportResults(learningGroup.gr);
-            }
-            writeTEX(new File(learningGroup.outPathPrefix + File.separator + description+"_statistics.tex"), outputStatistics, true);
-        }
-    }
-
-    public static void fillInCaseStudyExperimentParameters(LearningExperimentGroupParameters learningGroup) {
-        if (caseStudyInformationMap.isEmpty())
-            for (int casestudy = 0; casestudy < caseStudies.length; casestudy++)
-                if (whichCaseStudyToRun == null || whichCaseStudyToRun.isEmpty() || whichCaseStudyToRun.contains(caseStudies[casestudy])) {
-                    if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
-                        System.out.print("Loading " + caseStudies[casestudy] + " ...");
-                    Configuration dotConfig = learningGroup.eval.config.copy();
-                    dotConfig.setLabelKind(Configuration.LABELKIND.LABEL_STRING);
-                    LearnerGraph reference = constructAutomatonForCaseStudy(caseStudies[casestudy], dotConfig, new Transform.InternStringLabel());
-                    try {
-                        WMethod.computeWSet_reducedmemory(reference);
-                    } catch (WMethod.EquivalentStatesException ex) {
-                        System.out.println("Equivalent states:");
-                        for (EquivalenceClass<DeterministicDirectedSparseGraph.CmpVertex, LearnerGraphCachedData> eqClass : ex.getEquivalentStates())
-                            System.out.println(eqClass.toString());
-                        throw new IllegalArgumentException(ex);
-                    }
-
-                    double density = (double) reference.pathroutines.countEdges() / (reference.getStateNumber() * reference.getStateNumber());
-                    int states = reference.getStateNumber();
-                    if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS)
-                        System.out.println("States: " + states + " , Alphabet: " + reference.getCache().getAlphabet().size() + " , Density: " + density + " done.");
-                    Pair<Integer, Integer>[] traces_and_lengths = new Pair[]{
-                            new Pair(1, reference.getCache().getAlphabet().size() * states),
-                            new Pair(states, reference.getCache().getAlphabet().size()),
-                            new Pair(states * states, reference.getCache().getAlphabet().size())
-                    };
-                    caseStudyInformationMap.put(casestudy, new CaseStudyInformation(caseStudies[casestudy], casestudy, reference, reference.pathroutines.computeAlphabet().size(), traces_and_lengths));
-                    Map<Integer, double[]> chunkSizesToWeightsMinePump = new TreeMap<>();
-                    chunkSizesToWeightsMinePump.put(3, new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
-                    chunkSizesToWeightsMinePump.put(4, new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 12.0, 16.0});
-                    chunkSizesToWeightsMinePump.put(5, new double[]{0.25, 0.5, 1.0});
-                    chunkSizesToWeightsMinePump.put(6, new double[]{0.05, 0.1, 0.25});
-
-                    Map<Integer, double[]> chunkSizesToWeightsFanTempMonitor = new TreeMap<>();
-                    chunkSizesToWeightsFanTempMonitor.put(3, new double[]{1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
-                    chunkSizesToWeightsFanTempMonitor.put(4, new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 16.0});
-                    chunkSizesToWeightsFanTempMonitor.put(5, new double[]{0.5, 1.0, 2.0, 4.0, 8.0});
-                    chunkSizesToWeightsFanTempMonitor.put(6, new double[]{0.5, 1.0, 2.0, 4.0, 8.0});
-                    chunkSizesToWeightsFanTempMonitor.put(7, new double[]{0.5, 1.0, 2.0, 4.0, 8.0});
-                    switch (caseStudies[casestudy]) {
-                        case "SmallTrain":
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
-                            break;
-                        case "SSH":
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
-                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistencies(new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 12.0, 16.0});
-                            break;
-                        case "CVS":
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
-                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistencies(new double[]{0.5, 1.0, 2.0, 3.0, 4.0, 8.0, 12.0, 16.0});
-                            break;
-                        case "MinePump":
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4});
-                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsMinePump);
-                            break;
-                        case caseStudyFanTempMonitor:
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{4, 5, 6, 7});
-                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsFanTempMonitor);
-                            break;
-                        case caseStudyFanTempMonitorSingleTrace:
-                            caseStudyInformationMap.get(casestudy).setChunkSizesAndWeightsToEvaluate(new int[]{3, 4, 5, 6, 7});
-                            caseStudyInformationMap.get(casestudy).setWeightOfInconsistenciesDependingOnChunkLen(chunkSizesToWeightsFanTempMonitor);
-                            caseStudyInformationMap.get(casestudy).setTransitionMatrixImplType(Configuration.STATETREE.STATETREE_ARRAY);// large PTA, use array. PTA is loaded by constructPTA of caseStudyInformation on request when needed.
-                            caseStudyInformationMap.get(casestudy).traces_and_lengths = new Pair[]{
-                                    new Pair(1, 797676 / states)};// bit of a cludge but 797676 is the actual length of the log however it is expressed here in proportion to the number of states.
-                            caseStudyInformationMap.get(casestudy).trainingSamplesPerFSM = 1;// we only have one PTA here
-                            caseStudyInformationMap.get(casestudy).actualLength = 797676;
-                            break;
-                        default:
-                            break;// use default values
-                    }
-                }
-    }
 }

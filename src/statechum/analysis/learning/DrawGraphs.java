@@ -2646,7 +2646,7 @@ public class DrawGraphs {
 
 					sb.append(" |");
 				}
-				sb.append("}\\\\hline\n");
+				sb.append("}\\hline\n");
 				elemNumber = line.size();
 				firstLine = false;
 
@@ -2656,7 +2656,7 @@ public class DrawGraphs {
 						firstItem = false;
 					else
 						sb.append(" & ");
-					sb.append(elem.replace("_","\\_"));
+					sb.append(elem);// do not replace values on the first line
 				}
 				sb.append("\\\\\\hline\\hline");
 			}
@@ -2672,7 +2672,7 @@ public class DrawGraphs {
 					}
 					else
 						sb.append(" & ");
-					sb.append(elem);
+					sb.append(elem.replace("_","\\_"));
 				}
 				sb.append("\\\\");
 			}

@@ -121,7 +121,7 @@ public class E_MarkovCaseStudies {
 //        whichCaseStudyToRun.add("ATM");
 //        whichCaseStudyToRun.add("SSH");
 //        whichCaseStudyToRun.add("MinePump");
-//        whichCaseStudyToRun.add(caseStudyFanTempMonitor);
+        whichCaseStudyToRun.add(caseStudyFanTempMonitor);
 //        whichCaseStudyToRun.add(caseStudyFanTempMonitorSingleTrace);
     }
 
@@ -506,7 +506,7 @@ public class E_MarkovCaseStudies {
                                                     }
                                                 });
 
-                                        if (xValue.get() != null && xValue.get().filter(entryForCaseStudy.getValue().name)) {
+                                        if (xValue.get() != null && xValue.get().addToPlot(entryForCaseStudy.getValue().name)) {
                                             double runtime = runtimeForAttempt.get();
 
                                             if (runtime >= 1.0)
@@ -599,7 +599,7 @@ public class E_MarkovCaseStudies {
                                                         double structural = obtainDoubleValueFromCell(Y, E_DIFF, column);
                                                         ResultsXAxis xValue = new ResultsXAxis(column.learner, rowHeader.traceQuantity, 0, false);
                                                         if (xValue.filter(entryForCaseStudy.getValue().name)) {
-                                                            if (learntOK)
+                                                            if (learntOK && xValue.addToPlot(entryForCaseStudy.getValue().name))
                                                                 gr_PerformanceOfLearners.add(xValue.toString(), structural,colourToUse,null);
                                                         }
                                                     });
@@ -613,7 +613,8 @@ public class E_MarkovCaseStudies {
                                                 A12_test_Structural.add(hv_score, markov);
                                                 sign_test_Structural.add(hv_score, markov);
                                                 ResultsXAxis xValue = new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, traces_lengthmult.firstElem, chunkSizeToEvaluate, useCentre);
-                                                gr_PerformanceOfLearners.add(xValue.toString(), markov, colourToUse, null);
+                                                if (xValue.addToPlot(entryForCaseStudy.getValue().name))
+                                                    gr_PerformanceOfLearners.add(xValue.toString(), markov, colourToUse, null);
                                                 diffSumMarkov100.addAndGet((int) Math.round(markov * multiplierScore));
                                                 diffSumHV100.addAndGet((int) Math.round(hv_score * multiplierScore));
                                             },
@@ -817,6 +818,7 @@ public class E_MarkovCaseStudies {
         public ResultsXAxis(LearningAlgorithms.ScoringToApply learner, int traceNum, int chunkSize, boolean useCentre) {
             this(learner, traceNum, chunkSize, useCentre, null);
         }
+
         public ResultsXAxis(LearningAlgorithms.ScoringToApply learner, int traceNum, int chunkSize, boolean useCentre, String extra) {
             this.learner = learner;
             this.traceNum = traceNum;
@@ -842,7 +844,7 @@ public class E_MarkovCaseStudies {
         public String toString() {
             if (learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV)
                 return traceNum + "\n" + (useCentre ? "C" : "N") + "M_" + (chunkSize - 1) +
-                        (extra == null ? "" : "\n"+extra);
+                        (extra == null ? "" : "\n" + extra);
             return traceNum + "\n" + learner.name;
         }
 
@@ -930,12 +932,29 @@ public class E_MarkovCaseStudies {
         public boolean addToSpreadsheet(String name) {
             if (!filter(name))
                 return false;
+//            switch (name) {
+//                case "SmallTrain":
+//                    return chunkSize == 4;
+//            }
+            return true;
+        }
+
+        /**
+         * Expected to return true if a particular result is to be included in the final plot. Used in conjunction
+         * with filter, mostly to select the best prefix length.
+         *
+         * @param name case study to consider
+         * @return whether the value should be included in the reported table
+         */
+        public boolean addToPlot(String name) {
+            if (!filter(name))
+                return false;
             switch (name) {
-                case "SmallTrain":
-                    return chunkSize == 4;
+                case caseStudyFanTempMonitor:
+                    if (learner == LearningAlgorithms.ScoringToApply.SCORING_MARKOV)
+                        return chunkSize >= 4 && (traceNum > 600 || chunkSize < 6);
             }
             return true;
         }
     }
-
 }

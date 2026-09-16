@@ -118,6 +118,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -587,7 +588,21 @@ public class DrawGraphs {
 	 		}
 	 		return outcome.toString();
 	 	}
-	 	
+
+		// Thanks to https://stackoverflow.com/questions/27872387/can-a-java-lambda-have-more-than-1-parameter
+		protected BiFunction<List<String>,List<String>,Boolean> checkCellHeaderCompatibility = null;
+
+		public void setCheckCellHeaderCompatibility(BiFunction<List<String>, List<String>, Boolean> checkCellHeaderCompatibility) {
+			this.checkCellHeaderCompatibility = checkCellHeaderCompatibility;
+		}
+
+		protected boolean checkCellHeadersForEquivalence(List<String> oldCellHeaders, List<String> newCellHeaders) {
+			if (checkCellHeaderCompatibility == null)
+				return oldCellHeaders.equals(newCellHeaders);
+
+			return checkCellHeaderCompatibility.apply(oldCellHeaders, newCellHeaders);
+		 }
+
 	 	/** Adds text to the spreadsheet. */
 		public void add(ThreadResultID id, String text)
 		{
@@ -623,9 +638,9 @@ public class DrawGraphs {
 				List<String> oldColumnHeaders = Arrays.asList(columnIDToHeader.get(id.getColumnID())), currColumnHeaders = Arrays.asList(id.getColumnText());
 				List<String> oldCellHeaders = Arrays.asList(columnIDToCellHeader.get(id.getColumnID())), currCellHeaders = Arrays.asList(id.headerValuesForEachCell());
 				if (!oldColumnHeaders.equals(currColumnHeaders))
-					throw new IllegalArgumentException("different values of column headers between previous ("+oldColumnHeaders+")and current ("+currColumnHeaders+") values of column ID "+id.getColumnID());
-				if (!oldCellHeaders.equals(currCellHeaders))
-					throw new IllegalArgumentException("different values of cell headers between previous ("+oldCellHeaders+")and current ("+currCellHeaders+") values of column ID "+id.getColumnID());
+					throw new IllegalArgumentException("different values of column headers between previous ("+oldColumnHeaders+") and current ("+currColumnHeaders+") values of column ID "+id.getColumnID());
+				if (!checkCellHeadersForEquivalence(oldCellHeaders,currCellHeaders))
+					throw new IllegalArgumentException("different values of cell headers between previous ("+oldCellHeaders+") and current ("+currCellHeaders+") values of column ID "+id.getColumnID());
 			}
 		}
 

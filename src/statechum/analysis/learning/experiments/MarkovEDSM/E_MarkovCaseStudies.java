@@ -121,7 +121,7 @@ public class E_MarkovCaseStudies {
 //        whichCaseStudyToRun.add("ATM");
 //        whichCaseStudyToRun.add("SSH");
 //        whichCaseStudyToRun.add("MinePump");
-        whichCaseStudyToRun.add(caseStudyFanTempMonitor);
+//        whichCaseStudyToRun.add(caseStudyFanTempMonitor);
 //        whichCaseStudyToRun.add(caseStudyFanTempMonitorSingleTrace);
     }
 
@@ -148,8 +148,6 @@ public class E_MarkovCaseStudies {
          */
         public void generateReferenceFSM() {
             referenceGraph = constructAutomatonForCaseStudy(caseStudies[par.sample], learnerInitConfiguration.config, learnerInitConfiguration.getLabelConverter());
-//            Visualiser.updateFrame(referenceGraph, null);
-//            Visualiser.waitForKey();
         }
 
         @Override
@@ -394,9 +392,13 @@ public class E_MarkovCaseStudies {
                         getAllValuesFromMapGivenRegexp(rowEntry.getValue(), new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), validityOfCells,
                                 (column, columnText, Y) -> {
                                     boolean learntTimeout = obtainStringValueFromCell(Y, RESULT_VALUES.E_SUCCESS, column).equals(LEARNING_TIMEOUT.name);
-                                    if (learntTimeout) {
+                                    // Only compute timeout for case studies where it was 6hrs, lower timeout is used for FanTempMonitor,
+                                    // centre-vertex learning, 676 traces. Filter it out.
+                                    if (learntTimeout && (!entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor) || !column.parameters.useCentreVertex || rowHeader.traceQuantity < 600)
+                                    ) {
                                         int runtime = (int) Math.round(obtainDoubleValueFromCell(Y, E_RUNTIME, column));
                                         timeoutValueObtained.accumulateAndGet(runtime, (a, b) -> Math.min(a, b));
+                                        assert runtime > 3800: "Too low value for a timeout, should be around 6hrs, got "+runtime;
                                     }
                                     if (obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column) != 100)
                                         throw new IllegalArgumentException("Case study "+entryForCaseStudy.getValue().name+", experiment "+rowEntry.getKey()+" transition coverage is "+obtainIntValueFromCell(Y, E_TRANSITIONS_SAMPLED,column)+", it preferrably should be 100");

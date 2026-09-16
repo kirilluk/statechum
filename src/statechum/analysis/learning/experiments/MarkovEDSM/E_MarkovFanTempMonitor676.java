@@ -191,10 +191,10 @@ public class E_MarkovFanTempMonitor676 extends E_MarkovCaseStudies {
                                                     if (learntOK && rowHeader.traceQuantity > 600 && useCentre) {
                                                         gr_AveForLargeNumberOfTraces.add(xValue.toString(), obtainDoubleValueFromCell(Y, E_DIFF, column));
                                                         countsSuccess.computeIfAbsent(xValue, k -> new AtomicInteger(0)).incrementAndGet();
-                                                        boolean centreCorrectValue = obtainBooleanValueFromCell(Y, E_CENTRE_CORRECT, column);
-                                                        if (centreCorrectValue)
-                                                            centreCorrect.computeIfAbsent(xValue, k -> new AtomicInteger(0)).incrementAndGet();
                                                     }
+                                                    boolean centreCorrectValue = obtainBooleanValueFromCell(Y, E_CENTRE_CORRECT, column);
+                                                    if (centreCorrectValue)
+                                                        centreCorrect.computeIfAbsent(xValue, k -> new AtomicInteger(0)).incrementAndGet();
                                                 }
                                             });
                                 }

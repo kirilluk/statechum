@@ -1135,17 +1135,16 @@ public class MarkovExperiment
 			this.validateTransitionCover = validateTransitionCover;
 
 			SGE_ExperimentRunner.setDataPointHandler(fileNameForDataPoint -> {
-                SGE_ExperimentRunner.FileNameToUse target = new SGE_ExperimentRunner.FileNameToUse(copyToPathPrefix,fileNameForDataPoint.fileName);
+//                SGE_ExperimentRunner.FileNameToUse target = new SGE_ExperimentRunner.FileNameToUse(copyToPathPrefix,fileNameForDataPoint.fileName);
 //                System.out.println(FileSystems.getDefault().getPath(fileNameForDataPoint.toFileName())+" - copy -> "+FileSystems.getDefault().getPath(target.toFileName()));
-                /*
-                new File(target.toFileName()).getParentFile().mkdirs();
-                try {
-                    Files.copy(FileSystems.getDefault().getPath(fileNameForDataPoint.toFileName()),FileSystems.getDefault().getPath(target.toFileName()));
-                } catch (IOException e) {
-                    throw new RuntimeException("Failed to move "+fileNameForDataPoint.toFileName()+
-                            " to "+target.toFileName(),e);
-                }
-                 */
+//                new File(target.toFileName()).getParentFile().mkdirs();
+//				if (!new File(target.toFileName()).canRead())
+//					try {
+//						Files.copy(FileSystems.getDefault().getPath(fileNameForDataPoint.toFileName()),FileSystems.getDefault().getPath(target.toFileName()));
+//					} catch (IOException e) {
+//						throw new RuntimeException("Failed to move "+fileNameForDataPoint.toFileName()+
+//								" to "+target.toFileName(),e);
+//					}
             });
 		}
 
@@ -1668,23 +1667,23 @@ public class MarkovExperiment
 		{
 			E_MarkovCaseStudies.runExperiment(learningGroup);
 			E_MarkovFanTempMonitor676.runExperiment(learningGroup);
-//			E_MarkovBaselineLearn.runExperiment(learningGroup);
-//			E_MarkovBaselineMergeStatistics.runExperiment(learningGroup);
-//			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
+			E_MarkovBaselineLearn.runExperiment(learningGroup);
+			E_MarkovBaselineMergeStatistics.runExperiment(learningGroup);
+			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovScoreVsInconsistency");
-//			E_MarkovAlphabet.runExperiment(learningGroup);
+			E_MarkovAlphabet.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovAlphabet");
-//			E_MarkovTraceLenMult.runExperiment(learningGroup);
+			E_MarkovTraceLenMult.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceLenMult");
-//			E_MarkovTraceConstSize.runExperiment(learningGroup);
+			E_MarkovTraceConstSize.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceConstSize");
-//			E_MarkovPrefixLen.runExperiment(learningGroup);
+			E_MarkovPrefixLen.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovPrefixLen");
-//			E_MarkovTraceNum.runExperiment(learningGroup);
+			E_MarkovTraceNum.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovTraceNum");
-//			E_MarkovCentre.runExperiment(learningGroup);
+			E_MarkovCentre.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovCentre");
-//			E_MarkovLearnWithCentre.runExperiment(learningGroup);
+			E_MarkovLearnWithCentre.runExperiment(learningGroup);
 //			if (learningGroup.phase == COUNT_TASKS_PARALLELPTA) System.out.println("Parallel PTA finished for E_MarkovLearnWithCentre");
 		}
 		catch(Exception ex)

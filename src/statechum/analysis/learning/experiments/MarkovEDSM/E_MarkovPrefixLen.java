@@ -106,7 +106,7 @@ public class E_MarkovPrefixLen {
             for (final int preset : learnerExperiment) {
                 String experimentName = learningGroup.outPathPrefix + File.separator + File.separator + description+"_";
                 for (int states : learningGroup.statesToUse) {
-                    final RBoxPlot<String> gr_StructuralVsChunkLenWeight = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
+                    final RBoxPlot<String> gr_StructuralVsChunkLenWeight = new RBoxPlot<>("Prefix length and inconsistency weight", "Structural Score",
                             new File(experimentName + states + "_prefixLenInconsistencyWeight_structural.pdf"));
                     final DrawGraphs.RBagPlot gr_StructuralVsReferenceDensity = new DrawGraphs.RBagPlot("Density of Reference", "Structural Score",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_density_reference_structural.pdf"));
@@ -116,7 +116,7 @@ public class E_MarkovPrefixLen {
 //                    gr_StructuralVsChunkLenWeight.configureTextLabels(-0.2,1,0.5);
 //                    gr_StructuralVsChunkLenWeight.setXLine(3.2);
 //                    gr_StructuralVsChunkLenWeight.setMargins(4.2,3,0.2,0.2);
-                    final RBoxPlot<String> gr_StructuralVsChunkLenWeight_gooddensity = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
+                    final RBoxPlot<String> gr_StructuralVsChunkLenWeight_gooddensity = new RBoxPlot<>("Prefix length and inconsistency weight", "Structural Score",
                             new File(experimentName + states + "_(gooddensity)_prefixLenInconsistencyWeight_structural.pdf"));
                     final DrawGraphs.RBagPlot gr_StructuralVsReferenceDensity_gooddensity = new DrawGraphs.RBagPlot("Density of Reference", "Structural Score",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_(gooddensity)_density_reference_structural.pdf"));
@@ -144,14 +144,14 @@ public class E_MarkovPrefixLen {
                                 new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
                         final boolean goodDensity = perStateSquaredDensity100 != MarkovExperiment.densityFromStateNumberPrefixLen(states)[densityFromStateNumberPrefixLen(states).length-1];
 
-                        {// structural score for different values of prefix length and inconsistency multiplier, considering offset
-                            RBoxPlot<String> graph = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
+                        {// structural score for different values of prefix length and inconsistency weight, considering offset
+                            RBoxPlot<String> graph = new RBoxPlot<>("Prefix length and inconsistency weight", "Structural Score",
                                     new File(experimentName + states + "_" + perStateSquaredDensity100 + "_prefixLenInconsistencyWeight_structural.pdf"));
                             gr_StructuralVsChunkLenWeightForDensity.put(perStateSquaredDensity100, graph);
                             graph.setupForTwoLineXLabels();
                         }
                         {// Results above for runs where learning did not fail on L_REDS
-                            RBoxPlot<String> graph = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
+                            RBoxPlot<String> graph = new RBoxPlot<>("Prefix length and inconsistency weight", "Structural Score",
                                     new File(experimentName + states + "_" + perStateSquaredDensity100 + "_prefixLenInconsistencyWeight_NonFailStructural.pdf"));
                             gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.put(perStateSquaredDensity100, graph);
                             graph.setupForTwoLineXLabels();

@@ -1665,8 +1665,8 @@ public class MarkovExperiment
 
 		try
 		{
-//			E_MarkovCaseStudies.runExperiment(learningGroup);
-			E_MarkovFanTempMonitor676.runExperiment(learningGroup);
+			E_MarkovCaseStudies.runExperiment(learningGroup);
+//			E_MarkovFanTempMonitor676.runExperiment(learningGroup);
 //			E_MarkovBaselineLearn.runExperiment(learningGroup);
 //			E_MarkovBaselineMergeStatistics.runExperiment(learningGroup);
 //			E_MarkovScoreVsInconsistency.runExperiment(learningGroup);

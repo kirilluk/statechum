@@ -378,7 +378,7 @@ public class E_MarkovCaseStudies {
 
         if (learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_AVAILABLE || learningGroup.phase == SGE_ExperimentRunner.PhaseEnum.COLLECT_RESULTS) {
             Set<RESULT_VALUES> validityOfCells = obtainValidityOfCellValues(description,resultCSV);
-            Map<CaseStudyTableRowOrdering,List<String>> outputStatistics = new TreeMap<>();
+            Map<CaseStudyTableRowOrdering,List<String>> outputStatistics_most = new TreeMap<>(), outputStatistics_FanTempMonitor = new TreeMap<>();
             List<String> outputTableHeader = new ArrayList<>(Arrays.asList("Case study", "Traces", "Length", "C", "P.Len", "Diff,M", "BCR,M", "Diff,HV", "BCR,HV", "$\\hat{A}_{12}$", "$\\hat{A}_{12}$lo", "$\\hat{A}_{12}$hi", "Sign test", "Time"));
             for (Map.Entry<Integer, CaseStudyInformation> entryForCaseStudy : caseStudyInformationMap.entrySet()) {
 
@@ -675,9 +675,15 @@ public class E_MarkovCaseStudies {
 
                                     ResultsXAxis xValue = new ResultsXAxis(LearningAlgorithms.ScoringToApply.SCORING_MARKOV, traces_lengthmult.firstElem, chunkSizeToEvaluate, useCentre);
 
-                                    // We are here for different values of chunklen
-                                    if (xValue.addToSpreadsheet(entryForCaseStudy.getValue().name))
-                                        outputStatistics.put(new CaseStudyTableRowOrdering(entryForCaseStudy.getValue().name,traces_lengthmult.firstElem,chunkSizeToEvaluate - 1,useCentre),row);
+                                    if (xValue.addToSpreadsheet(entryForCaseStudy.getValue().name)) {
+                                        CaseStudyTableRowOrdering orderingEntry = new CaseStudyTableRowOrdering(entryForCaseStudy.getValue().name,
+                                                traces_lengthmult.firstElem, chunkSizeToEvaluate - 1, useCentre);
+                                        if (!entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitorSingleTrace) &&
+                                                !entryForCaseStudy.getValue().name.equals(caseStudyFanTempMonitor))
+                                            outputStatistics_most.put(orderingEntry, row);
+                                        else
+                                            outputStatistics_FanTempMonitor.put(orderingEntry, row);
+                                    }
                                     gr_StructuralDiffBest.reportResults(learningGroup.gr);
                                     gr_BcrDiffBest.reportResults(learningGroup.gr);
                                     A12_test_Structural.reportResults(learningGroup.gr,
@@ -726,11 +732,22 @@ public class E_MarkovCaseStudies {
                 gr_CentreCorrectPercentage.setOrderingOfLabels(orderingCentreXaxis);
                 gr_CentreCorrectPercentage.reportResults(learningGroup.gr);
             }
-            List<List<String>> resultTable = new  ArrayList<>();
-            resultTable.add(outputTableHeader);
-            for(List<String> outputRow:outputStatistics.values())
-                resultTable.add(outputRow);
-            writeTEX(new File(learningGroup.outPathPrefix + File.separator + description+"_statistics.tex"), resultTable, true);
+
+            {// Report most case study results
+                List<List<String>> resultTable = new ArrayList<>();
+                resultTable.add(outputTableHeader);
+                for (List<String> outputRow : outputStatistics_most.values())
+                    resultTable.add(outputRow);
+                writeTEX(new File(learningGroup.outPathPrefix + File.separator + description + "_statistics_most.tex"), resultTable, true);
+            }
+
+            {// Report FanTempMonitor results
+                List<List<String>> resultTable = new ArrayList<>();
+                resultTable.add(outputTableHeader);
+                for (List<String> outputRow : outputStatistics_FanTempMonitor.values())
+                    resultTable.add(outputRow);
+                writeTEX(new File(learningGroup.outPathPrefix + File.separator + description + "_statistics_FanTempMonitor.tex"), resultTable, true);
+            }
         }
     }
 

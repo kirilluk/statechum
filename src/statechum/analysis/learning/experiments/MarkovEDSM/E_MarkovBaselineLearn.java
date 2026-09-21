@@ -231,7 +231,7 @@ public class E_MarkovBaselineLearn {
                 final DrawGraphs.SquareBagPlot gr_StructuralDiffAllDensities = new DrawGraphs.SquareBagPlot("Structural score, HV", "Structural Score, EM",
                         new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_HV_structuraldiff.pdf"), 0, 1, true);
 
-                double densitySumReferenceAll = 0;
+                double densitySumReferenceAll = 0, densitySumReferenceStatesIdentifiedAll = 0;
                 int countLTSReferenceAll = 0;
 
                 for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
@@ -247,7 +247,7 @@ public class E_MarkovBaselineLearn {
                     gr_RuntimeOfLearners.configureTextLabels(-3.5, 1, 0.5);
                     gr_RuntimeOfLearners.setMargins(3, 3, 0.2, 0.2);
 
-                    double densitySumReferenceCurrent = 0;
+                    double densitySumReferenceCurrent = 0, densitySumReferenceStatesIdentifiedCurrent=0;
                     int countLTSReferenceCurrent = 0;
 
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiff, null, null, null);
@@ -265,12 +265,15 @@ public class E_MarkovBaselineLearn {
                                 if (column.learner.isMarkov()) {
                                     gr_PerformanceOfLearnersAllDensities.makeLabelBold(column.learner.nameForPDF);
                                     gr_PerformanceOfLearners.makeLabelBold(column.learner.nameForPDF);
+
+                                    densitySumReferenceAll += obtainDoubleValueFromCell(entry.getValue(),E_DENSITY_REFERENCE, column);countLTSReferenceAll += 1;
+                                    densitySumReferenceCurrent += obtainDoubleValueFromCell(entry.getValue(),E_DENSITY_REFERENCE, column);countLTSReferenceCurrent += 1;
+                                    densitySumReferenceStatesIdentifiedAll += obtainDoubleValueFromCell(entry.getValue(),E_FRACTION_SINGLETONS, column);
+                                    densitySumReferenceStatesIdentifiedCurrent += obtainDoubleValueFromCell(entry.getValue(),E_FRACTION_SINGLETONS, column);
                                 }
 //                                        gr_RuntimeOfLearners.add(column.learner.reportedName + (learntOK ? "-OK" : "Err"), obtainDoubleValueFromCell(entry.getValue(), E_RUNTIME,column), learntOK ? null : "red", null);
                                 gr_RuntimeOfLearners.add(column.learner.reportedName.replace('@', '\n'), obtainDoubleValueFromCell(entry.getValue(), E_RUNTIME, column), null, null);
 
-                                densitySumReferenceAll += obtainDoubleValueFromCell(entry.getValue(),E_DENSITY_REFERENCE, column);countLTSReferenceAll += 1;
-                                densitySumReferenceCurrent += obtainDoubleValueFromCell(entry.getValue(),E_DENSITY_REFERENCE, column);countLTSReferenceCurrent += 1;
                             }
                         }
                     }
@@ -278,10 +281,10 @@ public class E_MarkovBaselineLearn {
                     gr_PerformanceOfLearners.reportResults(learningGroup.gr);gr_PerformanceOfLearnersAllDensities.reportResults(learningGroup.gr);
                     gr_RuntimeOfLearners.reportResults(learningGroup.gr);
 
-                    System.out.println("States: "+states+", density parameter: "+perStateSquaredDensity100+" actual density: "+densitySumReferenceCurrent/countLTSReferenceCurrent);
+                    System.out.println("States: "+states+", density parameter: "+perStateSquaredDensity100+" actual density: "+densitySumReferenceCurrent/countLTSReferenceCurrent+" states identified by singletons: "+densitySumReferenceStatesIdentifiedCurrent/countLTSReferenceCurrent);
 //                    report.reportResults();
                 }
-                System.out.println("States: "+states+" actual density: "+densitySumReferenceAll/countLTSReferenceAll);
+                System.out.println("States: "+states+" actual density: "+densitySumReferenceAll/countLTSReferenceAll+" states identified by singletons: "+densitySumReferenceStatesIdentifiedAll/countLTSReferenceAll);
             }
 //            resultCSV.moveFiles();
         }

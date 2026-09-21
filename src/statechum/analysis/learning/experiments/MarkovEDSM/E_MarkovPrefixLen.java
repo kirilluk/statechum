@@ -124,7 +124,6 @@ public class E_MarkovPrefixLen {
                             new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_(gooddensity)_density_learnt_structural.pdf"));
                     gr_StructuralVsChunkLenWeight_gooddensity.setupForTwoLineXLabels();
 
-
 //                    gr_StructuralVsChunkLenWeight.setXLine(4);
 //                    gr_StructuralVsChunkLenWeight.setMargins(5,4,0,0);
                     final Map<Integer,RBoxPlot<String>> gr_StructuralVsChunkLenWeightForDensity = new TreeMap();
@@ -275,17 +274,18 @@ public class E_MarkovPrefixLen {
                                         value, null, null);
                                 correlation_gr_StructuralVsReferenceInconsistencyAccuracy.add(markovReferenceInconsistencyAccuracy,
                                         value, null, null);
-                                gr_StructuralVsInconsistencyPerChunkLen.add(Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 10)),learningReport.structural);
+                                gr_StructuralVsInconsistencyPerChunkLen.add(obtainDoubleValueFromCell(learningReport.Yvalues, E_INCONSISTENCY_LEARNT, learningReport.column),learningReport.structural);
 
-                                gr_StructuralVsReferenceDensity.add(Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 24)),value);
+                                gr_StructuralVsReferenceDensity.add(obtainDoubleValueFromCell(learningReport.Yvalues,E_DENSITY_REFERENCE, learningReport.column),value);
+
                                 if (goodDensity)
-                                    gr_StructuralVsReferenceDensity_gooddensity.add(Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 24)),value);
-                                double cappedObtainedDensity = Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 25));
+                                    gr_StructuralVsReferenceDensity_gooddensity.add(obtainDoubleValueFromCell(learningReport.Yvalues,E_DENSITY_REFERENCE, learningReport.column),value);
+                                double cappedObtainedDensity = obtainDoubleValueFromCell(learningReport.Yvalues, E_DENSITY_LEARNT, learningReport.column);
                                 if (cappedObtainedDensity >= 1)
                                     cappedObtainedDensity = 1;
                                 gr_StructuralVsLearntDensity.add(cappedObtainedDensity,value);
                                 if (goodDensity)
-                                gr_StructuralVsLearntDensity_gooddensity.add(cappedObtainedDensity,value);
+                                    gr_StructuralVsLearntDensity_gooddensity.add(cappedObtainedDensity,value);
                             }
                         }
 

@@ -231,6 +231,9 @@ public class E_MarkovBaselineLearn {
                 final DrawGraphs.SquareBagPlot gr_StructuralDiffAllDensities = new DrawGraphs.SquareBagPlot("Structural score, HV", "Structural Score, EM",
                         new File(learningGroup.outPathPrefix + File.separator + description + "_" + states + "_HV_structuraldiff.pdf"), 0, 1, true);
 
+                double densitySumReferenceAll = 0;
+                int countLTSReferenceAll = 0;
+
                 for (int perStateSquaredDensity100 : MarkovExperiment.densityFromStateNumber(states)) {
                     FilterCollectionOfResultsForBestPerformingLearner report = new FilterCollectionOfResultsForBestPerformingLearner(states, perStateSquaredDensity100, resultCSV, validityOfCells);
                     final DrawGraphs.SquareBagPlot gr_StructuralDiff = new DrawGraphs.SquareBagPlot("Structural score, HV", "Structural Score, EM",
@@ -243,6 +246,10 @@ public class E_MarkovBaselineLearn {
                     gr_RuntimeOfLearners.setupForTwoLineXLabels();
                     gr_RuntimeOfLearners.configureTextLabels(-3.5, 1, 0.5);
                     gr_RuntimeOfLearners.setMargins(3, 3, 0.2, 0.2);
+
+                    double densitySumReferenceCurrent = 0;
+                    int countLTSReferenceCurrent = 0;
+
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiff, null, null, null);
                     report.getResultForBestPerformingMarkovLearner(gr_StructuralDiffAllDensities, null, null, null);
                     for (Map.Entry<String, Map<String, String>> rowEntry : resultCSV.rowColumnText.entrySet()) {
@@ -261,14 +268,20 @@ public class E_MarkovBaselineLearn {
                                 }
 //                                        gr_RuntimeOfLearners.add(column.learner.reportedName + (learntOK ? "-OK" : "Err"), obtainDoubleValueFromCell(entry.getValue(), E_RUNTIME,column), learntOK ? null : "red", null);
                                 gr_RuntimeOfLearners.add(column.learner.reportedName.replace('@', '\n'), obtainDoubleValueFromCell(entry.getValue(), E_RUNTIME, column), null, null);
+
+                                densitySumReferenceAll += obtainDoubleValueFromCell(entry.getValue(),E_DENSITY_REFERENCE, column);countLTSReferenceAll += 1;
+                                densitySumReferenceCurrent += obtainDoubleValueFromCell(entry.getValue(),E_DENSITY_REFERENCE, column);countLTSReferenceCurrent += 1;
                             }
                         }
                     }
                     gr_StructuralDiff.reportResults(learningGroup.gr);gr_StructuralDiffAllDensities.reportResults(learningGroup.gr);
                     gr_PerformanceOfLearners.reportResults(learningGroup.gr);gr_PerformanceOfLearnersAllDensities.reportResults(learningGroup.gr);
                     gr_RuntimeOfLearners.reportResults(learningGroup.gr);
+
+                    System.out.println("States: "+states+", density parameter: "+perStateSquaredDensity100+" actual density: "+densitySumReferenceCurrent/countLTSReferenceCurrent);
 //                    report.reportResults();
                 }
+                System.out.println("States: "+states+" actual density: "+densitySumReferenceAll/countLTSReferenceAll);
             }
 //            resultCSV.moveFiles();
         }

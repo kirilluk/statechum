@@ -106,7 +106,7 @@ public class E_MarkovPrefixLen {
             for (final int preset : learnerExperiment) {
                 String experimentName = learningGroup.outPathPrefix + File.separator + File.separator + description+"_";
                 for (int states : learningGroup.statesToUse) {
-                    final RBoxPlot<String> gr_StructuralVsChunkLenWeight = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
+                    final RBoxPlot<String> gr_StructuralVsChunkLenWeight = new RBoxPlot<>("Prefix length and inconsistency weight", "Structural Score",
                             new File(experimentName + states + "_prefixLenInconsistencyWeight_structural.pdf"));
                     final DrawGraphs.RBagPlot gr_StructuralVsReferenceDensity = new DrawGraphs.RBagPlot("Density of Reference", "Structural Score",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_density_reference_structural.pdf"));
@@ -116,14 +116,13 @@ public class E_MarkovPrefixLen {
 //                    gr_StructuralVsChunkLenWeight.configureTextLabels(-0.2,1,0.5);
 //                    gr_StructuralVsChunkLenWeight.setXLine(3.2);
 //                    gr_StructuralVsChunkLenWeight.setMargins(4.2,3,0.2,0.2);
-                    final RBoxPlot<String> gr_StructuralVsChunkLenWeight_gooddensity = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
+                    final RBoxPlot<String> gr_StructuralVsChunkLenWeight_gooddensity = new RBoxPlot<>("Prefix length and inconsistency weight", "Structural Score",
                             new File(experimentName + states + "_(gooddensity)_prefixLenInconsistencyWeight_structural.pdf"));
                     final DrawGraphs.RBagPlot gr_StructuralVsReferenceDensity_gooddensity = new DrawGraphs.RBagPlot("Density of Reference", "Structural Score",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_(gooddensity)_density_reference_structural.pdf"));
                     final DrawGraphs.RBagPlot gr_StructuralVsLearntDensity_gooddensity = new DrawGraphs.RBagPlot("Density of Learnt", "Structural Score",
                             new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_(gooddensity)_density_learnt_structural.pdf"));
                     gr_StructuralVsChunkLenWeight_gooddensity.setupForTwoLineXLabels();
-
 
 //                    gr_StructuralVsChunkLenWeight.setXLine(4);
 //                    gr_StructuralVsChunkLenWeight.setMargins(5,4,0,0);
@@ -139,19 +138,19 @@ public class E_MarkovPrefixLen {
                                 new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + perStateSquaredDensity100 + "_inconsistency_structural.pdf"));
                         final SquareBagPlot gr_StructuralDiffEMvsHV = new SquareBagPlot("Structural score, EM", "Structural Score, HV",
                                 new File(learningGroup.outPathPrefix + File.separator + description+"_"+states+ "_" + perStateSquaredDensity100 + "_EM_vs_HV.pdf"), 0, 1, true);
-
+                        gr_StructuralVsInconsistency.setYLine(2.2);
                         spreadsheetToBagPlotNoZeroYValues(gr_StructuralVsInconsistency, source, new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_INCONSISTENCY_LEARNT,
                                 new ColLearner(LearningAlgorithms.ScoringToApply.SCORING_MARKOV), E_DIFF, null, null);
                         final boolean goodDensity = perStateSquaredDensity100 != MarkovExperiment.densityFromStateNumberPrefixLen(states)[densityFromStateNumberPrefixLen(states).length-1];
 
-                        {// structural score for different values of prefix length and inconsistency multiplier, considering offset
-                            RBoxPlot<String> graph = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
+                        {// structural score for different values of prefix length and inconsistency weight, considering offset
+                            RBoxPlot<String> graph = new RBoxPlot<>("Prefix length and inconsistency weight", "Structural Score",
                                     new File(experimentName + states + "_" + perStateSquaredDensity100 + "_prefixLenInconsistencyWeight_structural.pdf"));
                             gr_StructuralVsChunkLenWeightForDensity.put(perStateSquaredDensity100, graph);
                             graph.setupForTwoLineXLabels();
                         }
                         {// Results above for runs where learning did not fail on L_REDS
-                            RBoxPlot<String> graph = new RBoxPlot<>("Prefix length and inconsistency multiplier", "Structural Score",
+                            RBoxPlot<String> graph = new RBoxPlot<>("Prefix length and inconsistency weight", "Structural Score",
                                     new File(experimentName + states + "_" + perStateSquaredDensity100 + "_prefixLenInconsistencyWeight_NonFailStructural.pdf"));
                             gr_StructuralWhereDidNotFailVsChunkLenWeightForDensity.put(perStateSquaredDensity100, graph);
                             graph.setupForTwoLineXLabels();
@@ -203,12 +202,12 @@ public class E_MarkovPrefixLen {
                             int chunkLen = resultEntry.getKey();
                             DrawGraphs.RBagPlot gr_StructuralVsReferenceAccuracyAllDensities = map_StructuralVsReferenceAccuracyAllDensities.
                                     computeIfAbsent(chunkLen, k->
-                                            new DrawGraphs.RBagPlot("inconsistency inaccuracy, reference", "Structural Score",
+                                            new DrawGraphs.RBagPlot("Self-inconsistency, reference", "Structural Score",
                                                     new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + k + "_difference_vs_reference_relativeinconsistency.pdf")));
 
                             DrawGraphs.RBagPlot gr_StructuralVsReferenceInconsistencyAccuracy = map_StructuralVsReferenceInconsistencyAccuracy.
                                     computeIfAbsent(chunkLen, k->{
-                                        DrawGraphs.RBagPlot plot = new DrawGraphs.RBagPlot("Inconsistency inaccuracy, reference", "Structural Score",
+                                        DrawGraphs.RBagPlot plot = new DrawGraphs.RBagPlot("Self-inconsistency, reference", "Structural Score",
                                             new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + perStateSquaredDensity100 + "_" + k +"_difference_vs_reference_inconsistencyaccuracy.pdf"));
                                         if (states >= 40) {
                                             plot.setMargins(3, 3.5, 0.2, 0.2);
@@ -240,7 +239,7 @@ public class E_MarkovPrefixLen {
                             DrawGraphs.RBagPlot gr_StructuralVsLearntInconsistencyAccuracy =  map_StructuralVsLearntInconsistencyAccuracy.
                                     computeIfAbsent(chunkLen, k->{
                                         DrawGraphs.RBagPlot plot =
-                                                        new DrawGraphs.RBagPlot("Inconsistency inaccuracy, learnt", "Structural Score",
+                                                        new DrawGraphs.RBagPlot("Self-inconsistency, learnt", "Structural Score",
                                             new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + perStateSquaredDensity100 + "_" + k +"_difference_vs_learnt_inconsistencyaccuracy.pdf"));
                                         if (states >= 40) {
                                             plot.setMargins(3, 3.5, 0.2, 0.2);
@@ -250,7 +249,7 @@ public class E_MarkovPrefixLen {
                                     });
                             DrawGraphs.RBagPlot gr_StructuralVsLearntInconsistencyAccuracyAllDensities =  map_StructuralVsLearntInconsistencyAccuracyAllDensities.
                                     computeIfAbsent(chunkLen, k->
-                                            new DrawGraphs.RBagPlot("Inconsistency inaccuracy, learnt", "Structural Score",
+                                            new DrawGraphs.RBagPlot("Self-inconsistency, learnt", "Structural Score",
                                     new File(learningGroup.outPathPrefix + File.separator + description+"_" + states + "_" + k +"_difference_vs_learnt_inconsistencyaccuracy.pdf")));
 
                             DrawGraphs.RBagPlot gr_StructuralVsInconsistencyPerChunkLen = map_StructuralVsInconsistencyForChunkLen.
@@ -275,17 +274,18 @@ public class E_MarkovPrefixLen {
                                         value, null, null);
                                 correlation_gr_StructuralVsReferenceInconsistencyAccuracy.add(markovReferenceInconsistencyAccuracy,
                                         value, null, null);
-                                gr_StructuralVsInconsistencyPerChunkLen.add(Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 10)),learningReport.structural);
+                                gr_StructuralVsInconsistencyPerChunkLen.add(obtainDoubleValueFromCell(learningReport.Yvalues, E_INCONSISTENCY_LEARNT, learningReport.column),learningReport.structural);
 
-                                gr_StructuralVsReferenceDensity.add(Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 24)),value);
+                                gr_StructuralVsReferenceDensity.add(obtainDoubleValueFromCell(learningReport.Yvalues,E_DENSITY_REFERENCE, learningReport.column),value);
+
                                 if (goodDensity)
-                                    gr_StructuralVsReferenceDensity_gooddensity.add(Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 24)),value);
-                                double cappedObtainedDensity = Double.parseDouble(obtainValueFromCell(learningReport.Yvalues, 25));
+                                    gr_StructuralVsReferenceDensity_gooddensity.add(obtainDoubleValueFromCell(learningReport.Yvalues,E_DENSITY_REFERENCE, learningReport.column),value);
+                                double cappedObtainedDensity = obtainDoubleValueFromCell(learningReport.Yvalues, E_DENSITY_LEARNT, learningReport.column);
                                 if (cappedObtainedDensity >= 1)
                                     cappedObtainedDensity = 1;
                                 gr_StructuralVsLearntDensity.add(cappedObtainedDensity,value);
                                 if (goodDensity)
-                                gr_StructuralVsLearntDensity_gooddensity.add(cappedObtainedDensity,value);
+                                    gr_StructuralVsLearntDensity_gooddensity.add(cappedObtainedDensity,value);
                             }
                         }
 

@@ -11,7 +11,7 @@
 
 cmake_minimum_required ( VERSION 3.19 )
 
-set ( STATECHUMSOLVER_DATE "Apr 3, 2026" )
+set ( STATECHUMSOLVER_DATE "Oct 5, 2026" )
 set ( STATECHUMSOLVER_VERSION_MAJOR 1 )
 set ( STATECHUMSOLVER_VERSION_MINOR 0 )
 set ( STATECHUMSOLVER_VERSION_PATCH 0 )
@@ -35,8 +35,6 @@ if ( WIN32 )
 endif ( )
 
 set ( CMAKE_MACOSX_RPATH TRUE )
-enable_language ( C CXX )
-include ( GNUInstallDirs )
 
 # set the module path for all Find*.cmake files.
 set ( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
@@ -51,25 +49,36 @@ set ( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH}
 project ( StatechumSolver
     VERSION "${STATECHUMSOLVER_VERSION_MAJOR}.${STATECHUMSOLVER_VERSION_MINOR}.${STATECHUMSOLVER_VERSION_PATCH}"
     LANGUAGES C )
+enable_language ( C CXX )
+include ( GNUInstallDirs )
 
-if (EXISTS ${CMAKE_SOURCE_DIR}/../lib/cmake/SuiteSparse OR EXISTS ${CMAKE_INSTALL_PREFIX}/lib/cmake/SuiteSparse)
+
+SET(POSSIBLE_MODULE_PATH ${CMAKE_SOURCE_DIR}/../lib/cmake/SuiteSparse ${CMAKE_INSTALL_PREFIX}/lib/cmake/SuiteSparse ${LOCAL_SOFT}/SuiteSparse/lib64/cmake)
+set(POSSIBLE_PATH_VALID FALSE)
+foreach(PP ${POSSIBLE_MODULE_PATH})
+	message("Looking at: ${PP}")
+	if (EXISTS ${PP})
+		set(POSSIBLE_PATH_VALID TRUE)
+		FILE(GLOB subdirs RELATIVE ${PP} ${PP}/* )
+		foreach(subdir ${subdirs})
+			if (IS_DIRECTORY "${PP}/${subdir}")
+				LIST(APPEND CMAKE_PREFIX_PATH "${PP}/${subdir}")
+			endif()
+		endforeach()
+		LIST(APPEND CMAKE_MODULE_PATH "${PP}")
+	endif()
+endforeach()
+if (${POSSIBLE_PATH_VALID})
+#if (EXISTS ${CMAKE_SOURCE_DIR}/../lib/cmake/SuiteSparse OR EXISTS ${CMAKE_INSTALL_PREFIX}/lib/cmake/SuiteSparse OR EXISTS ${CMAKE_INSTALL_PREFIX}/SuiteSparse/lib64/cmake/SuiteSparse)
 #-------------------------------------------------------------------------------
 # find library dependencies
 #-------------------------------------------------------------------------------
 
 # look for relevant SuiteSparse packages:
-find_package ( SuiteSparse_config 7.0.0 REQUIRED )
-find_package ( AMD 3.0.3 REQUIRED )
-find_package ( CAMD 3.0.3 REQUIRED )
-find_package ( CCOLAMD 3.0.3 REQUIRED )
-find_package ( COLAMD 3.0.3 REQUIRED )
-find_package ( CHOLMOD 4.0.3 REQUIRED )
 find_package ( UMFPACK 6.1.0 REQUIRED )
 SET(SUITESPARSE_LIBS
-        ${AMD_STATIC}
-        ${CAMD_static} ${CCOLAMD_STATIC} ${COLAMD_STATIC}
-        ${SUITESPARSE_CONFIG_STATIC} ${UMFPACK_STATIC})
-include ( SuiteSparseBLAS )
+        SuiteSparse::UMFPACK)
+message("Libs: ${SUITESPARSE_LIBS}")
 else()
 find_library(SUITESPARSE_CONFIG_LIB NAMES ${CMAKE_FIND_LIBRARY_PREFIXES}suitesparseconfig.so) 
 find_library(AMD_LIB NAMES ${CMAKE_FIND_LIBRARY_PREFIXES}amd.so)
